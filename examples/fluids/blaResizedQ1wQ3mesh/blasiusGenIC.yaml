@@ -11,8 +11,8 @@ ts_error_if_step_fails: 0
 implicit: true
 ts:
   adapt_type: 'none'
-#  type: 'beuler'
-  type: 'alpha'
+  type: 'beuler'
+#  type: 'alpha'
   alpha_radius: 0.5
   dt: 3.6e-4
   #max_steps: 10
