@@ -152,6 +152,8 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   // Empty name for conserved field (because there is only one field)
   PetscSection section;
   PetscCall(DMGetLocalSection(*dm, &section));
+  PetscCall(PetscSectionViewFromOptions(section, NULL, "-sectionAfterProject"));
+
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
   switch (phys->state_var) {
     case STATEVAR_CONSERVATIVE:
