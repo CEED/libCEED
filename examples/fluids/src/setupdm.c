@@ -37,6 +37,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData problem, MatType mat_type, Ve
 
   // Set CL options
   PetscCall(DMSetFromOptions(*dm));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After DMSetFromOptions in CreateDM in setupdm.c : \n"));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -63,6 +64,9 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   PetscOptionsEnd();
 
   PetscBool has_NL_vector, has_NL_vectord;
+
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Just inside of SetUpDM in setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
   PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
   if (has_NL_vector) {
@@ -97,9 +101,16 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   }
 
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMSetupByOrderBegin in src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
+  PetscBool setupFace = PETSC_TRUE;
+  PetscBool setupCoord = PETSC_TRUE;
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-dm_setupFace", &setupFace, NULL));
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-dm_setupCoord", &setupCoord, NULL));
 
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
+// FAILED BOTH  PetscCall(DMSetupByOrderBegin_FEM(PETSC_FALSE, PETSC_FALSE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
+  PetscCall(DMSetupByOrderBegin_FEM(setupFace, setupCoord, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before bcwork in src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
   {  // Add strong boundary conditions to DM
     DMLabel label;
     PetscCall(DMGetLabel(*dm, "Face Sets", &label));
@@ -130,7 +141,9 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     }
   }
 
-  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMSetupByOrderEnd_FEMin src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
+  PetscCall(DMSetupByOrderEnd_FEM(setupCoord, *dm));
 
   if (has_NL_vector && !SkipProjection) {
     Vec old_InitialCondition_loc, new_InitialCondition_loc;
@@ -141,6 +154,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
                     PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
 
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMProjectFieldLocal in src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
     PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_ALL_VALUES, new_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
@@ -148,6 +162,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     PetscCall(DMDestroy(&old_dm));
   }
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After DMProjectFieldLocal in src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
   // Empty name for conserved field (because there is only one field)
   PetscSection section;
@@ -172,6 +187,8 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "bottom of SetUpDM in src/setupdm.c : \n"));
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

@@ -179,6 +179,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before setupDM navierstokes.c : \n"));
   PetscCall(SetUpDM(&dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After setupDM navierstokes.c : \n"));
+  PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
   user->dm = dm;
 
   // -- Refine DM for high-order viz
