@@ -40,14 +40,14 @@ PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
 // Set up libCEED for a given degree
 // -----------------------------------------------------------------------------
 PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topo_dim, CeedInt q_extra, PetscInt num_comp_x, PetscInt num_comp_u,
-                                    PetscInt g_size, PetscInt xl_size, BPData bp_data, CeedData data, PetscBool setup_rhs, CeedVector rhs_ceed,
-                                    CeedVector *target) {
+                                    PetscInt g_size, PetscInt xl_size, BPData bp_data, CeedData data, PetscBool setup_rhs, PetscBool is_fine_level,
+                                    CeedVector rhs_ceed, CeedVector *target) {
   DM                  dm_coord;
   Vec                 coords;
   const PetscScalar  *coord_array;
   CeedBasis           basis_x, basis_u;
   CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
-  CeedQFunction       qf_setup_geo, qf_apply;
+  CeedQFunction       qf_setup_geo = NULL, qf_apply = NULL;
   CeedOperator        op_setup_geo, op_apply;
   CeedVector          x_coord, q_data, x_ceed, y_ceed;
   PetscInt            c_start, c_end, num_elem;
@@ -86,36 +86,42 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   CeedVectorCreate(ceed, xl_size, &x_ceed);
   CeedVectorCreate(ceed, xl_size, &y_ceed);
 
-  // Create the QFunction that builds the context data
-  CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_geo, bp_data.setup_geo_loc, &qf_setup_geo);
-  CeedQFunctionAddInput(qf_setup_geo, "x", num_comp_x, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_setup_geo, "dx", num_comp_x * topo_dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_setup_geo, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddOutput(qf_setup_geo, "qdata", q_data_size, CEED_EVAL_NONE);
+  if (is_fine_level) {
+    // Create the QFunction that builds the context data
+    CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_geo, bp_data.setup_geo_loc, &qf_setup_geo);
+    CeedQFunctionAddInput(qf_setup_geo, "x", num_comp_x, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_setup_geo, "dx", num_comp_x * topo_dim, CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(qf_setup_geo, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(qf_setup_geo, "qdata", q_data_size, CEED_EVAL_NONE);
 
-  // Create the operator that builds the quadrature data
-  CeedOperatorCreate(ceed, qf_setup_geo, NULL, NULL, &op_setup_geo);
-  CeedOperatorSetField(op_setup_geo, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_geo, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+    // Create the operator that builds the quadrature data
+    CeedOperatorCreate(ceed, qf_setup_geo, NULL, NULL, &op_setup_geo);
+    CeedOperatorSetField(op_setup_geo, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setup_geo, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
+    CeedOperatorSetField(op_setup_geo, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
-  // Setup q_data
-  CeedOperatorApply(op_setup_geo, x_coord, q_data, CEED_REQUEST_IMMEDIATE);
+    // Setup q_data
+    CeedOperatorApply(op_setup_geo, x_coord, q_data, CEED_REQUEST_IMMEDIATE);
 
-  // Set up PDE operator
-  CeedInt in_scale  = bp_data.in_mode == CEED_EVAL_GRAD ? topo_dim : 1;
-  CeedInt out_scale = bp_data.out_mode == CEED_EVAL_GRAD ? topo_dim : 1;
-  CeedQFunctionCreateInterior(ceed, 1, bp_data.apply, bp_data.apply_loc, &qf_apply);
-  CeedQFunctionAddInput(qf_apply, "u", num_comp_u * in_scale, bp_data.in_mode);
-  CeedQFunctionAddInput(qf_apply, "qdata", q_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_apply, "v", num_comp_u * out_scale, bp_data.out_mode);
+    // Set up PDE operator
+    CeedInt in_scale  = bp_data.in_mode == CEED_EVAL_GRAD ? topo_dim : 1;
+    CeedInt out_scale = bp_data.out_mode == CEED_EVAL_GRAD ? topo_dim : 1;
+    CeedQFunctionCreateInterior(ceed, 1, bp_data.apply, bp_data.apply_loc, &qf_apply);
+    CeedQFunctionAddInput(qf_apply, "u", num_comp_u * in_scale, bp_data.in_mode);
+    CeedQFunctionAddInput(qf_apply, "qdata", q_data_size, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_apply, "v", num_comp_u * out_scale, bp_data.out_mode);
 
-  // Create the mass or diff operator
-  CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
-  CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
-  CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    // Create the mass or diff operator
+    CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
+    CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
+    CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+
+    // Cleanup
+    CeedQFunctionDestroy(&qf_setup_geo);
+    CeedOperatorDestroy(&op_setup_geo);
+  }
 
   // Set up RHS if needed
   if (setup_rhs) {
@@ -151,10 +157,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
     CeedQFunctionDestroy(&qf_setup_rhs);
     CeedOperatorDestroy(&op_setup_rhs);
   }
-
   // Cleanup
-  CeedQFunctionDestroy(&qf_setup_geo);
-  CeedOperatorDestroy(&op_setup_geo);
   CeedVectorDestroy(&x_coord);
 
   // Save libCEED data required for level

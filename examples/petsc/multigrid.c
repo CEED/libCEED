@@ -155,10 +155,10 @@ int main(int argc, char **argv) {
 
   switch (coarsen) {
     case COARSEN_UNIFORM:
-      for (int i = 0; i < num_levels; i++) level_degrees[i] = i + 1;
+      for (PetscInt i = 0; i < num_levels; i++) level_degrees[i] = i + 1;
       break;
     case COARSEN_LOGARITHMIC:
-      for (int i = 0; i < num_levels - 1; i++) level_degrees[i] = pow(2, i);
+      for (PetscInt i = 0; i < num_levels - 1; i++) level_degrees[i] = pow(2, i);
       level_degrees[fine_level] = degree;
       break;
   }
@@ -199,7 +199,6 @@ int main(int argc, char **argv) {
 
     // Operator
     PetscCall(PetscMalloc1(1, &op_apply_ctx[i]));
-    PetscCall(PetscMalloc1(1, &op_error_ctx));
     PetscCall(MatCreateShell(comm, l_size[i], l_size[i], g_size[i], g_size[i], op_apply_ctx[i], &mat_O[i]));
     PetscCall(MatShellSetOperation(mat_O[i], MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_O[i], MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag));
@@ -267,7 +266,7 @@ int main(int argc, char **argv) {
     }
     PetscCall(PetscMalloc1(1, &ceed_data[i]));
     PetscCall(SetupLibceedByDegree(dm[i], ceed, level_degrees[i], dim, q_extra, dim, num_comp_u, g_size[i], xl_size[i], bp_options[bp_choice],
-                                   ceed_data[i], i == (fine_level), rhs_ceed, &target));
+                                   ceed_data[i], i == fine_level, i == fine_level, rhs_ceed, &target));
   }
 
   // Gather RHS
@@ -291,7 +290,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_error, "error", ceed_data[fine_level]->elem_restr_u, ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
-  for (int i = 0; i < num_levels; i++) {
+  for (PetscInt i = 0; i < num_levels; i++) {
     PetscMemType mem_type;
 
     // CEED vector
@@ -322,7 +321,7 @@ int main(int argc, char **argv) {
   }
 
   // Set up Mat
-  for (int i = 0; i < num_levels; i++) {
+  for (PetscInt i = fine_level; i >= 0; i--) {
     // Set up apply operator context
     PetscCall(SetupApplyOperatorCtx(comm, dm[i], ceed, ceed_data[i], X_loc[i], op_apply_ctx[i]));
 
@@ -335,8 +334,8 @@ int main(int argc, char **argv) {
       pr_restr_ctx[i]->loc_vec_c   = X_loc[i - 1];
       pr_restr_ctx[i]->loc_vec_f   = op_apply_ctx[i]->Y_loc;
       pr_restr_ctx[i]->mult_vec    = mult[i];
-      pr_restr_ctx[i]->ceed_vec_c  = op_apply_ctx[i - 1]->x_ceed;
-      pr_restr_ctx[i]->ceed_vec_f  = op_apply_ctx[i]->y_ceed;
+      pr_restr_ctx[i]->ceed_vec_c  = ceed_data[i - 1]->x_ceed;
+      pr_restr_ctx[i]->ceed_vec_f  = ceed_data[i]->y_ceed;
       pr_restr_ctx[i]->op_prolong  = ceed_data[i]->op_prolong;
       pr_restr_ctx[i]->op_restrict = ceed_data[i]->op_restrict;
       pr_restr_ctx[i]->ceed        = ceed;
@@ -393,7 +392,7 @@ int main(int argc, char **argv) {
 
     // PCMG levels
     PetscCall(PCMGSetLevels(pc, num_levels, NULL));
-    for (int i = 0; i < num_levels; i++) {
+    for (PetscInt i = 0; i < num_levels; i++) {
       // Smoother
       KSP smoother;
       PC  smoother_pc;
@@ -502,6 +501,7 @@ int main(int argc, char **argv) {
     }
     {
       // Set up error operator context
+      PetscCall(PetscMalloc1(1, &op_error_ctx));
       PetscCall(SetupErrorOperatorCtx(comm, dm[fine_level], ceed, ceed_data[fine_level], X_loc[fine_level], op_error, op_error_ctx));
       PetscScalar l2_error;
       PetscCall(ComputeL2Error(X[fine_level], &l2_error, op_error_ctx));
@@ -532,7 +532,7 @@ int main(int argc, char **argv) {
   }
 
   // Cleanup
-  for (int i = 0; i < num_levels; i++) {
+  for (PetscInt i = 0; i < num_levels; i++) {
     PetscCall(VecDestroy(&X[i]));
     PetscCall(VecDestroy(&X_loc[i]));
     PetscCall(VecDestroy(&mult[i]));
