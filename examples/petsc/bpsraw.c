@@ -438,9 +438,6 @@ int main(int argc, char **argv) {
   PetscCall(VecSetFromOptions(X));
   PetscCall(VecSetUp(X));
 
-  // Set up libCEED
-  CeedInit(ceed_resource, &ceed);
-
   // Print summary
   PetscInt gsize;
 
@@ -798,21 +795,22 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&op_apply_ctx->y_ceed);
   CeedVectorDestroy(&op_apply_ctx->q_data);
   CeedVectorDestroy(&target);
-  CeedOperatorDestroy(&op_setup_geo);
-  CeedOperatorDestroy(&op_setup_rhs);
-  CeedOperatorDestroy(&op_apply);
-  CeedOperatorDestroy(&op_error);
   CeedElemRestrictionDestroy(&elem_restr_u);
   CeedElemRestrictionDestroy(&elem_restr_x);
   CeedElemRestrictionDestroy(&elem_restr_u_i);
   CeedElemRestrictionDestroy(&elem_restr_qd_i);
+  CeedBasisDestroy(&basis_u);
+  CeedBasisDestroy(&basis_x);
   CeedQFunctionDestroy(&qf_setup_geo);
   CeedQFunctionDestroy(&qf_setup_rhs);
   CeedQFunctionDestroy(&qf_apply);
   CeedQFunctionDestroy(&qf_error);
-  CeedBasisDestroy(&basis_u);
-  CeedBasisDestroy(&basis_x);
+  CeedOperatorDestroy(&op_setup_geo);
+  CeedOperatorDestroy(&op_setup_rhs);
+  CeedOperatorDestroy(&op_apply);
+  CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
+
   PetscCall(PetscFree(op_apply_ctx));
   return PetscFinalize();
 }
