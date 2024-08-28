@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
   delete fespace;
   delete fec;
   delete mesh;
+  delete D;
   CeedDestroy(&ceed);
   return 0;
 }
