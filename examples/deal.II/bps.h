@@ -160,13 +160,13 @@ public:
    */
   ~OperatorCeed()
   {
-    CeedOperatorDestroy(&op_apply);
-    CeedQFunctionDestroy(&qf_apply);
-    CeedQFunctionContextDestroy(&build_ctx);
     CeedVectorDestroy(&q_data);
     CeedElemRestrictionDestroy(&q_data_restriction);
     CeedElemRestrictionDestroy(&sol_restriction);
     CeedBasisDestroy(&sol_basis);
+    CeedQFunctionContextDestroy(&build_ctx);
+    CeedQFunctionDestroy(&qf_apply);
+    CeedOperatorDestroy(&op_apply);
     CeedDestroy(&ceed);
   }
 
@@ -641,15 +641,15 @@ private:
 
     CeedOperatorApply(op_build, node_coords, q_data, CEED_REQUEST_IMMEDIATE);
 
-    CeedOperatorDestroy(&op_build);
-    CeedQFunctionDestroy(&qf_build);
-    CeedQFunctionContextDestroy(&build_ctx);
-    CeedElemRestrictionDestroy(&geo_restriction);
     CeedVectorDestroy(&node_coords);
-    CeedElemRestrictionDestroy(&q_data_restriction);
     CeedVectorSyncArray(q_data, CEED_MEM_HOST);
     CeedVectorDestroy(&q_data);
+    CeedElemRestrictionDestroy(&geo_restriction);
+    CeedElemRestrictionDestroy(&q_data_restriction);
     CeedBasisDestroy(&geo_basis);
+    CeedQFunctionContextDestroy(&build_ctx);
+    CeedQFunctionDestroy(&qf_build);
+    CeedOperatorDestroy(&op_build);
 
     return weights;
   }
