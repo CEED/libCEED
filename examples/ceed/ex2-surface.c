@@ -202,7 +202,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunction qf_apply;
   if (gallery) {
     // This creates the QFunction via the gallery.
-    char name[16] = "";
+    char name[25] = "";
     snprintf(name, sizeof name, "Poisson%" CeedInt_FMT "DApply", dim);
     CeedQFunctionCreateInteriorByName(ceed, name, &qf_apply);
   } else {
