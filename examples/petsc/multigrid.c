@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
 
   // Setup DM and Operator Mat Shells for each level
-  for (CeedInt i = 0; i < num_levels; i++) {
+  for (PetscInt i = 0; i < num_levels; i++) {
     // Create DM
     PetscCall(DMClone(dm_orig, &dm[i]));
     PetscCall(DMGetVecType(dm_orig, &vec_type));
