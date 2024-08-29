@@ -167,7 +167,7 @@ main(int argc, char *argv[])
 #ifdef DEAL_II_WITH_P4EST
   parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
 #else
-  parallel::shared::Triangulation<dim> tria(MPI_COMM_WORLD, ::Triangulation<dim>::none, true);
+  Triangulation<dim> tria;
 #endif
 
   GridGenerator::hyper_cube(tria);

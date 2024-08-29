@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   // Setup libCEED's objects and apply setup operator
   PetscCall(PetscMalloc1(1, &ceed_data));
   PetscCall(SetupLibceedByDegree(dm, ceed, degree, topo_dim, q_extra, num_comp_x, num_comp_u, g_size, xl_size, problem_options[problem_choice],
-                                 ceed_data, false, (CeedVector)NULL, (CeedVector *)NULL));
+                                 ceed_data, false, true, (CeedVector)NULL, (CeedVector *)NULL));
 
   // Setup output vector
   PetscCall(VecZeroEntries(V_loc));

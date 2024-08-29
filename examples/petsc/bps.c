@@ -155,7 +155,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
 
   PetscCall(PetscMalloc1(1, &ceed_data));
   PetscCall(SetupLibceedByDegree(dm, ceed, rp->degree, rp->dim, rp->q_extra, rp->dim, rp->num_comp_u, g_size, xl_size, bp_options[rp->bp_choice],
-                                 ceed_data, true, rhs_ceed, &target));
+                                 ceed_data, true, true, rhs_ceed, &target));
 
   // Gather RHS
   PetscCall(VecC2P(rhs_ceed, mem_type, rhs_loc));

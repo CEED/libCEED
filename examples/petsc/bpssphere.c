@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
   // Setup libCEED's objects
   PetscCall(PetscMalloc1(1, &ceed_data));
   PetscCall(SetupLibceedByDegree(dm, ceed, degree, topo_dim, q_extra, num_comp_x, num_comp_u, g_size, xl_size, bp_options[bp_choice], ceed_data, true,
-                                 rhs_ceed, &target));
+                                 true, rhs_ceed, &target));
 
   // Gather RHS
   PetscCall(VecC2P(rhs_ceed, mem_type, rhs_loc));

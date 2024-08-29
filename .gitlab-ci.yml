@@ -100,8 +100,8 @@ noether-cpu:
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip-int64 && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids-navierstokes solids"
-# -- MFEM v4.6
-    - cd .. && export MFEM_VERSION=mfem-4.6 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.6 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
+# -- MFEM v4.7
+    - cd .. && export MFEM_VERSION=mfem-4.7 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.7 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=mfem
 # -- Nek5000 v19.0
@@ -265,8 +265,8 @@ noether-rocm:
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
-# -- MFEM v4.6
-    - cd .. && export MFEM_VERSION=mfem-4.6 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.6 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
+# -- MFEM v4.7
+    - cd .. && export MFEM_VERSION=mfem-4.7 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.7 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=mfem
 # -- Nek5000 v19.0
