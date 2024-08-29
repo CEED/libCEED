@@ -160,12 +160,6 @@ public:
    */
   ~OperatorCeed()
   {
-    CeedVectorDestroy(&q_data);
-    CeedElemRestrictionDestroy(&q_data_restriction);
-    CeedElemRestrictionDestroy(&sol_restriction);
-    CeedBasisDestroy(&sol_basis);
-    CeedQFunctionContextDestroy(&build_ctx);
-    CeedQFunctionDestroy(&qf_apply);
     CeedOperatorDestroy(&op_apply);
     CeedDestroy(&ceed);
   }
@@ -176,6 +170,14 @@ public:
   void
   reinit() override
   {
+    CeedVector           q_data;
+    CeedBasis            sol_basis;
+    CeedElemRestriction  sol_restriction;
+    CeedElemRestriction  q_data_restriction;
+    BuildContext         build_ctx_data;
+    CeedQFunctionContext build_ctx;
+    CeedQFunction        qf_apply;
+
     const auto &tria = dof_handler.get_triangulation();
     const auto &fe   = dof_handler.get_fe();
 
@@ -265,7 +267,7 @@ public:
 
     CeedQFunctionContextCreate(ceed, &build_ctx);
     CeedQFunctionContextSetData(
-      build_ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(build_ctx_data), &build_ctx_data);
+      build_ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(build_ctx_data), &build_ctx_data);
 
     // 5) create q operation
     if (bp == BPType::BP1)
@@ -299,6 +301,14 @@ public:
     CeedOperatorSetField(op_apply, "u", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
     CeedOperatorSetField(op_apply, "v", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
+
+    // 7) cleanup
+    CeedVectorDestroy(&q_data);
+    CeedElemRestrictionDestroy(&q_data_restriction);
+    CeedElemRestrictionDestroy(&sol_restriction);
+    CeedBasisDestroy(&sol_basis);
+    CeedQFunctionContextDestroy(&build_ctx);
+    CeedQFunctionDestroy(&qf_apply);
   }
 
   /**
@@ -693,15 +703,8 @@ private:
    * libCEED data structures.
    */
   Ceed                   ceed;
-  CeedBasis              sol_basis;
-  CeedElemRestriction    sol_restriction;
-  CeedElemRestriction    q_data_restriction;
   std::vector<double>    weights;
-  CeedVector             q_data;
   std::array<CeedInt, 3> strides;
-  BuildContext           build_ctx_data;
-  CeedQFunctionContext   build_ctx;
-  CeedQFunction          qf_apply;
   CeedOperator           op_apply;
 
   /**
