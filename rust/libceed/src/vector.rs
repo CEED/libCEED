@@ -787,10 +787,7 @@ impl<'a> VectorView<'a> {
                 &mut array,
             )
         })?;
-        Ok(Self {
-            vec: vec,
-            array: array,
-        })
+        Ok(Self { vec, array })
     }
 }
 
@@ -839,10 +836,7 @@ impl<'a> VectorViewMut<'a> {
                 &mut ptr,
             )
         })?;
-        Ok(Self {
-            vec: vec,
-            array: ptr,
-        })
+        Ok(Self { vec, array: ptr })
     }
 }
 
