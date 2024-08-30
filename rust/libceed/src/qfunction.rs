@@ -108,7 +108,7 @@ impl<'a> QFunctionField<'a> {
         unsafe {
             bind_ceed::CeedQFunctionFieldGetEvalMode(self.ptr, &mut mode);
         }
-        crate::EvalMode::from_u32(mode as u32)
+        crate::EvalMode::from_u32(mode)
     }
 }
 
@@ -476,7 +476,7 @@ impl<'a> QFunctionCore<'a> {
                 &mut num_inputs,
                 &mut inputs_ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
-                std::ptr::null_mut() as *mut *mut bind_ceed::CeedQFunctionField,
+                std::ptr::null_mut(),
             )
         };
         self.check_error(ierr)?;
@@ -495,7 +495,7 @@ impl<'a> QFunctionCore<'a> {
             bind_ceed::CeedQFunctionGetFields(
                 self.ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
-                std::ptr::null_mut() as *mut *mut bind_ceed::CeedQFunctionField,
+                std::ptr::null_mut(),
                 &mut num_outputs,
                 &mut outputs_ptr,
             )

@@ -799,10 +799,7 @@ impl<'a> VectorView<'a> {
             )
         };
         vec.check_error(ierr)?;
-        Ok(Self {
-            vec: vec,
-            array: array,
-        })
+        Ok(Self { vec, array })
     }
 }
 
@@ -852,10 +849,7 @@ impl<'a> VectorViewMut<'a> {
             )
         };
         vec.check_error(ierr)?;
-        Ok(Self {
-            vec: vec,
-            array: ptr,
-        })
+        Ok(Self { vec, array: ptr })
     }
 }
 
