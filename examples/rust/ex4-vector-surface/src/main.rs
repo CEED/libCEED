@@ -21,7 +21,9 @@
 // line argument (-ceed).
 
 use clap::Parser;
-use libceed::{prelude::*, Ceed};
+use libceed::{
+    BasisOpt, Ceed, ElemRestrictionOpt, QFunctionInputs, QFunctionOpt, QFunctionOutputs, VectorOpt,
+};
 mod opt;
 mod transform;
 
@@ -82,14 +84,19 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh =
-        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_mesh = ceed.basis_tensor_H1_Lagrange(
+        dim,
+        ncomp_x,
+        mesh_degree + 1,
+        num_qpts,
+        libceed::QuadMode::Gauss,
+    )?;
     let basis_solution = ceed.basis_tensor_H1_Lagrange(
         dim,
         ncomp_u,
         solution_degree + 1,
         num_qpts,
-        QuadMode::Gauss,
+        libceed::QuadMode::Gauss,
     )?;
 
     // Determine mesh size from approximate problem size
@@ -206,9 +213,9 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_build_closure = ceed
         .q_function_interior(1, Box::new(build_diff))?
-        .input("dx", ncomp_x * dim, EvalMode::Grad)?
-        .input("weights", 1, EvalMode::Weight)?
-        .output("qdata", dim * (dim + 1) / 2, EvalMode::None)?;
+        .input("dx", ncomp_x * dim, libceed::EvalMode::Grad)?
+        .input("weights", 1, libceed::EvalMode::Weight)?
+        .output("qdata", dim * (dim + 1) / 2, libceed::EvalMode::None)?;
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Poisson{}DBuild", dim);
@@ -301,9 +308,9 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_diff_closure = ceed
         .q_function_interior(1, Box::new(apply_diff))?
-        .input("du", dim * ncomp_u, EvalMode::Grad)?
-        .input("qdata", dim * (dim + 1) / 2, EvalMode::None)?
-        .output("dv", dim * ncomp_u, EvalMode::Grad)?;
+        .input("du", dim * ncomp_u, libceed::EvalMode::Grad)?
+        .input("qdata", dim * (dim + 1) / 2, libceed::EvalMode::None)?
+        .output("dv", dim * ncomp_u, libceed::EvalMode::Grad)?;
     // -- QFunction from gallery
     let qf_diff_named = {
         let name = format!("Vector3Poisson{}DApply", dim);
@@ -349,7 +356,7 @@ fn example_4(options: opt::Opt) -> libceed::Result<()> {
     op_diff.apply(&u, &mut v)?;
 
     // Compute the mesh surface area
-    let area: Scalar = v
+    let area: libceed::Scalar = v
         .view()?
         .iter()
         .map(|v| (*v).abs())

@@ -5,21 +5,19 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-use libceed::prelude::*;
-
 // ----------------------------------------------------------------------------
 // Transform mesh coordinates
 // ----------------------------------------------------------------------------
 pub(crate) fn transform_mesh_coordinates(
     dim: usize,
-    mesh_coords: &mut Vector,
-) -> libceed::Result<Scalar> {
+    mesh_coords: &mut libceed::Vector,
+) -> libceed::Result<libceed::Scalar> {
     // Transform coordinates
     for coord in mesh_coords.view_mut()?.iter_mut() {
         // map [0,1] to [0,1] varying the mesh density
         *coord = 0.5
-            + 1.0 / (3.0 as Scalar).sqrt()
-                * ((2.0 / 3.0) * std::f64::consts::PI as Scalar * (*coord - 0.5)).sin()
+            + 1.0 / (3.0 as libceed::Scalar).sqrt()
+                * ((2.0 / 3.0) * std::f64::consts::PI as libceed::Scalar * (*coord - 0.5)).sin()
     }
 
     // Exact surface area of transformed region

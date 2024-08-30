@@ -20,7 +20,9 @@
 // line argument (-ceed).
 
 use clap::Parser;
-use libceed::{prelude::*, Ceed};
+use libceed::{
+    BasisOpt, Ceed, ElemRestrictionOpt, QFunctionInputs, QFunctionOpt, QFunctionOutputs, VectorOpt,
+};
 mod opt;
 mod transform;
 
@@ -77,14 +79,19 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh =
-        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_mesh = ceed.basis_tensor_H1_Lagrange(
+        dim,
+        ncomp_x,
+        mesh_degree + 1,
+        num_qpts,
+        libceed::QuadMode::Gauss,
+    )?;
     let basis_solution = ceed.basis_tensor_H1_Lagrange(
         dim,
         ncomp_u,
         solution_degree + 1,
         num_qpts,
-        QuadMode::Gauss,
+        libceed::QuadMode::Gauss,
     )?;
 
     // Determine mesh size from approximate problem size
@@ -166,9 +173,9 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_build_closure = ceed
         .q_function_interior(1, Box::new(build_mass))?
-        .input("dx", ncomp_x * dim, EvalMode::Grad)?
-        .input("weights", 1, EvalMode::Weight)?
-        .output("qdata", 1, EvalMode::None)?;
+        .input("dx", ncomp_x * dim, libceed::EvalMode::Grad)?
+        .input("weights", 1, libceed::EvalMode::Weight)?
+        .output("qdata", 1, libceed::EvalMode::None)?;
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Mass{}DBuild", dim);
@@ -217,9 +224,9 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_mass_closure = ceed
         .q_function_interior(1, Box::new(apply_mass))?
-        .input("u", ncomp_u, EvalMode::Interp)?
-        .input("qdata", 1, EvalMode::None)?
-        .output("v", ncomp_u, EvalMode::Interp)?;
+        .input("u", ncomp_u, libceed::EvalMode::Interp)?
+        .input("qdata", 1, libceed::EvalMode::None)?
+        .output("v", ncomp_u, libceed::EvalMode::Interp)?;
     // -- QFunction from gallery
     let qf_mass_named = ceed.q_function_interior_by_name("Vector3MassApply")?;
     // -- QFunction for use with Operator
@@ -255,7 +262,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: Scalar = v.view()?.iter().sum::<libceed::Scalar>()
+    let volume: libceed::Scalar = v.view()?.iter().sum::<libceed::Scalar>()
         / ((ncomp_u * (ncomp_u + 1)) / 2) as libceed::Scalar;
 
     // Output results
