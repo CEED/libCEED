@@ -74,7 +74,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -121,7 +121,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -193,7 +193,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -255,7 +255,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -353,7 +353,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///
 /// // Operator field arguments
 /// let ne = 3;
-/// let q = 4 as usize;
+/// let q = 4_usize;
 /// let mut ind: Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
 ///     ind[2 * i + 0] = i as i32;
@@ -392,7 +392,7 @@ impl<'a> fmt::Display for Operator<'a> {
 ///
 /// // Sub operator field arguments
 /// let ne = 3;
-/// let q = 4 as usize;
+/// let q = 4_usize;
 /// let mut ind: Vec<i32> = vec![0; 2 * ne];
 /// for i in 0..ne {
 ///     ind[2 * i + 0] = i as i32;
@@ -584,7 +584,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -808,7 +808,7 @@ impl<'a> Operator<'a> {
         v: impl Into<VectorOpt<'b>>,
     ) -> crate::Result<Self> {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
-        let fieldname = fieldname.as_ptr() as *const i8;
+        let fieldname = fieldname.as_ptr();
         self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorSetField(
                 self.op_core.ptr,
@@ -831,7 +831,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -866,7 +866,7 @@ impl<'a> Operator<'a> {
                 &mut num_inputs,
                 &mut inputs_ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
-                std::ptr::null_mut() as *mut *mut bind_ceed::CeedOperatorField,
+                std::ptr::null_mut(),
             )
         })?;
         // Convert raw C pointers to fixed length slice
@@ -901,7 +901,7 @@ impl<'a> Operator<'a> {
     ///
     /// // Operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
@@ -934,7 +934,7 @@ impl<'a> Operator<'a> {
             bind_ceed::CeedOperatorGetFields(
                 self.op_core.ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
-                std::ptr::null_mut() as *mut *mut bind_ceed::CeedOperatorField,
+                std::ptr::null_mut(),
                 &mut num_outputs,
                 &mut outputs_ptr,
             )
@@ -2139,7 +2139,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// // Sub operator field arguments
     /// let ne = 3;
-    /// let q = 4 as usize;
+    /// let q = 4_usize;
     /// let mut ind: Vec<i32> = vec![0; 2 * ne];
     /// for i in 0..ne {
     ///     ind[2 * i + 0] = i as i32;
