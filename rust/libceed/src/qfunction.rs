@@ -10,7 +10,7 @@
 
 use std::pin::Pin;
 
-use crate::prelude::*;
+use crate::{prelude::*, vector::Vector, MAX_QFUNCTION_FIELDS};
 
 pub type QFunctionInputs<'a> = [&'a [crate::Scalar]; MAX_QFUNCTION_FIELDS];
 pub type QFunctionOutputs<'a> = [&'a mut [crate::Scalar]; MAX_QFUNCTION_FIELDS];
@@ -82,7 +82,7 @@ impl<'a> QFunctionField<'a> {
     /// Get the evaluation mode of a QFunctionField
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
@@ -150,7 +150,7 @@ impl<'a> QFunctionOpt<'a> {
     /// Check if a QFunctionOpt is Some
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOpt, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -191,7 +191,7 @@ impl<'a> QFunctionOpt<'a> {
     /// Check if a QFunctionOpt is SomeQFunction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOpt, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -232,7 +232,7 @@ impl<'a> QFunctionOpt<'a> {
     /// Check if a QFunctionOpt is SomeQFunctionByName
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOpt, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -282,7 +282,7 @@ impl<'a> QFunctionOpt<'a> {
     /// Check if a QFunctionOpt is None
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOpt, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -389,7 +389,7 @@ impl<'a> fmt::Display for QFunctionCore<'a> {
 /// View a QFunction
 ///
 /// ```
-/// # use libceed::prelude::*;
+/// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs};
 /// # fn main() -> libceed::Result<()> {
 /// # let ceed = libceed::Ceed::default_init();
 /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -466,7 +466,7 @@ impl<'a> QFunctionCore<'a> {
         self.check_error(ierr)
     }
 
-    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
         // Get array of raw C pointers for inputs
         let mut num_inputs = 0;
         let mut inputs_ptr = std::ptr::null_mut();
@@ -482,15 +482,12 @@ impl<'a> QFunctionCore<'a> {
         self.check_error(ierr)?;
         // Convert raw C pointers to fixed length slice
         let inputs_slice = unsafe {
-            std::slice::from_raw_parts(
-                inputs_ptr as *const crate::QFunctionField,
-                num_inputs as usize,
-            )
+            std::slice::from_raw_parts(inputs_ptr as *const QFunctionField, num_inputs as usize)
         };
         Ok(inputs_slice)
     }
 
-    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
         // Get array of raw C pointers for outputs
         let mut num_outputs = 0;
         let mut outputs_ptr = std::ptr::null_mut();
@@ -506,10 +503,7 @@ impl<'a> QFunctionCore<'a> {
         self.check_error(ierr)?;
         // Convert raw C pointers to fixed length slice
         let outputs_slice = unsafe {
-            std::slice::from_raw_parts(
-                outputs_ptr as *const crate::QFunctionField,
-                num_outputs as usize,
-            )
+            std::slice::from_raw_parts(outputs_ptr as *const QFunctionField, num_outputs as usize)
         };
         Ok(outputs_slice)
     }
@@ -661,7 +655,7 @@ impl<'a> QFunction<'a> {
     /// * `output` - Array of output Vectors
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -729,7 +723,7 @@ impl<'a> QFunction<'a> {
     ///                   gradients, `EvalMode::Weight` to use quadrature weights
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -780,7 +774,7 @@ impl<'a> QFunction<'a> {
     ///                   gradients
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -823,7 +817,7 @@ impl<'a> QFunction<'a> {
     /// Get a slice of QFunction inputs
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -847,14 +841,14 @@ impl<'a> QFunction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
         self.qf_core.inputs()
     }
 
     /// Get a slice of QFunction outputs
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -877,7 +871,7 @@ impl<'a> QFunction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
         self.qf_core.outputs()
     }
 }
@@ -909,7 +903,7 @@ impl<'a> QFunctionByName<'a> {
     /// * `output` - Array of output Vectors
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, QFunctionInputs, QFunctionOutputs, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 8;
@@ -982,7 +976,7 @@ impl<'a> QFunctionByName<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
         self.qf_core.inputs()
     }
 
@@ -1001,7 +995,7 @@ impl<'a> QFunctionByName<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn outputs(&self) -> crate::Result<&[crate::QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
         self.qf_core.outputs()
     }
 }

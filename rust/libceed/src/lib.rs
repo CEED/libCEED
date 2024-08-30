@@ -19,18 +19,6 @@ use crate::prelude::*;
 use std::sync::Once;
 
 pub mod prelude {
-    pub use crate::{
-        basis::{self, Basis, BasisOpt},
-        elem_restriction::{self, ElemRestriction, ElemRestrictionOpt},
-        operator::{self, CompositeOperator, Operator, OperatorField},
-        qfunction::{
-            self, QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt,
-            QFunctionOutputs,
-        },
-        vector::{self, Vector, VectorOpt, VectorSliceWrapper},
-        ElemTopology, EvalMode, MemType, NormType, QuadMode, Scalar, TransposeMode,
-        CEED_STRIDES_BACKEND, EPSILON, MAX_QFUNCTION_FIELDS,
-    };
     pub(crate) use libceed_sys::bind_ceed;
     pub(crate) use std::convert::TryFrom;
     pub(crate) use std::ffi::{CStr, CString};
@@ -156,6 +144,19 @@ impl fmt::Display for Error {
         write!(f, "{}", self.message)
     }
 }
+
+// -----------------------------------------------------------------------------
+// Internal error checker
+// -----------------------------------------------------------------------------
+pub use crate::{
+    basis::{Basis, BasisOpt},
+    elem_restriction::{ElemRestriction, ElemRestrictionOpt},
+    operator::{CompositeOperator, Operator, OperatorField},
+    qfunction::{
+        QFunction, QFunctionByName, QFunctionField, QFunctionInputs, QFunctionOpt, QFunctionOutputs,
+    },
+    vector::{Vector, VectorOpt, VectorSliceWrapper},
+};
 
 // -----------------------------------------------------------------------------
 // Internal error checker
@@ -424,7 +425,7 @@ impl Ceed {
     ///                    `[0, lsize - 1]`.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -483,7 +484,7 @@ impl Ceed {
     ///                    orientation.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -547,7 +548,7 @@ impl Ceed {
     ///                     unknowns upon restriction.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -716,7 +717,7 @@ impl Ceed {
     ///               accuracy for the quadrature)
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(2, 1, 3, 4, QuadMode::Gauss)?;
@@ -752,7 +753,7 @@ impl Ceed {
     ///                 the reference element
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, ElemTopology};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
@@ -883,7 +884,7 @@ impl Ceed {
     ///                 the reference element
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, ElemTopology};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
@@ -980,7 +981,7 @@ impl Ceed {
     ///                 the reference element
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, ElemTopology};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let interp = [
@@ -1074,7 +1075,7 @@ impl Ceed {
     /// * `f`       - Boxed closure to evaluate weak form at quadrature points.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QFunctionInputs, QFunctionOutputs};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut user_f = |[u, weights, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
@@ -1132,7 +1133,7 @@ impl Ceed {
     ///              Jacobian of the qf (or qfunction_none)
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QFunctionOpt};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let qf = ceed.q_function_interior_by_name("Mass1DBuild")?;
