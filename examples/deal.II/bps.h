@@ -332,15 +332,15 @@ public:
         // pass memory buffers to libCEED
         VectorTypeCeed x(src_ceed);
         VectorTypeCeed y(dst_ceed);
-        x.set_array(src);
-        y.set_array(dst);
+        x.import_array(src, CEED_MEM_HOST);
+        y.import_array(dst, CEED_MEM_HOST);
 
         // apply operator
         CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
 
         // pull arrays back to deal.II
-        x.sync_to_host();
-        y.sync_to_host();
+        x.sync_array();
+        y.sync_array();
       }
     else // TODO: needed for multiple components
       {
@@ -354,15 +354,15 @@ public:
         // pass memory buffers to libCEED
         VectorTypeCeed x(src_ceed);
         VectorTypeCeed y(dst_ceed);
-        x.set_array(src_tmp);
-        y.set_array(dst_tmp);
+        x.import_array(src_tmp, CEED_MEM_HOST);
+        y.import_array(dst_tmp, CEED_MEM_HOST);
 
         // apply operator
         CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
 
         // pull arrays back to deal.II
-        x.sync_to_host();
-        y.sync_to_host();
+        x.sync_array();
+        y.sync_array();
 
         // copy from block vector
         copy_from_block_vector(dst, dst_tmp);
@@ -395,12 +395,12 @@ public:
 
     // pass memory buffer to libCEED
     VectorTypeCeed y(dst_ceed);
-    y.set_array(diagonal);
+    y.import_array(diagonal, CEED_MEM_HOST);
 
     CeedOperatorLinearAssembleDiagonal(op_apply, y(), CEED_REQUEST_IMMEDIATE);
 
     // pull array back to deal.II
-    y.sync_to_host();
+    y.sync_array();
 
     const unsigned int n_components = dof_handler.get_fe().n_components();
 
@@ -448,18 +448,19 @@ private:
      * Set deal.II memory in libCEED vector.
      */
     void
-    set_array(const VectorType &vec)
+    import_array(const VectorType &vec, const CeedMemType space)
     {
-      CeedVectorSetArray(vec_ceed, CEED_MEM_HOST, CEED_USE_POINTER, vec.get_values());
+      mem_space = space;
+      CeedVectorSetArray(vec_ceed, mem_space, CEED_USE_POINTER, vec.get_values());
     }
 
     /**
      * Sync memory from device to host.
      */
     void
-    sync_to_host()
+    sync_array()
     {
-      CeedVectorSyncArray(vec_ceed, CEED_MEM_HOST);
+      CeedVectorSyncArray(vec_ceed, mem_space);
     }
 
     /**
@@ -468,11 +469,11 @@ private:
     ~VectorTypeCeed()
     {
       bool has_array;
-      CeedVectorHasBorrowedArrayOfType(vec_ceed, CEED_MEM_HOST, &has_array);
+      CeedVectorHasBorrowedArrayOfType(vec_ceed, mem_space, &has_array);
       if (has_array)
         {
           CeedScalar *ptr;
-          CeedVectorTakeArray(vec_ceed, CEED_MEM_HOST, &ptr);
+          CeedVectorTakeArray(vec_ceed, mem_space, &ptr);
         }
       CeedVectorDestroy(&vec_ceed);
     }
@@ -481,7 +482,8 @@ private:
     /**
      * libCEED vector view.
      */
-    CeedVector vec_ceed;
+    CeedMemType mem_space;
+    CeedVector  vec_ceed;
   };
 
   /**
