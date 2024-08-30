@@ -45,7 +45,7 @@ impl<'a> VectorOpt<'a> {
     /// Check if a VectorOpt is Some
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, VectorOpt};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
@@ -71,7 +71,7 @@ impl<'a> VectorOpt<'a> {
     /// Check if a VectorOpt is Active
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, VectorOpt};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
@@ -97,7 +97,7 @@ impl<'a> VectorOpt<'a> {
     /// Check if a VectorOpt is Some
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, VectorOpt};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = libceed::vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
@@ -125,7 +125,7 @@ impl<'a> VectorOpt<'a> {
 // Vector borrowed slice wrapper
 // -----------------------------------------------------------------------------
 pub struct VectorSliceWrapper<'a> {
-    pub(crate) vector: crate::Vector<'a>,
+    pub(crate) vector: Vector<'a>,
     pub(crate) _slice: &'a mut [crate::Scalar],
 }
 
@@ -149,7 +149,7 @@ impl<'a> Drop for VectorSliceWrapper<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> VectorSliceWrapper<'a> {
     fn from_vector_and_slice_mut<'b>(
-        vec: &'b mut crate::Vector,
+        vec: &'b mut Vector,
         slice: &'a mut [crate::Scalar],
     ) -> crate::Result<Self> {
         assert_eq!(vec.length(), slice.len());
@@ -166,7 +166,7 @@ impl<'a> VectorSliceWrapper<'a> {
             )
         })?;
         Ok(Self {
-            vector: unsafe { crate::Vector::from_raw(vec.ptr_copy_mut()?)? },
+            vector: unsafe { Vector::from_raw(vec.ptr_copy_mut()?)? },
             _slice: slice,
         })
     }
@@ -272,7 +272,7 @@ impl<'a> Vector<'a> {
     /// * `vec_source` - vector to copy array values from
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let a = ceed.vector_from_slice(&[1., 2., 3.])?;
@@ -286,7 +286,7 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     /// ```
-    pub fn copy_from(&mut self, vec_source: &crate::Vector) -> crate::Result<i32> {
+    pub fn copy_from(&mut self, vec_source: &Vector) -> crate::Result<i32> {
         self.check_error(unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) })
     }
 
@@ -300,7 +300,7 @@ impl<'a> Vector<'a> {
     /// # use libceed::prelude::*;
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
-    /// let vec = vector::Vector::from_slice(&ceed, &[1., 2., 3.])?;
+    /// let vec = libceed::Vector::from_slice(&ceed, &[1., 2., 3.])?;
     /// assert_eq!(vec.length(), 3, "Incorrect length from slice");
     /// # Ok(())
     /// # }
@@ -418,7 +418,7 @@ impl<'a> Vector<'a> {
     /// * `slice` - values to into self; length must match
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector(4)?;
@@ -453,7 +453,7 @@ impl<'a> Vector<'a> {
     /// * `slice` - values to wrap in self; length must match
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector(4)?;
@@ -495,7 +495,7 @@ impl<'a> Vector<'a> {
         &mut self,
         slice: &'b mut [crate::Scalar],
     ) -> crate::Result<VectorSliceWrapper<'b>> {
-        crate::VectorSliceWrapper::from_vector_and_slice_mut(self, slice)
+        VectorSliceWrapper::from_vector_and_slice_mut(self, slice)
     }
 
     /// Sync the Vector to a specified memtype
@@ -505,7 +505,7 @@ impl<'a> Vector<'a> {
     /// * `mtype` - Memtype to be synced
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let len = 10;
@@ -577,7 +577,7 @@ impl<'a> Vector<'a> {
     /// * `ntype` - Norm type One, Two, or Max
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, NormType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let vec = ceed.vector_from_slice(&[1., 2., 3., 4.])?;
@@ -608,7 +608,7 @@ impl<'a> Vector<'a> {
     /// * `alpha` - scaling factor
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut vec = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -634,7 +634,7 @@ impl<'a> Vector<'a> {
     /// * `x`     - second vector, must be different than self
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -648,7 +648,7 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     #[allow(unused_mut)]
-    pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
+    pub fn axpy(mut self, alpha: crate::Scalar, x: &Vector) -> crate::Result<Self> {
         self.check_error(unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) })?;
         Ok(self)
     }
@@ -662,7 +662,7 @@ impl<'a> Vector<'a> {
     /// * `x`     - second vector, must be different than self
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -680,7 +680,7 @@ impl<'a> Vector<'a> {
         mut self,
         alpha: crate::Scalar,
         beta: crate::Scalar,
-        x: &crate::Vector,
+        x: &Vector,
     ) -> crate::Result<Self> {
         self.check_error(unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) })?;
         Ok(self)
@@ -694,7 +694,7 @@ impl<'a> Vector<'a> {
     /// * `y` - second vector for product
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -709,7 +709,7 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     #[allow(unused_mut)]
-    pub fn pointwise_mult(mut self, x: &crate::Vector, y: &crate::Vector) -> crate::Result<Self> {
+    pub fn pointwise_mult(mut self, x: &Vector, y: &Vector) -> crate::Result<Self> {
         self.check_error(unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) })?;
         Ok(self)
     }
@@ -721,7 +721,7 @@ impl<'a> Vector<'a> {
     /// * `x` - second vector for product
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
@@ -735,7 +735,7 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     #[allow(unused_mut)]
-    pub fn pointwise_scale(mut self, x: &crate::Vector) -> crate::Result<Self> {
+    pub fn pointwise_scale(mut self, x: &Vector) -> crate::Result<Self> {
         self.check_error(unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) })?;
         Ok(self)
     }
@@ -743,7 +743,7 @@ impl<'a> Vector<'a> {
     /// Compute the pointwise multiplication w = w .* w for a Vector
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, Scalar};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let mut w = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
