@@ -27,7 +27,8 @@
 #include <deal.II/matrix_free/tools.h>
 
 // libCEED includes
-#include <ceed/ceed.h>
+#include <ceed.h>
+#include <ceed/backend.h>
 
 // QFunction source
 #include "bps-qfunctions.h"
@@ -160,6 +161,8 @@ public:
    */
   ~OperatorCeed()
   {
+    CeedVectorDestroy(&src_ceed);
+    CeedVectorDestroy(&dst_ceed);
     CeedOperatorDestroy(&op_apply);
     CeedDestroy(&ceed);
   }
@@ -302,7 +305,11 @@ public:
     CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
     CeedOperatorSetField(op_apply, "v", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
 
-    // 7) cleanup
+    // 7) libCEED vectors
+    CeedElemRestrictionCreateVector(sol_restriction, &src_ceed, NULL);
+    CeedElemRestrictionCreateVector(sol_restriction, &dst_ceed, NULL);
+
+    // 8) cleanup
     CeedVectorDestroy(&q_data);
     CeedElemRestrictionDestroy(&q_data_restriction);
     CeedElemRestrictionDestroy(&sol_restriction);
@@ -322,12 +329,18 @@ public:
 
     if (dof_handler.get_fe().n_components() == 1)
       {
-        // create libCEED view on deal.II vectors
-        VectorTypeCeed src_ceed(ceed, src);
-        VectorTypeCeed dst_ceed(ceed, dst);
+        // pass memory buffers to libCEED
+        VectorTypeCeed x(src_ceed);
+        VectorTypeCeed y(dst_ceed);
+        x.import_array(src, CEED_MEM_HOST);
+        y.import_array(dst, CEED_MEM_HOST);
 
         // apply operator
-        CeedOperatorApply(op_apply, src_ceed(), dst_ceed(), CEED_REQUEST_IMMEDIATE);
+        CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
+
+        // pull arrays back to deal.II
+        x.sync_array();
+        y.sync_array();
       }
     else // TODO: needed for multiple components
       {
@@ -335,17 +348,24 @@ public:
         src_tmp.reinit(this->extended_local_size(), true);
         dst_tmp.reinit(this->extended_local_size(), true);
 
-        copy_to_block_vector(src_tmp, src); // copy to block vector
+        // copy to block vector
+        copy_to_block_vector(src_tmp, src);
 
-        // create libCEED view on deal.II vectors
-        VectorTypeCeed src_ceed(ceed, src_tmp);
-        VectorTypeCeed dst_ceed(ceed, dst_tmp);
+        // pass memory buffers to libCEED
+        VectorTypeCeed x(src_ceed);
+        VectorTypeCeed y(dst_ceed);
+        x.import_array(src_tmp, CEED_MEM_HOST);
+        y.import_array(dst_tmp, CEED_MEM_HOST);
 
         // apply operator
-        CeedOperatorApply(op_apply, src_ceed(), dst_ceed(), CEED_REQUEST_IMMEDIATE);
+        CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
 
-        dst_ceed.sync_to_host();              // pull libCEED data back to host
-        copy_from_block_vector(dst, dst_tmp); // copy from block vector
+        // pull arrays back to deal.II
+        x.sync_array();
+        y.sync_array();
+
+        // copy from block vector
+        copy_from_block_vector(dst, dst_tmp);
       }
 
     // communicate: compress
@@ -373,9 +393,14 @@ public:
   {
     this->initialize_dof_vector(diagonal);
 
-    VectorTypeCeed diagonal_ceed(ceed, diagonal);
+    // pass memory buffer to libCEED
+    VectorTypeCeed y(dst_ceed);
+    y.import_array(diagonal, CEED_MEM_HOST);
 
-    CeedOperatorLinearAssembleDiagonal(op_apply, diagonal_ceed(), CEED_REQUEST_IMMEDIATE);
+    CeedOperatorLinearAssembleDiagonal(op_apply, y(), CEED_REQUEST_IMMEDIATE);
+
+    // pull array back to deal.II
+    y.sync_array();
 
     const unsigned int n_components = dof_handler.get_fe().n_components();
 
@@ -404,13 +429,10 @@ private:
     /**
      * Constructor.
      */
-    VectorTypeCeed(const Ceed &ceed, const VectorType &vec)
+    VectorTypeCeed(const CeedVector &vec_orig)
     {
-      const unsigned int n_dofs =
-        vec.get_partitioner()->locally_owned_size() + vec.get_partitioner()->n_ghost_indices();
-
-      CeedVectorCreate(ceed, n_dofs, &vec_ceed);
-      CeedVectorSetArray(vec_ceed, CEED_MEM_HOST, CEED_USE_POINTER, vec.get_values());
+      vec_ceed = NULL;
+      CeedVectorReferenceCopy(vec_orig, &vec_ceed);
     }
 
     /**
@@ -423,12 +445,22 @@ private:
     }
 
     /**
+     * Set deal.II memory in libCEED vector.
+     */
+    void
+    import_array(const VectorType &vec, const CeedMemType space)
+    {
+      mem_space = space;
+      CeedVectorSetArray(vec_ceed, mem_space, CEED_USE_POINTER, vec.get_values());
+    }
+
+    /**
      * Sync memory from device to host.
      */
     void
-    sync_to_host()
+    sync_array()
     {
-      CeedVectorSyncArray(vec_ceed, CEED_MEM_HOST);
+      CeedVectorSyncArray(vec_ceed, mem_space);
     }
 
     /**
@@ -436,8 +468,13 @@ private:
      */
     ~VectorTypeCeed()
     {
-      CeedScalar *ptr;
-      CeedVectorTakeArray(vec_ceed, CEED_MEM_HOST, &ptr);
+      bool has_array;
+      CeedVectorHasBorrowedArrayOfType(vec_ceed, mem_space, &has_array);
+      if (has_array)
+        {
+          CeedScalar *ptr;
+          CeedVectorTakeArray(vec_ceed, mem_space, &ptr);
+        }
       CeedVectorDestroy(&vec_ceed);
     }
 
@@ -445,7 +482,8 @@ private:
     /**
      * libCEED vector view.
      */
-    CeedVector vec_ceed;
+    CeedMemType mem_space;
+    CeedVector  vec_ceed;
   };
 
   /**
@@ -705,6 +743,8 @@ private:
   Ceed                   ceed;
   std::vector<double>    weights;
   std::array<CeedInt, 3> strides;
+  CeedVector             src_ceed;
+  CeedVector             dst_ceed;
   CeedOperator           op_apply;
 
   /**
