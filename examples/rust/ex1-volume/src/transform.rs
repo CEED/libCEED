@@ -5,23 +5,21 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-use libceed::prelude::*;
-
 // ----------------------------------------------------------------------------
 // Transform mesh coordinates
 // ----------------------------------------------------------------------------
 pub(crate) fn transform_mesh_coordinates(
     dim: usize,
     mesh_size: usize,
-    mesh_coords: &mut Vector,
-) -> libceed::Result<Scalar> {
+    mesh_coords: &mut libceed::Vector,
+) -> libceed::Result<libceed::Scalar> {
     // Transform coordinates
     if dim == 1 {
         for coord in mesh_coords.view_mut()?.iter_mut() {
             // map [0,1] to [0,1] varying the mesh density
             *coord = 0.5
-                + 1.0 / (3.0 as Scalar).sqrt()
-                    * ((2.0 / 3.0) * std::f64::consts::PI as Scalar * (*coord - 0.5)).sin()
+                + 1.0 / (3.0 as libceed::Scalar).sqrt()
+                    * ((2.0 / 3.0) * std::f64::consts::PI as libceed::Scalar * (*coord - 0.5)).sin()
         }
     } else {
         let mut coords = mesh_coords.view_mut()?;
@@ -30,7 +28,7 @@ pub(crate) fn transform_mesh_coordinates(
             // map (x,y) from [0,1]x[0,1] to the quarter annulus with polar
             // coordinates, (r,phi) in [1,2]x[0,pi/2] with area = 3/4*pi
             let u = 1.0 + coords[i];
-            let v = std::f64::consts::PI as Scalar / 2.0 * coords[i + num_nodes];
+            let v = std::f64::consts::PI as libceed::Scalar / 2.0 * coords[i + num_nodes];
             coords[i] = u * v.cos();
             coords[i + num_nodes] = u * v.sin();
         }
@@ -39,7 +37,7 @@ pub(crate) fn transform_mesh_coordinates(
     // Exact volume of transformed region
     let exact_volume = match dim {
         1 => 1.0,
-        _ => 3.0 / 4.0 * std::f64::consts::PI as Scalar,
+        _ => 3.0 / 4.0 * std::f64::consts::PI as libceed::Scalar,
     };
     Ok(exact_volume)
 }
