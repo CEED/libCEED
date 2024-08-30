@@ -47,21 +47,20 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
         quiet,
         gallery,
     } = options;
-    assert!(dim >= 1 && dim <= 3);
+    assert!((0..=3).contains(&dim));
     assert!(mesh_degree >= 1);
     assert!(solution_degree >= 1);
     assert!(num_qpts >= 1);
     let ncomp_x = dim;
-    let problem_size: i64;
-    if problem_size_requested < 0 {
-        problem_size = if test {
+    let problem_size: i64 = if problem_size_requested < 0 {
+        if test {
             16 * 16 * (dim * dim) as i64
         } else {
             256 * 1024
-        };
+        }
     } else {
-        problem_size = problem_size_requested;
-    }
+        problem_size_requested
+    };
 
     // Summary output
     if !quiet {
@@ -107,7 +106,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
         if dim > 2 {
             print!(", nz = {}", num_xyz[2]);
         }
-        print!("\n");
+        println!();
     }
 
     // Build ElemRestriction objects describing the mesh and solution discrete

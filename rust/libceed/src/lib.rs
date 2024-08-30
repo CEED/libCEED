@@ -309,7 +309,7 @@ impl Ceed {
 
         // Call to libCEED
         let mut ptr = std::ptr::null_mut();
-        let mut ierr = unsafe { bind_ceed::CeedInit(c_resource.as_ptr() as *const i8, &mut ptr) };
+        let mut ierr = unsafe { bind_ceed::CeedInit(c_resource.as_ptr(), &mut ptr) };
         if ierr != 0 {
             panic!("Error initializing backend resource: {}", resource)
         }
