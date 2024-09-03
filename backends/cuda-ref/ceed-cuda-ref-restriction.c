@@ -604,7 +604,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
     // -- Use padded offsets for the rest of the setup
     offsets   = (const CeedInt *)offsets_padded;
     copy_mode = CEED_OWN_POINTER;
-    CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, at_points_size * num_comp));
+    CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, elem_size * num_elem * num_comp));
 
     // -- Points per element
     CeedCallBackend(CeedSetHostCeedIntArray(points_per_elem, CEED_OWN_POINTER, num_elem, &impl->h_points_per_elem_owned,
