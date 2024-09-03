@@ -300,6 +300,8 @@ static PetscErrorCode MatView_Ceed(Mat mat_ceed, PetscViewer viewer) {
     FILE *file;
 
     PetscCall(PetscViewerASCIIPrintf(viewer, "MatCEED:\n  Internal MatType:%s\n", ctx->internal_mat_type));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "  PB Diagonal Assembly Valid: %s\n", ctx->is_ceed_pbd_valid ? "True" : "False"));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "  VPB Diagonal Assembly Valid: %s\n", ctx->is_ceed_vpbd_valid ? "True" : "False"));
     PetscCall(PetscViewerASCIIGetPointer(viewer, &file));
     PetscCall(PetscViewerASCIIPrintf(viewer, " libCEED Operator:\n"));
     PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult, file));
