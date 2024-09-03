@@ -89,6 +89,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
       PetscCall(DMGetOutputSequenceNumber(*dm, &stepNumC, &valc));
 
       PetscCall(DMClone(*dm, &new_dm));
+      PetscCall(DMSetBlockingType(new_dm, DM_BLOCKING_FIELD_NODE));
       if(stepNumC >= 0) PetscCall(DMSetOutputSequenceNumber(new_dm, stepNumC, valc));
 
       PetscSF face_sf;
