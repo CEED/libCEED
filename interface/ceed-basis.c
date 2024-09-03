@@ -1640,14 +1640,16 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
   if (u != CEED_VECTOR_NONE) CeedCall(CeedVectorGetLength(u, &u_length));
 
   // Check compatibility of topological and geometrical dimensions
-  for (CeedInt i = 0; i < num_elem; i++) total_num_points += num_points[i];
   CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0) || (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0) ||
                 (eval_mode == CEED_EVAL_WEIGHT),
             ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions and number of points");
 
   // Check compatibility coordinates vector
+  for (CeedInt i = 0; i < num_elem; i++) total_num_points += num_points[i];
   CeedCheck((x_length >= total_num_points * dim) || (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_DIMENSION,
-            "Length of reference coordinate vector incompatible with basis dimension and number of points");
+            "Length of reference coordinate vector incompatible with basis dimension and number of points."
+            " Found reference coordinate vector of length %" CeedSize_FMT ", not of length %" CeedSize_FMT ".",
+            x_length, total_num_points * dim);
 
   // Check CEED_EVAL_WEIGHT only on CEED_NOTRANSPOSE
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT || t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_UNSUPPORTED,
