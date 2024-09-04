@@ -10,6 +10,7 @@
 #include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <string.h>
 
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
@@ -115,16 +116,44 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
 
-  // Check uniform number of points per elem
-  for (CeedInt i = 1; i < num_elem; i++) {
-    CeedCheck(max_num_points == num_points[i], ceed, CEED_ERROR_BACKEND,
-              "BasisApplyAtPoints only supported for the same number of points in each element");
-  }
-
   // Weight handled separately
   if (eval_mode == CEED_EVAL_WEIGHT) {
     CeedCallBackend(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
+  }
+
+  // Check padded to uniform number of points per elem
+  for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
+  {
+    CeedInt  num_comp, q_comp;
+    CeedSize len, len_required;
+
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedVectorGetLength(is_transpose ? u : v, &len));
+    len_required = (CeedSize)num_comp * (CeedSize)q_comp * (CeedSize)num_elem * (CeedSize)max_num_points;
+    CeedCheck(len >= len_required, ceed, CEED_ERROR_BACKEND,
+              "Vector at points must be padded to the same number of points in each element for BasisApplyAtPoints on GPU backends."
+              " Found %" CeedSize_FMT ", Required %" CeedSize_FMT,
+              len, len_required);
+  }
+
+  // Move num_points array to device
+  if (is_transpose) {
+    const CeedInt num_bytes = num_elem * sizeof(CeedInt);
+
+    if (num_elem != data->num_elem_at_points) {
+      data->num_elem_at_points = num_elem;
+
+      if (data->d_points_per_elem) CeedCallCuda(ceed, cudaFree(data->d_points_per_elem));
+      CeedCallCuda(ceed, cudaMalloc((void **)&data->d_points_per_elem, num_bytes));
+      CeedCallBackend(CeedFree(&data->h_points_per_elem));
+      CeedCallBackend(CeedCalloc(num_elem, &data->h_points_per_elem));
+    }
+    if (!memcmp(data->h_points_per_elem, num_points, num_bytes)) {
+      memcpy(data->h_points_per_elem, num_points, num_bytes);
+      CeedCallCuda(ceed, cudaMemcpy(data->d_points_per_elem, num_points, num_bytes, cudaMemcpyHostToDevice));
+    }
   }
 
   // Build kernels if needed
@@ -186,14 +215,14 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &d_x, &d_u, &d_v};
-      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void *interp_args[]      = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->InterpAtPoints, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &d_x, &d_u, &d_v};
-      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void *grad_args[]        = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->GradAtPoints, num_elem, block_size, grad_args));
     } break;
@@ -343,6 +372,8 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   CeedCallCuda(ceed, cuModuleUnload(data->module));
   if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
   if (data->d_q_weight_1d) CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
+  CeedCallBackend(CeedFree(&data->h_points_per_elem));
+  if (data->d_points_per_elem) CeedCallCuda(ceed, cudaFree(data->d_points_per_elem));
   CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
   CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
   CeedCallCuda(ceed, cudaFree(data->d_chebyshev_interp_1d));
