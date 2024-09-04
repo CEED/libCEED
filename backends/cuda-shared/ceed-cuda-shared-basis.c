@@ -256,7 +256,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedFree(&data->h_points_per_elem));
       CeedCallBackend(CeedCalloc(num_elem, &data->h_points_per_elem));
     }
-    if (!memcmp(data->h_points_per_elem, num_points, num_bytes)) {
+    if (memcmp(data->h_points_per_elem, num_points, num_bytes)) {
       memcpy(data->h_points_per_elem, num_points, num_bytes);
       CeedCallCuda(ceed, cudaMemcpy(data->d_points_per_elem, num_points, num_bytes, cudaMemcpyHostToDevice));
     }

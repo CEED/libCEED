@@ -150,7 +150,7 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
       CeedCallBackend(CeedFree(&data->h_points_per_elem));
       CeedCallBackend(CeedCalloc(num_elem, &data->h_points_per_elem));
     }
-    if (!memcmp(data->h_points_per_elem, num_points, num_bytes)) {
+    if (memcmp(data->h_points_per_elem, num_points, num_bytes)) {
       memcpy(data->h_points_per_elem, num_points, num_bytes);
       CeedCallCuda(ceed, cudaMemcpy(data->d_points_per_elem, num_points, num_bytes, cudaMemcpyHostToDevice));
     }

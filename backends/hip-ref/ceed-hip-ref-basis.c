@@ -148,7 +148,7 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
       CeedCallBackend(CeedFree(&data->h_points_per_elem));
       CeedCallBackend(CeedCalloc(num_elem, &data->h_points_per_elem));
     }
-    if (!memcmp(data->h_points_per_elem, num_points, num_bytes)) {
+    if (memcmp(data->h_points_per_elem, num_points, num_bytes)) {
       memcpy(data->h_points_per_elem, num_points, num_bytes);
       CeedCallHip(ceed, hipMemcpy(data->d_points_per_elem, num_points, num_bytes, hipMemcpyHostToDevice));
     }
