@@ -26,6 +26,7 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetData(op, &impl));
 
   // Apply data
+  CeedCallBackend(CeedFree(&impl->num_points));
   CeedCallBackend(CeedFree(&impl->skip_rstr_in));
   CeedCallBackend(CeedFree(&impl->skip_rstr_out));
   CeedCallBackend(CeedFree(&impl->apply_add_basis_out));
@@ -556,10 +557,17 @@ static int CeedOperatorSetupAtPoints_Hip(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   {
-    CeedElemRestriction elem_rstr = NULL;
+    CeedElemRestriction rstr_points = NULL;
 
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &elem_rstr, NULL));
-    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(elem_rstr, &max_num_points));
+    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
+    CeedCallBackend(CeedCalloc(num_elem, &impl->num_points));
+    for (CeedInt e = 0; e < num_elem; e++) {
+      CeedInt num_points_elem;
+
+      CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
+      impl->num_points[e] = num_points_elem;
+    }
   }
   impl->max_num_points = max_num_points;
 
@@ -673,7 +681,7 @@ static inline int CeedOperatorInputBasisAtPoints_Hip(CeedInt num_elem, const Cee
 // Apply and add to output AtPoints
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAddAtPoints_Hip(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
-  CeedInt             max_num_points, num_elem, elem_size, num_input_fields, num_output_fields, size;
+  CeedInt             max_num_points, *num_points, num_elem, elem_size, num_input_fields, num_output_fields, size;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {NULL};
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -685,12 +693,11 @@ static int CeedOperatorApplyAddAtPoints_Hip(CeedOperator op, CeedVector in_vec, 
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  CeedInt num_points[num_elem];
 
   // Setup
   CeedCallBackend(CeedOperatorSetupAtPoints_Hip(op));
+  num_points     = impl->num_points;
   max_num_points = impl->max_num_points;
-  for (CeedInt i = 0; i < num_elem; i++) num_points[i] = max_num_points;
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Hip(num_input_fields, qf_input_fields, op_input_fields, in_vec, false, e_data, impl, request));
@@ -1613,7 +1620,7 @@ static int CeedOperatorLinearAssembleQFunctionAtPoints_Hip(CeedOperator op, Ceed
 // Assemble Linear Diagonal AtPoints
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, CeedVector assembled, CeedRequest *request) {
-  CeedInt             max_num_points, num_elem, num_input_fields, num_output_fields;
+  CeedInt             max_num_points, *num_points, num_elem, num_input_fields, num_output_fields;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {NULL};
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -1625,12 +1632,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  CeedInt num_points[num_elem];
 
   // Setup
   CeedCallBackend(CeedOperatorSetupAtPoints_Hip(op));
+  num_points     = impl->num_points;
   max_num_points = impl->max_num_points;
-  for (CeedInt i = 0; i < num_elem; i++) num_points[i] = max_num_points;
 
   // Create separate output e-vecs
   if (impl->has_shared_e_vecs) {

@@ -79,6 +79,9 @@ typedef struct {
   CeedScalar   *d_grad_1d;
   CeedScalar   *d_q_weight_1d;
   CeedScalar   *d_chebyshev_interp_1d;
+  CeedInt       num_elem_at_points;
+  CeedInt      *h_points_per_elem;
+  CeedInt      *d_points_per_elem;
 } CeedBasis_Hip;
 
 typedef struct {
@@ -140,6 +143,7 @@ typedef struct {
   CeedInt                   num_inputs, num_outputs;
   CeedInt                   num_active_in, num_active_out;
   CeedInt                   max_num_points;
+  CeedInt                  *num_points;
   CeedVector               *qf_active_in, point_coords_elem;
   CeedOperatorDiag_Hip     *diag;
   CeedOperatorAssemble_Hip *asmb;

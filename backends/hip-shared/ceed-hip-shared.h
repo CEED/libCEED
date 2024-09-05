@@ -29,6 +29,9 @@ typedef struct {
   CeedScalar   *d_collo_grad_1d;
   CeedScalar   *d_q_weight_1d;
   CeedScalar   *d_chebyshev_interp_1d;
+  CeedInt       num_elem_at_points;
+  CeedInt      *h_points_per_elem;
+  CeedInt      *d_points_per_elem;
 } CeedBasis_Hip_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
