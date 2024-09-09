@@ -193,6 +193,13 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    pub(crate) fn from_raw(ptr: bind_ceed::CeedElemRestriction) -> crate::Result<Self> {
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
     pub fn create_oriented(
         ceed: &crate::Ceed,
         nelem: usize,
