@@ -1023,9 +1023,9 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
       CeedCallBackend(CeedOperatorFieldGetBasis(input_fields[i], &basis));
       CeedCheck(!basis_in || basis_in == basis, ceed, CEED_ERROR_BACKEND, "Backend does not implement operator assembly with multiple active bases");
       if (!basis_in) CeedCallBackend(CeedBasisReferenceCopy(basis, &basis_in));
+      CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
       CeedCallBackend(CeedBasisDestroy(&basis));
-      CeedCallBackend(CeedBasisGetDimension(basis_in, &dim));
-      CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(input_fields[i], &elem_rstr));
       if (!rstr_in) CeedCallBackend(CeedElemRestrictionReferenceCopy(elem_rstr, &rstr_in));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));

@@ -107,12 +107,12 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
           break;
         }
       }
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
       if (index == -1) {
         CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &impl->fields->outputs[i]));
       } else {
         impl->fields->outputs[i] = impl->fields->outputs[index];
       }
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -189,10 +189,10 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
           break;
         }
       }
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
       if (index == -1) {
         CeedCallBackend(CeedVectorRestoreArray(vec, &impl->fields->outputs[i]));
       }
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
