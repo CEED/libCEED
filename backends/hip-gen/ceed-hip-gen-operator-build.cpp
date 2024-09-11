@@ -229,8 +229,8 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 // Restriction
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, CeedOperator_Hip_gen *data, CeedInt i, CeedInt dim,
-                                                      CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt Q_1d, bool is_input,
-                                                      bool use_3d_slices) {
+                                                      CeedInt field_input_buffer[], CeedOperatorField op_field, CeedQFunctionField qf_field,
+                                                      CeedInt Q_1d, bool is_input, bool use_3d_slices) {
   std::string              var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string              P_name     = "P_1d" + var_suffix;
   CeedEvalMode             eval_mode  = CEED_EVAL_NONE;
@@ -256,10 +256,22 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
   // Restriction
   if (is_input) {
     // Input
-    if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_3d_slices)) {
+    // Input
+    if (field_input_buffer[i] != i) {
+      std::string buffer_name = "r_e_in_" + std::to_string(field_input_buffer[i]);
+
+      // Restriction was already done for previous input
+      code << "    CeedScalar *r_e" << var_suffix << " = " << buffer_name << ";\n";
+    } else if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_3d_slices)) {
       bool is_strided;
 
-      code << "    CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
+      if (eval_mode == CEED_EVAL_NONE) {
+        // No basis action, so r_e_in_* in also r_q_in_* and needs to be allocated
+        code << "    CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
+      } else {
+        // Otherwise we're using the scratch space
+        code << "    CeedScalar *r_e" << var_suffix << " = r_e_scratch;\n";
+      }
       CeedCallBackend(CeedElemRestrictionIsStrided(elem_rstr, &is_strided));
       if (!is_strided) {
         CeedInt comp_stride;
@@ -383,7 +395,6 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
       }
       // LCOV_EXCL_START
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
       case CEED_EVAL_CURL:
         break;  // TODO: Not implemented
                 // LCOV_EXCL_STOP
@@ -394,12 +405,12 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
         code << "    CeedScalar *r_e" << var_suffix << " = r_q" << var_suffix << ";\n";
         break;  // No action
       case CEED_EVAL_INTERP:
-        code << "    CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
+        code << "    CeedScalar *r_e" << var_suffix << " = r_e_scratch;\n";
         code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name
              << ">(data, r_q" << var_suffix << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
         break;
       case CEED_EVAL_GRAD:
-        code << "    CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
+        code << "    CeedScalar *r_e" << var_suffix << " = r_e_scratch;\n";
         if (use_3d_slices) {
           code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name
                << ">(data, r_q" << var_suffix << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
@@ -413,7 +424,6 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
       case CEED_EVAL_WEIGHT:
         break;  // Should not occur
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
       case CEED_EVAL_CURL:
         break;  // TODO: Not implemented
                 // LCOV_EXCL_STOP
@@ -460,7 +470,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
   // We treat quadrature points per slice in 3d to save registers
   if (use_3d_slices) {
     code << "\n    // Note: Using planes of 3D elements\n";
-    code << "#pragma unroll\n";
+    code << "    #pragma unroll\n";
     code << "    for (CeedInt q = 0; q < " << Q_name << "; q++) {\n";
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -797,17 +807,83 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   code << "  __syncthreads();\n";
   code << "  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
 
+  // -- Compute minimum buffer space needed
+  CeedInt max_rstr_buffer_size = 0;
+
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedInt             num_comp, elem_size;
+    CeedElemRestriction elem_rstr;
+
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
+    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+  }
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedInt             num_comp, elem_size;
+    CeedElemRestriction elem_rstr;
+
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
+    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+  }
+  code << "    // Scratch restriction buffer space\n";
+  code << "    CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
+
+  // -- Determine best input field processing order
+  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
+
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    field_rstr_in_buffer[i] = -1;
+    input_field_order[i]    = -1;
+  }
+  {
+    bool    is_ordered[CEED_FIELD_MAX];
+    CeedInt curr_index = 0;
+
+    for (CeedInt i = 0; i < num_input_fields; i++) is_ordered[i] = false;
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedVector          vec_i;
+      CeedElemRestriction rstr_i;
+
+      if (is_ordered[i]) continue;
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
+      field_rstr_in_buffer[i]       = i;
+      is_ordered[i]                 = true;
+      input_field_order[curr_index] = i;
+      curr_index++;
+      if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
+      for (CeedInt j = i + 1; j < num_input_fields; j++) {
+        CeedVector          vec_j;
+        CeedElemRestriction rstr_j;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec_j));
+        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[j], &rstr_j));
+        if (rstr_i == rstr_j && vec_i == vec_j) {
+          field_rstr_in_buffer[j]       = i;
+          is_ordered[j]                 = true;
+          input_field_order[curr_index] = j;
+          curr_index++;
+        }
+      }
+    }
+  }
+
   // -- Input restriction and basis
   code << "    // -- Input field restrictions and basis actions\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    code << "    // ---- Input field " << i << "\n";
+    CeedInt f = input_field_order[i];
+
+    code << "    // ---- Input field " << f << "\n";
 
     // ---- Restriction
-    CeedCallBackend(
-        CeedOperatorBuildKernelRestriction_Hip_gen(code, data, i, dim, op_input_fields[i], qf_input_fields[i], Q_1d, true, use_3d_slices));
+    CeedCallBackend(CeedOperatorBuildKernelRestriction_Hip_gen(code, data, f, dim, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f], Q_1d,
+                                                               true, use_3d_slices));
 
     // ---- Basis action
-    CeedCallBackend(CeedOperatorBuildKernelBasis_Hip_gen(code, data, i, dim, op_input_fields[i], qf_input_fields[i], Q_1d, true, use_3d_slices));
+    CeedCallBackend(CeedOperatorBuildKernelBasis_Hip_gen(code, data, f, dim, op_input_fields[f], qf_input_fields[f], Q_1d, true, use_3d_slices));
   }
 
   // -- Q function
@@ -824,7 +900,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
 
     // ---- Restriction
     CeedCallBackend(
-        CeedOperatorBuildKernelRestriction_Hip_gen(code, data, i, dim, op_output_fields[i], qf_output_fields[i], Q_1d, false, use_3d_slices));
+        CeedOperatorBuildKernelRestriction_Hip_gen(code, data, i, dim, NULL, op_output_fields[i], qf_output_fields[i], Q_1d, false, use_3d_slices));
   }
 
   // Close loop and function
