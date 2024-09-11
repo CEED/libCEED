@@ -106,7 +106,6 @@ typedef struct {
   CeedVector                *q_vecs_out;  // Output Q-vectors needed to apply operator
   CeedInt                    num_e_in;
   CeedInt                    num_e_out;
-  CeedInt                    num_inputs, num_outputs;
   CeedInt                    num_active_in, num_active_out;
   CeedVector                *qf_active_in;
   CeedOperatorDiag_Sycl     *diag;
