@@ -40,9 +40,9 @@ typedef struct {
 } CeedElemRestriction_Memcheck;
 
 typedef struct {
+  bool               setup_done;
   const CeedScalar **inputs;
   CeedScalar       **outputs;
-  bool               setup_done;
 } CeedQFunction_Memcheck;
 
 typedef struct {

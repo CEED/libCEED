@@ -19,6 +19,7 @@
 static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed                    ceed;
   void                   *ctx_data = NULL;
+  int                     input_block_ids[CEED_FIELD_MAX], output_block_ids[CEED_FIELD_MAX];
   CeedInt                 num_in, num_out;
   CeedQFunctionUser       f = NULL;
   CeedQFunctionField     *output_fields;
@@ -29,12 +30,21 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx_data));
   CeedCallBackend(CeedQFunctionGetUserFunction(qf, &f));
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_in, &num_out));
-  int mem_block_ids[num_out];
 
-  // Get input/output arrays
+  // Get input arrays
   for (CeedInt i = 0; i < num_in; i++) {
+    CeedSize len;
+    char     name[32] = "";
+
     CeedCallBackend(CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]));
+
+    CeedCallBackend(CeedVectorGetLength(U[i], &len));
+
+    snprintf(name, 32, "QFunction input %" CeedInt_FMT, i);
+    input_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->inputs[i], len, name);
   }
+
+  // Get output arrays
   for (CeedInt i = 0; i < num_out; i++) {
     CeedSize len;
     char     name[32] = "";
@@ -44,8 +54,8 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
     CeedCallBackend(CeedVectorGetLength(V[i], &len));
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
 
-    snprintf(name, 32, "'QFunction output %" CeedInt_FMT "'", i);
-    mem_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
+    snprintf(name, 32, "QFunction output %" CeedInt_FMT, i);
+    output_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
   }
 
   // Call user function
@@ -54,8 +64,10 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   // Restore input arrays
   for (CeedInt i = 0; i < num_in; i++) {
     CeedCallBackend(CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]));
+    VALGRIND_DISCARD(input_block_ids[i]);
   }
-  // Check for unset output values
+
+  // Check for unset output values and restore arrays
   {
     const char *kernel_name, *kernel_path;
 
@@ -73,7 +85,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
                   kernel_name);
       }
       CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
-      VALGRIND_DISCARD(mem_block_ids[i]);
+      VALGRIND_DISCARD(output_block_ids[i]);
     }
   }
   CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx_data));
