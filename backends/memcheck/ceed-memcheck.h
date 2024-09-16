@@ -46,12 +46,21 @@ typedef struct {
 } CeedQFunction_Memcheck;
 
 typedef struct {
-  int   mem_block_id;
-  void *data;
+  // Internal data buffer
+  int   allocated_block_id;
   void *data_allocated;
+  // Owned external data
+  int   owned_block_id;
   void *data_owned;
+  // Borrowed external data
+  int   borrowed_block_id;
   void *data_borrowed;
+  // Externally viewable read-only data
+  int   read_only_block_id;
   void *data_read_only_copy;
+  // Externally viewable writable data
+  int   writable_block_id;
+  void *data_writable_copy;
 } CeedQFunctionContext_Memcheck;
 
 CEED_INTERN int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec);

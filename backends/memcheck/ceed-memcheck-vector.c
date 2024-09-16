@@ -53,13 +53,13 @@ static int CeedVectorSetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
   // Clear previous owned arrays
   if (impl->array_allocated) {
     for (CeedSize i = 0; i < length; i++) impl->array_allocated[i] = NAN;
+    VALGRIND_DISCARD(impl->allocated_block_id);
   }
   CeedCallBackend(CeedFree(&impl->array_allocated));
-  VALGRIND_DISCARD(impl->allocated_block_id);
   if (impl->array_owned) {
     for (CeedSize i = 0; i < length; i++) impl->array_owned[i] = NAN;
+    VALGRIND_DISCARD(impl->owned_block_id);
   }
-  VALGRIND_DISCARD(impl->owned_block_id);
   CeedCallBackend(CeedFree(&impl->array_owned));
 
   // Clear borrowed block id, if present
@@ -139,9 +139,9 @@ static int CeedVectorTakeArray_Memcheck(CeedVector vec, CeedMemType mem_type, Ce
   // De-allocate internal memory
   if (impl->array_allocated) {
     for (CeedSize i = 0; i < length; i++) impl->array_allocated[i] = NAN;
+    VALGRIND_DISCARD(impl->allocated_block_id);
   }
   CeedCallBackend(CeedFree(&impl->array_allocated));
-  VALGRIND_DISCARD(impl->allocated_block_id);
   return CEED_ERROR_SUCCESS;
 }
 
