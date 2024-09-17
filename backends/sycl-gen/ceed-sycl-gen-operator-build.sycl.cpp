@@ -274,9 +274,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
     // Set field constants
     if (eval_mode != CEED_EVAL_WEIGHT) {
@@ -334,9 +334,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
 
     // Set field constants
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
@@ -401,8 +401,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
     // Restriction
     if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_collograd_parallelization)) {
@@ -677,8 +677,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
     switch (eval_mode) {
