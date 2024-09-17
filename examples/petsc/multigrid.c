@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   if (read_mesh) {
     PetscCall(DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE, &dm_orig));
   } else {
-    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, simplex, mesh_elem, NULL, NULL, NULL, PETSC_TRUE, &dm_orig));
+    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, simplex, mesh_elem, NULL, NULL, NULL, PETSC_TRUE, 0, PETSC_FALSE, &dm_orig));
   }
 
   VecType vec_type;
