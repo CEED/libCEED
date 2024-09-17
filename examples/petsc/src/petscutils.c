@@ -425,7 +425,7 @@ PetscErrorCode CreateDistributedDM(RunParams rp, DM *dm) {
       }
     }
 
-    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, rp->simplex, rp->mesh_elem, NULL, NULL, NULL, PETSC_TRUE, dm));
+    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, rp->simplex, rp->mesh_elem, NULL, NULL, NULL, PETSC_TRUE, 0, PETSC_FALSE, dm));
   }
 
   PetscCall(DMSetFromOptions(*dm));

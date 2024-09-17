@@ -43,7 +43,7 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
     PetscInt dim = 3, faces[3] = {3, 3, 3};
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &dim, NULL));
     if (!dim) dim = 3;
-    PetscCall(DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, NULL, NULL, interpolate, dm));
+    PetscCall(DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, NULL, NULL, interpolate, 0, PETSC_FALSE, dm));
   } else {
     PetscCall(DMPlexCreateFromFile(comm, filename, NULL, interpolate, dm));
   }

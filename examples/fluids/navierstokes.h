@@ -17,8 +17,8 @@
 #include "./include/petsc_ops.h"
 #include "qfunctions/newtonian_types.h"
 
-#if PETSC_VERSION_LT(3, 21, 0)
-#error "PETSc v3.21 or later is required"
+#if PETSC_VERSION_LT(3, 22, 0)
+#error "PETSc v3.22 or later is required"
 #endif
 
 // -----------------------------------------------------------------------------
