@@ -7,6 +7,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -91,6 +92,38 @@ static int CeedVectorSetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
   } else {
     for (CeedInt i = 0; i < length; i++) impl->array_allocated[i] = NAN;
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set internal array to value
+//------------------------------------------------------------------------------
+static int CeedVectorSetValue_Memcheck(CeedVector vec, CeedScalar value) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl;
+
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+
+  if (!impl->array_allocated) CeedCallBackend(CeedVectorSetArray_Memcheck(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
+  assert(impl->array_allocated);
+  for (CeedSize i = 0; i < length; i++) impl->array_allocated[i] = value;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set internal array to value strided
+//------------------------------------------------------------------------------
+static int CeedVectorSetValueStrided_Memcheck(CeedVector vec, CeedSize start, CeedSize step, CeedScalar val) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl;
+
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+
+  if (!impl->array_allocated) CeedCallBackend(CeedVectorSetArray_Memcheck(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
+  assert(impl->array_allocated);
+  for (CeedSize i = start; i < length; i += step) impl->array_allocated[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -268,6 +301,84 @@ static int CeedVectorRestoreArrayRead_Memcheck(CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
+// Take reciprocal of a vector
+//------------------------------------------------------------------------------
+static int CeedVectorReciprocal_Memcheck(CeedVector vec) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl;
+
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+
+  for (CeedSize i = 0; i < length; i++) {
+    if (fabs(impl->array_allocated[i]) > CEED_EPSILON) impl->array_allocated[i] = 1. / impl->array_allocated[i];
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute x = alpha x
+//------------------------------------------------------------------------------
+static int CeedVectorScale_Memcheck(CeedVector x, CeedScalar alpha) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl;
+
+  CeedCallBackend(CeedVectorGetData(x, &impl));
+  CeedCallBackend(CeedVectorGetLength(x, &length));
+
+  for (CeedSize i = 0; i < length; i++) impl->array_allocated[i] *= alpha;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPY_Memcheck(CeedVector y, CeedScalar alpha, CeedVector x) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl_x, *impl_y;
+
+  CeedCallBackend(CeedVectorGetData(x, &impl_x));
+  CeedCallBackend(CeedVectorGetData(y, &impl_y));
+  CeedCallBackend(CeedVectorGetLength(y, &length));
+
+  for (CeedSize i = 0; i < length; i++) impl_y->array_allocated[i] += alpha * impl_x->array_allocated[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPBY_Memcheck(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl_x, *impl_y;
+
+  CeedCallBackend(CeedVectorGetData(x, &impl_x));
+  CeedCallBackend(CeedVectorGetData(y, &impl_y));
+  CeedCallBackend(CeedVectorGetLength(y, &length));
+
+  for (CeedSize i = 0; i < length; i++) impl_y->array_allocated[i] = alpha * impl_x->array_allocated[i] + beta * impl_y->array_allocated[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute the pointwise multiplication w = x .* y
+//------------------------------------------------------------------------------
+static int CeedVectorPointwiseMult_Memcheck(CeedVector w, CeedVector x, CeedVector y) {
+  CeedSize             length;
+  CeedVector_Memcheck *impl_x, *impl_y, *impl_w;
+
+  CeedCallBackend(CeedVectorGetData(x, &impl_x));
+  CeedCallBackend(CeedVectorGetData(y, &impl_y));
+  CeedCallBackend(CeedVectorGetData(w, &impl_w));
+  CeedCallBackend(CeedVectorGetLength(w, &length));
+
+  if (!impl_w->array_allocated) CeedCallBackend(CeedVectorSetArray_Memcheck(w, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
+  assert(impl_w->array_allocated);
+  for (CeedSize i = 0; i < length; i++) impl_w->array_allocated[i] = impl_x->array_allocated[i] * impl_y->array_allocated[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Vector Destroy
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Memcheck(CeedVector vec) {
@@ -304,6 +415,8 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetArray", CeedVectorSetArray_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValue", CeedVectorSetValue_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValueStrided", CeedVectorSetValueStrided_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SyncArray", CeedVectorSyncArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray", CeedVectorTakeArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArray", CeedVectorGetArray_Memcheck));
@@ -311,6 +424,11 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite", CeedVectorGetArrayWrite_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray", CeedVectorRestoreArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead", CeedVectorRestoreArrayRead_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal", CeedVectorReciprocal_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", CeedVectorScale_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", CeedVectorAXPY_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Memcheck));
   return CEED_ERROR_SUCCESS;
 }
