@@ -235,7 +235,7 @@ struct ProblemData_private {
       apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
   bool          compute_exact_solution_error;
   PetscBool     set_bc_from_ics, use_strong_bc_ceed, uses_newtonian;
-  size_t        num_bc_defs;
+  PetscCount    num_bc_defs;
   BCDefinition *bc_defs;
   PetscErrorCode (*print_info)(User, ProblemData, AppCtx);
   PetscErrorCode (*create_mass_operator)(User, CeedOperator *);
