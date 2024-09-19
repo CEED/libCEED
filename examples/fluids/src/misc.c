@@ -493,9 +493,10 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS
       PetscInt num_remote_roots_total = 0, num_remote_leaves_total = 0, num_ghost_interface_ranks = 0, num_owned_interface_ranks = 0;
       {
         PetscSF            sf;
-        PetscInt           nrranks, niranks;
+        PetscMPIInt        nrranks, niranks;
         const PetscInt    *roffset, *rmine, *rremote, *ioffset, *irootloc;
         const PetscMPIInt *rranks, *iranks;
+
         PetscCall(DMGetSectionSF(user->dm, &sf));
         PetscCall(PetscSFGetRootRanks(sf, &nrranks, &rranks, &roffset, &rmine, &rremote));
         PetscCall(PetscSFGetLeafRanks(sf, &niranks, &iranks, &ioffset, &irootloc));
