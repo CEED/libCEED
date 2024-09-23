@@ -138,6 +138,43 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Create a work vector space for a `ceed`
+
+  @param[in,out] ceed `Ceed` to create work vector space for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedWorkVectorsCreate(Ceed ceed) {
+  CeedCall(CeedCalloc(1, &ceed->work_vectors));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a work vector space for a `ceed`
+
+  @param[in,out] ceed `Ceed` to destroy work vector space for
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedWorkVectorsDestroy(Ceed ceed) {
+  if (!ceed->work_vectors) return CEED_ERROR_SUCCESS;
+  for (CeedSize i = 0; i < ceed->work_vectors->num_vecs; i++) {
+    CeedCheck(!ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " checked out but not returned");
+    ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering again
+    CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
+    ceed->ref_count -= 1;  // Note: restore ref_count
+  }
+  CeedCall(CeedFree(&ceed->work_vectors->is_in_use));
+  CeedCall(CeedFree(&ceed->work_vectors->vecs));
+  CeedCall(CeedFree(&ceed->work_vectors));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -751,6 +788,81 @@ int CeedReference(Ceed ceed) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Get a `CeedVector` for scratch work from a `Ceed` context.
+
+  Note: This vector must be restored with @ref CeedRestoreWorkVector().
+
+  @param[in]  ceed `Ceed` context
+  @param[in]  len  Minimum length of work vector
+  @param[out] vec  Address of the variable where `CeedVector` will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
+  CeedInt i = 0;
+
+  if (!ceed->work_vectors) CeedCall(CeedWorkVectorsCreate(ceed));
+
+  // Search for big enough work vector
+  for (i = 0; i < ceed->work_vectors->num_vecs; i++) {
+    if (!ceed->work_vectors->is_in_use[i]) {
+      CeedSize work_len;
+
+      CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &work_len));
+      if (work_len >= len) break;
+    }
+  }
+  // Long enough vector was not found
+  if (i == ceed->work_vectors->num_vecs) {
+    if (ceed->work_vectors->max_vecs == 0) {
+      ceed->work_vectors->max_vecs = 1;
+      CeedCall(CeedCalloc(ceed->work_vectors->max_vecs, &ceed->work_vectors->vecs));
+      CeedCall(CeedCalloc(ceed->work_vectors->max_vecs, &ceed->work_vectors->is_in_use));
+    } else if (ceed->work_vectors->max_vecs == i) {
+      ceed->work_vectors->max_vecs *= 2;
+      CeedCall(CeedRealloc(ceed->work_vectors->max_vecs, &ceed->work_vectors->vecs));
+      CeedCall(CeedRealloc(ceed->work_vectors->max_vecs, &ceed->work_vectors->is_in_use));
+    }
+    ceed->work_vectors->num_vecs++;
+    CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
+    ceed->ref_count--;  // Note: ref_count manipulation to prevent a ref-loop
+  }
+  // Return pointer to work vector
+  ceed->work_vectors->is_in_use[i] = true;
+  *vec                             = NULL;
+  CeedCall(CeedVectorReferenceCopy(ceed->work_vectors->vecs[i], vec));
+  ceed->ref_count++;  // Note: bump ref_count to account for external access
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore a `CeedVector` for scratch work from a `Ceed` context from @ref CeedGetWorkVector()
+
+  @param[in]  ceed `Ceed` context
+  @param[out] vec  `CeedVector` to restore
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
+  for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
+    if (*vec == ceed->work_vectors->vecs[i]) {
+      CeedCheck(ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " was not checked out but is being returned");
+      CeedCall(CeedVectorDestroy(vec));
+      ceed->work_vectors->is_in_use[i] = false;
+      ceed->ref_count--;  // Note: reduce ref_count again to prevent a ref-loop
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+  // LCOV_EXCL_START
+  return CeedError(ceed, CEED_ERROR_MAJOR, "vec was not checked out via CeedGetWorkVector()");
+  // LCOV_EXCL_STOP
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -1200,6 +1312,7 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
   CeedCall(CeedFree(&(*ceed)->op_fallback_resource));
+  CeedCall(CeedWorkVectorsDestroy(*ceed));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
 }

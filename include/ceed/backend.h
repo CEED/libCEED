@@ -252,6 +252,8 @@ CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *ob
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
+CEED_EXTERN int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec);
+CEED_EXTERN int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec);
 
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
