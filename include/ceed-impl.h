@@ -82,6 +82,14 @@ typedef struct {
   Ceed  delegate;
 } ObjDelegate;
 
+// Work vector tracking
+typedef struct CeedWorkVectors_private *CeedWorkVectors;
+struct CeedWorkVectors_private {
+  CeedInt     num_vecs, max_vecs;
+  bool       *is_in_use;
+  CeedVector *vecs;
+};
+
 struct Ceed_private {
   const char  *resource;
   Ceed         delegate;
@@ -113,13 +121,14 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
-  int      ref_count;
-  void    *data;
-  bool     is_debug;
-  bool     has_valid_op_fallback_resource;
-  bool     is_deterministic;
-  char     err_msg[CEED_MAX_RESOURCE_LEN];
-  FOffset *f_offsets;
+  int             ref_count;
+  void           *data;
+  bool            is_debug;
+  bool            has_valid_op_fallback_resource;
+  bool            is_deterministic;
+  char            err_msg[CEED_MAX_RESOURCE_LEN];
+  FOffset        *f_offsets;
+  CeedWorkVectors work_vectors;
 };
 
 struct CeedVector_private {
