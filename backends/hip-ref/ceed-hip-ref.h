@@ -137,11 +137,12 @@ typedef struct {
 typedef struct {
   bool                     *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out, has_shared_e_vecs;
   uint64_t                 *input_states;  // State tracking for passive inputs
-  CeedVector               *e_vecs;        // E-vectors, inputs followed by outputs
-  CeedVector               *q_vecs_in;     // Input Q-vectors needed to apply operator
-  CeedVector               *q_vecs_out;    // Output Q-vectors needed to apply operator
+  CeedVector               *e_vecs_in, *e_vecs_out;
+  CeedVector               *q_vecs_in, *q_vecs_out;
   CeedInt                   num_inputs, num_outputs;
   CeedInt                   num_active_in, num_active_out;
+  CeedInt                  *input_field_order, *output_field_order;
+  CeedSize                  max_active_e_vec_len;
   CeedInt                   max_num_points;
   CeedInt                  *num_points;
   CeedVector               *qf_active_in, point_coords_elem;

@@ -848,11 +848,11 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
       CeedElemRestriction rstr_i;
 
       if (is_ordered[i]) continue;
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
       field_rstr_in_buffer[i]       = i;
       is_ordered[i]                 = true;
       input_field_order[curr_index] = i;
       curr_index++;
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
       if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
       for (CeedInt j = i + 1; j < num_input_fields; j++) {
