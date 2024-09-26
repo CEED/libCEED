@@ -2848,8 +2848,9 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
     CeedCall(CeedVectorGetArrayWrite(q_data, CEED_MEM_HOST, &q_data_array));
     for (CeedInt e = 0; e < num_elem; e++) {
       for (CeedInt c = 0; c < num_comp; c++) {
-        for (CeedInt n = 0; n < num_nodes; n++)
+        for (CeedInt n = 0; n < num_nodes; n++) {
           q_data_array[(e * num_comp + c) * num_nodes + n] = 1. / (elem_avg[e] * fdm_diagonal[c * num_nodes + n]);
+        }
       }
     }
     CeedCall(CeedFree(&elem_avg));

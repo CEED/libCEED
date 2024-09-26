@@ -224,13 +224,19 @@ int main(int argc, char **argv) {
     CeedScalar tol = 100 * CEED_EPSILON;
 
     for (CeedInt i = 0; i < 4 * 8; i++) {
-      if (fabs(interp_proj[i] - ((CeedScalar *)interp_proj_ref)[i]) > tol)
+      if (fabs(interp_proj[i] - ((CeedScalar *)interp_proj_ref)[i]) > tol) {
+        // LCOV_EXCL_START
         printf("Mixed Topology Projection: interp[%" CeedInt_FMT "] expected %f, got %f\n", i, interp_proj[i], ((CeedScalar *)interp_proj_ref)[i]);
+        // LCOV_EXCL_STOP
+      }
     }
 
     for (CeedInt i = 0; i < 3 * 4 * 8; i++) {
-      if (fabs(grad_proj[i] - ((CeedScalar *)grad_proj_ref)[i]) > tol)
+      if (fabs(grad_proj[i] - ((CeedScalar *)grad_proj_ref)[i]) > tol) {
+        // LCOV_EXCL_START
         printf("Mixed Topology Projection: grad[%" CeedInt_FMT "] expected %f, got %f\n", i, grad_proj[i], ((CeedScalar *)grad_proj_ref)[i]);
+        // LCOV_EXCL_STOP
+      }
     }
 
     CeedBasisDestroy(&basis_face);

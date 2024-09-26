@@ -20,11 +20,6 @@
 #include "../qfunctions/manufactured-force.h"  // Manufactured solution forcing
 #include "../qfunctions/traction-boundary.h"   // Traction boundaries
 
-#if PETSC_VERSION_LT(3, 14, 0)
-#define DMPlexGetClosureIndices(a, b, c, d, e, f, g, h, i) DMPlexGetClosureIndices(a, b, c, d, f, g, i)
-#define DMPlexRestoreClosureIndices(a, b, c, d, e, f, g, h, i) DMPlexRestoreClosureIndices(a, b, c, d, f, g, i)
-#endif
-
 // -----------------------------------------------------------------------------
 // Problem options
 // -----------------------------------------------------------------------------

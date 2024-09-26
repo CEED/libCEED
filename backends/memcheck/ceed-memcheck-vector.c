@@ -259,8 +259,9 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
   // Check for unset entries after write-only access
   if (impl->is_write_only_access) {
     for (CeedSize i = 0; i < length; i++) {
-      if (isnan(impl->array_writable_copy[i]))
+      if (isnan(impl->array_writable_copy[i])) {
         CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %" CeedSize_FMT " is NaN after restoring write-only access", i);
+      }
     }
     impl->is_write_only_access = false;
   }

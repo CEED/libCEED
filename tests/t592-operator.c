@@ -173,12 +173,13 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(qf_assembled, CEED_MEM_HOST, &assembled_array);
     CeedVectorGetArrayRead(q_data, CEED_MEM_HOST, &q_data_array);
-    for (CeedInt i = 0; i < num_points; i++)
+    for (CeedInt i = 0; i < num_points; i++) {
       if (fabs(q_data_array[i] - assembled_array[i]) > 1e-9) {
         // LCOV_EXCL_START
         printf("Error: qf_assembled[%" CeedInt_FMT "] = %f != %f\n", i, assembled_array[i], q_data_array[i]);
         // LCOV_EXCL_STOP
       }
+    }
     CeedVectorRestoreArrayRead(qf_assembled, &assembled_array);
     CeedVectorRestoreArrayRead(q_data, &q_data_array);
   }

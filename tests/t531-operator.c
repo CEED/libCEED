@@ -131,8 +131,11 @@ int main(int argc, char **argv) {
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     CeedVectorGetArrayRead(v_assembled, CEED_MEM_HOST, &v_assembled_array);
     for (CeedInt i = 0; i < num_dofs; i++) {
-      if (fabs(v_array[i] - v_assembled_array[i]) > 100. * CEED_EPSILON)
+      if (fabs(v_array[i] - v_assembled_array[i]) > 100. * CEED_EPSILON) {
+        // LCOV_EXCL_START
         printf("Error: Linearized operator computed v[i] = %f != %f\n", v_assembled_array[i], v_array[i]);
+        // LCOV_EXCL_STOP
+      }
     }
     CeedVectorRestoreArrayRead(v, &v_array);
     CeedVectorRestoreArrayRead(v_assembled, &v_assembled_array);

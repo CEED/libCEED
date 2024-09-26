@@ -71,33 +71,37 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
       PetscCall(VecGetLocalSize(X_loc, &X_size));
       PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "X_loc (%" PetscInt_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", X_size, x_size);
-      if (dm_x)
+      if (dm_x) {
         PetscCheck(X_size == dm_X_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                    "X_loc size (%" PetscInt_FMT ") does not match dm_x local vector size (%" PetscInt_FMT ")", X_size, dm_X_size);
+      }
     }
     if (Y_loc) {
       PetscCall(VecGetLocalSize(Y_loc, &Y_size));
       PetscCheck(Y_size == y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "Y_loc (%" PetscInt_FMT ") not correct size for CeedOperator active output size (%" CeedSize_FMT ")", Y_size, y_size);
-      if (dm_y)
+      if (dm_y) {
         PetscCheck(Y_size == dm_Y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                    "Y_loc size (%" PetscInt_FMT ") does not match dm_y local vector size (%" PetscInt_FMT ")", Y_size, dm_Y_size);
+      }
     }
     if (x_ceed && x_ceed != CEED_VECTOR_NONE) {
       PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_ceed_size));
       PetscCheck(x_size >= 0 ? x_ceed_size == x_size : true, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "x_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", x_ceed_size, x_size);
-      if (dm_x)
+      if (dm_x) {
         PetscCheck(x_ceed_size == dm_X_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                    "x_ceed size (%" CeedSize_FMT ") does not match dm_x local vector size (%" PetscInt_FMT ")", x_ceed_size, dm_X_size);
+      }
     }
     if (y_ceed && y_ceed != CEED_VECTOR_NONE) {
       PetscCallCeed(ceed, CeedVectorGetLength(y_ceed, &y_ceed_size));
       PetscCheck(y_ceed_size == y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "y_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", y_ceed_size, y_size);
-      if (dm_y)
+      if (dm_y) {
         PetscCheck(y_ceed_size == dm_Y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                    "y_ceed size (%" CeedSize_FMT ") does not match dm_y local vector size (%" PetscInt_FMT ")", y_ceed_size, dm_Y_size);
+      }
     }
   }
 

@@ -28,11 +28,12 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[dim * num_dofs];
 
-    for (CeedInt i = 0; i < nx * 2 + 1; i++)
+    for (CeedInt i = 0; i < nx * 2 + 1; i++) {
       for (CeedInt j = 0; j < ny * 2 + 1; j++) {
         x_array[i + j * (nx * 2 + 1) + 0 * num_dofs] = (CeedScalar)i / (2 * nx);
         x_array[i + j * (nx * 2 + 1) + 1 * num_dofs] = (CeedScalar)j / (2 * ny);
       }
+    }
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
   CeedVectorCreate(ceed, num_dofs, &u);
@@ -45,8 +46,9 @@ int main(int argc, char **argv) {
     col    = i % nx;
     row    = i / nx;
     offset = col * (p - 1) + row * (nx * 2 + 1) * (p - 1);
-    for (CeedInt j = 0; j < p; j++)
+    for (CeedInt j = 0; j < p; j++) {
       for (CeedInt k = 0; k < p; k++) ind_x[p * (p * i + k) + j] = offset + k * (nx * 2 + 1) + j;
+    }
   }
   CeedElemRestrictionCreate(ceed, num_elem, p * p, dim, num_dofs, dim * num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
   CeedElemRestrictionCreate(ceed, num_elem, p * p, 1, 1, num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_u);

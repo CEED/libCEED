@@ -506,8 +506,9 @@ int main(int argc, char **argv) {
           l_to_g_ind[here] = g_start[ir][jr][kr] + (ii * g_m_nodes[ir][jr][kr][1] + jj) * g_m_nodes[ir][jr][kr][2] + kk;
           if ((i_rank[0] == 0 && i == 0) || (i_rank[1] == 0 && j == 0) || (i_rank[2] == 0 && k == 0) ||
               (i_rank[0] + 1 == p[0] && i + 1 == l_nodes[0]) || (i_rank[1] + 1 == p[1] && j + 1 == l_nodes[1]) ||
-              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2]))
+              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2])) {
             continue;
+          }
           l_to_g_ind_0[l_0_count] = l_to_g_ind[here];
           loc_ind[l_0_count++]    = here;
         }

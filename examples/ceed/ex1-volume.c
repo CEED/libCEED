@@ -318,8 +318,9 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
   }
   CeedElemRestrictionCreate(ceed, num_elem, num_nodes, num_comp, scalar_size, num_comp * scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES, elem_nodes,
                             restriction);
-  if (q_data_restriction)
+  if (q_data_restriction) {
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts, num_comp, num_comp * elem_qpts * num_elem, CEED_STRIDES_BACKEND, q_data_restriction);
+  }
   free(elem_nodes);
   return 0;
 }
