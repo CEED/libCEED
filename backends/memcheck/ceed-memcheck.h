@@ -10,13 +10,21 @@
 #include <ceed/backend.h>
 
 typedef struct {
-  int         mem_block_id;
-  bool        is_write_only_access;
-  CeedScalar *array;
+  // Internal array buffer
+  int         allocated_block_id;
   CeedScalar *array_allocated;
+  // Owned external array
+  int         owned_block_id;
   CeedScalar *array_owned;
+  // Borrowed external array
+  int         borrowed_block_id;
   CeedScalar *array_borrowed;
+  // Externally viewable read-only array
+  int         read_only_block_id;
   CeedScalar *array_read_only_copy;
+  // Externally viewable writable array
+  bool        is_write_only_access;
+  int         writable_block_id;
   CeedScalar *array_writable_copy;
 } CeedVector_Memcheck;
 
@@ -32,18 +40,27 @@ typedef struct {
 } CeedElemRestriction_Memcheck;
 
 typedef struct {
+  bool               setup_done;
   const CeedScalar **inputs;
   CeedScalar       **outputs;
-  bool               setup_done;
 } CeedQFunction_Memcheck;
 
 typedef struct {
-  int   mem_block_id;
-  void *data;
+  // Internal data buffer
+  int   allocated_block_id;
   void *data_allocated;
+  // Owned external data
+  int   owned_block_id;
   void *data_owned;
+  // Borrowed external data
+  int   borrowed_block_id;
   void *data_borrowed;
+  // Externally viewable read-only data
+  int   read_only_block_id;
   void *data_read_only_copy;
+  // Externally viewable writable data
+  int   writable_block_id;
+  void *data_writable_copy;
 } CeedQFunctionContext_Memcheck;
 
 CEED_INTERN int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec);
