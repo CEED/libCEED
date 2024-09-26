@@ -40,9 +40,14 @@ static int CeedBasisApplyCore_Cuda(CeedBasis basis, bool apply_add, const CeedIn
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp, num_nodes, num_qpts;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+    length = (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)num_qpts * (CeedSize)q_comp));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
@@ -206,9 +211,14 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp, num_nodes;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
+    length =
+        (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)max_num_points * (CeedSize)q_comp));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
 
@@ -283,9 +293,12 @@ static int CeedBasisApplyNonTensorCore_Cuda(CeedBasis basis, bool apply_add, con
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    length = (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)num_qpts * (CeedSize)q_comp));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
 

@@ -312,9 +312,14 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp, num_nodes;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
+    length =
+        (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)max_num_points * (CeedSize)q_comp));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
 
