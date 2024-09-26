@@ -336,9 +336,10 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedIn
       local_elem_nodes[l_nodes] = g_nodes;
     }
   }
-  if (restriction)
+  if (restriction) {
     CeedElemRestrictionCreate(ceed, num_elem, num_nodes, num_comp, scalar_size, num_comp * scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
                               restriction);
+  }
   free(el_nodes);
 
   if (q_data_restriction) {

@@ -117,8 +117,9 @@ static PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DML
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "surface qdata", elem_restr_qd_i_sur, CEED_BASIS_NONE, q_data_sur));
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "x", elem_restr_x_sur, basis_x_sur, ceed_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "v", elem_restr_q_sur, basis_q_sur, CEED_VECTOR_ACTIVE));
-  if (elem_restr_jd_i_sur)
+  if (elem_restr_jd_i_sur) {
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "surface jacobian data", elem_restr_jd_i_sur, CEED_BASIS_NONE, jac_data_sur));
+  }
 
   if (qf_apply_bc_jacobian && elem_restr_jd_i_sur) {
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_apply_bc_jacobian, NULL, NULL, &op_apply_bc_jacobian));
