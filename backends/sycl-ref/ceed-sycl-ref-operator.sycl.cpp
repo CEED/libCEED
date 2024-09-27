@@ -552,8 +552,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, 
     CeedInt  strides[3] = {1, num_elem * Q, Q}; /* *NOPAD* */
 
     // Create output restriction
-    CeedCallBackend(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, Q, num_active_in * num_active_out,
-                                                     num_active_in * num_active_out * num_elem * Q, strides, rstr));
+    CeedCallBackend(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, Q, num_active_in * num_active_out, l_size, strides, rstr));
     // Create assembled vector
     CeedCallBackend(CeedVectorCreate(ceed_parent, l_size, assembled));
   }
