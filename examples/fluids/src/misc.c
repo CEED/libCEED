@@ -347,7 +347,7 @@ PetscLogEvent       FLUIDS_SmartRedis_Train;
 PetscLogEvent       FLUIDS_TrainDataCompute;
 PetscLogEvent       FLUIDS_DifferentialFilter;
 PetscLogEvent       FLUIDS_VelocityGradientProjection;
-static PetscClassId libCEED_classid;
+static PetscClassId libCEED_classid, onlineTrain_classid, misc_classid;
 
 PetscErrorCode RegisterLogEvents() {
   PetscFunctionBeginUser;

@@ -17,7 +17,7 @@ PetscErrorCode SmartRedisVerifyPutTensor(void *c_client, const char *name, const
   PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   PetscSmartRedisCall(tensor_exists(c_client, name, name_length, &does_exist));
   PetscCheck(does_exist, PETSC_COMM_SELF, -1, "Tensor of name '%s' was not written to the database successfully", name);
-  PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+  PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -37,7 +37,7 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
     PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
     PetscSmartRedisCall(put_tensor(smartsim->client, "check-run", 9, checkrun, dim_2, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
     PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "check-run", 9));
-    PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+    PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -64,7 +64,7 @@ PetscErrorCode SmartSimSetup(User user) {
 
   PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Init, 0, 0, 0, 0));
   PetscSmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
-  PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Init, 0, 0, 0, 0));
+  PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Init, 0, 0, 0, 0));
 
   PetscCall(SmartSimTrainingSetup(user));
   PetscFunctionReturn(PETSC_SUCCESS);
