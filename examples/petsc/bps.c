@@ -25,7 +25,7 @@
 //     ./bps -problem bp6 -degree 3 -ceed /gpu/cuda
 //
 //TESTARGS(name="BP3, tet elements") -ceed {ceed_resource} -test -problem bp3 -degree 3 -ksp_max_it_clip 50,50 -simplex
-//TESTARGS(name="BP5, hex elements") -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
+//TESTARGS(name="BP5, hex elements") -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 18,18
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex

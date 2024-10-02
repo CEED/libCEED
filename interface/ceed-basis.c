@@ -331,17 +331,12 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
   if (x_ref != CEED_VECTOR_NONE) CeedCall(CeedVectorGetLength(x_ref, &x_length));
   if (u != CEED_VECTOR_NONE) CeedCall(CeedVectorGetLength(u, &u_length));
 
-  // Check compatibility of topological and geometrical dimensions
-  CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0) || (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0) ||
-                (eval_mode == CEED_EVAL_WEIGHT),
-            ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions and number of points");
-
   // Check compatibility coordinates vector
   for (CeedInt i = 0; i < num_elem; i++) total_num_points += num_points[i];
-  CeedCheck((x_length >= total_num_points * dim) || (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_DIMENSION,
+  CeedCheck((x_length >= (CeedSize)total_num_points * (CeedSize)dim) || (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_DIMENSION,
             "Length of reference coordinate vector incompatible with basis dimension and number of points."
             " Found reference coordinate vector of length %" CeedSize_FMT ", not of length %" CeedSize_FMT ".",
-            x_length, total_num_points * dim);
+            x_length, (CeedSize)total_num_points * (CeedSize)dim);
 
   // Check CEED_EVAL_WEIGHT only on CEED_NOTRANSPOSE
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT || t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_UNSUPPORTED,
@@ -351,13 +346,16 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
   bool has_good_dims = true;
   switch (eval_mode) {
     case CEED_EVAL_INTERP:
-      has_good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= total_num_points * num_q_comp || v_length >= num_elem * num_nodes * num_comp)) ||
-                       (t_mode == CEED_NOTRANSPOSE && (v_length >= total_num_points * num_q_comp || u_length >= num_elem * num_nodes * num_comp)));
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= (CeedSize)total_num_points * (CeedSize)num_q_comp ||
+                                                     v_length >= (CeedSize)num_elem * (CeedSize)num_nodes * (CeedSize)num_comp)) ||
+                       (t_mode == CEED_NOTRANSPOSE && (v_length >= (CeedSize)total_num_points * (CeedSize)num_q_comp ||
+                                                       u_length >= (CeedSize)num_elem * (CeedSize)num_nodes * (CeedSize)num_comp)));
       break;
     case CEED_EVAL_GRAD:
-      has_good_dims =
-          ((t_mode == CEED_TRANSPOSE && (u_length >= total_num_points * num_q_comp * dim || v_length >= num_elem * num_nodes * num_comp)) ||
-           (t_mode == CEED_NOTRANSPOSE && (v_length >= total_num_points * num_q_comp * dim || u_length >= num_elem * num_nodes * num_comp)));
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= (CeedSize)total_num_points * (CeedSize)num_q_comp * (CeedSize)dim ||
+                                                     v_length >= (CeedSize)num_elem * (CeedSize)num_nodes * (CeedSize)num_comp)) ||
+                       (t_mode == CEED_NOTRANSPOSE && (v_length >= (CeedSize)total_num_points * (CeedSize)num_q_comp * (CeedSize)dim ||
+                                                       u_length >= (CeedSize)num_elem * (CeedSize)num_nodes * (CeedSize)num_comp)));
       break;
     case CEED_EVAL_WEIGHT:
       has_good_dims = t_mode == CEED_NOTRANSPOSE && (v_length >= total_num_points);
@@ -1819,11 +1817,6 @@ static int CeedBasisApplyCheckDims(CeedBasis basis, CeedInt num_elem, CeedTransp
   CeedCall(CeedVectorGetLength(v, &v_length));
   if (u) CeedCall(CeedVectorGetLength(u, &u_length));
 
-  // Check compatibility of topological and geometrical dimensions
-  CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0 && u_length % num_qpts == 0) ||
-                (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0 && v_length % num_qpts == 0),
-            ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions");
-
   // Check vector lengths to prevent out of bounds issues
   bool has_good_dims = true;
   switch (eval_mode) {
@@ -1832,12 +1825,13 @@ static int CeedBasisApplyCheckDims(CeedBasis basis, CeedInt num_elem, CeedTransp
     case CEED_EVAL_GRAD:
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
-      has_good_dims =
-          ((t_mode == CEED_TRANSPOSE && u_length >= num_elem * num_comp * num_qpts * q_comp && v_length >= num_elem * num_comp * num_nodes) ||
-           (t_mode == CEED_NOTRANSPOSE && v_length >= num_elem * num_qpts * num_comp * q_comp && u_length >= num_elem * num_comp * num_nodes));
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_qpts * (CeedSize)q_comp &&
+                        v_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes) ||
+                       (t_mode == CEED_NOTRANSPOSE && v_length >= (CeedSize)num_elem * (CeedSize)num_qpts * (CeedSize)num_comp * (CeedSize)q_comp &&
+                        u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes));
       break;
     case CEED_EVAL_WEIGHT:
-      has_good_dims = v_length >= num_elem * num_qpts;
+      has_good_dims = v_length >= (CeedSize)num_elem * (CeedSize)num_qpts;
       break;
   }
   CeedCheck(has_good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");

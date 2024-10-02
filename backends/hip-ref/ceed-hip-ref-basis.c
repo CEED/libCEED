@@ -39,9 +39,14 @@ static int CeedBasisApplyCore_Hip(CeedBasis basis, bool apply_add, const CeedInt
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp, num_nodes, num_qpts;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+    length = (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)num_qpts * (CeedSize)q_comp));
     CeedCallHip(ceed, hipMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
@@ -204,9 +209,14 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
 
   // Clear v for transpose operation
   if (is_transpose && !apply_add) {
+    CeedInt  num_comp, q_comp, num_nodes;
     CeedSize length;
 
-    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+    CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
+    length =
+        (CeedSize)num_elem * (CeedSize)num_comp * (t_mode == CEED_TRANSPOSE ? (CeedSize)num_nodes : ((CeedSize)max_num_points * (CeedSize)q_comp));
     CeedCallHip(ceed, hipMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
 

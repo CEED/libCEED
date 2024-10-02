@@ -1,6 +1,6 @@
 /// @file
-/// Test checking BasisApply input/output vectors compatibility with basis dimensions
-/// \test Test checking BasisApply input/output vectors compatibility with basis dimensions
+/// Test checking BasisApply input/output vectors compatibility with basis
+/// \test Test checking BasisApply input/output vectors compatibility with basis
 
 //TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, len, &u);
-  CeedVectorCreate(ceed, len + 1, &v);
+  CeedVectorCreate(ceed, len - 1, &v);
 
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, p, q, CEED_GAUSS, &basis);
 

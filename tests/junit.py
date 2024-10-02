@@ -172,7 +172,7 @@ class CeedSuiteSpec(SuiteSpec):
         elif test_id in ['t215']:
             fail_str = 'Cannot destroy CeedElemRestriction, a process has read access to the offset data'
         elif test_id in ['t303']:
-            fail_str = 'Length of input/output vectors incompatible with basis dimensions'
+            fail_str = 'Input/output vectors too short for basis and evaluation mode'
         elif test_id in ['t408']:
             fail_str = 'CeedQFunctionContextGetData(): Cannot grant CeedQFunctionContext data access, a process has read access'
         elif test_id in ['t409'] and contains_any(resource, ['memcheck']):
