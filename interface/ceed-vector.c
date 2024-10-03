@@ -862,10 +862,10 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   CeedCall(CeedVectorGetLength(w, &length_w));
   CeedCall(CeedVectorGetLength(x, &length_x));
   CeedCall(CeedVectorGetLength(y, &length_y));
-  CeedCheck(length_x >= length_x && length_y >= length_w, ceed, CEED_ERROR_UNSUPPORTED,
-            "Cannot multiply vectors of different lengths."
-            " x length: %" CeedSize_FMT " y length: %" CeedSize_FMT,
-            length_x, length_y);
+  CeedCheck(length_x >= length_w && length_y >= length_w, ceed, CEED_ERROR_UNSUPPORTED,
+            "Cannot pointwise multiply vectors of incompatible lengths."
+            " w length: %" CeedSize_FMT " x length: %" CeedSize_FMT " y length: %" CeedSize_FMT,
+            length_w, length_x, length_y);
 
   CeedCall(CeedGetParent(w->ceed, &ceed_parent_w));
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
