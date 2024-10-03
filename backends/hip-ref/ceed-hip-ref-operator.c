@@ -1718,6 +1718,19 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
   // Work vector
   CeedCallBackend(CeedGetWorkVector(ceed, impl->max_active_e_vec_len, &active_e_vec_in));
   CeedCallBackend(CeedGetWorkVector(ceed, impl->max_active_e_vec_len, &active_e_vec_out));
+  {
+    CeedSize length_in, length_out;
+
+    CeedCallBackend(CeedVectorGetLength(active_e_vec_in, &length_in));
+    CeedCallBackend(CeedVectorGetLength(active_e_vec_out, &length_out));
+    // Need input e_vec to be longer
+    if (length_in < length_out) {
+      CeedVector temp = active_e_vec_in;
+
+      active_e_vec_in  = active_e_vec_out;
+      active_e_vec_out = temp;
+    }
+  }
 
   // Get point coordinates
   if (!impl->point_coords_elem) {
@@ -1801,7 +1814,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
           const CeedScalar *e_vec_array;
 
           CeedCallBackend(CeedVectorGetArrayRead(active_e_vec_in, CEED_MEM_DEVICE, &e_vec_array));
-          CeedCallBackend(CeedVectorSetArray(impl->q_vecs_in[i], CEED_MEM_DEVICE, CEED_USE_POINTER, (CeedScalar *)e_vec_array));
+          CeedCallBackend(CeedVectorSetArray(q_vec, CEED_MEM_DEVICE, CEED_USE_POINTER, (CeedScalar *)e_vec_array));
           break;
         }
         case CEED_EVAL_INTERP:
