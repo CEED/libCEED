@@ -481,6 +481,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                 ref_csv = (ref_csv.parent / ref_csv.name.rsplit('_', 1)[0]).with_suffix('.csv')
             if not ref_csv.is_file():
                 test_case.add_failure_info('csv', output=f'{ref_csv} not found')
+            elif not (Path.cwd() / csv_name).is_file():
+                test_case.add_failure_info('csv', output=f'{csv_name} not found')
             else:
                 diff: str = diff_csv(Path.cwd() / csv_name, ref_csv)
                 if diff:
@@ -495,6 +497,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                 ref_cgn = (ref_cgn.parent / ref_cgn.name.rsplit('_', 1)[0]).with_suffix('.cgns')
             if not ref_cgn.is_file():
                 test_case.add_failure_info('cgns', output=f'{ref_cgn} not found')
+            elif not (Path.cwd() / cgn_name).is_file():
+                test_case.add_failure_info('csv', output=f'{cgn_name} not found')
             else:
                 diff = diff_cgns(Path.cwd() / cgn_name, ref_cgn, cgns_tol=suite_spec.cgns_tol)
                 if diff:
