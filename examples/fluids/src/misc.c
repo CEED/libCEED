@@ -140,32 +140,34 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
 
 // Compare reference solution values with current test run for CI
 PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q) {
-  Vec         Qref;
+  Vec         Q_ref;
   PetscViewer viewer;
-  PetscReal   error, Qrefnorm;
+  PetscReal   error, norm_Q, norm_Q_ref;
   MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
 
   PetscFunctionBeginUser;
   // Read reference file
-  PetscCall(VecDuplicate(Q, &Qref));
+  PetscCall(VecDuplicate(Q, &Q_ref));
   PetscCheck(strcmp(app_ctx->test_file_path, "") != 0, comm, PETSC_ERR_FILE_READ, "File for regression test not given");
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
-  PetscCall(LoadFluidsBinaryVec(comm, viewer, Qref, NULL, NULL));
+  PetscCall(LoadFluidsBinaryVec(comm, viewer, Q_ref, NULL, NULL));
 
   // Compute error with respect to reference solution
-  PetscCall(VecAXPY(Q, -1.0, Qref));
-  PetscCall(VecNorm(Qref, NORM_MAX, &Qrefnorm));
-  PetscCall(VecScale(Q, 1. / Qrefnorm));
+  PetscCall(VecNorm(Q_ref, NORM_MAX, &norm_Q));
+  PetscCall(VecNorm(Q_ref, NORM_MAX, &norm_Q_ref));
+  PetscCall(VecAXPY(Q, -1.0, Q_ref));
+  PetscCall(VecScale(Q, 1. / norm_Q_ref));
   PetscCall(VecNorm(Q, NORM_MAX, &error));
 
   // Check error
   if (error > app_ctx->test_tol) {
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Test failed with error norm %g\n", (double)error));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Test failed with error norm %g\nReference solution max norm: %g Computed solution max norm %g\n",
+                          (double)error, (double)norm_Q_ref, (double)norm_Q));
   }
 
   // Cleanup
   PetscCall(PetscViewerDestroy(&viewer));
-  PetscCall(VecDestroy(&Qref));
+  PetscCall(VecDestroy(&Q_ref));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
