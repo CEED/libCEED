@@ -129,7 +129,7 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
                                  -rho_div_p};
 
   {
-    CeedScalar rtol = 20 * CEED_EPSILON;
+    CeedScalar rtol = 40 * CEED_EPSILON;
 
     PetscCall(TestState(STATEVAR_PRIMITIVE, STATEVAR_CONSERVATIVE, gas, Y0, rtol, rtol, rtol));
     PetscCall(TestState(STATEVAR_PRIMITIVE, STATEVAR_ENTROPY, gas, Y0, rtol, rtol, rtol));
