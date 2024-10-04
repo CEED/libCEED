@@ -5,6 +5,10 @@ stages:
   - test:cpu-and-tidy
   - test:gpu-and-float
 
+workflow:
+  auto_cancel:
+    on_job_failure: all
+
 
 # ----------------------------------------------------------------------------------------
 # Memcheck backends + ASAN
