@@ -459,7 +459,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   // Determine elem_dof relation for input
   CeedCall(CeedVectorCreate(ceed, num_nodes_in, &index_vec_in));
   CeedCall(CeedVectorGetArrayWrite(index_vec_in, CEED_MEM_HOST, &array));
-  for (CeedInt i = 0; i < num_nodes_in; i++) array[i] = i;
+  for (CeedSize i = 0; i < num_nodes_in; i++) array[i] = i;
   CeedCall(CeedVectorRestoreArray(index_vec_in, &array));
   CeedCall(CeedVectorCreate(ceed, num_elem_in * elem_size_in * num_comp_in, &elem_dof_in));
   CeedCall(CeedVectorSetValue(elem_dof_in, 0.0));
@@ -482,7 +482,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
     // Determine elem_dof relation for output
     CeedCall(CeedVectorCreate(ceed, num_nodes_out, &index_vec_out));
     CeedCall(CeedVectorGetArrayWrite(index_vec_out, CEED_MEM_HOST, &array));
-    for (CeedInt i = 0; i < num_nodes_out; i++) array[i] = i;
+    for (CeedSize i = 0; i < num_nodes_out; i++) array[i] = i;
     CeedCall(CeedVectorRestoreArray(index_vec_out, &array));
     CeedCall(CeedVectorCreate(ceed, num_elem_out * elem_size_out * num_comp_out, &elem_dof_out));
     CeedCall(CeedVectorSetValue(elem_dof_out, 0.0));
@@ -500,7 +500,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
     layout_er_out[2] = layout_er_in[2];
     elem_dof_a_out   = elem_dof_a_in;
   }
-  local_num_entries = elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
+  local_num_entries = (CeedSize)elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
 
   // Determine i, j locations for element matrices
   for (CeedInt e = 0; e < num_elem_in; e++) {
@@ -658,7 +658,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
     elem_rstr_orients_out      = elem_rstr_orients_in;
     elem_rstr_curl_orients_out = elem_rstr_curl_orients_in;
   }
-  local_num_entries = elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
+  local_num_entries = (CeedSize)elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
 
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
@@ -2500,7 +2500,7 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
     CeedCall(CeedElemRestrictionApply(mult_elem_rstr, CEED_TRANSPOSE, ones_e_vec, sub_mult_l_vec, CEED_REQUEST_IMMEDIATE));
     CeedCall(CeedVectorGetArrayRead(sub_mult_l_vec, CEED_MEM_HOST, &sub_mult_array));
     // ---- Flag every node present in the current suboperator
-    for (CeedInt j = 0; j < l_vec_len; j++) {
+    for (CeedSize j = 0; j < l_vec_len; j++) {
       if (sub_mult_array[j] > 0.0) mult_array[j] += 1.0;
     }
     CeedCall(CeedVectorRestoreArrayRead(sub_mult_l_vec, &sub_mult_array));
@@ -2698,7 +2698,6 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   Ceed                 ceed, ceed_parent;
   bool                 interp = false, grad = false, is_tensor_basis = true;
   CeedInt              num_input_fields, P_1d, Q_1d, num_nodes, num_qpts, dim, num_comp = 1, num_elem = 1;
-  CeedSize             l_size = 1;
   CeedScalar          *mass, *laplace, *x, *fdm_interp, *lambda, *elem_avg;
   const CeedScalar    *interp_1d, *grad_1d, *q_weight_1d;
   CeedVector           q_data;
@@ -2756,7 +2755,6 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   CeedCall(CeedBasisGetDimension(basis, &dim));
   CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
 
   // Build and diagonalize 1D Mass and Laplacian
   CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
