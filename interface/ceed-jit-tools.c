@@ -97,7 +97,7 @@ static int CeedNormalizePath(Ceed ceed, const char *source_file_path, char **nor
 
         while (last_slash[0] != '/' && last_slash != *normalized_source_file_path) last_slash--;
         CeedCheck(last_slash != *normalized_source_file_path, ceed, CEED_ERROR_MAJOR, "Malformed source path %s", source_file_path);
-        for (CeedInt i = 0; first_dot[i - 1]; i++) last_slash[i] = first_dot[i + 2];
+        for (CeedInt i = 0; first_dot[i + 1]; i++) last_slash[i] = first_dot[i + 2];
         search_from = last_slash;
       }
     }
