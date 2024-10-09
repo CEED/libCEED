@@ -43,9 +43,11 @@ Basis *Basis::from(CeedBasis basis) {
 }
 
 Basis *Basis::from(CeedOperatorField operatorField) {
-  CeedBasis basis;
-  CeedCallOcca(CeedOperatorFieldGetBasis(operatorField, &basis));
-  return from(basis);
+  CeedBasis ceedBasis;
+  CeedCallOcca(CeedOperatorFieldGetBasis(operatorField, &ceedBasis));
+  Basis *basis = from(ceedBasis);
+  CeedCallOcca(CeedBasisDestroy(&ceedBasis));
+  return basis;
 }
 
 int Basis::setCeedFields(CeedBasis basis) {

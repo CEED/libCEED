@@ -137,8 +137,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
         char              field_name[PETSC_MAX_PATH_LEN];
         PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
         PetscCallCeed(ceed, CeedOperatorGetFieldByName(diff_filter->op_rhs_ctx->op, field_name, &op_field));
-        PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_filter));
-        PetscCallCeed(ceed, CeedOperatorFieldGetBasis(op_field, &basis_filter));
+        PetscCallCeed(ceed, CeedOperatorFieldGetData(op_field, NULL, &elem_restr_filter, &basis_filter, NULL));
       }
 
       PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_lhs, NULL, NULL, &op_lhs_sub));
@@ -151,6 +150,8 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
 
       PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_lhs, op_lhs_sub));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_filter));
+      PetscCallCeed(ceed, CeedBasisDestroy(&basis_filter));
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }

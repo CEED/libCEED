@@ -173,6 +173,13 @@ impl<'a> Basis<'a> {
         })
     }
 
+    pub(crate) fn from_raw(ptr: bind_ceed::CeedBasis) -> crate::Result<Self> {
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
     pub fn create_tensor_H1_Lagrange(
         ceed: &crate::Ceed,
         dim: usize,
