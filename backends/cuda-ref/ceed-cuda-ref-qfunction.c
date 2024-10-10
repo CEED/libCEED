@@ -68,6 +68,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   CeedQFunction_Cuda *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
+  CeedCallBackend(CeedFree(&data->qfunction_source));
   if (data->module) CeedCallCuda(CeedQFunctionReturnCeed(qf), cuModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
