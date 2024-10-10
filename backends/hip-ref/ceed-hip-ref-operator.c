@@ -1538,10 +1538,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallHip(ceed, hipMemcpy(&asmb->d_B_in[i * elem_size_in * num_qpts_in], h_B_in, elem_size_in * num_qpts_in * sizeof(CeedScalar),
                                   hipMemcpyHostToDevice));
     }
-
-    if (identity) {
-      CeedCallBackend(CeedFree(&identity));
-    }
+    CeedCallBackend(CeedFree(&identity));
   }
   CeedCallBackend(CeedFree(&eval_modes_in));
 
@@ -1576,10 +1573,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallHip(ceed, hipMemcpy(&asmb->d_B_out[i * elem_size_out * num_qpts_out], h_B_out, elem_size_out * num_qpts_out * sizeof(CeedScalar),
                                   hipMemcpyHostToDevice));
     }
-
-    if (identity) {
-      CeedCallBackend(CeedFree(&identity));
-    }
+    CeedCallBackend(CeedFree(&identity));
   }
   CeedCallBackend(CeedFree(&eval_modes_out));
   return CEED_ERROR_SUCCESS;
