@@ -205,7 +205,7 @@ noether-cuda:
     - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
 # Rebuild without ASAN
-    - export ASAN=0 AFLAGS= ASAN_OPTIONS=
+    - unset ASAN AFLAGS ASAN_OPTIONS
     - make clean
     - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
 # Libraries for examples
