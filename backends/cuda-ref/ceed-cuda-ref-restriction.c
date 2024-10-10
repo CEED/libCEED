@@ -80,6 +80,10 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
                                        "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
+      // Cleanup
+      CeedCallBackend(CeedFree(&offset_kernel_path));
+      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
+      CeedCallBackend(CeedFree(&file_paths));
     } break;
     case CEED_RESTRICTION_STANDARD: {
       CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &restriction_kernel_path));
