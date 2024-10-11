@@ -111,6 +111,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_mass_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetName(op_mass_tet, "mass tet");
 
   // Set up Hex Elements
   // -- Restrictions
@@ -154,6 +155,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_mass_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetName(op_mass_hex, "mass hex");
 
   // Set up Composite Operators
   // -- Create
@@ -167,6 +169,16 @@ int main(int argc, char **argv) {
   // -- Add SubOperators
   CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
   CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
+
+  {  // Test CeedCompositeOperatorGetSubByName
+    CeedOperator op_byname;
+
+    CeedCompositeOperatorGetSubByName(op_mass, "mass hex", &op_byname);
+    if (op_byname != op_mass_hex) printf("CeedCompositeOperatorGetSubByName returned incorrect Sub Operator");
+
+    CeedCompositeOperatorGetSubByName(op_mass, "asdf", &op_byname);
+    if (op_byname != NULL) printf("CeedCompositeOperatorGetSubByName returned non-NULL for non-existent Sub Operator");
+  }
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, x, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);

@@ -416,6 +416,7 @@ CEED_EXTERN int  CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points);
 CEED_EXTERN int  CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
 CEED_EXTERN int  CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
 CEED_EXTERN int  CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
+CEED_EXTERN int  CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op);
 CEED_EXTERN int  CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int  CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
