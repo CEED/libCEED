@@ -155,12 +155,12 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         // LCOV_EXCL_STOP
       }
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
   // Check output bases for Q_1d, dim as well
   //   The only input basis might be CEED_BASIS_NONE
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-
     if (basis != CEED_BASIS_NONE) {
       bool is_tensor;
 
@@ -178,6 +178,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         // LCOV_EXCL_STOP
       }
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
   impl->dim  = dim;
   impl->Q_1d = Q_1d;
@@ -196,6 +197,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         use_collograd_parallelization = basis_impl->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
         was_grad_found                = true;
+        CeedCallBackend(CeedBasisDestroy(&basis));
       }
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -205,6 +207,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         use_collograd_parallelization = basis_impl->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
         was_grad_found                = true;
+        CeedCallBackend(CeedBasisDestroy(&basis));
       }
     }
   }
@@ -271,8 +274,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
     // Set field constants
     if (eval_mode != CEED_EVAL_WEIGHT) {
@@ -321,6 +325,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       case CEED_EVAL_CURL:
         break;  // TODO: Not implemented
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
 
   code << "\n  // -- Output field constants and basis data --\n";
@@ -329,8 +334,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
 
     // Set field constants
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
@@ -382,6 +388,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       }
         // LCOV_EXCL_STOP
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
   code << "\n  // -- Element loop --\n";
   code << "  work_group_barrier(CLK_LOCAL_MEM_FENCE);\n";
@@ -394,8 +401,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
     // Restriction
     if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_collograd_parallelization)) {
@@ -431,6 +438,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
              << ", num_elem, d_u_" << i << ", r_u_" << i << ");\n";
       }
     }
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -452,12 +460,14 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
                << i << ", r_t_" << i << ", elem_scratch);\n";
         } else {
           CeedInt P_1d;
+
           CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*DIM*Q_1D];\n";
           code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_in_" << i
                << ", P_in_" << i << ", Q_1D, r_u_" << i << (dim > 1 ? ", s_B_in_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_in_" << i
                << ", r_t_" << i << ", elem_scratch);\n";
+          CeedCallBackend(CeedBasisDestroy(&basis));
         }
         break;
       case CEED_EVAL_WEIGHT:
@@ -466,6 +476,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->W = basis_impl->d_q_weight_1d;
         code << "    Weight" << (dim > 1 ? "Tensor" : "") << dim << "d(Q_1D, W, r_t_" << i << ");\n";
+        CeedCallBackend(CeedBasisDestroy(&basis));
         break;  // No action
       case CEED_EVAL_DIV:
         break;  // TODO: Not implemented
@@ -544,6 +555,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
                  << "3d(num_comp_in_" << i << ", Q_1D," << strides[0] << ", " << strides[1] << ", " << strides[2] << ", num_elem, q, d_u_" << i
                  << ", r_q_" << i << ");\n";
           }
+          CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
           break;
         case CEED_EVAL_INTERP:
           code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "];\n";
@@ -665,8 +677,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     // Get elem_size, eval_mode, num_comp
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
     switch (eval_mode) {
@@ -690,6 +702,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
           code << "    GradTranspose" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_out_" << i
                << ", P_out_" << i << ", Q_1D, r_tt_" << i << (dim > 1 ? ", s_B_out_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_out_" << i
                << ", r_v_" << i << ", elem_scratch);\n";
+          CeedCallBackend(CeedBasisDestroy(&basis));
         }
         break;
       // LCOV_EXCL_START
@@ -734,6 +747,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       code << "    writeDofsStrided" << dim << "d(num_comp_out_" << i << ",P_out_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
            << ", num_elem, r_v_" << i << ", d_v_" << i << ");\n";
     }
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
 
   code << "  }\n";

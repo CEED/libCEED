@@ -818,6 +818,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedInt             num_comp, elem_size;
@@ -827,6 +828,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   code << "    // Scratch restriction buffer space\n";
   code << "    CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
