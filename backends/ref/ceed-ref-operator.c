@@ -1456,7 +1456,10 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           // ---- Check if elem size matches
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[j], &elem_rstr));
           CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
-          if (is_active_at_points && rstr_type != CEED_RESTRICTION_POINTS) continue;
+          if (is_active_at_points && rstr_type != CEED_RESTRICTION_POINTS) {
+            CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+            continue;
+          }
           if (rstr_type == CEED_RESTRICTION_POINTS) {
             CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(elem_rstr, e, &elem_size));
           } else {
@@ -1466,7 +1469,10 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
             CeedInt num_comp = 0;
 
             CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-            if (e_vec_size != num_comp * elem_size) continue;
+            if (e_vec_size != num_comp * elem_size) {
+              CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+              continue;
+            }
           }
 
           // ---- Basis action
