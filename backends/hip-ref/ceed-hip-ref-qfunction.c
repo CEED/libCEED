@@ -70,6 +70,7 @@ static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
   CeedQFunction_Hip *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
+  CeedCallBackend(CeedFree(&data->qfunction_source));
   if (data->module) CeedCallHip(CeedQFunctionReturnCeed(qf), hipModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;

@@ -598,6 +598,7 @@ static int CeedOperatorSetupAtPoints_Hip(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
       impl->num_points[e] = num_points_elem;
     }
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
   impl->max_num_points = max_num_points;
 
@@ -777,6 +778,8 @@ static int CeedOperatorApplyAddAtPoints_Hip(CeedOperator op, CeedVector in_vec, 
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &point_coords));
     CeedCallBackend(CeedElemRestrictionCreateVector(rstr_points, NULL, &impl->point_coords_elem));
     CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+    CeedCallBackend(CeedVectorDestroy(&point_coords));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
 
   // Process inputs
@@ -1535,11 +1538,9 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallHip(ceed, hipMemcpy(&asmb->d_B_in[i * elem_size_in * num_qpts_in], h_B_in, elem_size_in * num_qpts_in * sizeof(CeedScalar),
                                   hipMemcpyHostToDevice));
     }
-
-    if (identity) {
-      CeedCallBackend(CeedFree(&identity));
-    }
+    CeedCallBackend(CeedFree(&identity));
   }
+  CeedCallBackend(CeedFree(&eval_modes_in));
 
   // Load into B_out, in order that they will be used in eval_modes_out
   {
@@ -1572,11 +1573,9 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallHip(ceed, hipMemcpy(&asmb->d_B_out[i * elem_size_out * num_qpts_out], h_B_out, elem_size_out * num_qpts_out * sizeof(CeedScalar),
                                   hipMemcpyHostToDevice));
     }
-
-    if (identity) {
-      CeedCallBackend(CeedFree(&identity));
-    }
+    CeedCallBackend(CeedFree(&identity));
   }
+  CeedCallBackend(CeedFree(&eval_modes_out));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1740,6 +1739,8 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &point_coords));
     CeedCallBackend(CeedElemRestrictionCreateVector(rstr_points, NULL, &impl->point_coords_elem));
     CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+    CeedCallBackend(CeedVectorDestroy(&point_coords));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
 
   // Process inputs
@@ -1930,6 +1931,10 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorInputRestore_Hip(op_input_fields[i], qf_input_fields[i], i, NULL, NULL, true, impl));
   }
+
+  // Restore work vector
+  CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec_in));
+  CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec_out));
   return CEED_ERROR_SUCCESS;
 }
 
