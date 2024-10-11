@@ -1285,6 +1285,40 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 }
 
 /**
+  @brief Get a sub `CeedOperator` of a composite `CeedOperator` from its name.
+
+  `sub_op` is set to `NULL` if the sub operator is not found.
+
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+
+  @param[in]  op      Composite `CeedOperator`
+  @param[in]  op_name Name of desired sub `CeedOperator`
+  @param[out] sub_op  Sub `CeedOperator` corresponding to the name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op) {
+  bool          is_composite;
+  CeedInt       num_sub_ops;
+  CeedOperator *sub_ops;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
+  *sub_op = NULL;
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
+  for (CeedInt i = 0; i < num_sub_ops; i++) {
+    if (sub_ops[i]->name && !strcmp(op_name, sub_ops[i]->name)) {
+      *sub_op = sub_ops[i];
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check if a `CeedOperator` is ready to be used.
 
   @param[in] op `CeedOperator` to check
