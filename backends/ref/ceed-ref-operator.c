@@ -980,7 +980,11 @@ static inline int CeedOperatorOutputBasisAtPoints_Ref(CeedInt e, CeedInt num_poi
       }
     }
     // Restrict output block
-    if (skip_rstr[i]) continue;
+    if (skip_rstr[i]) {
+      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+      continue;
+    }
+
     // Get output vector
     CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
     CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
