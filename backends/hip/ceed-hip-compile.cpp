@@ -35,8 +35,7 @@
 //------------------------------------------------------------------------------
 int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
   size_t                 ptx_size;
-  char                  *jit_defs_source, *ptx;
-  const char            *jit_defs_path;
+  char                  *ptx;
   const int              num_opts            = 4;
   CeedInt                num_jit_source_dirs = 0;
   const char           **opts;
@@ -77,12 +76,7 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   }
 
   // Standard libCEED definitions for HIP backends
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-jit.h", &jit_defs_path));
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
-  code << jit_defs_source;
-  code << "\n\n";
-  CeedCallBackend(CeedFree(&jit_defs_path));
-  CeedCallBackend(CeedFree(&jit_defs_source));
+  code << "#include <ceed/jit-source/hip/hip-jit.h>\n\n";
 
   // Non-macro options
   CeedCallBackend(CeedCalloc(num_opts, &opts));
