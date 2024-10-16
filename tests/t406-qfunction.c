@@ -18,6 +18,13 @@ int main(int argc, char **argv) {
   CeedScalar    v_true[q];
 
   CeedInit(argv[1], &ceed);
+  {
+    char  file_path[2056] = __FILE__;
+    char *last_slash      = strrchr(file_path, '/');
+
+    memcpy(&file_path[last_slash - file_path], "/test-include/", 15);
+    CeedAddJitSourceRoot(ceed, file_path);
+  }
 
   CeedVectorCreate(ceed, q, &w);
   CeedVectorCreate(ceed, q, &u);

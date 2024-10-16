@@ -15,6 +15,9 @@
 // Test include path with "/./"
 #include "./t406-qfunction-scales.h"
 
-CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) { return SCALE_TWO * x; }
+// Test include via -I....
+#include <fake-sys-include.h>
 
-CEED_QFUNCTION_HELPER CeedScalar times_three(CeedScalar x) { return SCALE_THREE * x; }
+CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) { return FAKE_SYS_SCALE_ONE * SCALE_TWO * x; }
+
+CEED_QFUNCTION_HELPER CeedScalar times_three(CeedScalar x) { return FAKE_SYS_SCALE_ONE * SCALE_THREE * x; }
