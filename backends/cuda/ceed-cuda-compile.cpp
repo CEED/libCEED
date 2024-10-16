@@ -38,7 +38,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   size_t                ptx_size;
   char                 *ptx;
   const char           *jit_defs_path, *jit_defs_source;
-  const int             num_opts            = 3;
+  const int             num_opts            = 4;
   CeedInt               num_jit_source_dirs = 0;
   const char          **opts;
   nvrtcProgram          prog;
@@ -95,6 +95,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
       + std::to_string(prop.major) + std::to_string(prop.minor);
   opts[1] = arch_arg.c_str();
   opts[2] = "-Dint32_t=int";
+  opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
   {
     const char **jit_source_dirs;
 

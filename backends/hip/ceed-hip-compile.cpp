@@ -37,7 +37,7 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   size_t                 ptx_size;
   char                  *jit_defs_source, *ptx;
   const char            *jit_defs_path;
-  const int              num_opts            = 3;
+  const int              num_opts            = 4;
   CeedInt                num_jit_source_dirs = 0;
   const char           **opts;
   int                    runtime_version;
@@ -92,6 +92,7 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   std::string arch_arg = "--gpu-architecture=" + std::string(prop.gcnArchName);
   opts[1]              = arch_arg.c_str();
   opts[2]              = "-munsafe-fp-atomics";
+  opts[3]              = "-DCEED_RUNNING_JIT_PASS=1";
   {
     const char **jit_source_dirs;
 
