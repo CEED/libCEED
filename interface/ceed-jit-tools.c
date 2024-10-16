@@ -400,28 +400,33 @@ int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative
   @ref Backend
 **/
 int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, const char **absolute_file_path) {
-  Ceed ceed_parent;
+  const char **jit_source_dirs;
+  CeedInt      num_source_dirs;
 
   // Debug
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Relative JiT source file: ");
   CeedDebug(ceed, "%s\n", relative_file_path);
 
-  CeedCall(CeedGetParent(ceed, &ceed_parent));
-  for (CeedInt i = 0; i < ceed_parent->num_jit_source_roots; i++) {
+  CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_source_dirs, &jit_source_dirs));
+  for (CeedInt i = 0; i < num_source_dirs; i++) {
     bool is_valid;
 
     // Debug
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Checking JiT root: ");
-    CeedDebug(ceed, "%s\n", ceed_parent->jit_source_roots[i]);
+    CeedDebug(ceed, "%s\n", jit_source_dirs[i]);
 
     // Build and check absolute path with current root
-    CeedCall(CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i], relative_file_path, (char **)absolute_file_path));
+    CeedCall(CeedPathConcatenate(ceed, jit_source_dirs[i], relative_file_path, (char **)absolute_file_path));
     CeedCall(CeedCheckFilePath(ceed, *absolute_file_path, &is_valid));
 
-    if (is_valid) return CEED_ERROR_SUCCESS;
+    if (is_valid) {
+      CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+      return CEED_ERROR_SUCCESS;
+    }
     // LCOV_EXCL_START
-    else CeedCall(CeedFree(absolute_file_path));
+    else
+      CeedCall(CeedFree(absolute_file_path));
     // LCOV_EXCL_STOP
   }
   // LCOV_EXCL_START

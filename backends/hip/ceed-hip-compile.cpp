@@ -37,8 +37,9 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   size_t                 ptx_size;
   char                  *jit_defs_source, *ptx;
   const char            *jit_defs_path;
-  const int              num_opts = 3;
-  const char            *opts[num_opts];
+  const int              num_opts            = 3;
+  CeedInt                num_jit_source_dirs = 0;
+  const char           **opts;
   int                    runtime_version;
   hiprtcProgram          prog;
   struct hipDeviceProp_t prop;
@@ -84,12 +85,26 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   CeedCallBackend(CeedFree(&jit_defs_source));
 
   // Non-macro options
+  CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
   CeedCallBackend(CeedGetData(ceed, (void **)&ceed_data));
   CeedCallHip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
   std::string arch_arg = "--gpu-architecture=" + std::string(prop.gcnArchName);
   opts[1]              = arch_arg.c_str();
   opts[2]              = "-munsafe-fp-atomics";
+  {
+    const char **jit_source_dirs;
+
+    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+    CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs, &opts));
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+      std::ostringstream include_dirs_arg;
+
+      include_dirs_arg << "-I" << jit_source_dirs[i];
+      CeedCallBackend(CeedStringAllocCopy(include_dirs_arg.str().c_str(), (char **)&opts[num_opts + i]));
+    }
+    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+  }
 
   // Add string source argument provided in call
   code << source;
@@ -98,8 +113,12 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  hiprtcResult result = hiprtcCompileProgram(prog, num_opts, opts);
+  hiprtcResult result = hiprtcCompileProgram(prog, num_opts + num_jit_source_dirs, opts);
 
+  for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+    CeedCallBackend(CeedFree(&opts[num_opts + i]));
+  }
+  CeedCallBackend(CeedFree(&opts));
   if (result != HIPRTC_SUCCESS) {
     size_t log_size;
     char  *log;

@@ -254,6 +254,8 @@ CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
 CEED_EXTERN int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec);
+CEED_EXTERN int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***jit_source_roots);
+CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots);
 
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);

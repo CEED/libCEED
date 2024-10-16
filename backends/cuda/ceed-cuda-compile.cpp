@@ -38,8 +38,9 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   size_t                ptx_size;
   char                 *ptx;
   const char           *jit_defs_path, *jit_defs_source;
-  const int             num_opts = 4;
-  const char           *opts[num_opts];
+  const int             num_opts            = 3;
+  CeedInt               num_jit_source_dirs = 0;
+  const char          **opts;
   nvrtcProgram          prog;
   struct cudaDeviceProp prop;
   Ceed_Cuda            *ceed_data;
@@ -77,6 +78,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   CeedCallBackend(CeedFree(&jit_defs_source));
 
   // Non-macro options
+  CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
   CeedCallBackend(CeedGetData(ceed, &ceed_data));
   CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
@@ -93,7 +95,19 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
       + std::to_string(prop.major) + std::to_string(prop.minor);
   opts[1] = arch_arg.c_str();
   opts[2] = "-Dint32_t=int";
-  opts[3] = "-I/home/jeremy/Dev/libCEED/include/ceed/jit-source/"
+  {
+    const char **jit_source_dirs;
+
+    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+    CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs, &opts));
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+      std::ostringstream include_dirs_arg;
+
+      include_dirs_arg << "-I" << jit_source_dirs[i];
+      CeedCallBackend(CeedStringAllocCopy(include_dirs_arg.str().c_str(), (char **)&opts[num_opts + i]));
+    }
+    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+  }
 
   // Add string source argument provided in call
   code << source;
@@ -102,8 +116,12 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
+  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs, opts);
 
+  for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+    CeedCallBackend(CeedFree(&opts[num_opts + i]));
+  }
+  CeedCallBackend(CeedFree(&opts));
   if (result != NVRTC_SUCCESS) {
     char  *log;
     size_t log_size;
