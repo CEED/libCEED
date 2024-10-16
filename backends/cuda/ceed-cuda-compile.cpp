@@ -38,7 +38,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   size_t                ptx_size;
   char                 *ptx;
   const char           *jit_defs_path, *jit_defs_source;
-  const int             num_opts = 3;
+  const int             num_opts = 4;
   const char           *opts[num_opts];
   nvrtcProgram          prog;
   struct cudaDeviceProp prop;
@@ -93,6 +93,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
       + std::to_string(prop.major) + std::to_string(prop.minor);
   opts[1] = arch_arg.c_str();
   opts[2] = "-Dint32_t=int";
+  opts[3] = "-I/home/jeremy/Dev/libCEED/include/ceed/jit-source/"
 
   // Add string source argument provided in call
   code << source;

@@ -216,6 +216,9 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
       bool  is_ceed_header    = next_left_chevron && (next_new_line - next_left_chevron > 0) &&
                             (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) || !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
                              !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) || !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
+      bool is_std_header =
+          next_left_chevron && (next_new_line - next_left_chevron > 0) &&
+          (!strncmp(next_left_chevron, "<std", 4) || !strncmp(next_left_chevron, "<math.h>", 8) || !strncmp(next_left_chevron, "<ceed", 5));
 
       if (is_local_header || is_ceed_header) {
         // ---- Build source path
@@ -254,6 +257,13 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
         }
         CeedCall(CeedFree(&include_source_path));
         CeedCall(CeedFree(&normalized_include_source_path));
+      } else if (!is_std_header) {
+        long header_copy_size = next_new_line - first_hash + 1;
+
+        CeedCall(CeedRealloc(current_size + copy_size + header_copy_size + 2, buffer));
+        memcpy(&(*buffer)[current_size + copy_size], "\n", 2);
+        memcpy(&(*buffer)[current_size + copy_size + 1], first_hash, header_copy_size);
+        memcpy(&(*buffer)[current_size + copy_size + header_copy_size], "", 1);
       }
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
     }
