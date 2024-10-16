@@ -10,8 +10,10 @@
 #ifndef CEED_QFUNCTION_DEFS_H
 #define CEED_QFUNCTION_DEFS_H
 
+#ifndef CEED_RUNNING_JIT_PASS
 #include <stddef.h>
 #include <stdint.h>
+#endif
 
 /**
   @ingroup CeedQFunction
