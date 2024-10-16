@@ -37,7 +37,6 @@
 int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
   size_t                ptx_size;
   char                 *ptx;
-  const char           *jit_defs_path, *jit_defs_source;
   const int             num_opts            = 4;
   CeedInt               num_jit_source_dirs = 0;
   const char          **opts;
@@ -65,17 +64,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   }
 
   // Standard libCEED definitions for CUDA backends
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-jit.h", &jit_defs_path));
-  {
-    char *source;
-
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &source));
-    jit_defs_source = source;
-  }
-  code << jit_defs_source;
-  code << "\n\n";
-  CeedCallBackend(CeedFree(&jit_defs_path));
-  CeedCallBackend(CeedFree(&jit_defs_source));
+  code << "#include <ceed/jit-source/cuda/cuda-jit.h>\n\n";
 
   // Non-macro options
   CeedCallBackend(CeedCalloc(num_opts, &opts));
