@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-// Note: intentionally testing strange spacing in '#include's
+// Note: intentionally testing strange spacing in include's
 // clang-format off
 #include <ceed.h>
 #  include  <math.h>
