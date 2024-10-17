@@ -7,8 +7,10 @@
 
 /// @file
 /// Mass operator for Navier-Stokes example using PETSc
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 // *****************************************************************************
 // This QFunction applies the mass matrix to five interlaced fields.

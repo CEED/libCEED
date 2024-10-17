@@ -9,7 +9,7 @@
   @brief  Identity QFunction that copies inputs directly into outputs
 **/
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 typedef struct {
   CeedInt size;

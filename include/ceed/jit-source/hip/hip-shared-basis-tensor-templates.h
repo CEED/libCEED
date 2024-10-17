@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for HIP shared memory tensor product basis templates
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // 1D

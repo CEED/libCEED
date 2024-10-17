@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for CUDA tensor product basis with AtPoints evaluation
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Chebyshev values

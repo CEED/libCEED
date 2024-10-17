@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for SYCL backend QFunction read/write kernels
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Read from quadrature points

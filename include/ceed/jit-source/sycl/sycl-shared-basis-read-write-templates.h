@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for SYCL shared memory basis read/write templates
 
-#include <ceed.h>
+#include <ceed/types.h>
 #include "sycl-types.h"
 
 //------------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 /// @file
 /// Geometric factors for solid mechanics example using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factors required for integration and coordinate transformations

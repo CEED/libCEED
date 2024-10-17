@@ -10,6 +10,7 @@
 # pragma  once
 // clang-format on
 
+// Note - ceed/types.h should be used over ceed.h
 #include <ceed.h>
 
 // Test include path with "/./"
