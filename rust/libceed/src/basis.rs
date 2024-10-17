@@ -8,7 +8,7 @@
 //! A Ceed Basis defines the discrete finite element basis and associated
 //! quadrature rule.
 
-use crate::prelude::*;
+use crate::{prelude::*, vector::Vector, EvalMode, TransposeMode};
 
 // -----------------------------------------------------------------------------
 // Basis option
@@ -37,7 +37,7 @@ impl<'a> BasisOpt<'a> {
     /// Check if a BasisOpt is Some
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, BasisOpt, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
@@ -59,7 +59,7 @@ impl<'a> BasisOpt<'a> {
     /// Check if a BasisOpt is None
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, BasisOpt, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
@@ -108,7 +108,7 @@ impl<'a> fmt::Display for Basis<'a> {
     /// View a Basis
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
@@ -346,7 +346,7 @@ impl<'a> Basis<'a> {
     /// * `v`     - Output Vector
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, TransposeMode, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// const Q: usize = 6;
@@ -419,7 +419,7 @@ impl<'a> Basis<'a> {
     /// Returns the dimension for given Basis
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let dim = 2;
@@ -439,7 +439,7 @@ impl<'a> Basis<'a> {
     /// Returns number of components for given Basis
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let ncomp = 2;
@@ -459,7 +459,7 @@ impl<'a> Basis<'a> {
     /// Returns total number of nodes (in dim dimensions) of a Basis
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let p = 3;
@@ -480,7 +480,7 @@ impl<'a> Basis<'a> {
     /// Basis
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let q = 4;
@@ -509,7 +509,7 @@ impl<'a> Basis<'a> {
     /// points and weights.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, EvalMode, TransposeMode, QuadMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let coarse = ceed.basis_tensor_H1_Lagrange(1, 1, 2, 3, QuadMode::Gauss)?;
