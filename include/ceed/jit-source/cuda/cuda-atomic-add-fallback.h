@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for CUDA atomic add fallback definition
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Atomic add, for older CUDA

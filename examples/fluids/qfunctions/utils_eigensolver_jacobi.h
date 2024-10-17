@@ -9,8 +9,11 @@
 /// Eigen system solver for symmetric NxN matrices. Modified from the CC0 code provided at https://github.com/jewettaij/jacobi_pd
 #pragma once
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#include <stdbool.h>
+#endif
 
 #include "utils.h"
 

@@ -9,8 +9,10 @@
 /// Structs and helper functions regarding the state of a newtonian simulation
 #pragma once
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 #include "newtonian_types.h"
 #include "utils.h"

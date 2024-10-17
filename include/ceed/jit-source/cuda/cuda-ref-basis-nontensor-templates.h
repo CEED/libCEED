@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for CUDA non-tensor product basis templates
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Tensor contraction

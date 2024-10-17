@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for HIP offset element restriction kernels
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, standard (with offsets)

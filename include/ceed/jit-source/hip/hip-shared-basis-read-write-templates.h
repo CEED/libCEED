@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for HIP shared memory basis read/write templates
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Helper function: load matrices for basis actions

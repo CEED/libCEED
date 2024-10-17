@@ -12,9 +12,11 @@
 /// SetupSTG_Rand reads in the input files and fills in STGShur14Context.
 /// Then STGShur14_CalcQF is run over quadrature points.
 /// Before the program exits, TearDownSTG is run to free the memory of the allocated arrays.
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
 #include <stdlib.h>
+#endif
 
 #include "newtonian_state.h"
 #include "setupgeo_helpers.h"
