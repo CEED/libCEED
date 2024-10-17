@@ -8,8 +8,10 @@
 /// @file
 /// Linear elasticity manufactured solution true solution for solid mechanics example using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 // -----------------------------------------------------------------------------
 // True solution for linear elasticity manufactured solution

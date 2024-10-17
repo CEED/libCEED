@@ -8,7 +8,7 @@
 /// @file
 /// Internal header for CUDA offset element restriction kernels
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, standard (with offsets)

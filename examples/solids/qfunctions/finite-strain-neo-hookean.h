@@ -8,8 +8,10 @@
 /// @file
 /// Hyperelasticity, finite strain for solid mechanics example using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 #ifndef PHYSICS_STRUCT
 #define PHYSICS_STRUCT

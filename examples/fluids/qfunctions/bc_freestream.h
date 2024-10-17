@@ -7,6 +7,10 @@
 
 /// @file
 /// QFunctions for the `bc_freestream` and `bc_outflow` boundary conditions
+#ifndef CEED_RUNNING_JIT_PASS
+#include <stdbool.h>
+#endif
+
 #include "bc_freestream_type.h"
 #include "newtonian_state.h"
 #include "newtonian_types.h"

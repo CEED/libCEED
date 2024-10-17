@@ -8,7 +8,7 @@
 /// @file
 /// libCEED QFunctions for BP examples using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

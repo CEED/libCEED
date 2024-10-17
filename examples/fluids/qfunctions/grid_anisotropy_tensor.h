@@ -8,7 +8,7 @@
 /// @file
 /// Element anisotropy tensor, as defined in 'Invariant data-driven subgrid stress modeling in the strain-rate eigenframe for large eddy simulation'
 /// Prakash et al. 2022
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "utils.h"
 #include "utils_eigensolver_jacobi.h"

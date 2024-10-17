@@ -8,7 +8,7 @@
 /// @file
 /// Geometric factors for solid mechanics example using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 // -----------------------------------------------------------------------------
 // This QFunction computes the surface integral of the user traction vector on the constrained faces.

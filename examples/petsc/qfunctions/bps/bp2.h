@@ -8,8 +8,10 @@
 /// @file
 /// libCEED QFunctions for mass operator example using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
