@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for CUDA non-tensor product basis
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "cuda-ref-basis-nontensor-templates.h"
 

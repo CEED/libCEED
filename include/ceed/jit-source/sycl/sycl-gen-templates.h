@@ -7,7 +7,7 @@
 
 /// @file
 /// Internal header for SYCL backend macro and type definitions for JiT source
-#include <ceed.h>
+#include <ceed/types.h>
 
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable

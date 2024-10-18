@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA non-tensor basis interpolation
-
 #include "magma-common-nontensor.h"
 
 ////////////////////////////////////////////////////////////////////////////////

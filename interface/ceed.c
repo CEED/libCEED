@@ -658,6 +658,16 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     fallback_ceed->op_fallback_parent = ceed;
     fallback_ceed->Error              = ceed->Error;
     ceed->op_fallback_ceed            = fallback_ceed;
+    {
+      const char **jit_source_dirs;
+      CeedInt      num_jit_source_dirs = 0;
+
+      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+      for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_dirs[i]));
+      }
+      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+    }
   }
   *fallback_ceed = ceed->op_fallback_ceed;
   return CEED_ERROR_SUCCESS;
@@ -861,6 +871,43 @@ int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
   // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_MAJOR, "vec was not checked out via CeedGetWorkVector()");
   // LCOV_EXCL_STOP
+}
+
+/**
+  @brief Retrieve list ofadditional JiT source roots from `Ceed` context.
+
+  Note: The caller is responsible for restoring `jit_source_roots` with @ref CeedRestoreJitSourceRoots().
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] num_source_roots Number of JiT source directories
+  @param[out] jit_source_roots Absolute paths to additional JiT source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***jit_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *num_source_roots = ceed_parent->num_jit_source_roots;
+  *jit_source_roots = (const char **)ceed_parent->jit_source_roots;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore list of additional JiT source roots from with @ref CeedGetJitSourceRoots()
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] jit_source_roots Absolute paths to additional JiT source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
+  *jit_source_roots = NULL;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}

@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP backend QFunction read/write kernels
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Read from quadrature points

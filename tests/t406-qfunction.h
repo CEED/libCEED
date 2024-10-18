@@ -5,10 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-// Note: intentionally testing strange spacing in '#include's
+// Note: intentionally testing strange spacing in include's
 // clang-format off
+// Note - ceed/types.h should be used over ceed.h
 #include <ceed.h>
-#  include  <math.h>
+// Note - system headers like math.h and std*.h should be guarded
+#ifndef CEED_RUNNING_JIT_PASS
+#  include <math.h>
+#endif
 
 #include "t406-qfunction-helper.h"
 // Test duplicate includes of guarded files

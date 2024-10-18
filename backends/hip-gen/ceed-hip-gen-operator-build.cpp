@@ -707,28 +707,10 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
 
   // Load basis source files
   // TODO: Add non-tensor, AtPoints
-  {
-    char       *tensor_basis_kernel_source;
-    const char *tensor_basis_kernel_path;
-
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
-    code << tensor_basis_kernel_source;
-    CeedCallBackend(CeedFree(&tensor_basis_kernel_path));
-    CeedCallBackend(CeedFree(&tensor_basis_kernel_source));
-  }
-  {
-    char       *hip_gen_template_source;
-    const char *hip_gen_template_path;
-
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-gen-templates.h", &hip_gen_template_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Hip-Gen Template Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, hip_gen_template_path, &hip_gen_template_source));
-    code << hip_gen_template_source;
-    CeedCallBackend(CeedFree(&hip_gen_template_path));
-    CeedCallBackend(CeedFree(&hip_gen_template_source));
-  }
+  code << "// Tensor basis source\n";
+  code << "#include <ceed/jit-source/hip/hip-shared-basis-tensor-templates.h>\n\n";
+  code << "// CodeGen operator source\n";
+  code << "#include <ceed/jit-source/hip/hip-gen-templates.h>\n\n";
 
   // Get QFunction name
   std::string qfunction_name(qf_data->qfunction_name);
@@ -746,9 +728,13 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
 
   // Add user QFunction source
   {
-    std::string qfunction_source(qf_data->qfunction_source);
+    const char *source_path;
 
-    code << qfunction_source;
+    CeedCallBackend(CeedQFunctionGetSourcePath(qf, &source_path));
+    CeedCheck(source_path, ceed, CEED_ERROR_UNSUPPORTED, "/gpu/hip/gen backend requires QFunction source code file");
+
+    code << "// User QFunction source\n";
+    code << "#include \"" << source_path << "\"\n\n";
   }
 
   // Setup

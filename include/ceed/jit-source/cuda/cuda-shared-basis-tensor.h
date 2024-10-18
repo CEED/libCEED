@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for CUDA shared memory tensor product basis
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "cuda-shared-basis-read-write-templates.h"
 #include "cuda-shared-basis-tensor-templates.h"

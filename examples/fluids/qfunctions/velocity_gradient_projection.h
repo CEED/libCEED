@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"

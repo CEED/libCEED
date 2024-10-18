@@ -1283,8 +1283,6 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op) {
 //------------------------------------------------------------------------------
 static inline int CeedOperatorAssembleDiagonalSetupCompile_Hip(CeedOperator op, CeedInt use_ceedsize_idx, const bool is_point_block) {
   Ceed                ceed;
-  char               *diagonal_kernel_source;
-  const char         *diagonal_kernel_path;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
   CeedInt             num_comp, q_comp, num_nodes, num_qpts;
   CeedBasis           basis_in = NULL, basis_out = NULL;
@@ -1348,22 +1346,18 @@ static inline int CeedOperatorAssembleDiagonalSetupCompile_Hip(CeedOperator op, 
   CeedOperatorDiag_Hip *diag = impl->diag;
 
   // Assemble kernel
-  hipModule_t *module          = is_point_block ? &diag->module_point_block : &diag->module;
-  CeedInt      elems_per_block = 1;
+  const char   diagonal_kernel_source[] = "// Diagonal assembly source\n#include <ceed/jit-source/hip/hip-ref-operator-assemble-diagonal.h>\n";
+  hipModule_t *module                   = is_point_block ? &diag->module_point_block : &diag->module;
+  CeedInt      elems_per_block          = 1;
+
   CeedCallBackend(CeedBasisGetNumNodes(basis_in, &num_nodes));
   CeedCallBackend(CeedBasisGetNumComponents(basis_in, &num_comp));
   if (basis_in == CEED_BASIS_NONE) num_qpts = num_nodes;
   else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-operator-assemble-diagonal.h", &diagonal_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, diagonal_kernel_path, &diagonal_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Source Complete! -----\n");
   CeedCallHip(ceed, CeedCompile_Hip(ceed, diagonal_kernel_source, module, 8, "NUM_EVAL_MODES_IN", num_eval_modes_in, "NUM_EVAL_MODES_OUT",
                                     num_eval_modes_out, "NUM_COMP", num_comp, "NUM_NODES", num_nodes, "NUM_QPTS", num_qpts, "USE_CEEDSIZE",
                                     use_ceedsize_idx, "USE_POINT_BLOCK", is_point_block ? 1 : 0, "BLOCK_SIZE", num_nodes * elems_per_block));
   CeedCallHip(ceed, CeedGetKernel_Hip(ceed, *module, "LinearDiagonal", is_point_block ? &diag->LinearPointBlock : &diag->LinearDiagonal));
-  CeedCallBackend(CeedFree(&diagonal_kernel_path));
-  CeedCallBackend(CeedFree(&diagonal_kernel_source));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
   return CEED_ERROR_SUCCESS;
@@ -1478,8 +1472,6 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op, 
 static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceedsize_idx) {
   Ceed                ceed;
   Ceed_Hip           *hip_data;
-  char               *assembly_kernel_source;
-  const char         *assembly_kernel_path;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
   CeedInt             elem_size_in, num_qpts_in = 0, num_comp_in, elem_size_out, num_qpts_out, num_comp_out, q_comp;
   CeedEvalMode       *eval_modes_in = NULL, *eval_modes_out = NULL;
@@ -1586,20 +1578,16 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
   }
 
   // Compile kernels
+  const char assembly_kernel_source[] = "// Full assembly source\n#include <ceed/jit-source/hip/hip-ref-operator-assemble.h>\n";
+
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp_in));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-operator-assemble.h", &assembly_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, assembly_kernel_path, &assembly_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Source Complete! -----\n");
   CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, &asmb->module, 10, "NUM_EVAL_MODES_IN", num_eval_modes_in, "NUM_EVAL_MODES_OUT",
                                   num_eval_modes_out, "NUM_COMP_IN", num_comp_in, "NUM_COMP_OUT", num_comp_out, "NUM_NODES_IN", elem_size_in,
                                   "NUM_NODES_OUT", elem_size_out, "NUM_QPTS", num_qpts_in, "BLOCK_SIZE",
                                   asmb->block_size_x * asmb->block_size_y * asmb->elems_per_block, "BLOCK_SIZE_Y", asmb->block_size_y, "USE_CEEDSIZE",
                                   use_ceedsize_idx));
   CeedCallBackend(CeedGetKernel_Hip(ceed, asmb->module, "LinearAssemble", &asmb->LinearAssemble));
-  CeedCallBackend(CeedFree(&assembly_kernel_path));
-  CeedCallBackend(CeedFree(&assembly_kernel_source));
 
   // Load into B_in, in order that they will be used in eval_modes_in
   {

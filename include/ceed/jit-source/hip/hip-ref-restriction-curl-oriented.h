@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP curl-oriented element restriction kernels
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, curl-oriented

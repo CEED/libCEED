@@ -8,8 +8,10 @@
 /// @file
 /// libCEED QFunctions for mass operator example for a scalar field on the sphere using PETSc
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the geometric factor required for integration when reference coordinates have a different dimension than the one of physical

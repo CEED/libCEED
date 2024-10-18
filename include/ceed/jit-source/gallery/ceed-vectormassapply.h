@@ -8,8 +8,7 @@
 /**
   @brief Ceed QFunction for applying the mass matrix on a vector system with three components
 **/
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is u, size (Q)

@@ -696,42 +696,17 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
     CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
     if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
-      char       *atomic_add_source;
-      const char *atomic_add_path;
-
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
-      CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &atomic_add_source));
-      code << atomic_add_source;
-      CeedCallBackend(CeedFree(&atomic_add_path));
-      CeedCallBackend(CeedFree(&atomic_add_source));
+      code << "// AtomicAdd fallback source\n";
+      code << "#include <ceed/jit-source/cuda/cuda-atomic-add-fallback.h>\n\n";
     }
   }
 
   // Load basis source files
   // TODO: Add non-tensor, AtPoints
-  {
-    char       *tensor_basis_kernel_source;
-    const char *tensor_basis_kernel_path;
-
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
-    code << tensor_basis_kernel_source;
-    CeedCallBackend(CeedFree(&tensor_basis_kernel_path));
-    CeedCallBackend(CeedFree(&tensor_basis_kernel_source));
-  }
-  {
-    char       *cuda_gen_template_source;
-    const char *cuda_gen_template_path;
-
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-gen-templates.h", &cuda_gen_template_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Cuda-Gen Template Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, cuda_gen_template_path, &cuda_gen_template_source));
-    code << cuda_gen_template_source;
-    CeedCallBackend(CeedFree(&cuda_gen_template_path));
-    CeedCallBackend(CeedFree(&cuda_gen_template_source));
-  }
+  code << "// Tensor basis source\n";
+  code << "#include <ceed/jit-source/cuda/cuda-shared-basis-tensor-templates.h>\n\n";
+  code << "// CodeGen operator source\n";
+  code << "#include <ceed/jit-source/cuda/cuda-gen-templates.h>\n\n";
 
   // Get QFunction name
   std::string qfunction_name(qf_data->qfunction_name);
@@ -749,9 +724,13 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
 
   // Add user QFunction source
   {
-    std::string qfunction_source(qf_data->qfunction_source);
+    const char *source_path;
 
-    code << qfunction_source;
+    CeedCallBackend(CeedQFunctionGetSourcePath(qf, &source_path));
+    CeedCheck(source_path, ceed, CEED_ERROR_UNSUPPORTED, "/gpu/cuda/gen backend requires QFunction source code file");
+
+    code << "// User QFunction source\n";
+    code << "#include \"" << source_path << "\"\n\n";
   }
 
   // Setup

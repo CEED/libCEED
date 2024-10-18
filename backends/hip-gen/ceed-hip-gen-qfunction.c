@@ -27,7 +27,6 @@ static int CeedQFunctionDestroy_Hip_gen(CeedQFunction qf) {
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
   CeedCallHip(CeedQFunctionReturnCeed(qf), hipFree(data->d_c));
-  CeedCallBackend(CeedFree(&data->qfunction_source));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
@@ -45,10 +44,6 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
 
   // Read QFunction source
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source -----\n");
-  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source Complete! -----\n");
-  CeedCheck(data->qfunction_source, ceed, CEED_ERROR_UNSUPPORTED, "/gpu/hip/gen backend requires QFunction source code file");
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip_gen));

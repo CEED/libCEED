@@ -25,8 +25,6 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   using std::string;
 
   Ceed                ceed;
-  char               *read_write_kernel_source;
-  const char         *read_write_kernel_path;
   Ceed_Hip           *ceed_Hip;
   CeedInt             num_input_fields, num_output_fields, size;
   CeedQFunctionField *input_fields, *output_fields;
@@ -39,26 +37,26 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   // QFunction is built
   if (data->QFunction) return CEED_ERROR_SUCCESS;
 
-  CeedCheck(data->qfunction_source, ceed, CEED_ERROR_BACKEND, "No QFunction source or hipFunction_t provided.");
-
   // QFunction kernel generation
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
 
   // Build strings for final kernel
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-qfunction.h", &read_write_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
-  string        qfunction_source(data->qfunction_source);
   string        qfunction_name(data->qfunction_name);
-  string        read_write(read_write_kernel_source);
   string        kernel_name = "CeedKernelHipRefQFunction_" + qfunction_name;
   ostringstream code;
 
-  // Defintions
-  code << read_write;
-  code << qfunction_source;
-  code << "\n";
+  // Definitions
+  code << "// QFunction source\n";
+  code << "#include <ceed/jit-source/hip/hip-ref-qfunction.h>\n\n";
+  {
+    const char *source_path;
+
+    CeedCallBackend(CeedQFunctionGetSourcePath(qf, &source_path));
+    CeedCheck(source_path, ceed, CEED_ERROR_BACKEND, "No QFunction source or hipFunction_t provided.");
+
+    code << "// User QFunction source\n";
+    code << "#include \"" << source_path << "\"\n\n";
+  }
   code << "extern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
   code << "__global__ void " << kernel_name << "(void *ctx, CeedInt Q, Fields_Hip fields) {\n";
 
@@ -118,11 +116,6 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   // Compile kernel
   CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 1, "BLOCK_SIZE", ceed_Hip->opt_block_size));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, kernel_name.c_str(), &data->QFunction));
-
-  // Cleanup
-  CeedCallBackend(CeedFree(&data->qfunction_source));
-  CeedCallBackend(CeedFree(&read_write_kernel_path));
-  CeedCallBackend(CeedFree(&read_write_kernel_source));
   return CEED_ERROR_SUCCESS;
 }
 

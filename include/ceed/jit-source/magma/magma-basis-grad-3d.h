@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA tensor basis gradient in 3D
-
 #include "magma-common-tensor.h"
 
 // macros to abstract access of shared memory and reg. file

@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for CUDA backend macro and type definitions for JiT source
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Load matrices for basis actions
