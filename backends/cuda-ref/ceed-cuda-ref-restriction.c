@@ -24,8 +24,6 @@
 static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr) {
   Ceed                      ceed;
   bool                      is_deterministic;
-  char                     *restriction_kernel_source;
-  const char               *restriction_kernel_path;
   CeedInt                   num_elem, num_comp, elem_size, comp_stride;
   CeedRestrictionType       rstr_type;
   CeedElemRestriction_Cuda *impl;
@@ -46,67 +44,45 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
   // Compile CUDA kernels
   switch (rstr_type) {
     case CEED_RESTRICTION_STRIDED: {
-      bool    has_backend_strides;
-      CeedInt strides[3] = {1, num_elem * elem_size, elem_size};
+      const char restriction_kernel_source[] = "// Strided restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-strided.h>\n";
+      bool       has_backend_strides;
+      CeedInt    strides[3] = {1, num_elem * elem_size, elem_size};
 
       CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
       if (!has_backend_strides) {
         CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
       }
-
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-strided.h", &restriction_kernel_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-      CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
       CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
                                        "RSTR_NUM_COMP", num_comp, "RSTR_STRIDE_NODES", strides[0], "RSTR_STRIDE_COMP", strides[1], "RSTR_STRIDE_ELEM",
                                        strides[2]));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->ApplyTranspose));
     } break;
-    case CEED_RESTRICTION_POINTS: {
-      const char *offset_kernel_path;
-      char      **file_paths     = NULL;
-      CeedInt     num_file_paths = 0;
-
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-at-points.h", &restriction_kernel_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-      CeedCallBackend(CeedLoadSourceAndInitializeBuffer(ceed, restriction_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &offset_kernel_path));
-      CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, offset_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
-                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
-      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
-      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
-      // Cleanup
-      CeedCallBackend(CeedFree(&offset_kernel_path));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
-      CeedCallBackend(CeedFree(&file_paths));
-    } break;
     case CEED_RESTRICTION_STANDARD: {
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &restriction_kernel_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-      CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
+      const char restriction_kernel_source[] = "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
+
       CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
                                        "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
                                        "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyTranspose));
     } break;
-    case CEED_RESTRICTION_ORIENTED: {
-      const char *offset_kernel_path;
-      char      **file_paths     = NULL;
-      CeedInt     num_file_paths = 0;
+    case CEED_RESTRICTION_POINTS: {
+      const char restriction_kernel_source[] =
+          "// AtPoints restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-at-points.h>\n\n"
+          "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
 
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-oriented.h", &restriction_kernel_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-      CeedCallBackend(CeedLoadSourceAndInitializeBuffer(ceed, restriction_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &offset_kernel_path));
-      CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, offset_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
+                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
+                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
+      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
+    } break;
+    case CEED_RESTRICTION_ORIENTED: {
+      const char restriction_kernel_source[] =
+          "// Oriented restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-oriented.h>\n\n"
+          "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
+
       CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
                                        "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
                                        "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
@@ -114,22 +90,11 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyUnsignedNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedTranspose", &impl->ApplyTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyUnsignedTranspose));
-      // Cleanup
-      CeedCallBackend(CeedFree(&offset_kernel_path));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
-      CeedCallBackend(CeedFree(&file_paths));
     } break;
     case CEED_RESTRICTION_CURL_ORIENTED: {
-      const char *offset_kernel_path;
-      char      **file_paths     = NULL;
-      CeedInt     num_file_paths = 0;
-
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-curl-oriented.h", &restriction_kernel_path));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-      CeedCallBackend(CeedLoadSourceAndInitializeBuffer(ceed, restriction_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &offset_kernel_path));
-      CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, offset_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
+      const char restriction_kernel_source[] =
+          "// Curl oriented restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-curl-oriented.h>\n\n"
+          "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
       CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
                                        "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
                                        "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
@@ -139,14 +104,8 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedTranspose", &impl->ApplyTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedTranspose", &impl->ApplyUnsignedTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyUnorientedTranspose));
-      // Cleanup
-      CeedCallBackend(CeedFree(&offset_kernel_path));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
-      CeedCallBackend(CeedFree(&file_paths));
     } break;
   }
-  CeedCallBackend(CeedFree(&restriction_kernel_path));
-  CeedCallBackend(CeedFree(&restriction_kernel_source));
   return CEED_ERROR_SUCCESS;
 }
 

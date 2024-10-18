@@ -342,24 +342,17 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
     }
 
     // -- Compile kernels
-    char       *basis_kernel_source;
-    const char *basis_kernel_path;
-    CeedInt     num_comp;
+    const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/hip/hip-ref-basis-tensor-at-points.h>\n";
+    CeedInt    num_comp;
 
     if (data->moduleAtPoints) CeedCallHip(ceed, hipModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-basis-tensor-at-points.h", &basis_kernel_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
     CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
                                     Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
                                     "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
                                     max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
-    CeedCallBackend(CeedFree(&basis_kernel_path));
-    CeedCallBackend(CeedFree(&basis_kernel_source));
   }
 
   // Get read/write access to u, v
@@ -454,8 +447,6 @@ static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
 int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                        const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed                  ceed;
-  char                 *basis_kernel_source;
-  const char           *basis_kernel_path;
   CeedInt               num_comp;
   const CeedInt         q_bytes      = Q_1d * sizeof(CeedScalar);
   const CeedInt         interp_bytes = q_bytes * P_1d;
@@ -493,10 +484,8 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(ComputeBasisThreadBlockSizes(dim, P_1d, Q_1d, num_comp, data->block_sizes));
 
   // Compile basis kernels
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-shared-basis-tensor.h", &basis_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+  const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/hip/hip-shared-basis-tensor.h>\n";
+
   CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 11, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
                                   CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                   "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_INTERP_BLOCK_SIZE", data->block_sizes[0], "BASIS_GRAD_BLOCK_SIZE",
@@ -509,8 +498,6 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTranspose", &data->GradTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
-  CeedCallBackend(CeedFree(&basis_kernel_path));
-  CeedCallBackend(CeedFree(&basis_kernel_source));
 
   CeedCallBackend(CeedBasisSetData(basis, data));
 

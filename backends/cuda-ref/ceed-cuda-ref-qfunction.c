@@ -68,7 +68,6 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
   CeedQFunction_Cuda *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  CeedCallBackend(CeedFree(&data->qfunction_source));
   if (data->module) CeedCallCuda(CeedQFunctionReturnCeed(qf), cuModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
@@ -96,11 +95,8 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 
-  // Read QFunction source
+  // Read QFunction name
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source -----\n");
-  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source Complete! -----\n");
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Cuda));

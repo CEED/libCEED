@@ -101,7 +101,6 @@ typedef struct {
 typedef struct {
   hipModule_t   module;
   const char   *qfunction_name;
-  const char   *qfunction_source;
   hipFunction_t QFunction;
   Fields_Hip    fields;
   void         *d_c;
