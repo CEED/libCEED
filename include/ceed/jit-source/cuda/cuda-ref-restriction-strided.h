@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA strided element restriction kernels
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

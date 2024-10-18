@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP type definitions
-#ifndef CEED_HIP_TYPES_H
-#define CEED_HIP_TYPES_H
+#pragma once
 
 #include <ceed/types.h>
 
@@ -31,5 +30,3 @@ typedef struct {
   CeedInt     t_id;
   CeedScalar *slice;
 } SharedData_Hip;
-
-#endif  // CEED_HIP_TYPES_H

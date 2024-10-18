@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA tensor product basis with AtPoints evaluation
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

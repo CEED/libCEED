@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP shared memory basis read/write templates
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

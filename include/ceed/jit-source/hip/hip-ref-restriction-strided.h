@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP strided element restriction kernels
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

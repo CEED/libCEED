@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP tensor product basis
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

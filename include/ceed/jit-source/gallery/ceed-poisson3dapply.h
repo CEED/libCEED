@@ -8,7 +8,6 @@
 /**
   @brief Ceed QFunction for applying the geometric data for the 3D Poisson operator
 **/
-
 #include <ceed/types.h>
 
 CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

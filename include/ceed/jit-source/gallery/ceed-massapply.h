@@ -8,7 +8,6 @@
 /**
   @brief Ceed QFunction for applying the mass matrix
 **/
-
 #include <ceed/types.h>
 
 CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA shared memory tensor product basis templates
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

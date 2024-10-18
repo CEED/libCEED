@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA operator full assembly
-
 #include <ceed/types.h>
 
 #if USE_CEEDSIZE

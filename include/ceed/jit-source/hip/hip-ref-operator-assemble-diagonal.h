@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP operator diagonal assembly
-
 #include <ceed/types.h>
 
 #if USE_CEEDSIZE

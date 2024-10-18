@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP non-tensor product basis templates
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

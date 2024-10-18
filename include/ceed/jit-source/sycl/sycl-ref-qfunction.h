@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for SYCL backend QFunction read/write kernels
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

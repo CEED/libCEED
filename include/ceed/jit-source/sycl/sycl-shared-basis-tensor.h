@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for SYCL shared memory tensor product basis
-
 #include <ceed/types.h>
 
 #include "sycl-shared-basis-read-write-templates.h"

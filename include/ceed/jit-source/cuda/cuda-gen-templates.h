@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA backend macro and type definitions for JiT source
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

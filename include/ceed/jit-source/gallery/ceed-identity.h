@@ -8,7 +8,6 @@
 /**
   @brief  Identity QFunction that copies inputs directly into outputs
 **/
-
 #include <ceed/types.h>
 
 typedef struct {

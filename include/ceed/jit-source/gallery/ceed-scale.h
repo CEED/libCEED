@@ -8,7 +8,6 @@
 /**
   @brief  Scaling QFunction that scales inputs
 **/
-
 #include <ceed/types.h>
 
 CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

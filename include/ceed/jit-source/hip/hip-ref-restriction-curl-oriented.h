@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP curl-oriented element restriction kernels
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

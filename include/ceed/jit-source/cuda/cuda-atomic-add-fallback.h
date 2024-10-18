@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA atomic add fallback definition
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

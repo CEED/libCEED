@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP backend macro and type definitions for JiT source
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

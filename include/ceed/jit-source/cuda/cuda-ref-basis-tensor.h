@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for CUDA tensor product basis
-
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------

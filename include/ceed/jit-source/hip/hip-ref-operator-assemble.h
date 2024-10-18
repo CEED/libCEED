@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for HIP operator full assembly
-
 #include <ceed/types.h>
 
 #if USE_CEEDSIZE
