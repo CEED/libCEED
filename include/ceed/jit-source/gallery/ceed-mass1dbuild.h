@@ -8,8 +8,7 @@
 /**
   @brief Ceed QFunction for building the geometric data for the 1D mass matrix
 **/
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians, size (Q)

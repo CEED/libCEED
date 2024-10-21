@@ -7,7 +7,7 @@
 
 /// @file
 /// Helper functions for computing stabilization terms of a newtonian simulation
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "newtonian_state.h"
 

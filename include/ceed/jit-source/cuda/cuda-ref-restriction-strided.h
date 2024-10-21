@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for CUDA strided element restriction kernels
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, strided

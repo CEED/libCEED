@@ -572,7 +572,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.sycl.cpp | $$(@D)/.DIR
 	$(call quiet,SYCLCXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
+	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS) -I./tests/test-include
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)

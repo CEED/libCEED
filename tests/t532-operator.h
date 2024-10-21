@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed.h>
+#include <ceed/types.h>
 
 CEED_QFUNCTION(setup_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *J = in[0], *weight = in[1];

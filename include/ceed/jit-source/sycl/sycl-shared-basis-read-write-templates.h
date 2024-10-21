@@ -7,9 +7,7 @@
 
 /// @file
 /// Internal header for SYCL shared memory basis read/write templates
-
-#include <ceed.h>
-#include "sycl-types.h"
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Helper function: load matrices for basis actions

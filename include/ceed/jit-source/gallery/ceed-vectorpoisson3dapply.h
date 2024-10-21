@@ -8,8 +8,7 @@
 /**
   @brief Ceed QFunction for applying the geometric data for the 3D Poisson on a vector system with three components operator
 **/
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 CEED_QFUNCTION(Vector3Poisson3DApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is gradient u, shape [3, nc=3, Q]

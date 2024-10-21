@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for CUDA shared memory basis read/write templates
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // 1D

@@ -7,8 +7,10 @@
 
 /// @file
 /// Thermodynamic wave propogation for testing freestream/non-reflecting boundary conditions. Proposed in Mengaldo et. al. 2014
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 #include "newtonian_state.h"
 #include "utils.h"

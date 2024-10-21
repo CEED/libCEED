@@ -608,6 +608,8 @@ int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
   @param[in]  source     Absolute path to source of `CeedQFunctionUser`, "\abs_path\file.h:function_name".
                            The entire source file must only contain constructs supported by all targeted backends (i.e. CUDA for `/gpu/cuda`, OpenCL/SYCL for `/gpu/sycl`, etc.).
                            The entire contents of this file and all locally included files are used during JiT compilation for GPU backends.
+                           The header `ceed/types.h` is preferred over `ceed.h` or `ceed/ceed.h` for `CeedQFunction` source files.
+                           The macro `CEED_RUNNING_JIT_PASS` is set during JiT and can be used to guard include statements that JiT compilers cannot use, such as `math.h` or `std*.h`.
                            All source files must be at the provided filepath at runtime for JiT to function.
   @param[out] qf         Address of the variable where the newly created `CeedQFunction` will be stored
 

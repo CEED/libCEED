@@ -49,10 +49,13 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
 
   if (qf->source_path) {
     size_t path_len = strlen(qf->source_path), name_len = strlen(qf->kernel_name);
+
     CeedCall(CeedCalloc(path_len + name_len + 2, &source_path_with_name));
     memcpy(source_path_with_name, qf->source_path, path_len);
     memcpy(&source_path_with_name[path_len], ":", 1);
     memcpy(&source_path_with_name[path_len + 1], qf->kernel_name, name_len);
+  } else if (qf->user_source) {
+    CeedCall(CeedStringAllocCopy(qf->user_source, &source_path_with_name));
   } else {
     CeedCall(CeedCalloc(1, &source_path_with_name));
   }

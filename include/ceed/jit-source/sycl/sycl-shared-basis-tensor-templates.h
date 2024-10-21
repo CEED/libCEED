@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for SYCL shared memory tensor product basis templates
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // 1D

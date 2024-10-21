@@ -6,7 +6,10 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
+#include <stdbool.h>
+#endif
 
 #include "stabilization_types.h"
 

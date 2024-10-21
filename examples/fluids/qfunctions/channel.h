@@ -7,8 +7,11 @@
 
 /// @file
 /// Operator for Navier-Stokes example using PETSc
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#include <stdbool.h>
+#endif
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"

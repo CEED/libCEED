@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP non-tensor product basis templates
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Tensor contraction

@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP non-tensor product basis
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "hip-ref-basis-nontensor-templates.h"
 

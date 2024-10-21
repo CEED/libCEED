@@ -4,12 +4,12 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
+#pragma once
 
-#ifndef bps_h
-#define bps_h
-
-#include <ceed.h>
+#include <ceed/types.h>
+#ifndef CEED_RUNNING_JIT_PASS
 #include <math.h>
+#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -110,5 +110,3 @@ CEED_QFUNCTION(diffusionf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   }  // End of Quadrature Point Loop
   return 0;
 }
-
-#endif  // bps_h

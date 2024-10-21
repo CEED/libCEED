@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for HIP shared memory tensor product basis
-
-#include <ceed.h>
+#include <ceed/types.h>
 
 #include "hip-shared-basis-read-write-templates.h"
 #include "hip-shared-basis-tensor-templates.h"

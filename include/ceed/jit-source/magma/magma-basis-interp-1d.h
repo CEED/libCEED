@@ -7,7 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA tensor basis interpolation in 1D
-
 #include "magma-common-tensor.h"
 
 // macros to abstract access of shared memory and reg. file
