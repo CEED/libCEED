@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
 
     memcpy(&file_path[last_slash - file_path], "/test-include/", 15);
     CeedAddJitSourceRoot(ceed, file_path);
+    CeedAddJitDefine(ceed, "COMPILER_DEFINED_SCALE=42");
   }
 
   CeedVectorCreate(ceed, q, &w);
@@ -71,9 +72,9 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < q; i++) {
-      if (fabs(5 * v_true[i] * sqrt(2.) - v_array[i]) > 1E3 * CEED_EPSILON) {
+      if (fabs(5 * COMPILER_DEFINED_SCALE * v_true[i] * sqrt(2.) - v_array[i]) > 5E3 * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT "] v_true %f != v %f\n", i, 5 * v_true[i] * sqrt(2.), v_array[i]);
+        printf("[%" CeedInt_FMT "] v_true %f != v %f\n", i, 5 * COMPILER_DEFINED_SCALE * v_true[i] * sqrt(2.), v_array[i]);
         // LCOV_EXCL_STOP
       }
     }

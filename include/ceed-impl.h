@@ -99,7 +99,9 @@ struct Ceed_private {
   Ceed         op_fallback_ceed, op_fallback_parent;
   const char  *op_fallback_resource;
   char       **jit_source_roots;
-  CeedInt      num_jit_source_roots;
+  CeedInt      num_jit_source_roots, max_jit_source_roots;
+  char       **jit_defines;
+  CeedInt      num_jit_defines, max_jit_defines;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
   int (*SetStream)(Ceed, void *);
   int (*GetPreferredMemType)(CeedMemType *);

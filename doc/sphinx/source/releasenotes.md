@@ -19,6 +19,8 @@ On this page we provide a summary of the main API changes, new features and exam
 - Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
 - Add `CeedVectorReturnCeed` and similar when parent `Ceed` context for a libCEED object is only needed once in a calling scope.
 - Enable `#pragma once` for all JiT source; remove duplicate includes in JiT source string before compilation.
+- Allow user to set additional compiler options for CUDA and HIP JiT.
+Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will be used to set `-Ifoo/bar` and defines set with `CeedAddJitDefine(ceed, "foo=bar")` will be used to set `-Dfoo=bar`.
 
 ### Examples
 
