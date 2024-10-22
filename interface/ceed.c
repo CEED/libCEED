@@ -659,14 +659,14 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     fallback_ceed->Error              = ceed->Error;
     ceed->op_fallback_ceed            = fallback_ceed;
     {
-      const char **jit_source_dirs;
-      CeedInt      num_jit_source_dirs = 0;
+      const char **jit_source_roots;
+      CeedInt      num_jit_source_roots = 0;
 
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
-      for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_dirs[i]));
+      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_roots, &jit_source_roots));
+      for (CeedInt i = 0; i < num_jit_source_roots; i++) {
+        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
       }
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
     }
     {
       const char **jit_defines;
@@ -902,6 +902,7 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
   CeedCall(CeedGetParent(ceed, &ceed_parent));
   *num_source_roots = ceed_parent->num_jit_source_roots;
   *jit_source_roots = (const char **)ceed_parent->jit_source_roots;
+  ceed_parent->num_jit_source_roots_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -916,7 +917,11 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
   @ref Backend
 **/
 int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
   *jit_source_roots = NULL;
+  ceed_parent->num_jit_source_roots_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -939,6 +944,7 @@ int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines
   CeedCall(CeedGetParent(ceed, &ceed_parent));
   *num_defines = ceed_parent->num_jit_defines;
   *jit_defines = (const char **)ceed_parent->jit_defines;
+  ceed_parent->num_jit_defines_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -953,7 +959,11 @@ int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines
   @ref Backend
 **/
 int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
   *jit_defines = NULL;
+  ceed_parent->num_jit_defines_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1337,6 +1347,7 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_jit_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access has been granted");
 
   CeedInt index       = ceed_parent->num_jit_source_roots;
   size_t  path_length = strlen(jit_source_root);
@@ -1366,6 +1377,7 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_jit_defines_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT define, read access has been granted");
 
   CeedInt index         = ceed_parent->num_jit_defines;
   size_t  define_length = strlen(jit_define);
@@ -1418,6 +1430,11 @@ int CeedDestroy(Ceed *ceed) {
     *ceed = NULL;
     return CEED_ERROR_SUCCESS;
   }
+
+  CeedCheck(!(*ceed)->num_jit_source_roots_readers, *ceed, CEED_ERROR_ACCESS,
+            "Cannot destroy ceed context, read access for JiT source roots has been granted");
+  CeedCheck(!(*ceed)->num_jit_defines_readers, *ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access for JiT defines has been granted");
+
   if ((*ceed)->delegate) CeedCall(CeedDestroy(&(*ceed)->delegate));
 
   if ((*ceed)->obj_delegate_count > 0) {
