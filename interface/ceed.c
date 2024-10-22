@@ -1347,7 +1347,7 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
-  CeedCheck(!ceed_parent->num_jit_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access has been granted");
+  CeedCheck(!ceed_parent->num_jit_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access has not been restored");
 
   CeedInt index       = ceed_parent->num_jit_source_roots;
   size_t  path_length = strlen(jit_source_root);
@@ -1377,7 +1377,7 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
-  CeedCheck(!ceed_parent->num_jit_defines_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT define, read access has been granted");
+  CeedCheck(!ceed_parent->num_jit_defines_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT define, read access has not been restored");
 
   CeedInt index         = ceed_parent->num_jit_defines;
   size_t  define_length = strlen(jit_define);
