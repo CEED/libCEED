@@ -12,6 +12,9 @@ On this page we provide a summary of the main API changes, new features and exam
 - `CEED_BASIS_COLLOCATED` removed; users should only use `CEED_BASIS_NONE`.
 - Remove unneeded pointer for `CeedElemRestrictionGetELayout`.
 - Require use of `Ceed*Destroy()` on Ceed objects returned from `CeedOperatorFieldGet*()`;
+- Change QFunction source include file handling in JiT compilers
+    - Add `CEED_RUNNING_JIT_PASS` compiler definition for wrapping header files that device JiT compilers cannot read
+    - Prefer `#include <ceed/types.h>` rather than `#include <ceed.h>` in QFunction source files
 
 ### New features
 
