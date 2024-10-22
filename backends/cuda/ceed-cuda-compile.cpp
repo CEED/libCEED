@@ -38,7 +38,7 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   size_t                ptx_size;
   char                 *ptx;
   const int             num_opts            = 4;
-  CeedInt               num_jit_source_dirs = 0;
+  CeedInt               num_jit_source_dirs = 0, num_jit_defines = 0;
   const char          **opts;
   nvrtcProgram          prog;
   struct cudaDeviceProp prop;
@@ -85,18 +85,33 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   opts[1] = arch_arg.c_str();
   opts[2] = "-Dint32_t=int";
   opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
+  // Additional include dirs
   {
     const char **jit_source_dirs;
 
     CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
     CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs, &opts));
     for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-      std::ostringstream include_dirs_arg;
+      std::ostringstream include_dir_arg;
 
-      include_dirs_arg << "-I" << jit_source_dirs[i];
-      CeedCallBackend(CeedStringAllocCopy(include_dirs_arg.str().c_str(), (char **)&opts[num_opts + i]));
+      include_dir_arg << "-I" << jit_source_dirs[i];
+      CeedCallBackend(CeedStringAllocCopy(include_dir_arg.str().c_str(), (char **)&opts[num_opts + i]));
     }
     CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+  }
+  // User defines
+  {
+    const char **jit_defines;
+
+    CeedCallBackend(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
+    CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs + num_jit_defines, &opts));
+    for (CeedInt i = 0; i < num_jit_defines; i++) {
+      std::ostringstream define_arg;
+
+      define_arg << "-D" << jit_defines[i];
+      CeedCallBackend(CeedStringAllocCopy(define_arg.str().c_str(), (char **)&opts[num_opts + num_jit_source_dirs + i]));
+    }
+    CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
   }
 
   // Add string source argument provided in call
@@ -106,10 +121,13 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs, opts);
+  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
   for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
     CeedCallBackend(CeedFree(&opts[num_opts + i]));
+  }
+  for (CeedInt i = 0; i < num_jit_defines; i++) {
+    CeedCallBackend(CeedFree(&opts[num_opts + num_jit_source_dirs + i]));
   }
   CeedCallBackend(CeedFree(&opts));
   if (result != NVRTC_SUCCESS) {

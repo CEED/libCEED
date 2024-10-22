@@ -23,6 +23,11 @@
 #  include "t406-qfunction-scales.h"
 // clang-format on
 
+// Extra define set via CeedAddJitDefine() during JiT
+#ifndef CEED_RUNNING_JIT_PASS
+#define COMPILER_DEFINED_SCALE 42
+#endif
+
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *w      = in[0];
   CeedScalar       *q_data = out[0];
@@ -36,7 +41,7 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar *q_data = in[0], *u = in[1];
   CeedScalar       *v = out[0];
   for (CeedInt i = 0; i < Q; i++) {
-    v[i] = q_data[i] * (times_two(u[i]) + times_three(u[i])) * sqrt(1.0 * SCALE_TWO);
+    v[i] = q_data[i] * COMPILER_DEFINED_SCALE * (times_two(u[i]) + times_three(u[i])) * sqrt(1.0 * SCALE_TWO);
   }
   return 0;
 }

@@ -659,14 +659,24 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     fallback_ceed->Error              = ceed->Error;
     ceed->op_fallback_ceed            = fallback_ceed;
     {
-      const char **jit_source_dirs;
-      CeedInt      num_jit_source_dirs = 0;
+      const char **jit_source_roots;
+      CeedInt      num_jit_source_roots = 0;
 
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
-      for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_dirs[i]));
+      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_roots, &jit_source_roots));
+      for (CeedInt i = 0; i < num_jit_source_roots; i++) {
+        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
       }
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
+    }
+    {
+      const char **jit_defines;
+      CeedInt      num_jit_defines = 0;
+
+      CeedCall(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
+      for (CeedInt i = 0; i < num_jit_defines; i++) {
+        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_defines[i]));
+      }
+      CeedCall(CeedRestoreJitDefines(ceed, &jit_defines));
     }
   }
   *fallback_ceed = ceed->op_fallback_ceed;
@@ -874,7 +884,7 @@ int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
 }
 
 /**
-  @brief Retrieve list ofadditional JiT source roots from `Ceed` context.
+  @brief Retrieve list of additional JiT source roots from `Ceed` context.
 
   Note: The caller is responsible for restoring `jit_source_roots` with @ref CeedRestoreJitSourceRoots().
 
@@ -892,6 +902,7 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
   CeedCall(CeedGetParent(ceed, &ceed_parent));
   *num_source_roots = ceed_parent->num_jit_source_roots;
   *jit_source_roots = (const char **)ceed_parent->jit_source_roots;
+  ceed_parent->num_jit_source_roots_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -906,7 +917,53 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
   @ref Backend
 **/
 int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
   *jit_source_roots = NULL;
+  ceed_parent->num_jit_source_roots_readers--;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Retrieve list of additional JiT defines from `Ceed` context.
+
+  Note: The caller is responsible for restoring `jit_defines` with @ref CeedRestoreJitDefines().
+
+  @param[in]  ceed            `Ceed` context
+  @param[out] num_jit_defines Number of JiT defines
+  @param[out] jit_defines     Strings such as `foo=bar`, used as `-Dfoo=bar` in JiT
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *num_defines = ceed_parent->num_jit_defines;
+  *jit_defines = (const char **)ceed_parent->jit_defines;
+  ceed_parent->num_jit_defines_readers++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore list of additional JiT defines from with @ref CeedGetJitDefines()
+
+  @param[in]  ceed        `Ceed` context
+  @param[out] jit_defines String such as `foo=bar`, used as `-Dfoo=bar` in JiT
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *jit_defines = NULL;
+  ceed_parent->num_jit_defines_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1290,14 +1347,49 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_jit_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access has not been restored");
 
   CeedInt index       = ceed_parent->num_jit_source_roots;
   size_t  path_length = strlen(jit_source_root);
 
-  CeedCall(CeedRealloc(index + 1, &ceed_parent->jit_source_roots));
+  if (ceed_parent->num_jit_source_roots == ceed_parent->max_jit_source_roots) {
+    if (ceed_parent->max_jit_source_roots == 0) ceed_parent->max_jit_source_roots = 1;
+    ceed_parent->max_jit_source_roots *= 2;
+    CeedCall(CeedRealloc(ceed_parent->max_jit_source_roots, &ceed_parent->jit_source_roots));
+  }
   CeedCall(CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]));
   memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
   ceed_parent->num_jit_source_roots++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set additional JiT compiler define for `Ceed` context
+
+  @param[in,out] ceed       `Ceed` context
+  @param[in]     jit_define String such as `foo=bar`, used as `-Dfoo=bar` in JiT
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_jit_defines_readers, ceed, CEED_ERROR_ACCESS, "Cannot add JiT define, read access has not been restored");
+
+  CeedInt index         = ceed_parent->num_jit_defines;
+  size_t  define_length = strlen(jit_define);
+
+  if (ceed_parent->num_jit_defines == ceed_parent->max_jit_defines) {
+    if (ceed_parent->max_jit_defines == 0) ceed_parent->max_jit_defines = 1;
+    ceed_parent->max_jit_defines *= 2;
+    CeedCall(CeedRealloc(ceed_parent->max_jit_defines, &ceed_parent->jit_defines));
+  }
+  CeedCall(CeedCalloc(define_length + 1, &ceed_parent->jit_defines[index]));
+  memcpy(ceed_parent->jit_defines[index], jit_define, define_length);
+  ceed_parent->num_jit_defines++;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1338,6 +1430,11 @@ int CeedDestroy(Ceed *ceed) {
     *ceed = NULL;
     return CEED_ERROR_SUCCESS;
   }
+
+  CeedCheck(!(*ceed)->num_jit_source_roots_readers, *ceed, CEED_ERROR_ACCESS,
+            "Cannot destroy ceed context, read access for JiT source roots has been granted");
+  CeedCheck(!(*ceed)->num_jit_defines_readers, *ceed, CEED_ERROR_ACCESS, "Cannot add JiT source root, read access for JiT defines has been granted");
+
   if ((*ceed)->delegate) CeedCall(CeedDestroy(&(*ceed)->delegate));
 
   if ((*ceed)->obj_delegate_count > 0) {
@@ -1354,6 +1451,11 @@ int CeedDestroy(Ceed *ceed) {
     CeedCall(CeedFree(&(*ceed)->jit_source_roots[i]));
   }
   CeedCall(CeedFree(&(*ceed)->jit_source_roots));
+
+  for (CeedInt i = 0; i < (*ceed)->num_jit_defines; i++) {
+    CeedCall(CeedFree(&(*ceed)->jit_defines[i]));
+  }
+  CeedCall(CeedFree(&(*ceed)->jit_defines));
 
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
