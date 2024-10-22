@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextRestoreData(ctx, &ctx_data_new);
   is_writable = false;
   CeedQFunctionSetContextWritable(qf, is_writable);
+
   {
     in[0]  = u;
     out[0] = v;

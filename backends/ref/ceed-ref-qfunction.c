@@ -71,6 +71,7 @@ int CeedQFunctionCreate_Ref(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

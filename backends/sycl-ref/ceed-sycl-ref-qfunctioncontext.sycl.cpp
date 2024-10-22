@@ -42,6 +42,7 @@ static inline int CeedQFunctionContextSyncH2D_Sycl(const CeedQFunctionContext ct
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
   sycl::event copy_event = sycl_data->sycl_queue.memcpy(impl->d_data, impl->h_data, ctx_size, e);
   CeedCallSycl(ceed, copy_event.wait_and_throw());
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -75,6 +76,7 @@ static inline int CeedQFunctionContextSyncD2H_Sycl(const CeedQFunctionContext ct
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
   sycl::event copy_event = sycl_data->sycl_queue.memcpy(impl->h_data, impl->d_data, ctx_size, e);
   CeedCallSycl(ceed, copy_event.wait_and_throw());
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -229,6 +231,7 @@ static int CeedQFunctionContextSetDataDevice_Sycl(const CeedQFunctionContext ctx
       impl->d_data          = data;
     } break;
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -237,9 +240,6 @@ static int CeedQFunctionContextSetDataDevice_Sycl(const CeedQFunctionContext ctx
 //   freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Sycl(const CeedQFunctionContext ctx, const CeedMemType mem_type, const CeedCopyMode copy_mode, void *data) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextSetAllInvalid_Sycl(ctx));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -260,8 +260,9 @@ static int CeedQFunctionContextTakeData_Sycl(const CeedQFunctionContext ctx, con
   CeedQFunctionContext_Sycl *impl;
 
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
-  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedGetData(ceed, &ceedSycl));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Order queue if needed
   if (!ceedSycl->sycl_queue.is_in_order()) ceedSycl->sycl_queue.ext_oneapi_submit_barrier();
@@ -291,11 +292,9 @@ static int CeedQFunctionContextTakeData_Sycl(const CeedQFunctionContext ctx, con
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetDataCore_Sycl(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
-  Ceed                       ceed;
   bool                       need_sync = false;
   CeedQFunctionContext_Sycl *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Sync data to requested mem_type
@@ -325,11 +324,9 @@ static int CeedQFunctionContextGetDataRead_Sycl(const CeedQFunctionContext ctx, 
 // Get read/write access to the data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Sycl(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
-  Ceed                       ceed;
   CeedQFunctionContext_Sycl *impl;
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetDataCore_Sycl(ctx, mem_type, data));
 
   // Mark only pointer for requested memory as valid
@@ -360,6 +357,7 @@ static int CeedQFunctionContextDestroy_Sycl(const CeedQFunctionContext ctx) {
   // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, sycl_data->sycl_queue.wait_and_throw());
   CeedCallSycl(ceed, sycl::free(impl->d_data_owned, sycl_data->sycl_context));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedFree(&impl->h_data_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
@@ -380,6 +378,7 @@ int CeedQFunctionContextCreate_Sycl(CeedQFunctionContext ctx) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunctionContext", ctx, "GetData", CeedQFunctionContextGetData_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunctionContext", ctx, "GetDataRead", CeedQFunctionContextGetDataRead_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunctionContext", ctx, "Destroy", CeedQFunctionContextDestroy_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionContextSetBackendData(ctx, impl));
   return CEED_ERROR_SUCCESS;

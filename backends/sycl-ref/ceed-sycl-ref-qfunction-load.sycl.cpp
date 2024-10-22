@@ -35,8 +35,8 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Sycl *impl;
 
-  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&impl));
   // QFunction is built
+  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&impl));
   if (impl->QFunction) return CEED_ERROR_SUCCESS;
 
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
@@ -175,6 +175,7 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedFree(&qfunction_source));
   CeedCallBackend(CeedFree(&read_write_kernel_path));
   CeedCallBackend(CeedFree(&read_write_kernel_source));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

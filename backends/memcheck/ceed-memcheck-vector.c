@@ -248,11 +248,9 @@ static int CeedVectorGetArrayWrite_Memcheck(CeedVector vec, CeedMemType mem_type
 // Vector Restore Array
 //------------------------------------------------------------------------------
 static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
-  Ceed                 ceed;
   CeedSize             length;
   CeedVector_Memcheck *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
 
@@ -260,7 +258,8 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
   if (impl->is_write_only_access) {
     for (CeedSize i = 0; i < length; i++) {
       if (isnan(impl->array_writable_copy[i])) {
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %" CeedSize_FMT " is NaN after restoring write-only access", i);
+        CeedDebug256(CeedVectorReturnCeed(vec), CEED_DEBUG_COLOR_WARNING,
+                     "WARNING: Vec entry %" CeedSize_FMT " is NaN after restoring write-only access", i);
       }
     }
     impl->is_write_only_access = false;
@@ -281,18 +280,16 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
 // Vector Restore Array Read-Only
 //------------------------------------------------------------------------------
 static int CeedVectorRestoreArrayRead_Memcheck(CeedVector vec) {
-  Ceed                 ceed;
   CeedSize             length;
   CeedVector_Memcheck *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
 
   // Verify no changes made during read-only access
   bool is_changed = memcmp(impl->array_allocated, impl->array_read_only_copy, length * sizeof(CeedScalar));
 
-  CeedCheck(!is_changed, ceed, CEED_ERROR_BACKEND, "Array data changed while accessed in read-only mode");
+  CeedCheck(!is_changed, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "Array data changed while accessed in read-only mode");
 
   // Invalidate read-only buffer
   for (CeedSize i = 0; i < length; i++) impl->array_read_only_copy[i] = NAN;
@@ -409,9 +406,6 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   Ceed                 ceed;
   CeedVector_Memcheck *impl;
 
-  CeedCallBackend(CeedCalloc(1, &impl));
-  CeedCallBackend(CeedVectorSetData(vec, impl));
-
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Memcheck));
@@ -431,6 +425,9 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Memcheck));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;
 }
 

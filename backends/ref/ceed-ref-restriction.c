@@ -774,14 +774,11 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
 
     // Check indices for ref or memcheck backends
     {
-      Ceed current = ceed, parent = NULL;
+      Ceed current = ceed, ceed_parent = NULL;
 
-      CeedCallBackend(CeedGetParent(current, &parent));
-      while (current != parent) {
-        current = parent;
-        CeedCallBackend(CeedGetParent(current, &parent));
-      }
-      CeedCallBackend(CeedGetResource(parent, &resource));
+      CeedCallBackend(CeedGetParent(current, &ceed_parent));
+      CeedCallBackend(CeedGetResource(ceed_parent, &resource));
+      CeedCallBackend(CeedDestroy(&ceed_parent));
     }
     if (!strcmp(resource, "/cpu/self/ref/serial") || !strcmp(resource, "/cpu/self/ref/blocked")) {
       CeedSize l_size;
@@ -871,6 +868,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOrientations", CeedElemRestrictionGetOrientations_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

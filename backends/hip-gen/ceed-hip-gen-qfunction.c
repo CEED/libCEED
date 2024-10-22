@@ -42,11 +42,11 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 
-  // Read QFunction source
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip_gen));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

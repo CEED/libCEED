@@ -901,8 +901,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
 
   CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
-
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

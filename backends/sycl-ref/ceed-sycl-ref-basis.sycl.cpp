@@ -328,6 +328,7 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -504,7 +505,7 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -527,6 +528,7 @@ static int CeedBasisDestroy_Sycl(CeedBasis basis) {
   CeedCallSycl(ceed, sycl::free(impl->d_grad_1d, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -549,6 +551,7 @@ static int CeedBasisDestroyNonTensor_Sycl(CeedBasis basis) {
   CeedCallSycl(ceed, sycl::free(impl->d_grad, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -557,11 +560,12 @@ static int CeedBasisDestroyNonTensor_Sycl(CeedBasis basis) {
 //------------------------------------------------------------------------------
 int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                  const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed            ceed;
   CeedBasis_Sycl *impl;
+  Ceed_Sycl      *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
-  Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
   CeedInt num_comp;
@@ -617,6 +621,7 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Apply", CeedBasisApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -625,11 +630,12 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                            const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed                     ceed;
   CeedBasisNonTensor_Sycl *impl;
+  Ceed_Sycl               *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
-  Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
   CeedInt num_comp;
@@ -668,6 +674,7 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

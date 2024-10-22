@@ -195,6 +195,7 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction rstr, CeedTranspose
   // Restore arrays
   CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -202,10 +203,8 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction rstr, CeedTranspose
 // Get offsets
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction rstr, CeedMemType m_type, const CeedInt **offsets) {
-  Ceed                      ceed;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
   switch (m_type) {
@@ -240,6 +239,7 @@ static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction rstr) {
   CeedCallSycl(ceed, sycl::free(impl->d_t_indices, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_l_vec_indices, data->sycl_context));
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -328,6 +328,7 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction rstr, const 
   CeedCallBackend(CeedFree(&l_vec_indices));
   CeedCallBackend(CeedFree(&t_offsets));
   CeedCallBackend(CeedFree(&t_indices));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -472,5 +473,6 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

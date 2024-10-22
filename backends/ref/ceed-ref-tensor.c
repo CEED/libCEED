@@ -51,6 +51,7 @@ int CeedTensorContractCreate_Ref(CeedTensorContract contract) {
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy", CeedTensorContractDestroy_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

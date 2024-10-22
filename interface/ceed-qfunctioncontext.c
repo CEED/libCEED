@@ -59,12 +59,11 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx, const char *fi
                                         CeedContextFieldType field_type, size_t num_values) {
   size_t  field_size  = 0;
   CeedInt field_index = -1;
-  Ceed    ceed;
 
   // Check for duplicate
-  CeedCall(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCall(CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index));
-  CeedCheck(field_index == -1, ceed, CEED_ERROR_UNSUPPORTED, "QFunctionContext field with name \"%s\" already registered", field_name);
+  CeedCheck(field_index == -1, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_UNSUPPORTED,
+            "QFunctionContext field with name \"%s\" already registered", field_name);
 
   // Allocate space for field data
   if (ctx->num_fields == 0) {
@@ -147,7 +146,8 @@ static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
   @ref Backend
 **/
 int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
-  *ceed = CeedQFunctionContextReturnCeed(ctx);
+  *ceed = NULL;
+  CeedCall(CeedReferenceCopy(CeedQFunctionContextReturnCeed(ctx), ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -571,6 +571,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Context"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedQFunctionContextCreate");
     CeedCall(CeedQFunctionContextCreate(delegate, ctx));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -620,11 +621,9 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx, CeedQFunctionCon
   @ref User
 **/
 int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, CeedCopyMode copy_mode, size_t size, void *data) {
-  Ceed ceed;
-
-  CeedCall(CeedQFunctionContextGetCeed(ctx, &ceed));
-  CeedCheck(ctx->SetData, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextSetData");
-  CeedCheck(ctx->state % 2 == 0, ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+  CeedCheck(ctx->SetData, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextSetData");
+  CeedCheck(ctx->state % 2 == 0, CeedQFunctionContextReturnCeed(ctx), 1,
+            "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextDestroyData(ctx));
   ctx->ctx_size = size;
@@ -650,17 +649,16 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   void *temp_data      = NULL;
   bool  has_valid_data = true, has_borrowed_data_of_type = true;
-  Ceed  ceed;
 
-  CeedCall(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
-  CeedCheck(has_valid_data, ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to take, must set data");
+  CeedCheck(has_valid_data, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to take, must set data");
 
-  CeedCheck(ctx->TakeData, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextTakeData");
-  CeedCheck(ctx->state % 2 == 0, ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+  CeedCheck(ctx->TakeData, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextTakeData");
+  CeedCheck(ctx->state % 2 == 0, CeedQFunctionContextReturnCeed(ctx), 1,
+            "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type, &has_borrowed_data_of_type));
-  CeedCheck(has_borrowed_data_of_type, ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_borrowed_data_of_type, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND,
             "CeedQFunctionContext has no borrowed %s data, must set data with CeedQFunctionContextSetData", CeedMemTypes[mem_type]);
 
   CeedCall(ctx->TakeData(ctx, mem_type, &temp_data));
@@ -687,15 +685,15 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
 **/
 int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   bool has_valid_data = true;
-  Ceed ceed;
 
-  CeedCall(CeedQFunctionContextGetCeed(ctx, &ceed));
-  CeedCheck(ctx->GetData, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextGetData");
-  CeedCheck(ctx->state % 2 == 0, ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
-  CeedCheck(ctx->num_readers == 0, ceed, 1, "Cannot grant CeedQFunctionContext data access, a process has read access");
+  CeedCheck(ctx->GetData, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextGetData");
+  CeedCheck(ctx->state % 2 == 0, CeedQFunctionContextReturnCeed(ctx), 1,
+            "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+  CeedCheck(ctx->num_readers == 0, CeedQFunctionContextReturnCeed(ctx), 1,
+            "Cannot grant CeedQFunctionContext data access, a process has read access");
 
   CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
-  CeedCheck(has_valid_data, ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
+  CeedCheck(has_valid_data, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
 
   CeedCall(ctx->GetData(ctx, mem_type, data));
   ctx->state++;
@@ -721,14 +719,14 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 **/
 int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   bool has_valid_data = true;
-  Ceed ceed;
 
-  CeedCall(CeedQFunctionContextGetCeed(ctx, &ceed));
-  CeedCheck(ctx->GetDataRead, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextGetDataRead");
-  CeedCheck(ctx->state % 2 == 0, ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+  CeedCheck(ctx->GetDataRead, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_UNSUPPORTED,
+            "Backend does not support CeedQFunctionContextGetDataRead");
+  CeedCheck(ctx->state % 2 == 0, CeedQFunctionContextReturnCeed(ctx), 1,
+            "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
-  CeedCheck(has_valid_data, ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
+  CeedCheck(has_valid_data, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
 
   CeedCall(ctx->GetDataRead(ctx, mem_type, data));
   ctx->num_readers++;

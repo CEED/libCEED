@@ -164,13 +164,12 @@ int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
 **/
 int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible) {
   CeedInt num_elem_a, num_elem_b, num_points_a, num_points_b;
-  Ceed    ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr_a, &ceed));
 
   // Cannot compare non-points restrictions
-  CeedCheck(rstr_a->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_UNSUPPORTED, "First CeedElemRestriction must be AtPoints");
-  CeedCheck(rstr_b->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_UNSUPPORTED, "Second CeedElemRestriction must be AtPoints");
+  CeedCheck(rstr_a->rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr_a), CEED_ERROR_UNSUPPORTED,
+            "First CeedElemRestriction must be AtPoints");
+  CeedCheck(rstr_b->rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr_a), CEED_ERROR_UNSUPPORTED,
+            "Second CeedElemRestriction must be AtPoints");
 
   CeedCall(CeedElemRestrictionGetNumElements(rstr_a, &num_elem_a));
   CeedCall(CeedElemRestrictionGetNumElements(rstr_b, &num_elem_b));
@@ -357,14 +356,13 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   bool                has_backend_strides;
   CeedRestrictionType rstr_type;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, ceed, CEED_ERROR_MINOR, "Only strided CeedElemRestriction have strided L-vector layout");
+  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR,
+            "Only strided CeedElemRestriction have strided L-vector layout");
   CeedCall(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
   if (has_backend_strides) {
-    CeedCheck(rstr->l_layout[0], ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no L-vector layout data");
+    CeedCheck(rstr->l_layout[0], CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "CeedElemRestriction has no L-vector layout data");
     for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->l_layout[i];
   } else {
     CeedCall(CeedElemRestrictionGetStrides(rstr, layout));
@@ -481,12 +479,11 @@ int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedIn
 **/
 int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize e_size) {
   CeedRestrictionType rstr_type;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE, "Can only compute offset for a points CeedElemRestriction");
-  CeedCheck(e_size >= rstr->e_size, ceed, CEED_ERROR_INCOMPATIBLE,
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
+            "Can only compute offset for a points CeedElemRestriction");
+  CeedCheck(e_size >= rstr->e_size, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
             "Can only increase the size of the E-vector for the CeedElemRestriction."
             " Current size: %" CeedSize_FMT " New size: %" CeedSize_FMT,
             rstr->e_size, e_size);
@@ -636,6 +633,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreate");
     CeedCall(CeedElemRestrictionCreate(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -693,6 +691,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateOriented");
     CeedCall(
         CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -751,6 +750,7 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateCurlOriented");
     CeedCall(CeedElemRestrictionCreateCurlOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
                                                    curl_orients, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -803,6 +803,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateStrided");
     CeedCall(CeedElemRestrictionCreateStrided(delegate, num_elem, elem_size, num_comp, l_size, strides, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -870,6 +871,7 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateAtPoints");
     CeedCall(CeedElemRestrictionCreateAtPoints(delegate, num_elem, num_points, num_comp, l_size, mem_type, copy_mode, offsets, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -933,6 +935,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateBlocked");
     CeedCall(CeedElemRestrictionCreateBlocked(delegate, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
                                               rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -1002,6 +1005,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateBlockedOriented");
     CeedCall(CeedElemRestrictionCreateBlockedOriented(delegate, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode,
                                                       offsets, orients, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -1074,6 +1078,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateBlockedCurlOriented");
     CeedCall(CeedElemRestrictionCreateBlockedCurlOriented(delegate, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type,
                                                           copy_mode, offsets, curl_orients, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -1135,6 +1140,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateBlockedStrided");
     CeedCall(CeedElemRestrictionCreateBlockedStrided(delegate, num_elem, elem_size, block_size, num_comp, l_size, strides, rstr));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -1269,6 +1275,7 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
   CeedCall(CeedElemRestrictionGetEVectorSize(rstr, &e_size));
   if (l_vec) CeedCall(CeedVectorCreate(ceed, l_size, l_vec));
   if (e_vec) CeedCall(CeedVectorCreate(ceed, e_size, e_vec));
+  CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1289,9 +1296,7 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
 int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
   CeedSize min_u_len, min_ru_len, len;
   CeedInt  num_elem;
-  Ceed     ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   if (t_mode == CEED_NOTRANSPOSE) {
     CeedCall(CeedElemRestrictionGetEVectorSize(rstr, &min_ru_len));
     CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_u_len));
@@ -1300,11 +1305,11 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
     CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
   }
   CeedCall(CeedVectorGetLength(u, &len));
-  CeedCheck(min_u_len <= len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_u_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_ru_len,
             min_u_len);
   CeedCall(CeedVectorGetLength(ru, &len));
-  CeedCheck(min_ru_len <= len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_ru_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_u_len,
             min_ru_len);
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
@@ -1331,10 +1336,9 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
                                               CeedRequest *request) {
   CeedSize min_u_len, min_ru_len, len;
   CeedInt  num_elem;
-  Ceed     ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->ApplyAtPointsInElement, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionApplyAtPointsInElement");
+  CeedCheck(rstr->ApplyAtPointsInElement, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedElemRestrictionApplyAtPointsInElement");
 
   if (t_mode == CEED_NOTRANSPOSE) {
     CeedInt num_points, num_comp;
@@ -1352,17 +1356,17 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
     CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
   }
   CeedCall(CeedVectorGetLength(u, &len));
-  CeedCheck(min_u_len <= len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_u_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
             ") for element %" CeedInt_FMT,
             len, min_ru_len, min_u_len, elem);
   CeedCall(CeedVectorGetLength(ru, &len));
-  CeedCheck(min_ru_len <= len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_ru_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
             ") for element %" CeedInt_FMT,
             len, min_ru_len, min_u_len, elem);
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCheck(elem < num_elem, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(elem < num_elem, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, num_elem);
   if (num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
@@ -1387,10 +1391,9 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedT
                                   CeedRequest *request) {
   CeedSize min_u_len, min_ru_len, len;
   CeedInt  block_size, num_elem;
-  Ceed     ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->ApplyBlock, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionApplyBlock");
+  CeedCheck(rstr->ApplyBlock, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedElemRestrictionApplyBlock");
 
   CeedCall(CeedElemRestrictionGetBlockSize(rstr, &block_size));
   if (t_mode == CEED_NOTRANSPOSE) {
@@ -1409,15 +1412,15 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedT
     min_u_len = (CeedSize)block_size * (CeedSize)elem_size * (CeedSize)num_comp;
   }
   CeedCall(CeedVectorGetLength(u, &len));
-  CeedCheck(min_u_len == len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_u_len == len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_u_len,
             min_ru_len);
   CeedCall(CeedVectorGetLength(ru, &len));
-  CeedCheck(min_ru_len == len, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(min_ru_len == len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_ru_len,
             min_u_len);
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCheck(block_size * block <= num_elem, ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(block_size * block <= num_elem, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
             "Cannot retrieve block %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", block, block_size * block,
             num_elem);
   CeedCall(rstr->ApplyBlock(rstr, block, t_mode, u, ru, request));
@@ -1435,7 +1438,8 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedT
   @ref Advanced
 **/
 int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
-  *ceed = CeedElemRestrictionReturnCeed(rstr);
+  *ceed = NULL;
+  CeedCall(CeedReferenceCopy(CeedElemRestrictionReturnCeed(rstr), ceed));
   return CEED_ERROR_SUCCESS;
 }
 

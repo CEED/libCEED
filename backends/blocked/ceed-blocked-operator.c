@@ -30,7 +30,8 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
 
     CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
     CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
-    if (ceed_parent) ceed = ceed_parent;
+    CeedCallBackend(CeedReferenceCopy(ceed_parent, &ceed));
+    CeedCallBackend(CeedDestroy(&ceed_parent));
   }
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
@@ -105,6 +106,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
           // Empty case - won't occur
           break;
       }
+      CeedCallBackend(CeedDestroy(&ceed_rstr));
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
       CeedCallBackend(CeedElemRestrictionCreateVector(block_rstr[i + start_e], NULL, &e_vecs_full[i + start_e]));
     }
@@ -190,6 +192,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -198,7 +201,6 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
 //------------------------------------------------------------------------------
 static int CeedOperatorSetup_Blocked(CeedOperator op) {
   bool                  is_setup_done;
-  Ceed                  ceed;
   CeedInt               Q, num_input_fields, num_output_fields;
   const CeedInt         block_size = 8;
   CeedQFunctionField   *qf_input_fields, *qf_output_fields;
@@ -209,7 +211,6 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
   if (is_setup_done) return CEED_ERROR_SUCCESS;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
@@ -707,6 +708,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(CeedOperator o
   CeedCallBackend(CeedOperatorRestoreInputs_Blocked(num_input_fields, qf_input_fields, op_input_fields, true, e_data_full, impl));
 
   // Output blocked restriction
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorRestoreArray(l_vec, &l_vec_array));
   CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
   CeedCallBackend(CeedElemRestrictionApply(block_rstr, CEED_TRANSPOSE, l_vec, *assembled, request));
@@ -783,6 +785,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Blocked));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -44,8 +44,9 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+
   CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   CeedCallBackend(CeedVectorGetLength(vec, &length));
@@ -63,6 +64,7 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
 
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
   CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, e).wait_and_throw());
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -76,8 +78,8 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
@@ -96,6 +98,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
 
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
   CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, e).wait_and_throw());
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -244,6 +247,7 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
       impl->d_array          = impl->d_array_borrowed;
       break;
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -295,9 +299,10 @@ static int CeedVectorSetValue_Sycl(CeedVector vec, CeedScalar val) {
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
   if (!impl->d_array && !impl->h_array) {
@@ -333,8 +338,10 @@ static int CeedVectorTakeArray_Sycl(CeedVector vec, CeedMemType mem_type, CeedSc
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   // Order queue if needed
   if (!data->sycl_queue.is_in_order()) data->sycl_queue.ext_oneapi_submit_barrier();
@@ -447,9 +454,10 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
   CeedVector_Sycl  *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Compute norm
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
@@ -515,9 +523,10 @@ static int CeedVectorReciprocal_Sycl(CeedVector vec) {
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
   if (impl->d_array) CeedCallBackend(CeedDeviceReciprocal_Sycl(data->sycl_queue, impl->d_array, length));
@@ -554,9 +563,10 @@ static int CeedVectorScale_Sycl(CeedVector x, CeedScalar alpha) {
   CeedVector_Sycl *x_impl;
 
   CeedCallBackend(CeedVectorGetCeed(x, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
   CeedCallBackend(CeedVectorGetLength(x, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
   if (x_impl->d_array) CeedCallBackend(CeedDeviceScale_Sycl(data->sycl_queue, x_impl->d_array, alpha, length));
@@ -593,10 +603,11 @@ static int CeedVectorAXPY_Sycl(CeedVector y, CeedScalar alpha, CeedVector x) {
   CeedVector_Sycl *y_impl, *x_impl;
 
   CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
   CeedCallBackend(CeedVectorGetLength(y, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
   if (y_impl->d_array) {
@@ -639,11 +650,12 @@ static int CeedVectorPointwiseMult_Sycl(CeedVector w, CeedVector x, CeedVector y
   CeedVector_Sycl *w_impl, *x_impl, *y_impl;
 
   CeedCallBackend(CeedVectorGetCeed(w, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorGetData(w, &w_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
   CeedCallBackend(CeedVectorGetLength(w, &length));
-  CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
   if (!w_impl->d_array && !w_impl->h_array) {
@@ -681,6 +693,7 @@ static int CeedVectorDestroy_Sycl(const CeedVector vec) {
 
   CeedCallBackend(CeedFree(&impl->h_array_owned));
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -711,6 +724,7 @@ int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "Scale", CeedVectorScale_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;
 }
