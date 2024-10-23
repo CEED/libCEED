@@ -320,11 +320,7 @@ impl<'a> ElemRestriction<'a> {
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedElemRestrictionGetCeed(self.ptr, &mut ptr);
-        }
-        crate::check_error(ptr, ierr)
+        unsafe { crate::check_error(bind_ceed::CeedElemRestrictionReturnCeed(self.ptr), ierr) }
     }
 
     /// Create an Lvector for an ElemRestriction

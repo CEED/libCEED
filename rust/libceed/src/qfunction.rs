@@ -442,11 +442,7 @@ impl<'a> QFunctionCore<'a> {
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedQFunctionGetCeed(self.ptr, &mut ptr);
-        }
-        crate::check_error(ptr, ierr)
+        unsafe { crate::check_error(bind_ceed::CeedQFunctionReturnCeed(self.ptr), ierr) }
     }
 
     // Common implementation
@@ -643,6 +639,8 @@ impl<'a> QFunction<'a> {
         };
         ceed.check_error(ierr)?;
         ierr = unsafe { bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr) };
+        ceed.check_error(ierr)?;
+        ierr = unsafe { bind_ceed::CeedQFunctionContextDestroy(&mut qf_ctx_ptr) };
         ceed.check_error(ierr)?;
         Ok(Self {
             qf_core: QFunctionCore {

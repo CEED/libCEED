@@ -348,11 +348,7 @@ impl<'a> Vector<'a> {
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedVectorGetCeed(self.ptr, &mut ptr);
-        }
-        crate::check_error(ptr, ierr)
+        unsafe { crate::check_error(bind_ceed::CeedVectorReturnCeed(self.ptr), ierr) }
     }
 
     /// Returns the length of a Vector
