@@ -159,7 +159,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_grid_aniso));
 
     PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_lhs, "filter width scaling", &diff_filter->filter_width_scaling_label));
-    PetscCall(MatCeedCreate(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
+    PetscCall(MatCreateCeed(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
 
     PetscCall(KSPCreate(PetscObjectComm((PetscObject)dm_filter), &diff_filter->ksp));
     PetscCall(KSPSetOptionsPrefix(diff_filter->ksp, "diff_filter_"));

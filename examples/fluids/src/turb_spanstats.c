@@ -326,7 +326,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
     Mat mat_mass;
     KSP ksp;
 
-    PetscCall(MatCeedCreate(user->spanstats.dm, user->spanstats.dm, op_mass, NULL, &mat_mass));
+    PetscCall(MatCreateCeed(user->spanstats.dm, user->spanstats.dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(PetscObjectComm((PetscObject)user->spanstats.dm), &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "turbulence_spanstats_"));
