@@ -439,10 +439,16 @@ impl<'a> fmt::Display for CompositeOperator<'a> {
 // Core functionality
 // -----------------------------------------------------------------------------
 impl<'a> OperatorCore<'a> {
+    // Raw Ceed for error handling
+    #[doc(hidden)]
+    fn ceed(&self) -> bind_ceed::Ceed {
+        unsafe { bind_ceed::CeedOperatorReturnCeed(self.ptr) }
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        unsafe { crate::check_error(bind_ceed::CeedOperatorReturnCeed(self.ptr), ierr) }
+        crate::check_error(|| self.ceed(), ierr)
     }
 
     // Common implementations

@@ -323,10 +323,16 @@ impl<'a> Basis<'a> {
         })
     }
 
+    // Raw Ceed for error handling
+    #[doc(hidden)]
+    fn ceed(&self) -> bind_ceed::Ceed {
+        unsafe { bind_ceed::CeedBasisReturnCeed(self.ptr) }
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        unsafe { crate::check_error(bind_ceed::CeedBasisReturnCeed(self.ptr), ierr) }
+        crate::check_error(|| self.ceed(), ierr)
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa

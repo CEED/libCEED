@@ -317,10 +317,16 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    // Raw Ceed for error handling
+    #[doc(hidden)]
+    fn ceed(&self) -> bind_ceed::Ceed {
+        unsafe { bind_ceed::CeedElemRestrictionReturnCeed(self.ptr) }
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        unsafe { crate::check_error(bind_ceed::CeedElemRestrictionReturnCeed(self.ptr), ierr) }
+        crate::check_error(|| self.ceed(), ierr)
     }
 
     /// Create an Lvector for an ElemRestriction

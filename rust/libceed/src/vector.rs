@@ -345,10 +345,16 @@ impl<'a> Vector<'a> {
         Ok(x)
     }
 
+    // Raw Ceed for error handling
+    #[doc(hidden)]
+    fn ceed(&self) -> bind_ceed::Ceed {
+        unsafe { bind_ceed::CeedVectorReturnCeed(self.ptr) }
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        unsafe { crate::check_error(bind_ceed::CeedVectorReturnCeed(self.ptr), ierr) }
+        crate::check_error(|| self.ceed(), ierr)
     }
 
     /// Returns the length of a Vector
