@@ -107,7 +107,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
     Mat      mat_mass;
     MPI_Comm comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
 
-    PetscCall(MatCeedCreate(grad_velo_proj->dm, grad_velo_proj->dm, op_mass, NULL, &mat_mass));
+    PetscCall(MatCreateCeed(grad_velo_proj->dm, grad_velo_proj->dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(comm, &grad_velo_proj->ksp));
     PetscCall(KSPSetOptionsPrefix(grad_velo_proj->ksp, "velocity_gradient_projection_"));

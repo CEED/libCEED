@@ -75,7 +75,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   {  // -- Setup KSP for L^2 projection
     Mat mat_mass;
 
-    PetscCall(MatCeedCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, op_mass, NULL, &mat_mass));
+    PetscCall(MatCreateCeed(grid_aniso_proj->dm, grid_aniso_proj->dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "grid_anisotropy_tensor_projection_"));
