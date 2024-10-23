@@ -206,18 +206,16 @@ static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
 // QFunctionContext Restore Data Read-Only
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextRestoreDataRead_Memcheck(CeedQFunctionContext ctx) {
-  Ceed                           ceed;
   size_t                         ctx_size;
   CeedQFunctionContext_Memcheck *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Verify no changes made during read-only access
   bool is_changed = memcmp(impl->data_allocated, impl->data_read_only_copy, ctx_size);
 
-  CeedCheck(!is_changed, ceed, CEED_ERROR_BACKEND, "Context data changed while accessed in read-only mode");
+  CeedCheck(!is_changed, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "Context data changed while accessed in read-only mode");
 
   // Invalidate read-only buffer
   memset(impl->data_read_only_copy, -42, ctx_size);
@@ -230,16 +228,15 @@ static int CeedQFunctionContextRestoreDataRead_Memcheck(CeedQFunctionContext ctx
 // QFunctionContext destroy user data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
-  Ceed                                ceed;
   CeedMemType                         data_destroy_mem_type;
   CeedQFunctionContextDataDestroyUser data_destroy_function;
   CeedQFunctionContext_Memcheck      *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   CeedCallBackend(CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type, &data_destroy_function));
-  CeedCheck(data_destroy_mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only destroy HOST memory for this backend");
+  CeedCheck(data_destroy_mem_type == CEED_MEM_HOST, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND,
+            "Can only destroy HOST memory for this backend");
 
   // Run user destroy routine
   if (data_destroy_function) {
@@ -305,6 +302,7 @@ int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreDataRead", CeedQFunctionContextRestoreDataRead_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "DataDestroy", CeedQFunctionContextDataDestroy_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy", CeedQFunctionContextDestroy_Memcheck));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionContextSetBackendData(ctx, impl));
   return CEED_ERROR_SUCCESS;

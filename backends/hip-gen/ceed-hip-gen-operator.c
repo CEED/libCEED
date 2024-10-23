@@ -40,14 +40,6 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedOperatorField     *op_input_fields, *op_output_fields;
   CeedOperator_Hip_gen  *data;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedOperatorGetData(op, &data));
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-
   // Check for tensor-product bases
   {
     bool has_tensor_bases;
@@ -57,12 +49,20 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
     if (!has_tensor_bases) {
       CeedOperator op_fallback;
 
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to non-tensor bases");
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to non-tensor bases");
       CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;
     }
   }
+
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
+  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // Creation of the operator
   CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op));
@@ -177,6 +177,8 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 
   // Restore context data
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -192,6 +194,7 @@ int CeedOperatorCreate_Hip_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorSetData(op, impl));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Hip_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip_gen));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

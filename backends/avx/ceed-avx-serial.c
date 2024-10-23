@@ -25,6 +25,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   // Create reference Ceed that implementation will be dispatched through unless overridden
   CeedCallBackend(CeedInit("/cpu/self/opt/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Avx));
   return CEED_ERROR_SUCCESS;

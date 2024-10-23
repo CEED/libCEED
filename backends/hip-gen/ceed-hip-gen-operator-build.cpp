@@ -908,8 +908,9 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
                                   block_sizes[0] * block_sizes[1] * block_sizes[2]));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
-
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

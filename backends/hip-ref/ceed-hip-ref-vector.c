@@ -39,15 +39,13 @@ static inline int CeedVectorNeedSync_Hip(const CeedVector vec, CeedMemType mem_t
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
-  Ceed            ceed;
   CeedSize        length;
   size_t          bytes;
   CeedVector_Hip *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
+  CeedCheck(impl->h_array, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   bytes = length * sizeof(CeedScalar);
@@ -56,10 +54,10 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   } else if (impl->d_array_owned) {
     impl->d_array = impl->d_array_owned;
   } else {
-    CeedCallHip(ceed, hipMalloc((void **)&impl->d_array_owned, bytes));
+    CeedCallHip(CeedVectorReturnCeed(vec), hipMalloc((void **)&impl->d_array_owned, bytes));
     impl->d_array = impl->d_array_owned;
   }
-  CeedCallHip(ceed, hipMemcpy(impl->d_array, impl->h_array, bytes, hipMemcpyHostToDevice));
+  CeedCallHip(CeedVectorReturnCeed(vec), hipMemcpy(impl->d_array, impl->h_array, bytes, hipMemcpyHostToDevice));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -67,15 +65,13 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
 // Sync device to host
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
-  Ceed            ceed;
   CeedSize        length;
   size_t          bytes;
   CeedVector_Hip *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
+  CeedCheck(impl->d_array, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
@@ -91,7 +87,7 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
 
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   bytes = length * sizeof(CeedScalar);
-  CeedCallHip(ceed, hipMemcpy(impl->h_array, impl->d_array, bytes, hipMemcpyDeviceToHost));
+  CeedCallHip(CeedVectorReturnCeed(vec), hipMemcpy(impl->h_array, impl->d_array, bytes, hipMemcpyDeviceToHost));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -202,6 +198,7 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec, const CeedCopyMode
 
   CeedCallBackend(CeedSetDeviceCeedScalarArray_Hip(ceed, array, copy_mode, length, (const CeedScalar **)&impl->d_array_owned,
                                                    (const CeedScalar **)&impl->d_array_borrowed, (const CeedScalar **)&impl->d_array));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -574,6 +571,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
     }
   }
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -786,6 +784,7 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Hip));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;

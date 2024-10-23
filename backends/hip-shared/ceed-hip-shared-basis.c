@@ -248,6 +248,7 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -276,7 +277,6 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
   CeedScalar           *d_v;
   CeedBasis_Hip_shared *data;
 
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
@@ -286,6 +286,8 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
     CeedCallBackend(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
   }
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
 
   // Check padded to uniform number of points per elem
   for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
@@ -507,6 +509,7 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAddAtPoints", CeedBasisApplyAddAtPoints_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Hip_shared));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

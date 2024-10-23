@@ -28,11 +28,11 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Cuda *data;
 
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
-
   // QFunction is built
+  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
   if (data->QFunction) return CEED_ERROR_SUCCESS;
+
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
 
   // QFunction kernel generation
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
@@ -112,6 +112,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   // Compile kernel
   CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 0));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -161,7 +161,10 @@ impl fmt::Display for Error {
 // Internal error checker
 // -----------------------------------------------------------------------------
 #[doc(hidden)]
-pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
+pub(crate) fn check_error<F>(ceed_ptr: F, ierr: i32) -> Result<i32>
+where
+    F: FnOnce() -> bind_ceed::Ceed,
+{
     // Return early if code is clean
     if ierr == bind_ceed::CeedErrorType_CEED_ERROR_SUCCESS {
         return Ok(ierr);
@@ -169,7 +172,7 @@ pub(crate) fn check_error(ceed_ptr: bind_ceed::Ceed, ierr: i32) -> Result<i32> {
     // Retrieve error message
     let mut ptr: *const std::os::raw::c_char = std::ptr::null_mut();
     let c_str = unsafe {
-        bind_ceed::CeedGetErrorMessage(ceed_ptr, &mut ptr);
+        bind_ceed::CeedGetErrorMessage(ceed_ptr(), &mut ptr);
         std::ffi::CStr::from_ptr(ptr)
     };
     let message = c_str.to_string_lossy().to_string();
@@ -225,8 +228,8 @@ impl Clone for Ceed {
     /// ```
     fn clone(&self) -> Self {
         let mut ptr_clone = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) };
-        self.check_error(ierr).expect("failed to clone Ceed");
+        self.check_error(unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) })
+            .expect("failed to clone Ceed");
         Self { ptr: ptr_clone }
     }
 }

@@ -25,6 +25,7 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   // Create reference Ceed that implementation will be dispatched through unless overridden
   CeedCallBackend(CeedInit("/cpu/self/opt/blocked", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Xsmm));
   return CEED_ERROR_SUCCESS;

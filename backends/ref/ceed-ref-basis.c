@@ -18,7 +18,6 @@
 //------------------------------------------------------------------------------
 static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U,
                                   CeedVector V) {
-  Ceed               ceed;
   bool               is_tensor_basis, add = apply_add || (t_mode == CEED_TRANSPOSE);
   CeedInt            dim, num_comp, q_comp, num_nodes, num_qpts;
   const CeedScalar  *u;
@@ -26,7 +25,6 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   CeedTensorContract contract;
   CeedBasis_Ref     *impl;
 
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &impl));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
@@ -35,7 +33,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCallBackend(CeedBasisGetTensorContract(basis, &contract));
   if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   // Clear v if operating in transpose
   if (apply_add) CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
   else CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
@@ -172,7 +170,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
         CeedInt           Q = Q_1d;
         const CeedScalar *q_weight_1d;
 
-        CeedCheck(t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+        CeedCheck(t_mode == CEED_NOTRANSPOSE, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
         CeedCallBackend(CeedBasisGetQWeights(basis, &q_weight_1d));
         for (CeedInt d = 0; d < dim; d++) {
           CeedInt pre = CeedIntPow(Q, dim - d - 1), post = CeedIntPow(Q, d);
@@ -191,9 +189,9 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
       // LCOV_EXCL_START
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
       case CEED_EVAL_NONE:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+        return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
         // LCOV_EXCL_STOP
     }
   } else {
@@ -233,7 +231,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
       case CEED_EVAL_WEIGHT: {
         const CeedScalar *q_weight;
 
-        CeedCheck(t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+        CeedCheck(t_mode == CEED_NOTRANSPOSE, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
         CeedCallBackend(CeedBasisGetQWeights(basis, &q_weight));
         for (CeedInt i = 0; i < num_qpts; i++) {
           for (CeedInt e = 0; e < num_elem; e++) v[i * num_elem + e] = q_weight[i];
@@ -241,7 +239,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
       } break;
       // LCOV_EXCL_START
       case CEED_EVAL_NONE:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+        return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
         // LCOV_EXCL_STOP
     }
   }
@@ -312,6 +310,8 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -331,6 +331,8 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -350,6 +352,8 @@ int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -369,6 +373,8 @@ int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -25,6 +25,7 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   // Create reference Ceed that implementation will be dispatched through unless overridden
   CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Blocked));
   return CEED_ERROR_SUCCESS;

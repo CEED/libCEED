@@ -128,7 +128,7 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -157,6 +157,7 @@ static int CeedBasisDestroy_Sycl_shared(CeedBasis basis) {
   delete impl->sycl_module;
 
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -277,6 +278,7 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Apply", CeedBasisApplyTensor_Sycl_shared));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Sycl_shared));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

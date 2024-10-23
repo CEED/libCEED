@@ -152,7 +152,7 @@ impl<'a> Basis<'a> {
             i32::try_from(P1d).unwrap(),
             i32::try_from(Q1d).unwrap(),
         );
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedBasisCreateTensorH1(
                 ceed.ptr,
                 dim,
@@ -165,8 +165,7 @@ impl<'a> Basis<'a> {
                 qweight1d.as_ptr(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -196,10 +195,9 @@ impl<'a> Basis<'a> {
             i32::try_from(Q).unwrap(),
             qmode as bind_ceed::CeedQuadMode,
         );
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedBasisCreateTensorH1Lagrange(ceed.ptr, dim, ncomp, P, Q, qmode, &mut ptr)
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -224,7 +222,7 @@ impl<'a> Basis<'a> {
             i32::try_from(nnodes).unwrap(),
             i32::try_from(nqpts).unwrap(),
         );
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedBasisCreateH1(
                 ceed.ptr,
                 topo,
@@ -237,8 +235,7 @@ impl<'a> Basis<'a> {
                 qweight.as_ptr(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -263,7 +260,7 @@ impl<'a> Basis<'a> {
             i32::try_from(nnodes).unwrap(),
             i32::try_from(nqpts).unwrap(),
         );
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedBasisCreateHdiv(
                 ceed.ptr,
                 topo,
@@ -276,8 +273,7 @@ impl<'a> Basis<'a> {
                 qweight.as_ptr(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -302,7 +298,7 @@ impl<'a> Basis<'a> {
             i32::try_from(nnodes).unwrap(),
             i32::try_from(nqpts).unwrap(),
         );
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedBasisCreateHcurl(
                 ceed.ptr,
                 topo,
@@ -315,22 +311,23 @@ impl<'a> Basis<'a> {
                 qweight.as_ptr(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
         })
     }
 
+    // Raw Ceed for error handling
+    #[doc(hidden)]
+    fn ceed(&self) -> bind_ceed::Ceed {
+        unsafe { bind_ceed::CeedBasisReturnCeed(self.ptr) }
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
-        let mut ptr = std::ptr::null_mut();
-        unsafe {
-            bind_ceed::CeedBasisGetCeed(self.ptr, &mut ptr);
-        }
-        crate::check_error(ptr, ierr)
+        crate::check_error(|| self.ceed(), ierr)
     }
 
     /// Apply basis evaluation from nodes to quadrature points or vice versa
@@ -411,9 +408,9 @@ impl<'a> Basis<'a> {
             tmode as bind_ceed::CeedTransposeMode,
             emode as bind_ceed::CeedEvalMode,
         );
-        let ierr =
-            unsafe { bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr) };
-        self.check_error(ierr)
+        self.check_error(unsafe {
+            bind_ceed::CeedBasisApply(self.ptr, nelem, tmode, emode, u.ptr, v.ptr)
+        })
     }
 
     /// Returns the dimension for given Basis
@@ -530,8 +527,9 @@ impl<'a> Basis<'a> {
     /// ```
     pub fn create_projection(&self, to: &Self) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedBasisCreateProjection(self.ptr, to.ptr, &mut ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe {
+            bind_ceed::CeedBasisCreateProjection(self.ptr, to.ptr, &mut ptr)
+        })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,

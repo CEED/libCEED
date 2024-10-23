@@ -60,6 +60,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 
   // Restore context
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &data->d_c));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -88,12 +89,12 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionSetData(qf, data));
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
-  // Read QFunction name
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

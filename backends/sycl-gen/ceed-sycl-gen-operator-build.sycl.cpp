@@ -780,8 +780,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
 
   // Load kernel function
   CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, operator_name, &impl->op));
-
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

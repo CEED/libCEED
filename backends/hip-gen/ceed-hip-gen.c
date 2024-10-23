@@ -33,6 +33,7 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedInit("/gpu/hip/shared", &ceed_shared));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
+  CeedCallBackend(CeedDestroy(&ceed_shared));
 
   CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 

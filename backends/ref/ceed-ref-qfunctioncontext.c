@@ -131,6 +131,7 @@ int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreData", CeedQFunctionContextRestoreData_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreDataRead", CeedQFunctionContextRestoreData_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy", CeedQFunctionContextDestroy_Ref));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionContextSetBackendData(ctx, impl));
   return CEED_ERROR_SUCCESS;

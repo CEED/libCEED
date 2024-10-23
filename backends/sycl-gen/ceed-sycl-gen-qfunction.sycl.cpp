@@ -38,6 +38,7 @@ static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
 
   CeedCallBackend(CeedFree(&impl->qfunction_source));
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -61,6 +62,7 @@ int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf) {
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl_gen));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

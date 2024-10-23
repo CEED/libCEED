@@ -197,6 +197,7 @@ PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MP
     PetscCall(VecSetType(*output, vec_type));
     PetscCall(VecSetSizes(*output, output_size, output_size));
   }
+  PetscCheck(CeedDestroy(&ceed) == CEED_ERROR_SUCCESS, comm, PETSC_ERR_LIB, "Destroying Ceed object failed");
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

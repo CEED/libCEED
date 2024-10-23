@@ -41,10 +41,8 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec, CeedMemType mem_
 static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
   CeedSize         length;
   size_t           bytes;
-  Ceed             ceed;
   CeedVector_Cuda *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   CeedCheck(impl->h_array, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "No valid host data to sync to device");
@@ -56,10 +54,10 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
   } else if (impl->d_array_owned) {
     impl->d_array = impl->d_array_owned;
   } else {
-    CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
+    CeedCallCuda(CeedVectorReturnCeed(vec), cudaMalloc((void **)&impl->d_array_owned, bytes));
     impl->d_array = impl->d_array_owned;
   }
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpy(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -68,13 +66,11 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   CeedSize         length;
-  Ceed             ceed;
   CeedVector_Cuda *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
+  CeedCheck(impl->d_array, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
@@ -91,7 +87,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   size_t bytes = length * sizeof(CeedScalar);
 
-  CeedCallCuda(ceed, cudaMemcpy(impl->h_array, impl->d_array, bytes, cudaMemcpyDeviceToHost));
+  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpy(impl->h_array, impl->d_array, bytes, cudaMemcpyDeviceToHost));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -202,6 +198,7 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
 
   CeedCallBackend(CeedSetDeviceCeedScalarArray_Cuda(ceed, array, copy_mode, length, (const CeedScalar **)&impl->d_array_owned,
                                                     (const CeedScalar **)&impl->d_array_borrowed, (const CeedScalar **)&impl->d_array));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -611,6 +608,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
     }
   }
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -689,11 +687,9 @@ int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_arr
 // Compute y = alpha x + y
 //------------------------------------------------------------------------------
 static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
-  Ceed             ceed;
   CeedSize         length;
   CeedVector_Cuda *y_impl, *x_impl;
 
-  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
   CeedCallBackend(CeedVectorGetLength(y, &length));
@@ -824,6 +820,7 @@ int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Cuda));
+  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;

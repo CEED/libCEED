@@ -37,6 +37,7 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
 
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
@@ -118,6 +119,7 @@ static int CeedQFunctionDestroy_Sycl(CeedQFunction qf) {
   delete impl->QFunction;
   delete impl->sycl_module;
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -134,6 +136,7 @@ int CeedQFunctionCreate_Sycl(CeedQFunction qf) {
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

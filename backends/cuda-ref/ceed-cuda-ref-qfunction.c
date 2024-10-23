@@ -58,6 +58,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 
   // Restore context
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &data->d_c));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -95,13 +96,13 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 
-  // Read QFunction name
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction", CeedQFunctionSetCUDAUserFunction_Cuda));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

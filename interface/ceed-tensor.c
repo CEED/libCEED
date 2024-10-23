@@ -36,6 +36,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "TensorContract"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedTensorContractCreate");
     CeedCall(CeedTensorContractCreate(delegate, contract));
+    CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -123,7 +124,8 @@ int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedI
   @ref Backend
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
-  *ceed = CeedTensorContractReturnCeed(contract);
+  *ceed = NULL;
+  CeedCall(CeedReferenceCopy(CeedTensorContractReturnCeed(contract), ceed));
   return CEED_ERROR_SUCCESS;
 }
 

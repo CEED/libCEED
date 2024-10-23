@@ -220,6 +220,7 @@ static inline PetscErrorCode VecCopyPetscToCeed(Vec X_petsc, CeedVector x_ceed) 
   PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, &mem_type));
   PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypePetscToCeed(mem_type), CEED_COPY_VALUES, x));
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+  PetscCheck(CeedDestroy(&ceed) == CEED_ERROR_SUCCESS, PetscObjectComm((PetscObject)X_petsc), PETSC_ERR_LIB, "Destroying Ceed object failed");
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

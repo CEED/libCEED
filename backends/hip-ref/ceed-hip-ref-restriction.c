@@ -108,6 +108,7 @@ static inline int CeedElemRestrictionSetupCompile_Hip(CeedElemRestriction rstr) 
 
     } break;
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -287,6 +288,7 @@ static inline int CeedElemRestrictionApply_Hip_Core(CeedElemRestriction rstr, Ce
   // Restore arrays
   CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -406,6 +408,7 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction rstr) {
   CeedCallBackend(CeedFree(&impl->h_points_per_elem_owned));
   CeedCallHip(ceed, hipFree((CeedInt *)impl->d_points_per_elem_owned));
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -487,6 +490,7 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction rstr, const C
   CeedCallBackend(CeedFree(&l_vec_indices));
   CeedCallBackend(CeedFree(&t_offsets));
   CeedCallBackend(CeedFree(&t_indices));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -504,6 +508,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
   CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
+  CeedCallBackend(CeedDestroy(&ceed_parent));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
@@ -651,6 +656,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
         CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetAtPointsElementOffset", CeedElemRestrictionGetAtPointsElementOffset_Hip));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Hip));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

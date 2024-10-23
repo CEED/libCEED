@@ -16,10 +16,6 @@
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                                         CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
-
   if (C == 1) {
     // Build or query the required kernel
     const int                  flags_t    = LIBXSMM_GEMM_FLAGS(!t_mode ? 'T' : 'N', 'N');
@@ -33,7 +29,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
     const libxsmm_gemmfunction kernel = libxsmm_dispatch_gemm(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
     libxsmm_gemm_param         gemm_param;
 
-    CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
+    CeedCheck(kernel, CeedTensorContractReturnCeed(contract), CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
 
     // Run kernel
     gemm_param.a.primary = (CeedScalar *)&t[0];
@@ -53,7 +49,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
     const libxsmm_gemmfunction kernel = libxsmm_dispatch_gemm(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
     libxsmm_gemm_param         gemm_param;
 
-    CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
+    CeedCheck(kernel, CeedTensorContractReturnCeed(contract), CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
 
     // Run kernel
     gemm_param.b.primary = (CeedScalar *)&t[0];

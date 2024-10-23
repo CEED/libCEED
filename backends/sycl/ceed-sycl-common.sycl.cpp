@@ -107,12 +107,14 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
   if (ceed_delegate) {
     CeedCallBackend(CeedSetStream_Sycl(ceed_delegate, handle));
   }
+  CeedCallBackend(CeedDestroy(&ceed_delegate));
 
   // Set queue and context for Ceed Fallback object
-  CeedGetOperatorFallbackCeed(ceed, &ceed_fallback);
+  CeedCallBackend(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
   if (ceed_fallback) {
     CeedCallBackend(CeedSetStream_Sycl(ceed_fallback, handle));
   }
+  CeedCallBackend(CeedDestroy(&ceed_fallback));
   return CEED_ERROR_SUCCESS;
 }
 

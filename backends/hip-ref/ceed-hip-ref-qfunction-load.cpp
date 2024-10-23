@@ -30,12 +30,12 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Hip  *data;
 
+  // QFunction is built
+  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
+  if (data->QFunction) return CEED_ERROR_SUCCESS;
+
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedGetData(ceed, &ceed_Hip));
-  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
-
-  // QFunction is built
-  if (data->QFunction) return CEED_ERROR_SUCCESS;
 
   // QFunction kernel generation
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
@@ -116,6 +116,7 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   // Compile kernel
   CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 1, "BLOCK_SIZE", ceed_Hip->opt_block_size));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, kernel_name.c_str(), &data->QFunction));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

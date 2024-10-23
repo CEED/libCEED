@@ -17,7 +17,6 @@
 // QFunction Apply
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
-  Ceed                    ceed;
   void                   *ctx_data = NULL;
   int                     input_block_ids[CEED_FIELD_MAX], output_block_ids[CEED_FIELD_MAX];
   CeedInt                 num_in, num_out;
@@ -25,7 +24,6 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   CeedQFunctionField     *output_fields;
   CeedQFunction_Memcheck *impl;
 
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
   CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx_data));
   CeedCallBackend(CeedQFunctionGetUserFunction(qf, &f));
@@ -82,7 +80,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
       CeedCallBackend(CeedQFunctionFieldGetSize(output_fields[i], &field_size));
       CeedCallBackend(CeedQFunctionFieldGetName(output_fields[i], &field_name));
       for (CeedSize j = 0; j < field_size * (CeedSize)Q; j++) {
-        CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND,
+        CeedCheck(!isnan(impl->outputs[i][j]), CeedQFunctionReturnCeed(qf), CEED_ERROR_BACKEND,
                   "QFunction output %" CeedInt_FMT " '%s' entry %" CeedSize_FMT " is NaN after restoring write-only access: %s:%s ", i, field_name, j,
                   kernel_path, kernel_name);
       }
@@ -121,6 +119,7 @@ int CeedQFunctionCreate_Memcheck(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Memcheck));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
