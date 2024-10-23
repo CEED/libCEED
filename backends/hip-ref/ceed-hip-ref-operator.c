@@ -353,6 +353,7 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
     }
   }
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -599,6 +600,7 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector in_vec, CeedVect
   // Return work vector
   CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec));
   CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -737,6 +739,7 @@ static int CeedOperatorSetupAtPoints_Hip(CeedOperator op) {
     }
   }
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -924,6 +927,7 @@ static int CeedOperatorApplyAddAtPoints_Hip(CeedOperator op, CeedVector in_vec, 
   // Restore work vector
   CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec));
   CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1065,9 +1069,10 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
   }
 
   // Restore output
+  CeedCallBackend(CeedVectorRestoreArray(*assembled, &assembled_array));
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedDestroy(&ceed_parent));
-  CeedCallBackend(CeedVectorRestoreArray(*assembled, &assembled_array));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1271,6 +1276,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op) {
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1357,6 +1363,7 @@ static inline int CeedOperatorAssembleDiagonalSetupCompile_Hip(CeedOperator op, 
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1661,6 +1668,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_out));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2038,6 +2046,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
   CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec_in));
   CeedCallBackend(CeedRestoreWorkVector(ceed, &active_e_vec_out));
   CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

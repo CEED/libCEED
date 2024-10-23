@@ -249,6 +249,7 @@ static int CeedOperatorSetup_Sycl(CeedOperator op) {
   CeedCallBackend(CeedOperatorSetupFields_Sycl(qf, op, false, impl->e_vecs, impl->q_vecs_out, num_input_fields, num_output_fields, Q, num_elem));
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -467,6 +468,7 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector in_vec, CeedVec
 
   // Restore input arrays
   CeedCallBackend(CeedOperatorRestoreInputs_Sycl(num_input_fields, qf_input_fields, op_input_fields, false, e_data, impl));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -607,6 +609,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, 
   // Restore output
   CeedCallBackend(CeedVectorRestoreArray(*assembled, &assembled_array));
   CeedCallBackend(CeedDestroy(&ceed_parent));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -812,13 +815,14 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op) {
   CeedCallBackend(CeedElemRestrictionReferenceCopy(rstr_out, &diag->diag_rstr));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_out));
 
+  // Wait for all copies to complete and handle exceptions
+  CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
+
   // Cleanup
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
-
-  // Wait for all copies to complete and handle exceptions
-  CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1175,6 +1179,7 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_out));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
   CeedCallBackend(CeedBasisDestroy(&basis_out));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

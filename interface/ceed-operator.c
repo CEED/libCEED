@@ -148,6 +148,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   CeedCall(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+  CeedCall(CeedQFunctionDestroy(&qf));
 
   fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
   fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", pre, total_fields, total_fields > 1 ? "s" : "");
@@ -374,6 +375,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 
       CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
       CeedCall(CeedQFunctionGetContext(qf, &ctx));
+      CeedCall(CeedQFunctionDestroy(&qf));
       // Try every sub-operator, ok if some sub-operators do not have field
       if (field_label->sub_labels[i] && ctx) {
         CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label->sub_labels[i], field_type, values));
@@ -385,6 +387,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetContext(qf, &ctx));
+    CeedCall(CeedQFunctionDestroy(&qf));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, field_type, values));
   }
@@ -443,6 +446,7 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 
       CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
       CeedCall(CeedQFunctionGetContext(qf, &ctx));
+      CeedCall(CeedQFunctionDestroy(&qf));
       // Try every sub-operator, ok if some sub-operators do not have field
       if (field_label->sub_labels[i] && ctx) {
         CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label->sub_labels[i], field_type, num_values, values));
@@ -455,6 +459,7 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetContext(qf, &ctx));
+    CeedCall(CeedQFunctionDestroy(&qf));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label, field_type, num_values, values));
   }
@@ -507,6 +512,7 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 
       CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
       CeedCall(CeedQFunctionGetContext(qf, &ctx));
+      CeedCall(CeedQFunctionDestroy(&qf));
       // Try every sub-operator, ok if some sub-operators do not have field
       if (field_label->sub_labels[i] && ctx) {
         CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label->sub_labels[i], field_type, values));
@@ -519,6 +525,7 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetContext(qf, &ctx));
+    CeedCall(CeedQFunctionDestroy(&qf));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label, field_type, values));
   }
@@ -640,7 +647,8 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operator");
-  *qf = op->qf;
+  *qf = NULL;
+  CeedCall(CeedQFunctionReferenceCopy(op->qf, qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -939,6 +947,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
 
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_input_fields, &num_output_fields, &qf_output_fields));
+  CeedCall(CeedQFunctionDestroy(&qf));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     const char *qf_field_name;
 
@@ -1021,6 +1030,7 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
 
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetFields(qf, num_input_fields, NULL, num_output_fields, NULL));
+  CeedCall(CeedQFunctionDestroy(&qf));
   if (input_fields) *input_fields = op->input_fields;
   if (output_fields) *output_fields = op->output_fields;
   return CEED_ERROR_SUCCESS;
@@ -1400,6 +1410,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
   // Flag as immutable and ready
   op->is_interface_setup = true;
   if (qf && qf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionSetImmutable(qf));
+  CeedCall(CeedQFunctionDestroy(&qf));
   if (op->dqf && op->dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionSetImmutable(op->dqf));
   if (op->dqfT && op->dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionSetImmutable(op->dqfT));
   return CEED_ERROR_SUCCESS;
@@ -1699,6 +1710,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_input_fields, &num_output_fields, &qf_output_fields));
+    CeedCall(CeedQFunctionDestroy(&qf));
     CeedCall(CeedOperatorGetFields(op, NULL, &op_input_fields, NULL, &op_output_fields));
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
 
@@ -1734,6 +1746,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
       CeedCall(CeedOperatorGetQFunction(op, &qf));
       CeedCall(CeedQFunctionGetFlopsEstimate(qf, &qf_flops));
+      CeedCall(CeedQFunctionDestroy(&qf));
       CeedCheck(qf_flops > -1, CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPLETE,
                 "Must set CeedQFunction FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
       *flops += num_elem * num_qpts * qf_flops;
@@ -1790,6 +1803,7 @@ int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
   CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE, "Cannot retrieve CeedQFunctionContext for composite operator");
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetInnerContext(qf, &qf_ctx));
+  CeedCall(CeedQFunctionDestroy(&qf));
   if (qf_ctx) CeedCall(CeedQFunctionContextReferenceCopy(qf_ctx, ctx));
   return CEED_ERROR_SUCCESS;
 }
@@ -1882,6 +1896,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     // Single, non-composite operator
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetInnerContext(qf, &ctx));
+    CeedCall(CeedQFunctionDestroy(&qf));
     if (ctx) {
       CeedCall(CeedQFunctionContextGetFieldLabel(ctx, field_name, field_label));
     } else {

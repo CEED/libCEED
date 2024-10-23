@@ -201,6 +201,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   }
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -383,15 +384,11 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
   CeedOperatorField  *op_input_fields, *op_output_fields;
   CeedOperator_Ref   *impl;
 
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-
   // Setup
   CeedCallBackend(CeedOperatorSetup_Ref(op));
+
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
   // Restriction only operator
   if (impl->is_identity_rstr_op) {
@@ -405,6 +402,11 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     return CEED_ERROR_SUCCESS;
   }
+
+  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
+  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, in_vec, false, e_data_full, impl, request));
@@ -466,6 +468,7 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
 
   // Restore input arrays
   CeedCallBackend(CeedOperatorRestoreInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, false, e_data_full, impl));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -646,6 +649,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   // Restore output
   CeedCallBackend(CeedVectorRestoreArray(*assembled, &assembled_array));
   CeedCallBackend(CeedDestroy(&ceed_parent));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -873,6 +877,7 @@ static int CeedOperatorSetupAtPoints_Ref(CeedOperator op) {
   }
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1065,6 +1070,7 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
   // Cleanup point coordinates
   CeedCallBackend(CeedVectorDestroy(&point_coords));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1289,6 +1295,7 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedVectorDestroy(&point_coords));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1541,6 +1548,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
   CeedCallBackend(CeedVectorDestroy(&out_vec));
   CeedCallBackend(CeedVectorDestroy(&point_coords));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

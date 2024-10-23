@@ -910,6 +910,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedDestroy(&ceed));
+  CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
 

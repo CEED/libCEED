@@ -1535,6 +1535,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
     }
     CeedCall(CeedVectorDestroy(&vec));
   }
+  CeedCall(CeedQFunctionDestroy(&qf));
   (*data)->num_active_bases_in   = num_active_bases_in;
   (*data)->num_eval_modes_in     = num_eval_modes_in;
   (*data)->eval_modes_in         = eval_modes_in;
@@ -2938,6 +2939,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   CeedCall(CeedElemRestrictionDestroy(&rstr_qd_i));
   CeedCall(CeedBasisDestroy(&basis));
   CeedCall(CeedBasisDestroy(&fdm_basis));
+  CeedCall(CeedQFunctionDestroy(&qf));
   CeedCall(CeedQFunctionDestroy(&qf_fdm));
   return CEED_ERROR_SUCCESS;
 }
