@@ -330,7 +330,8 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
   @ref Backend
 **/
 int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
-  *ctx = qf->ctx;
+  *ctx = NULL;
+  if (qf->ctx) CeedCall(CeedQFunctionContextReferenceCopy(qf->ctx, ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -361,6 +362,7 @@ int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type, void *da
   } else {
     *(void **)data = NULL;
   }
+  CeedCall(CeedQFunctionContextDestroy(&ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -387,7 +389,7 @@ int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data) {
       CeedCall(CeedQFunctionContextRestoreDataRead(ctx, data));
     }
   }
-  *(void **)data = NULL;
+  CeedCall(CeedQFunctionContextDestroy(&ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -415,6 +417,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   } else {
     *ctx = qf_ctx;
   }
+  CeedCall(CeedQFunctionContextDestroy(&qf_ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -730,6 +733,7 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, C
   CeedCall(CeedQFunctionGetContext(*qf, &ctx));
   CeedCall(CeedQFunctionContextGetFieldLabel(ctx, "size", &size_label));
   CeedCall(CeedQFunctionContextSetInt32(ctx, size_label, &size));
+  CeedCall(CeedQFunctionContextDestroy(&ctx));
   return CEED_ERROR_SUCCESS;
 }
 

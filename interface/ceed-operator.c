@@ -370,26 +370,22 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
               "Composite operator modified after ContextFieldLabel created");
 
     for (CeedInt i = 0; i < num_sub; i++) {
-      CeedQFunction        qf;
       CeedQFunctionContext ctx;
 
-      CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
-      CeedCall(CeedQFunctionGetContext(qf, &ctx));
-      CeedCall(CeedQFunctionDestroy(&qf));
+      CeedCall(CeedOperatorGetContext(sub_operators[i], &ctx));
       // Try every sub-operator, ok if some sub-operators do not have field
-      if (field_label->sub_labels[i] && ctx) {
+      if (ctx && field_label->sub_labels[i]) {
         CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label->sub_labels[i], field_type, values));
       }
+      CeedCall(CeedQFunctionContextDestroy(&ctx));
     }
   } else {
-    CeedQFunction        qf;
     CeedQFunctionContext ctx;
 
-    CeedCall(CeedOperatorGetQFunction(op, &qf));
-    CeedCall(CeedQFunctionGetContext(qf, &ctx));
-    CeedCall(CeedQFunctionDestroy(&qf));
+    CeedCall(CeedOperatorGetContext(op, &ctx));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, field_type, values));
+    CeedCall(CeedQFunctionContextDestroy(&ctx));
   }
   CeedCall(CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op, true));
   return CEED_ERROR_SUCCESS;
@@ -441,27 +437,24 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
               "Composite operator modified after ContextFieldLabel created");
 
     for (CeedInt i = 0; i < num_sub; i++) {
-      CeedQFunction        qf;
       CeedQFunctionContext ctx;
 
-      CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
-      CeedCall(CeedQFunctionGetContext(qf, &ctx));
-      CeedCall(CeedQFunctionDestroy(&qf));
+      CeedCall(CeedOperatorGetContext(sub_operators[i], &ctx));
       // Try every sub-operator, ok if some sub-operators do not have field
-      if (field_label->sub_labels[i] && ctx) {
+      if (ctx && field_label->sub_labels[i]) {
         CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label->sub_labels[i], field_type, num_values, values));
+        CeedCall(CeedQFunctionContextDestroy(&ctx));
         return CEED_ERROR_SUCCESS;
       }
+      CeedCall(CeedQFunctionContextDestroy(&ctx));
     }
   } else {
-    CeedQFunction        qf;
     CeedQFunctionContext ctx;
 
-    CeedCall(CeedOperatorGetQFunction(op, &qf));
-    CeedCall(CeedQFunctionGetContext(qf, &ctx));
-    CeedCall(CeedQFunctionDestroy(&qf));
+    CeedCall(CeedOperatorGetContext(op, &ctx));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label, field_type, num_values, values));
+    CeedCall(CeedQFunctionContextDestroy(&ctx));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -507,27 +500,24 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
               "Composite operator modified after ContextFieldLabel created");
 
     for (CeedInt i = 0; i < num_sub; i++) {
-      CeedQFunction        qf;
       CeedQFunctionContext ctx;
 
-      CeedCall(CeedOperatorGetQFunction(sub_operators[i], &qf));
-      CeedCall(CeedQFunctionGetContext(qf, &ctx));
-      CeedCall(CeedQFunctionDestroy(&qf));
+      CeedCall(CeedOperatorGetContext(sub_operators[i], &ctx));
       // Try every sub-operator, ok if some sub-operators do not have field
-      if (field_label->sub_labels[i] && ctx) {
+      if (ctx && field_label->sub_labels[i]) {
         CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label->sub_labels[i], field_type, values));
+        CeedCall(CeedQFunctionContextDestroy(&ctx));
         return CEED_ERROR_SUCCESS;
       }
+      CeedCall(CeedQFunctionContextDestroy(&ctx));
     }
   } else {
-    CeedQFunction        qf;
     CeedQFunctionContext ctx;
 
-    CeedCall(CeedOperatorGetQFunction(op, &qf));
-    CeedCall(CeedQFunctionGetContext(qf, &ctx));
-    CeedCall(CeedQFunctionDestroy(&qf));
+    CeedCall(CeedOperatorGetContext(op, &ctx));
     CeedCheck(ctx, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label, field_type, values));
+    CeedCall(CeedQFunctionContextDestroy(&ctx));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1804,6 +1794,7 @@ int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetInnerContext(qf, &qf_ctx));
   CeedCall(CeedQFunctionDestroy(&qf));
+  *ctx = NULL;
   if (qf_ctx) CeedCall(CeedQFunctionContextReferenceCopy(qf_ctx, ctx));
   return CEED_ERROR_SUCCESS;
 }

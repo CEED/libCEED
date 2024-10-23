@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
 
     CeedOperatorGetContext(op_sub_1, &ctx_copy);
     if (ctx_copy != qf_ctx_sub_1) printf("Incorrect QFunctionContext retrieved");
+    CeedQFunctionContextDestroy(&ctx_copy);
 
     CeedOperatorGetContext(op_sub_2, &ctx_copy);  // Destroys reference to qf_ctx_sub_1
     if (ctx_copy != qf_ctx_sub_2) printf("Incorrect QFunctionContext retrieved");

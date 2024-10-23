@@ -71,6 +71,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
 
     CeedCall(CeedQFunctionGetContext(qf, &ctx));
     CeedCall(CeedQFunctionSetContext(*qf_fallback, ctx));
+    CeedCall(CeedQFunctionContextDestroy(&ctx));
   }
   CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
