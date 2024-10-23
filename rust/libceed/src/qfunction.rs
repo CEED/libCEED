@@ -462,17 +462,16 @@ impl<'a> QFunctionCore<'a> {
             v_c[i] = v[i].ptr;
         }
         let Q = i32::try_from(Q).unwrap();
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedQFunctionApply(self.ptr, Q, u_c.as_mut_ptr(), v_c.as_mut_ptr())
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn inputs(&self) -> crate::Result<&[crate::QFunctionField]> {
         // Get array of raw C pointers for inputs
         let mut num_inputs = 0;
         let mut inputs_ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedQFunctionGetFields(
                 self.ptr,
                 &mut num_inputs,
@@ -480,8 +479,7 @@ impl<'a> QFunctionCore<'a> {
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
                 std::ptr::null_mut() as *mut *mut bind_ceed::CeedQFunctionField,
             )
-        };
-        self.check_error(ierr)?;
+        })?;
         // Convert raw C pointers to fixed length slice
         let inputs_slice = unsafe {
             std::slice::from_raw_parts(
@@ -496,7 +494,7 @@ impl<'a> QFunctionCore<'a> {
         // Get array of raw C pointers for outputs
         let mut num_outputs = 0;
         let mut outputs_ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedQFunctionGetFields(
                 self.ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
@@ -504,8 +502,7 @@ impl<'a> QFunctionCore<'a> {
                 &mut num_outputs,
                 &mut outputs_ptr,
             )
-        };
-        self.check_error(ierr)?;
+        })?;
         // Convert raw C pointers to fixed length slice
         let outputs_slice = unsafe {
             std::slice::from_raw_parts(
@@ -611,7 +608,7 @@ impl<'a> QFunction<'a> {
 
         // Create QFunction
         let vlength = i32::try_from(vlength).unwrap();
-        let mut ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedQFunctionCreateInterior(
                 ceed.ptr,
                 vlength,
@@ -619,14 +616,14 @@ impl<'a> QFunction<'a> {
                 source_c.as_ptr(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
 
         // Set closure
         let mut qf_ctx_ptr = std::ptr::null_mut();
-        ierr = unsafe { bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut qf_ctx_ptr) };
-        ceed.check_error(ierr)?;
-        ierr = unsafe {
+        ceed.check_error(unsafe {
+            bind_ceed::CeedQFunctionContextCreate(ceed.ptr, &mut qf_ctx_ptr)
+        })?;
+        ceed.check_error(unsafe {
             bind_ceed::CeedQFunctionContextSetData(
                 qf_ctx_ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
@@ -634,20 +631,16 @@ impl<'a> QFunction<'a> {
                 std::mem::size_of::<QFunctionTrampolineData>(),
                 std::mem::transmute(trampoline_data.as_ref()),
             )
-        };
-        ceed.check_error(ierr)?;
-        ierr = unsafe {
+        })?;
+        ceed.check_error(unsafe {
             bind_ceed::CeedQFunctionContextSetDataDestroy(
                 qf_ctx_ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 Some(destroy_trampoline),
             )
-        };
-        ceed.check_error(ierr)?;
-        ierr = unsafe { bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr) };
-        ceed.check_error(ierr)?;
-        ierr = unsafe { bind_ceed::CeedQFunctionContextDestroy(&mut qf_ctx_ptr) };
-        ceed.check_error(ierr)?;
+        })?;
+        ceed.check_error(unsafe { bind_ceed::CeedQFunctionSetContext(ptr, qf_ctx_ptr) })?;
+        ceed.check_error(unsafe { bind_ceed::CeedQFunctionContextDestroy(&mut qf_ctx_ptr) })?;
         Ok(Self {
             qf_core: QFunctionCore {
                 ptr,
@@ -767,10 +760,9 @@ impl<'a> QFunction<'a> {
             i32::try_from(size).unwrap(),
             emode as bind_ceed::CeedEvalMode,
         );
-        let ierr = unsafe {
+        self.qf_core.check_error(unsafe {
             bind_ceed::CeedQFunctionAddInput(self.qf_core.ptr, name_c.as_ptr(), size, emode)
-        };
-        self.qf_core.check_error(ierr)?;
+        })?;
         Ok(self)
     }
 
@@ -817,10 +809,9 @@ impl<'a> QFunction<'a> {
             i32::try_from(size).unwrap(),
             emode as bind_ceed::CeedEvalMode,
         );
-        let ierr = unsafe {
+        self.qf_core.check_error(unsafe {
             bind_ceed::CeedQFunctionAddOutput(self.qf_core.ptr, name_c.as_ptr(), size, emode)
-        };
-        self.qf_core.check_error(ierr)?;
+        })?;
         Ok(self)
     }
 
@@ -894,10 +885,9 @@ impl<'a> QFunctionByName<'a> {
     pub fn create(ceed: &crate::Ceed, name: &str) -> crate::Result<Self> {
         let name_c = CString::new(name).expect("CString::new failed");
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedQFunctionCreateInteriorByName(ceed.ptr, name_c.as_ptr(), &mut ptr)
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             qf_core: QFunctionCore {
                 ptr,

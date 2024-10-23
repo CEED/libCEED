@@ -157,16 +157,14 @@ impl<'a> VectorSliceWrapper<'a> {
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
         );
-        let ierr = unsafe {
+        vec.check_error(unsafe {
             bind_ceed::CeedVectorSetArray(
                 vec.ptr,
                 host,
                 copy_mode,
                 slice.as_ptr() as *mut crate::Scalar,
             )
-        };
-        vec.check_error(ierr)?;
-
+        })?;
         Ok(Self {
             vector: crate::Vector::from_raw(vec.ptr_copy_mut()?)?,
             _slice: slice,
@@ -247,8 +245,7 @@ impl<'a> Vector<'a> {
     pub fn create(ceed: &crate::Ceed, n: usize) -> crate::Result<Self> {
         let n = isize::try_from(n).unwrap();
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) };
-        ceed.check_error(ierr)?;
+        ceed.check_error(unsafe { bind_ceed::CeedVectorCreate(ceed.ptr, n, &mut ptr) })?;
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -264,8 +261,7 @@ impl<'a> Vector<'a> {
 
     fn ptr_copy_mut(&mut self) -> crate::Result<bind_ceed::CeedVector> {
         let mut ptr_copy = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorReferenceCopy(self.ptr, &mut ptr_copy) })?;
         Ok(ptr_copy)
     }
 
@@ -291,8 +287,7 @@ impl<'a> Vector<'a> {
     /// ```
     /// ```
     pub fn copy_from(&mut self, vec_source: &crate::Vector) -> crate::Result<i32> {
-        let ierr = unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) };
-        self.check_error(ierr)
+        self.check_error(unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) })
     }
 
     /// Create a Vector from a slice
@@ -340,8 +335,7 @@ impl<'a> Vector<'a> {
             crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
         );
         let v = v.as_ptr() as *mut crate::Scalar;
-        let ierr = unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) };
-        ceed.check_error(ierr)?;
+        ceed.check_error(unsafe { bind_ceed::CeedVectorSetArray(x.ptr, host, user_pointer, v) })?;
         Ok(x)
     }
 
@@ -414,8 +408,7 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     pub fn set_value(&mut self, value: crate::Scalar) -> crate::Result<i32> {
-        let ierr = unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) };
-        self.check_error(ierr)
+        self.check_error(unsafe { bind_ceed::CeedVectorSetValue(self.ptr, value) })
     }
 
     /// Set values from a slice of the same length
@@ -443,15 +436,14 @@ impl<'a> Vector<'a> {
             crate::MemType::Host as bind_ceed::CeedMemType,
             crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
         );
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedVectorSetArray(
                 self.ptr,
                 host,
                 copy_mode,
                 slice.as_ptr() as *mut crate::Scalar,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     /// Wrap a mutable slice in a Vector of the same length
@@ -530,9 +522,9 @@ impl<'a> Vector<'a> {
     /// # }
     /// ```
     pub fn sync(&self, mtype: crate::MemType) -> crate::Result<i32> {
-        let ierr =
-            unsafe { bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType) };
-        self.check_error(ierr)
+        self.check_error(unsafe {
+            bind_ceed::CeedVectorSyncArray(self.ptr, mtype as bind_ceed::CeedMemType)
+        })
     }
 
     /// Create an immutable view
@@ -603,10 +595,9 @@ impl<'a> Vector<'a> {
     /// ```
     pub fn norm(&self, ntype: crate::NormType) -> crate::Result<crate::Scalar> {
         let mut res: crate::Scalar = 0.0;
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedVectorNorm(self.ptr, ntype as bind_ceed::CeedNormType, &mut res)
-        };
-        self.check_error(ierr)?;
+        })?;
         Ok(res)
     }
 
@@ -631,8 +622,7 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn scale(mut self, alpha: crate::Scalar) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorScale(self.ptr, alpha) })?;
         Ok(self)
     }
 
@@ -659,8 +649,7 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) })?;
         Ok(self)
     }
 
@@ -693,8 +682,7 @@ impl<'a> Vector<'a> {
         beta: crate::Scalar,
         x: &crate::Vector,
     ) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) })?;
         Ok(self)
     }
 
@@ -722,8 +710,7 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_mult(mut self, x: &crate::Vector, y: &crate::Vector) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, x.ptr, y.ptr) })?;
         Ok(self)
     }
 
@@ -749,8 +736,7 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_scale(mut self, x: &crate::Vector) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, x.ptr) })?;
         Ok(self)
     }
 
@@ -771,8 +757,9 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn pointwise_square(mut self) -> crate::Result<Self> {
-        let ierr = unsafe { bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, self.ptr) };
-        self.check_error(ierr)?;
+        self.check_error(unsafe {
+            bind_ceed::CeedVectorPointwiseMult(self.ptr, self.ptr, self.ptr)
+        })?;
         Ok(self)
     }
 }
@@ -793,14 +780,13 @@ impl<'a> VectorView<'a> {
     /// Construct a VectorView from a Vector reference
     fn new(vec: &'a Vector) -> crate::Result<Self> {
         let mut array = std::ptr::null();
-        let ierr = unsafe {
+        vec.check_error(unsafe {
             bind_ceed::CeedVectorGetArrayRead(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut array,
             )
-        };
-        vec.check_error(ierr)?;
+        })?;
         Ok(Self {
             vec: vec,
             array: array,
@@ -846,14 +832,13 @@ impl<'a> VectorViewMut<'a> {
     /// Construct a VectorViewMut from a Vector reference
     fn new(vec: &'a mut Vector) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        vec.check_error(unsafe {
             bind_ceed::CeedVectorGetArray(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 &mut ptr,
             )
-        };
-        vec.check_error(ierr)?;
+        })?;
         Ok(Self {
             vec: vec,
             array: ptr,

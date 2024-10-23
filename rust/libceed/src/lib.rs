@@ -228,8 +228,8 @@ impl Clone for Ceed {
     /// ```
     fn clone(&self) -> Self {
         let mut ptr_clone = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) };
-        self.check_error(ierr).expect("failed to clone Ceed");
+        self.check_error(unsafe { bind_ceed::CeedReferenceCopy(self.ptr, &mut ptr_clone) })
+            .expect("failed to clone Ceed");
         Self { ptr: ptr_clone }
     }
 }

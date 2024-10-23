@@ -33,22 +33,21 @@ impl<'a> OperatorField<'a> {
     ) -> crate::Result<Self> {
         let vector = {
             let mut vector_ptr = std::ptr::null_mut();
-            let ierr = unsafe { bind_ceed::CeedOperatorFieldGetVector(ptr, &mut vector_ptr) };
-            ceed.check_error(ierr)?;
+            ceed.check_error(unsafe {
+                bind_ceed::CeedOperatorFieldGetVector(ptr, &mut vector_ptr)
+            })?;
             crate::Vector::from_raw(vector_ptr)?
         };
         let elem_restriction = {
             let mut elem_restriction_ptr = std::ptr::null_mut();
-            let ierr = unsafe {
+            ceed.check_error(unsafe {
                 bind_ceed::CeedOperatorFieldGetElemRestriction(ptr, &mut elem_restriction_ptr)
-            };
-            ceed.check_error(ierr)?;
+            })?;
             crate::ElemRestriction::from_raw(elem_restriction_ptr)?
         };
         let basis = {
             let mut basis_ptr = std::ptr::null_mut();
-            let ierr = unsafe { bind_ceed::CeedOperatorFieldGetBasis(ptr, &mut basis_ptr) };
-            ceed.check_error(ierr)?;
+            ceed.check_error(unsafe { bind_ceed::CeedOperatorFieldGetBasis(ptr, &mut basis_ptr) })?;
             crate::Basis::from_raw(basis_ptr)?
         };
         Ok(Self {
@@ -453,88 +452,80 @@ impl<'a> OperatorCore<'a> {
 
     // Common implementations
     pub fn check(&self) -> crate::Result<i32> {
-        let ierr = unsafe { bind_ceed::CeedOperatorCheckReady(self.ptr) };
-        self.check_error(ierr)
+        self.check_error(unsafe { bind_ceed::CeedOperatorCheckReady(self.ptr) })
     }
 
     pub fn name(&self, name: &str) -> crate::Result<i32> {
         let name_c = CString::new(name).expect("CString::new failed");
-        let ierr = unsafe { bind_ceed::CeedOperatorSetName(self.ptr, name_c.as_ptr()) };
-        self.check_error(ierr)
+        self.check_error(unsafe { bind_ceed::CeedOperatorSetName(self.ptr, name_c.as_ptr()) })
     }
 
     pub fn apply(&self, input: &Vector, output: &mut Vector) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorApply(
                 self.ptr,
                 input.ptr,
                 output.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn apply_add(&self, input: &Vector, output: &mut Vector) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorApplyAdd(
                 self.ptr,
                 input.ptr,
                 output.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorLinearAssembleDiagonal(
                 self.ptr,
                 assembled.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn linear_assemble_add_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddDiagonal(
                 self.ptr,
                 assembled.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn linear_assemble_point_block_diagonal(
         &self,
         assembled: &mut Vector,
     ) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorLinearAssemblePointBlockDiagonal(
                 self.ptr,
                 assembled.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 
     pub fn linear_assemble_add_point_block_diagonal(
         &self,
         assembled: &mut Vector,
     ) -> crate::Result<i32> {
-        let ierr = unsafe {
+        self.check_error(unsafe {
             bind_ceed::CeedOperatorLinearAssembleAddPointBlockDiagonal(
                 self.ptr,
                 assembled.ptr,
                 bind_ceed::CEED_REQUEST_IMMEDIATE,
             )
-        };
-        self.check_error(ierr)
+        })
     }
 }
 
@@ -550,7 +541,7 @@ impl<'a> Operator<'a> {
         dqfT: impl Into<QFunctionOpt<'b>>,
     ) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        ceed.check_error(unsafe {
             bind_ceed::CeedOperatorCreate(
                 ceed.ptr,
                 qf.into().to_raw(),
@@ -558,8 +549,7 @@ impl<'a> Operator<'a> {
                 dqfT.into().to_raw(),
                 &mut ptr,
             )
-        };
-        ceed.check_error(ierr)?;
+        })?;
         Ok(Self {
             op_core: OperatorCore {
                 ptr,
@@ -814,7 +804,7 @@ impl<'a> Operator<'a> {
     ) -> crate::Result<Self> {
         let fieldname = CString::new(fieldname).expect("CString::new failed");
         let fieldname = fieldname.as_ptr() as *const i8;
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorSetField(
                 self.op_core.ptr,
                 fieldname,
@@ -822,8 +812,7 @@ impl<'a> Operator<'a> {
                 b.into().to_raw(),
                 v.into().to_raw(),
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         Ok(self)
     }
 
@@ -866,7 +855,7 @@ impl<'a> Operator<'a> {
         // Get array of raw C pointers for inputs
         let mut num_inputs = 0;
         let mut inputs_ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorGetFields(
                 self.op_core.ptr,
                 &mut num_inputs,
@@ -874,8 +863,7 @@ impl<'a> Operator<'a> {
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
                 std::ptr::null_mut() as *mut *mut bind_ceed::CeedOperatorField,
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         // Convert raw C pointers to fixed length slice
         let inputs_slice = unsafe {
             std::slice::from_raw_parts(
@@ -885,11 +873,10 @@ impl<'a> Operator<'a> {
         };
         // And finally build vec
         let ceed = {
+            let ceed_raw = self.op_core.ceed();
             let mut ptr = std::ptr::null_mut();
-            let mut ptr_copy = std::ptr::null_mut();
             unsafe {
-                bind_ceed::CeedOperatorGetCeed(self.op_core.ptr, &mut ptr);
-                bind_ceed::CeedReferenceCopy(ptr, &mut ptr_copy); // refcount
+                bind_ceed::CeedReferenceCopy(ceed_raw, &mut ptr); // refcount
             }
             crate::Ceed { ptr }
         };
@@ -938,7 +925,7 @@ impl<'a> Operator<'a> {
         // Get array of raw C pointers for outputs
         let mut num_outputs = 0;
         let mut outputs_ptr = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorGetFields(
                 self.op_core.ptr,
                 std::ptr::null_mut() as *mut bind_ceed::CeedInt,
@@ -946,8 +933,7 @@ impl<'a> Operator<'a> {
                 &mut num_outputs,
                 &mut outputs_ptr,
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         // Convert raw C pointers to fixed length slice
         let outputs_slice = unsafe {
             std::slice::from_raw_parts(
@@ -957,11 +943,10 @@ impl<'a> Operator<'a> {
         };
         // And finally build vec
         let ceed = {
+            let ceed_raw = self.op_core.ceed();
             let mut ptr = std::ptr::null_mut();
-            let mut ptr_copy = std::ptr::null_mut();
             unsafe {
-                bind_ceed::CeedOperatorGetCeed(self.op_core.ptr, &mut ptr);
-                bind_ceed::CeedReferenceCopy(ptr, &mut ptr_copy); // refcount
+                bind_ceed::CeedReferenceCopy(ceed_raw, &mut ptr); // refcount
             }
             crate::Ceed { ptr }
         };
@@ -1724,7 +1709,7 @@ impl<'a> Operator<'a> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreate(
                 self.op_core.ptr,
                 p_mult_fine.ptr,
@@ -1734,8 +1719,7 @@ impl<'a> Operator<'a> {
                 &mut ptr_prolong,
                 &mut ptr_restrict,
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         let op_coarse = Operator::from_raw(ptr_coarse)?;
         let op_prolong = Operator::from_raw(ptr_prolong)?;
         let op_restrict = Operator::from_raw(ptr_restrict)?;
@@ -1914,7 +1898,7 @@ impl<'a> Operator<'a> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateTensorH1(
                 self.op_core.ptr,
                 p_mult_fine.ptr,
@@ -1925,8 +1909,7 @@ impl<'a> Operator<'a> {
                 &mut ptr_prolong,
                 &mut ptr_restrict,
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         let op_coarse = Operator::from_raw(ptr_coarse)?;
         let op_prolong = Operator::from_raw(ptr_prolong)?;
         let op_restrict = Operator::from_raw(ptr_restrict)?;
@@ -2105,7 +2088,7 @@ impl<'a> Operator<'a> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
         let mut ptr_restrict = std::ptr::null_mut();
-        let ierr = unsafe {
+        self.op_core.check_error(unsafe {
             bind_ceed::CeedOperatorMultigridLevelCreateH1(
                 self.op_core.ptr,
                 p_mult_fine.ptr,
@@ -2116,8 +2099,7 @@ impl<'a> Operator<'a> {
                 &mut ptr_prolong,
                 &mut ptr_restrict,
             )
-        };
-        self.op_core.check_error(ierr)?;
+        })?;
         let op_coarse = Operator::from_raw(ptr_coarse)?;
         let op_prolong = Operator::from_raw(ptr_prolong)?;
         let op_restrict = Operator::from_raw(ptr_restrict)?;
@@ -2132,8 +2114,7 @@ impl<'a> CompositeOperator<'a> {
     // Constructor
     pub fn create(ceed: &crate::Ceed) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        let ierr = unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) };
-        ceed.check_error(ierr)?;
+        ceed.check_error(unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) })?;
         Ok(Self {
             op_core: OperatorCore {
                 ptr,
@@ -2414,9 +2395,9 @@ impl<'a> CompositeOperator<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn sub_operator(mut self, subop: &Operator) -> crate::Result<Self> {
-        let ierr =
-            unsafe { bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr) };
-        self.op_core.check_error(ierr)?;
+        self.op_core.check_error(unsafe {
+            bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr)
+        })?;
         Ok(self)
     }
 
