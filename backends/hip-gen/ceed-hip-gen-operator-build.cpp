@@ -896,10 +896,6 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   code << "}\n";
   code << "// -----------------------------------------------------------------------------\n\n";
 
-  // View kernel for debugging
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated Operator Kernels:\n");
-  CeedDebug(ceed, code.str().c_str());
-
   CeedInt block_sizes[3] = {0, 0, 0};
   CeedInt num_elem;
 

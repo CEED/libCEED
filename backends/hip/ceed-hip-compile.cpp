@@ -123,6 +123,9 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
   hiprtcResult result = hiprtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
   for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
@@ -136,9 +139,6 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
     size_t log_size;
     char  *log;
 
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));

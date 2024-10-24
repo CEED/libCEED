@@ -105,10 +105,6 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   code << "  }\n";
   code << "}\n";
 
-  // View kernel for debugging
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated QFunction Kernels:\n");
-  CeedDebug(ceed, code.str().c_str());
-
   // Compile kernel
   CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 0));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));

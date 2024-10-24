@@ -109,10 +109,6 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   code << "  }\n";
   code << "}\n";
 
-  // View kernel for debugging
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated QFunction Kernels:\n");
-  CeedDebug(ceed, code.str().c_str());
-
   // Compile kernel
   CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 1, "BLOCK_SIZE", ceed_Hip->opt_block_size));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, kernel_name.c_str(), &data->QFunction));

@@ -121,6 +121,9 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
   nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
   for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
@@ -134,9 +137,6 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
     char  *log;
     size_t log_size;
 
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
     CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));

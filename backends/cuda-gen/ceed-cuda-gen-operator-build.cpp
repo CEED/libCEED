@@ -896,9 +896,6 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated Operator Kernels:\n");
-  CeedDebug(ceed, code.str().c_str());
-
   CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
   CeedCallBackend(CeedOperatorSetSetupDone(op));
