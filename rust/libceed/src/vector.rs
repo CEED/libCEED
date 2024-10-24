@@ -166,7 +166,7 @@ impl<'a> VectorSliceWrapper<'a> {
             )
         })?;
         Ok(Self {
-            vector: crate::Vector::from_raw(vec.ptr_copy_mut()?)?,
+            vector: unsafe { crate::Vector::from_raw(vec.ptr_copy_mut()?)? },
             _slice: slice,
         })
     }
@@ -252,7 +252,7 @@ impl<'a> Vector<'a> {
         })
     }
 
-    pub(crate) fn from_raw(ptr: bind_ceed::CeedVector) -> crate::Result<Self> {
+    pub(crate) unsafe fn from_raw(ptr: bind_ceed::CeedVector) -> crate::Result<Self> {
         Ok(Self {
             ptr,
             _lifeline: PhantomData,

@@ -192,7 +192,7 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
-    pub(crate) fn from_raw(ptr: bind_ceed::CeedElemRestriction) -> crate::Result<Self> {
+    pub(crate) unsafe fn from_raw(ptr: bind_ceed::CeedElemRestriction) -> crate::Result<Self> {
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
@@ -351,7 +351,7 @@ impl<'a> ElemRestriction<'a> {
         self.check_error(unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, null)
         })?;
-        Vector::from_raw(ptr_lvector)
+        unsafe { Vector::from_raw(ptr_lvector) }
     }
 
     /// Create an Evector for an ElemRestriction
@@ -380,7 +380,7 @@ impl<'a> ElemRestriction<'a> {
         self.check_error(unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, null, &mut ptr_evector)
         })?;
-        Vector::from_raw(ptr_evector)
+        unsafe { Vector::from_raw(ptr_evector) }
     }
 
     /// Create Vectors for an ElemRestriction
@@ -410,8 +410,8 @@ impl<'a> ElemRestriction<'a> {
         self.check_error(unsafe {
             bind_ceed::CeedElemRestrictionCreateVector(self.ptr, &mut ptr_lvector, &mut ptr_evector)
         })?;
-        let lvector = Vector::from_raw(ptr_lvector)?;
-        let evector = Vector::from_raw(ptr_evector)?;
+        let lvector = unsafe { Vector::from_raw(ptr_lvector)? };
+        let evector = unsafe { Vector::from_raw(ptr_evector)? };
         Ok((lvector, evector))
     }
 

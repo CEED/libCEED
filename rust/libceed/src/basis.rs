@@ -172,7 +172,7 @@ impl<'a> Basis<'a> {
         })
     }
 
-    pub(crate) fn from_raw(ptr: bind_ceed::CeedBasis) -> crate::Result<Self> {
+    pub(crate) unsafe fn from_raw(ptr: bind_ceed::CeedBasis) -> crate::Result<Self> {
         Ok(Self {
             ptr,
             _lifeline: PhantomData,
