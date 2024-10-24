@@ -27,27 +27,26 @@ pub struct OperatorField<'a> {
 // Implementations
 // -----------------------------------------------------------------------------
 impl<'a> OperatorField<'a> {
-    pub(crate) fn from_raw(
+    pub(crate) unsafe fn from_raw(
         ptr: bind_ceed::CeedOperatorField,
         ceed: crate::Ceed,
     ) -> crate::Result<Self> {
         let vector = {
             let mut vector_ptr = std::ptr::null_mut();
-            ceed.check_error(unsafe {
-                bind_ceed::CeedOperatorFieldGetVector(ptr, &mut vector_ptr)
-            })?;
+            ceed.check_error(bind_ceed::CeedOperatorFieldGetVector(ptr, &mut vector_ptr))?;
             crate::Vector::from_raw(vector_ptr)?
         };
         let elem_restriction = {
             let mut elem_restriction_ptr = std::ptr::null_mut();
-            ceed.check_error(unsafe {
-                bind_ceed::CeedOperatorFieldGetElemRestriction(ptr, &mut elem_restriction_ptr)
-            })?;
+            ceed.check_error(bind_ceed::CeedOperatorFieldGetElemRestriction(
+                ptr,
+                &mut elem_restriction_ptr,
+            ))?;
             crate::ElemRestriction::from_raw(elem_restriction_ptr)?
         };
         let basis = {
             let mut basis_ptr = std::ptr::null_mut();
-            ceed.check_error(unsafe { bind_ceed::CeedOperatorFieldGetBasis(ptr, &mut basis_ptr) })?;
+            ceed.check_error(bind_ceed::CeedOperatorFieldGetBasis(ptr, &mut basis_ptr))?;
             crate::Basis::from_raw(basis_ptr)?
         };
         Ok(Self {
@@ -558,7 +557,7 @@ impl<'a> Operator<'a> {
         })
     }
 
-    fn from_raw(ptr: bind_ceed::CeedOperator) -> crate::Result<Self> {
+    unsafe fn from_raw(ptr: bind_ceed::CeedOperator) -> crate::Result<Self> {
         Ok(Self {
             op_core: OperatorCore {
                 ptr,
@@ -881,7 +880,7 @@ impl<'a> Operator<'a> {
             crate::Ceed { ptr }
         };
         let inputs = (0..num_inputs as usize)
-            .map(|i| crate::OperatorField::from_raw(inputs_slice[i], ceed.clone()))
+            .map(|i| unsafe { crate::OperatorField::from_raw(inputs_slice[i], ceed.clone()) })
             .collect::<crate::Result<Vec<_>>>()?;
         Ok(inputs)
     }
@@ -951,7 +950,7 @@ impl<'a> Operator<'a> {
             crate::Ceed { ptr }
         };
         let outputs = (0..num_outputs as usize)
-            .map(|i| crate::OperatorField::from_raw(outputs_slice[i], ceed.clone()))
+            .map(|i| unsafe { crate::OperatorField::from_raw(outputs_slice[i], ceed.clone()) })
             .collect::<crate::Result<Vec<_>>>()?;
         Ok(outputs)
     }
@@ -1720,9 +1719,9 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         })?;
-        let op_coarse = Operator::from_raw(ptr_coarse)?;
-        let op_prolong = Operator::from_raw(ptr_prolong)?;
-        let op_restrict = Operator::from_raw(ptr_restrict)?;
+        let op_coarse = unsafe { Operator::from_raw(ptr_coarse)? };
+        let op_prolong = unsafe { Operator::from_raw(ptr_prolong)? };
+        let op_restrict = unsafe { Operator::from_raw(ptr_restrict)? };
         Ok((op_coarse, op_prolong, op_restrict))
     }
 
@@ -1910,9 +1909,9 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         })?;
-        let op_coarse = Operator::from_raw(ptr_coarse)?;
-        let op_prolong = Operator::from_raw(ptr_prolong)?;
-        let op_restrict = Operator::from_raw(ptr_restrict)?;
+        let op_coarse = unsafe { Operator::from_raw(ptr_coarse)? };
+        let op_prolong = unsafe { Operator::from_raw(ptr_prolong)? };
+        let op_restrict = unsafe { Operator::from_raw(ptr_restrict)? };
         Ok((op_coarse, op_prolong, op_restrict))
     }
 
@@ -2100,9 +2099,9 @@ impl<'a> Operator<'a> {
                 &mut ptr_restrict,
             )
         })?;
-        let op_coarse = Operator::from_raw(ptr_coarse)?;
-        let op_prolong = Operator::from_raw(ptr_prolong)?;
-        let op_restrict = Operator::from_raw(ptr_restrict)?;
+        let op_coarse = unsafe { Operator::from_raw(ptr_coarse)? };
+        let op_prolong = unsafe { Operator::from_raw(ptr_prolong)? };
+        let op_restrict = unsafe { Operator::from_raw(ptr_restrict)? };
         Ok((op_coarse, op_prolong, op_restrict))
     }
 }
