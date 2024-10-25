@@ -130,8 +130,6 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Current source file: ");
   CeedDebug(ceed, "%s\n", source_file_path);
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Current buffer:\n");
-  CeedDebug(ceed, "%s\n", *buffer);
 
   // Read file to temporary buffer
   source_file = fopen(source_file_path, "rb");

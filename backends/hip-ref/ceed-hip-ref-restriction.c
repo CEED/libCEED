@@ -71,7 +71,6 @@ static inline int CeedElemRestrictionSetupCompile_Hip(CeedElemRestriction rstr) 
           "// AtPoints restriction source\n#include <ceed/jit-source/hip/hip-ref-restriction-at-points.h>\n\n"
           "// Standard restriction source\n#include <ceed/jit-source/hip/hip-ref-restriction-offset.h>\n";
 
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
       CeedCallBackend(CeedCompile_Hip(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
