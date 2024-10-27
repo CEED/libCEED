@@ -391,7 +391,7 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
     }
 
     // -- Cleanup
-    PetscCall(PetscFree(points_in_cell));
+    PetscCall(DMSwarmSortRestorePointsPerCell(dm_swarm, cell, &num_points_in_cell, &points_in_cell));
   }
   cell_points[points_offset - 1] = num_points_local + points_offset;
 
