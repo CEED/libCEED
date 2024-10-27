@@ -7,7 +7,8 @@
 
 /// @file
 /// Internal header for SYCL type definitions
-#pragma once
+#ifndef CEED_SYCL_TYPES_H
+#define CEED_SYCL_TYPES_H
 
 #include <ceed/types.h>
 
@@ -34,3 +35,5 @@ typedef struct {
   CeedInt       *outputs[CEED_SYCL_NUMBER_FIELDS];
 } FieldsInt_Sycl;
 #endif
+
+#endif  // CEED_SYCL_TYPES_H
