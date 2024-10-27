@@ -7,7 +7,10 @@
 #include <mat-ceed.h>
 #include <petsc-ceed-utils.h>
 #include <petsc-ceed.h>
-#include <petscdmplex.h>
+#include <petscdm.h>
+#include <petscmat.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -163,7 +166,54 @@ static PetscErrorCode MatCeedAssembleInnerBlockDiagonalMat(Mat mat_ceed, PetscBo
 }
 
 /**
-  @brief Get `MATCEED` diagonal block for Jacobi.
+  @brief Get `MATCEED` variable block diagonal for Jacobi.
+
+  Collective across MPI processes.
+
+  @param[in]   mat_ceed   `MATCEED` to invert
+  @param[out]  mat_vblock  The variable diagonal block matrix
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static PetscErrorCode MatGetVariableBlockDiagonal_Ceed(Mat mat_ceed, Mat *mat_vblock) {
+  MatCeedContext ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatShellGetContext(mat_ceed, &ctx));
+
+  // Assemble inner mat if needed
+  PetscCall(MatCeedAssembleInnerBlockDiagonalMat(mat_ceed, ctx->is_ceed_vpbd_valid, mat_vblock));
+  PetscCall(PetscObjectReference((PetscObject)*mat_vblock));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Get `MATCEED` block diagonal for Jacobi.
+
+  Collective across MPI processes.
+
+  @param[in]   mat_ceed   `MATCEED` to invert
+  @param[out]  mat_block  The variable diagonal block matrix
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static PetscErrorCode MatGetBlockDiagonal_Ceed(Mat mat_ceed, Mat *mat_block) {
+  MatCeedContext ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatShellGetContext(mat_ceed, &ctx));
+
+  // Assemble inner mat if needed
+  PetscCall(MatCeedAssembleInnerBlockDiagonalMat(mat_ceed, ctx->is_ceed_pbd_valid, mat_block));
+  PetscCall(PetscObjectReference((PetscObject)*mat_block));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Get on-process diagonal block of `MATCEED`
+
+  This is a block per-process of the diagonal of the global matrix.
+  This is NOT the diagonal blocks associated with the block size of the matrix (i.e. `MatSetBlockSize()` has no effect on this function).
 
   Collective across MPI processes.
 
@@ -173,69 +223,19 @@ static PetscErrorCode MatCeedAssembleInnerBlockDiagonalMat(Mat mat_ceed, PetscBo
   @return An error code: 0 - success, otherwise - failure
 **/
 static PetscErrorCode MatGetDiagonalBlock_Ceed(Mat mat_ceed, Mat *mat_block) {
-  Mat            mat_inner = NULL;
   MatCeedContext ctx;
 
   PetscFunctionBeginUser;
   PetscCall(MatShellGetContext(mat_ceed, &ctx));
 
-  // Assemble inner mat if needed
-  PetscCall(MatCeedAssembleInnerBlockDiagonalMat(mat_ceed, ctx->is_ceed_pbd_valid, &mat_inner));
+  // Check if COO pattern set
+  if (!ctx->mat_assembled_full_internal) PetscCall(MatCeedCreateMatCOO(mat_ceed, &ctx->mat_assembled_full_internal));
 
-  // Get block diagonal
-  PetscCall(MatGetDiagonalBlock(mat_inner, mat_block));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
+  // Assemble mat_assembled_full_internal
+  PetscCall(MatCeedAssembleCOO(mat_ceed, ctx->mat_assembled_full_internal));
 
-/**
-  @brief Invert `MATCEED` diagonal block for Jacobi.
-
-  Collective across MPI processes.
-
-  @param[in]   mat_ceed  `MATCEED` to invert
-  @param[out]  values    The block inverses in column major order
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static PetscErrorCode MatInvertBlockDiagonal_Ceed(Mat mat_ceed, const PetscScalar **values) {
-  Mat            mat_inner = NULL;
-  MatCeedContext ctx;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatShellGetContext(mat_ceed, &ctx));
-
-  // Assemble inner mat if needed
-  PetscCall(MatCeedAssembleInnerBlockDiagonalMat(mat_ceed, ctx->is_ceed_pbd_valid, &mat_inner));
-
-  // Invert PB diagonal
-  PetscCall(MatInvertBlockDiagonal(mat_inner, values));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Invert `MATCEED` variable diagonal block for Jacobi.
-
-  Collective across MPI processes.
-
-  @param[in]   mat_ceed     `MATCEED` to invert
-  @param[in]   num_blocks   The number of blocks on the process
-  @param[in]   block_sizes  The size of each block on the process
-  @param[out]  values       The block inverses in column major order
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static PetscErrorCode MatInvertVariableBlockDiagonal_Ceed(Mat mat_ceed, PetscInt num_blocks, const PetscInt *block_sizes, PetscScalar *values) {
-  Mat            mat_inner = NULL;
-  MatCeedContext ctx;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatShellGetContext(mat_ceed, &ctx));
-
-  // Assemble inner mat if needed
-  PetscCall(MatCeedAssembleInnerBlockDiagonalMat(mat_ceed, ctx->is_ceed_vpbd_valid, &mat_inner));
-
-  // Invert PB diagonal
-  PetscCall(MatInvertVariableBlockDiagonal(mat_inner, num_blocks, block_sizes, values));
+  // Get diagonal block
+  PetscCall(MatGetDiagonalBlock(ctx->mat_assembled_full_internal, mat_block));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -252,7 +252,7 @@ static PetscErrorCode MatInvertVariableBlockDiagonal_Ceed(Mat mat_ceed, PetscInt
 static PetscErrorCode MatView_Ceed(Mat mat_ceed, PetscViewer viewer) {
   PetscBool         is_ascii;
   PetscViewerFormat format;
-  PetscMPIInt       size;
+  PetscMPIInt       size, rank;
   MatCeedContext    ctx;
 
   PetscFunctionBeginUser;
@@ -264,18 +264,35 @@ static PetscErrorCode MatView_Ceed(Mat mat_ceed, PetscViewer viewer) {
   PetscCallMPI(MPI_Comm_size(PetscObjectComm((PetscObject)mat_ceed), &size));
   if (size == 1 && format == PETSC_VIEWER_LOAD_BALANCE) PetscFunctionReturn(PETSC_SUCCESS);
 
+  PetscCallMPI(MPI_Comm_rank(PetscObjectComm((PetscObject)mat_ceed), &rank));
+  if (rank != 0) PetscFunctionReturn(PETSC_SUCCESS);
+
   PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &is_ascii));
   {
-    FILE *file;
+    PetscBool is_detailed     = format == PETSC_VIEWER_ASCII_INFO_DETAIL;
+    char      rank_string[16] = {'\0'};
+    FILE     *file;
 
-    PetscCall(PetscViewerASCIIPrintf(viewer, "MatCEED:\n  Default COO MatType:%s\n", ctx->coo_mat_type));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "MatCEED:\n"));
+    PetscCall(PetscViewerASCIIPushTab(viewer));  // MatCEED
+    PetscCall(PetscViewerASCIIPrintf(viewer, "Default COO MatType: %s\n", ctx->coo_mat_type));
+    PetscCall(PetscSNPrintf(rank_string, 16, "on Rank %d", rank));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "CeedOperator Apply %s:\n", is_detailed ? rank_string : "Summary"));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "libCEED PB Diagonal Assembly: %s\n", ctx->is_ceed_pbd_valid ? "True" : "False"));
+    PetscCall(PetscViewerASCIIPrintf(viewer, "libCEED VPB Diagonal Assembly: %s\n", ctx->is_ceed_vpbd_valid ? "True" : "False"));
     PetscCall(PetscViewerASCIIGetPointer(viewer, &file));
-    PetscCall(PetscViewerASCIIPrintf(viewer, " libCEED Operator:\n"));
-    PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult, file));
+    PetscCall(PetscViewerASCIIPushTab(viewer));  // CeedOperator
+    if (is_detailed) PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult, file));
+    else PetscCallCeed(ctx->ceed, CeedOperatorViewTerse(ctx->op_mult, file));
+    PetscCall(PetscViewerASCIIPopTab(viewer));  // CeedOperator
     if (ctx->op_mult_transpose) {
-      PetscCall(PetscViewerASCIIPrintf(viewer, "  libCEED Transpose Operator:\n"));
-      PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult_transpose, file));
+      PetscCall(PetscViewerASCIIPrintf(viewer, "CeedOperator ApplyTranspose %s:\n", is_detailed ? rank_string : "Summary"));
+      PetscCall(PetscViewerASCIIPushTab(viewer));  // CeedOperator
+      if (is_detailed) PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult_transpose, file));
+      else PetscCallCeed(ctx->ceed, CeedOperatorViewTerse(ctx->op_mult_transpose, file));
+      PetscCall(PetscViewerASCIIPopTab(viewer));  // CeedOperator
     }
+    PetscCall(PetscViewerASCIIPopTab(viewer));  // MatCEED
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -297,7 +314,7 @@ static PetscErrorCode MatView_Ceed(Mat mat_ceed, PetscViewer viewer) {
 
   @return An error code: 0 - success, otherwise - failure
 **/
-PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperator op_mult_transpose, Mat *mat) {
+PetscErrorCode MatCreateCeed(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperator op_mult_transpose, Mat *mat) {
   PetscInt       X_l_size, X_g_size, Y_l_size, Y_g_size;
   VecType        vec_type;
   MatCeedContext ctx;
@@ -449,14 +466,14 @@ PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
     PetscCall(PetscStrallocpy(coo_mat_type, &ctx->coo_mat_type));
   }
   // -- Set mat operations
-  PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))MatCeedContextDestroy));
+  PetscCall(MatShellSetContextDestroy(*mat, (PetscCtxDestroyFn *)MatCeedContextDestroy));
   PetscCall(MatShellSetOperation(*mat, MATOP_VIEW, (void (*)(void))MatView_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
   if (op_mult_transpose) PetscCall(MatShellSetOperation(*mat, MATOP_MULT_TRANSPOSE, (void (*)(void))MatMultTranspose_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiagonal_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL_BLOCK, (void (*)(void))MatGetDiagonalBlock_Ceed));
-  PetscCall(MatShellSetOperation(*mat, MATOP_INVERT_BLOCK_DIAGONAL, (void (*)(void))MatInvertBlockDiagonal_Ceed));
-  PetscCall(MatShellSetOperation(*mat, MATOP_INVERT_VBLOCK_DIAGONAL, (void (*)(void))MatInvertVariableBlockDiagonal_Ceed));
+  PetscCall(MatShellSetOperation(*mat, MATOP_GET_BLOCK_DIAGONAL, (void (*)(void))MatGetBlockDiagonal_Ceed));
+  PetscCall(MatShellSetOperation(*mat, MATOP_GET_VBLOCK_DIAGONAL, (void (*)(void))MatGetVariableBlockDiagonal_Ceed));
   PetscCall(MatShellSetVecType(*mat, vec_type));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -515,14 +532,14 @@ PetscErrorCode MatCeedCopy(Mat mat_ceed, Mat mat_other) {
     PetscCall(MatShellGetContext(mat_ceed, &ctx));
     PetscCall(MatCeedContextReference(ctx));
     PetscCall(MatShellSetContext(mat_other, ctx));
-    PetscCall(MatShellSetContextDestroy(mat_other, (PetscErrorCode(*)(void *))MatCeedContextDestroy));
+    PetscCall(MatShellSetContextDestroy(mat_other, (PetscCtxDestroyFn *)MatCeedContextDestroy));
     PetscCall(MatShellSetOperation(mat_other, MATOP_VIEW, (void (*)(void))MatView_Ceed));
     PetscCall(MatShellSetOperation(mat_other, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     if (ctx->op_mult_transpose) PetscCall(MatShellSetOperation(mat_other, MATOP_MULT_TRANSPOSE, (void (*)(void))MatMultTranspose_Ceed));
     PetscCall(MatShellSetOperation(mat_other, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiagonal_Ceed));
     PetscCall(MatShellSetOperation(mat_other, MATOP_GET_DIAGONAL_BLOCK, (void (*)(void))MatGetDiagonalBlock_Ceed));
-    PetscCall(MatShellSetOperation(mat_other, MATOP_INVERT_BLOCK_DIAGONAL, (void (*)(void))MatInvertBlockDiagonal_Ceed));
-    PetscCall(MatShellSetOperation(mat_other, MATOP_INVERT_VBLOCK_DIAGONAL, (void (*)(void))MatInvertVariableBlockDiagonal_Ceed));
+    PetscCall(MatShellSetOperation(mat_other, MATOP_GET_BLOCK_DIAGONAL, (void (*)(void))MatGetBlockDiagonal_Ceed));
+    PetscCall(MatShellSetOperation(mat_other, MATOP_GET_VBLOCK_DIAGONAL, (void (*)(void))MatGetVariableBlockDiagonal_Ceed));
     {
       PetscInt block_size;
 
@@ -538,6 +555,32 @@ PetscErrorCode MatCeedCopy(Mat mat_ceed, Mat mat_other) {
     }
     PetscCall(DMGetVecType(ctx->dm_x, &vec_type));
     PetscCall(MatShellSetVecType(mat_other, vec_type));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Mark `CeedQFunction` data as updated and the `CeedQFunction` as requiring re-assembly for a `MatCEED`.
+
+  Collective across MPI processes.
+
+  @param[in]   mat_ceed       `MATCEED`
+  @param[out]  update_needed  Boolean flag indicating `CeedQFunction` update needed
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetAssemblyDataUpdateNeeded(Mat mat_ceed, PetscBool update_needed) {
+  MatCeedContext ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatShellGetContext(mat_ceed, &ctx));
+  PetscCallCeed(ctx->ceed, CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(ctx->op_mult, update_needed));
+  if (ctx->op_mult_transpose) {
+    PetscCallCeed(ctx->ceed, CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(ctx->op_mult_transpose, update_needed));
+  }
+  if (update_needed) {
+    PetscCall(MatAssemblyBegin(mat_ceed, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(mat_ceed, MAT_FINAL_ASSEMBLY));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -720,15 +763,25 @@ PetscErrorCode MatCeedSetContextDouble(Mat mat, const char *name, double value) 
 
     PetscCallCeed(ctx->ceed, CeedOperatorGetContextFieldLabel(ctx->op_mult, name, &label));
     if (label) {
-      PetscCallCeed(ctx->ceed, CeedOperatorSetContextDouble(ctx->op_mult, label, &value));
-      was_updated = PETSC_TRUE;
+      double set_value = 2 * value + 1.0;
+
+      PetscCall(MatCeedGetContextDouble(mat, name, &set_value));
+      if (set_value != value) {
+        PetscCallCeed(ctx->ceed, CeedOperatorSetContextDouble(ctx->op_mult, label, &value));
+        was_updated = PETSC_TRUE;
+      }
     }
     if (ctx->op_mult_transpose) {
       label = NULL;
       PetscCallCeed(ctx->ceed, CeedOperatorGetContextFieldLabel(ctx->op_mult_transpose, name, &label));
       if (label) {
-        PetscCallCeed(ctx->ceed, CeedOperatorSetContextDouble(ctx->op_mult_transpose, label, &value));
-        was_updated = PETSC_TRUE;
+        double set_value = 2 * value + 1.0;
+
+        PetscCall(MatCeedGetContextDouble(mat, name, &set_value));
+        if (set_value != value) {
+          PetscCallCeed(ctx->ceed, CeedOperatorSetContextDouble(ctx->op_mult_transpose, label, &value));
+          was_updated = PETSC_TRUE;
+        }
       }
     }
   }
@@ -736,25 +789,6 @@ PetscErrorCode MatCeedSetContextDouble(Mat mat, const char *name, double value) 
     PetscCall(MatAssemblyBegin(mat, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(mat, MAT_FINAL_ASSEMBLY));
   }
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Set the current `PetscReal` value of a context field for a `MatCEED`.
-
-  Not collective across MPI processes.
-
-  @param[in,out]  mat    `MatCEED`
-  @param[in]      name   Name of the context field
-  @param[in]      value  New context field value
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode MatCeedSetContextReal(Mat mat, const char *name, PetscReal value) {
-  double value_double = value;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatCeedSetContextDouble(mat, name, value_double));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -796,6 +830,25 @@ PetscErrorCode MatCeedGetContextDouble(Mat mat, const char *name, double *value)
 }
 
 /**
+  @brief Set the current `PetscReal` value of a context field for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat    `MatCEED`
+  @param[in]      name   Name of the context field
+  @param[in]      value  New context field value
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetContextReal(Mat mat, const char *name, PetscReal value) {
+  double value_double = value;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatCeedSetContextDouble(mat, name, value_double));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
   @brief Get the current `PetscReal` value of a context field for a `MatCEED`.
 
   Not collective across MPI processes.
@@ -807,11 +860,99 @@ PetscErrorCode MatCeedGetContextDouble(Mat mat, const char *name, double *value)
   @return An error code: 0 - success, otherwise - failure
 **/
 PetscErrorCode MatCeedGetContextReal(Mat mat, const char *name, PetscReal *value) {
-  double value_double;
+  double value_double = 0.0;
 
   PetscFunctionBeginUser;
   PetscCall(MatCeedGetContextDouble(mat, name, &value_double));
   *value = value_double;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Set the current time for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat   `MatCEED`
+  @param[in]      time  Current time
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetTime(Mat mat, PetscReal time) {
+  PetscFunctionBeginUser;
+  {
+    double time_ceed = time;
+
+    PetscCall(MatCeedSetContextDouble(mat, "time", time_ceed));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Get the current time for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in]   mat   `MatCEED`
+  @param[out]  time  Current time, or -1.0 if the boundary evaluator has no time field
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedGetTime(Mat mat, PetscReal *time) {
+  PetscFunctionBeginUser;
+  *time = -1.0;
+  {
+    double time_ceed = -1.0;
+
+    PetscCall(MatCeedGetContextDouble(mat, "time", &time_ceed));
+    *time = time_ceed;
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Set the current time step for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat  `MatCEED`
+  @param[in]      dt   Current time step
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetDt(Mat mat, PetscReal dt) {
+  PetscFunctionBeginUser;
+  {
+    double dt_ceed = dt;
+
+    PetscCall(MatCeedSetContextDouble(mat, "dt", dt_ceed));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Set the Jacobian shifts for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat      `MatCEED`
+  @param[in]      shift_v  Velocity shift
+  @param[in]      shift_a  Acceleration shift
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetShifts(Mat mat, PetscReal shift_v, PetscReal shift_a) {
+  PetscFunctionBeginUser;
+  {
+    double shift_v_ceed = shift_v;
+
+    PetscCall(MatCeedSetContextDouble(mat, "shift v", shift_v_ceed));
+  }
+  if (shift_a) {
+    double shift_a_ceed = shift_a;
+
+    PetscCall(MatCeedSetContextDouble(mat, "shift a", shift_a_ceed));
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -826,14 +967,14 @@ PetscErrorCode MatCeedGetContextReal(Mat mat, const char *name, PetscReal *value
 
   @return An error code: 0 - success, otherwise - failure
 **/
-PetscErrorCode MatCeedSetContext(Mat mat, PetscErrorCode (*f)(void *), void *ctx) {
+PetscErrorCode MatCeedSetContext(Mat mat, PetscCtxDestroyFn f, void *ctx) {
   PetscContainer user_ctx = NULL;
 
   PetscFunctionBeginUser;
   if (ctx) {
     PetscCall(PetscContainerCreate(PetscObjectComm((PetscObject)mat), &user_ctx));
     PetscCall(PetscContainerSetPointer(user_ctx, ctx));
-    PetscCall(PetscContainerSetUserDestroy(user_ctx, f));
+    PetscCall(PetscContainerSetCtxDestroy(user_ctx, f));
   }
   PetscCall(PetscObjectCompose((PetscObject)mat, "MatCeed user context", (PetscObject)user_ctx));
   PetscCall(PetscContainerDestroy(&user_ctx));
@@ -1315,7 +1456,7 @@ PetscErrorCode MatCeedContextReference(MatCeedContext ctx) {
 PetscErrorCode MatCeedContextReferenceCopy(MatCeedContext ctx, MatCeedContext *ctx_copy) {
   PetscFunctionBeginUser;
   PetscCall(MatCeedContextReference(ctx));
-  PetscCall(MatCeedContextDestroy(*ctx_copy));
+  PetscCall(MatCeedContextDestroy(ctx_copy));
   *ctx_copy = ctx;
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -1329,33 +1470,33 @@ PetscErrorCode MatCeedContextReferenceCopy(MatCeedContext ctx, MatCeedContext *c
 
   @return An error code: 0 - success, otherwise - failure
 **/
-PetscErrorCode MatCeedContextDestroy(MatCeedContext ctx) {
+PetscErrorCode MatCeedContextDestroy(MatCeedContext *ctx) {
   PetscFunctionBeginUser;
-  if (!ctx || --ctx->ref_count > 0) PetscFunctionReturn(PETSC_SUCCESS);
+  if (!ctx || --(*ctx)->ref_count > 0) PetscFunctionReturn(PETSC_SUCCESS);
 
   // PETSc objects
-  PetscCall(DMDestroy(&ctx->dm_x));
-  PetscCall(DMDestroy(&ctx->dm_y));
-  PetscCall(VecDestroy(&ctx->X_loc));
-  PetscCall(VecDestroy(&ctx->Y_loc_transpose));
-  PetscCall(MatDestroy(&ctx->mat_assembled_full_internal));
-  PetscCall(MatDestroy(&ctx->mat_assembled_pbd_internal));
-  PetscCall(PetscFree(ctx->coo_mat_type));
-  PetscCall(PetscFree(ctx->mats_assembled_full));
-  PetscCall(PetscFree(ctx->mats_assembled_pbd));
+  PetscCall(DMDestroy(&(*ctx)->dm_x));
+  PetscCall(DMDestroy(&(*ctx)->dm_y));
+  PetscCall(VecDestroy(&(*ctx)->X_loc));
+  PetscCall(VecDestroy(&(*ctx)->Y_loc_transpose));
+  PetscCall(MatDestroy(&(*ctx)->mat_assembled_full_internal));
+  PetscCall(MatDestroy(&(*ctx)->mat_assembled_pbd_internal));
+  PetscCall(PetscFree((*ctx)->coo_mat_type));
+  PetscCall(PetscFree((*ctx)->mats_assembled_full));
+  PetscCall(PetscFree((*ctx)->mats_assembled_pbd));
 
   // libCEED objects
-  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->x_loc));
-  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->y_loc));
-  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_full));
-  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_pbd));
-  PetscCallCeed(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult));
-  PetscCallCeed(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult_transpose));
-  PetscCheck(CeedDestroy(&ctx->ceed) == CEED_ERROR_SUCCESS, PETSC_COMM_SELF, PETSC_ERR_LIB, "destroying libCEED context object failed");
+  PetscCallCeed((*ctx)->ceed, CeedVectorDestroy(&(*ctx)->x_loc));
+  PetscCallCeed((*ctx)->ceed, CeedVectorDestroy(&(*ctx)->y_loc));
+  PetscCallCeed((*ctx)->ceed, CeedVectorDestroy(&(*ctx)->coo_values_full));
+  PetscCallCeed((*ctx)->ceed, CeedVectorDestroy(&(*ctx)->coo_values_pbd));
+  PetscCallCeed((*ctx)->ceed, CeedOperatorDestroy(&(*ctx)->op_mult));
+  PetscCallCeed((*ctx)->ceed, CeedOperatorDestroy(&(*ctx)->op_mult_transpose));
+  PetscCheck(CeedDestroy(&(*ctx)->ceed) == CEED_ERROR_SUCCESS, PETSC_COMM_SELF, PETSC_ERR_LIB, "destroying libCEED context object failed");
 
   // Deallocate
-  ctx->is_destroyed = PETSC_TRUE;  // Flag as destroyed in case someone has stale ref
-  PetscCall(PetscFree(ctx));
+  (*ctx)->is_destroyed = PETSC_TRUE;  // Flag as destroyed in case someone has stale ref
+  PetscCall(PetscFree(*ctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -1433,11 +1574,11 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
     PetscCall(VecPetscToCeed(Y_loc, &y_mem_type, ctx->y_loc));
 
     // Apply libCEED operator
-    PetscCall(PetscLogGpuTimeBegin());
     PetscCall(PetscLogEventBegin(ctx->log_event_ceed_mult, A, X, Y, NULL));
+    PetscCall(PetscLogGpuTimeBegin());
     PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult, ctx->x_loc, ctx->y_loc, CEED_REQUEST_IMMEDIATE));
-    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult, A, X, Y, NULL));
     PetscCall(PetscLogGpuTimeEnd());
+    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult, A, X, Y, NULL));
 
     // Restore PETSc vectors
     PetscCall(VecReadCeedToPetsc(ctx->x_loc, x_mem_type, X_loc));
@@ -1494,11 +1635,11 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
     PetscCall(VecPetscToCeed(X_loc, &x_mem_type, ctx->x_loc));
 
     // Apply libCEED operator
-    PetscCall(PetscLogGpuTimeBegin());
     PetscCall(PetscLogEventBegin(ctx->log_event_ceed_mult_transpose, A, Y, X, NULL));
+    PetscCall(PetscLogGpuTimeBegin());
     PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult_transpose, ctx->y_loc, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
-    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult_transpose, A, Y, X, NULL));
     PetscCall(PetscLogGpuTimeEnd());
+    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult_transpose, A, Y, X, NULL));
 
     // Restore PETSc vectors
     PetscCall(VecReadCeedToPetsc(ctx->y_loc, y_mem_type, Y_loc));
