@@ -6,10 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-#include <ceed/types.h>
-#ifndef CEED_RUNNING_JIT_PASS
-#include <stdbool.h>
-#endif
+#include <ceed.h>
 
 #include "newtonian_types.h"
 

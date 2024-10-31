@@ -251,7 +251,6 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
   global_stg_ctx->use_fluctuating_IC = use_fluctuating_IC;
   global_stg_ctx->theta0             = theta0;
   global_stg_ctx->P0                 = P0;
-  global_stg_ctx->h_scale_factor     = stg_h_scale_factor;
 
   {  // Calculate dx assuming constant spacing
     PetscReal domain_min[3], domain_max[3], domain_size[3];

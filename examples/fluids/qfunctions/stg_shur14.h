@@ -12,11 +12,9 @@
 /// SetupSTG_Rand reads in the input files and fills in STGShur14Context.
 /// Then STGShur14_CalcQF is run over quadrature points.
 /// Before the program exits, TearDownSTG is run to free the memory of the allocated arrays.
-#include <ceed/types.h>
-#ifndef CEED_RUNNING_JIT_PASS
+#include <ceed.h>
 #include <math.h>
 #include <stdlib.h>
-#endif
 
 #include "newtonian_state.h"
 #include "setupgeo_helpers.h"
@@ -105,13 +103,10 @@ CEED_QFUNCTION_HELPER CeedScalar Calc_qn(const CeedScalar kappa, const CeedScala
 
 // Calculate hmax, ke, keta, and kcut
 CEED_QFUNCTION_HELPER void SpectrumConstants(const CeedScalar wall_dist, const CeedScalar eps, const CeedScalar lt, const CeedScalar hNodSep[3],
-CEED_QFUNCTION_HELPER void SpectrumConstants(const CeedScalar wall_dist, const CeedScalar eps, const CeedScalar lt, const CeedScalar hNodSep[3],
                                              const CeedScalar nu, CeedScalar *hmax, CeedScalar *ke, CeedScalar *keta, CeedScalar *kcut) {
-  *hmax = Max(Max(hNodSep[0], hNodSep[1]), hNodSep[2]);
   *hmax = Max(Max(hNodSep[0], hNodSep[1]), hNodSep[2]);
   *ke   = wall_dist == 0 ? 1e16 : 2 * M_PI / Min(2 * wall_dist, 3 * lt);
   *keta = 2 * M_PI * pow(Cube(nu) / eps, -0.25);
-  *kcut = M_PI / Min(Max(Max(hNodSep[1], hNodSep[2]), 0.3 * (*hmax)) + 0.1 * wall_dist, *hmax);
   *kcut = M_PI / Min(Max(Max(hNodSep[1], hNodSep[2]), 0.3 * (*hmax)) + 0.1 * wall_dist, *hmax);
 }
 
@@ -318,11 +313,22 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
     }
 
-    CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5];
-    State      s    = StateFromY(gas, Y);
-    StateToQ(gas, s, q, gas->state_var);
-    for (CeedInt j = 0; j < 5; j++) {
-      q0[j][i] = q[j];
+    switch (stg_ctx->newtonian_ctx.state_var) {
+      case STATEVAR_CONSERVATIVE:
+        q0[0][i] = rho;
+        q0[1][i] = u[0] * rho;
+        q0[2][i] = u[1] * rho;
+        q0[3][i] = u[2] * rho;
+        q0[4][i] = rho * (0.5 * Dot3(u, u) + cv * theta0);
+        break;
+
+      case STATEVAR_PRIMITIVE:
+        q0[0][i] = P0;
+        q0[1][i] = u[0];
+        q0[2][i] = u[1];
+        q0[3][i] = u[2];
+        q0[4][i] = theta0;
+        break;
     }
   }
   return 0;
@@ -521,22 +527,22 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
     }
 
-    CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5];
-    State      s    = StateFromY(gas, Y);
-    StateToQ(gas, s, q, gas->state_var);
-    switch (gas->state_var) {
+    switch (stg_ctx->newtonian_ctx.state_var) {
       case STATEVAR_CONSERVATIVE:
-        q[4] = 0.;  // Don't set energy
+        bcval[0][i] = scale[i] * rho;
+        bcval[1][i] = scale[i] * rho * u[0];
+        bcval[2][i] = scale[i] * rho * u[1];
+        bcval[3][i] = scale[i] * rho * u[2];
+        bcval[4][i] = 0.;
         break;
+
       case STATEVAR_PRIMITIVE:
-        q[0] = 0;  // Don't set pressure
+        bcval[0][i] = 0;
+        bcval[1][i] = scale[i] * u[0];
+        bcval[2][i] = scale[i] * u[1];
+        bcval[3][i] = scale[i] * u[2];
+        bcval[4][i] = scale[i] * theta0;
         break;
-      case STATEVAR_ENTROPY:
-        q[0] = 0;  // Don't set V_density
-        break;
-    }
-    for (CeedInt j = 0; j < 5; j++) {
-      bcval[j][i] = scale[i] * q[j];
     }
   }
   return 0;
