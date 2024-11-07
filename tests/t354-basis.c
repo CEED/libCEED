@@ -1,6 +1,6 @@
 /// @file
-/// Test polynomial interpolation to arbitrary points in multiple dimensions
-/// \test Test polynomial interpolation to arbitrary points in multiple dimensions
+/// Test polynomial interpolation transpose to arbitrary points in multiple dimensions
+/// \test Test polynomial interpolation transpose to arbitrary points in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>

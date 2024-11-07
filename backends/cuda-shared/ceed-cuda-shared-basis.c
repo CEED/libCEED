@@ -211,9 +211,9 @@ static int CeedBasisApplyAddTensor_Cuda_shared(CeedBasis basis, const CeedInt nu
 static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_add, const CeedInt num_elem, const CeedInt *num_points,
                                                   CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed                   ceed;
-  CeedInt                Q_1d, dim, max_num_points = num_points[0];
-  const CeedInt          is_transpose   = t_mode == CEED_TRANSPOSE;
-  const int              max_block_size = 32;
+  Ceed_Cuda             *ceed_Cuda;
+  CeedInt                Q_1d, dim, num_comp, max_num_points = num_points[0];
+  const CeedInt          is_transpose = t_mode == CEED_TRANSPOSE;
   const CeedScalar      *d_x, *d_u;
   CeedScalar            *d_v;
   CeedBasis_Cuda_shared *data;
@@ -221,6 +221,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+  CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
 
   // Weight handled separately
   if (eval_mode == CEED_EVAL_WEIGHT) {
@@ -229,14 +230,13 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
   }
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
 
   // Check padded to uniform number of points per elem
   for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
   {
-    CeedInt  num_comp, q_comp;
+    CeedInt  q_comp;
     CeedSize len, len_required;
-
-    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
     CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
     CeedCallBackend(CeedVectorGetLength(is_transpose ? u : v, &len));
     len_required = (CeedSize)num_comp * (CeedSize)q_comp * (CeedSize)num_elem * (CeedSize)max_num_points;
@@ -285,15 +285,14 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
     }
 
     // -- Compile kernels
-    const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-tensor-at-points.h>\n";
+    const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor-at-points.h>\n";
     CeedInt    num_comp;
 
     if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                     Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                     "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
-                                     max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+                                     CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
+                                     "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
@@ -323,17 +322,76 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      CeedInt P_1d, Q_1d;
 
-      CeedCallBackend(
-          CeedRunKernel_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size, interp_args));
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+      CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+
+      CeedCallBackend(CeedInit_CudaInterp(data->d_chebyshev_interp_1d, P_1d, Q_1d, &data->c_B));
+      void *interp_args[] = {(void *)&num_elem, &data->c_B, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+
+      if (dim == 1) {
+        CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
+                                                                                                 1));  // avoid >512 total threads
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d, 1,
+                                                    elems_per_block, shared_mem, interp_args));
+      } else if (dim == 2) {
+        const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
+        // elems_per_block must be at least 1
+        CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
+                                                    thread_1d, elems_per_block, shared_mem, interp_args));
+      } else if (dim == 3) {
+        CeedInt elems_per_block = 1;
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
+                                                    thread_1d, elems_per_block, shared_mem, interp_args));
+      }
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      CeedInt P_1d, Q_1d;
 
-      CeedCallBackend(CeedRunKernel_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, num_elem, block_size, grad_args));
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+      CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+
+      CeedCallBackend(CeedInit_CudaInterp(data->d_chebyshev_interp_1d, P_1d, Q_1d, &data->c_B));
+      void *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+
+      if (dim == 1) {
+        CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
+                                                                                                 1));  // avoid >512 total threads
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, 1,
+                                                    elems_per_block, shared_mem, grad_args));
+      } else if (dim == 2) {
+        const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
+        // elems_per_block must be at least 1
+        CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
+                                                    elems_per_block, shared_mem, grad_args));
+      } else if (dim == 3) {
+        CeedInt elems_per_block = 1;
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
+                                                    elems_per_block, shared_mem, grad_args));
+      }
     } break;
     case CEED_EVAL_WEIGHT:
     case CEED_EVAL_NONE: /* handled separately below */

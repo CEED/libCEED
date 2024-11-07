@@ -271,8 +271,7 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
                                                  CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed                  ceed;
   CeedInt               Q_1d, dim, max_num_points = num_points[0];
-  const CeedInt         is_transpose   = t_mode == CEED_TRANSPOSE;
-  const int             max_block_size = 32;
+  const CeedInt         is_transpose = t_mode == CEED_TRANSPOSE;
   const CeedScalar     *d_x, *d_u;
   CeedScalar           *d_v;
   CeedBasis_Hip_shared *data;
@@ -344,15 +343,15 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
     }
 
     // -- Compile kernels
-    const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/hip/hip-ref-basis-tensor-at-points.h>\n";
+    const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/hip/hip-shared-basis-tensor-at-points.h>\n";
     CeedInt    num_comp;
 
     if (data->moduleAtPoints) CeedCallHip(ceed, hipModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                    Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                    "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
-                                    max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
+    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+                                    CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
+                                    "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points, "BASIS_INTERP_BLOCK_SIZE",
+                                    data->block_sizes[0]));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
@@ -382,17 +381,72 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      CeedInt P_1d, Q_1d;
+      CeedInt block_size = data->block_sizes[0];
 
-      CeedCallBackend(
-          CeedRunKernel_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size, interp_args));
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+      CeedInt thread_1d     = CeedIntMax(Q_1d, P_1d);
+      void   *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+
+      if (dim == 1) {
+        CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
+        elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d, 1,
+                                                   elems_per_block, shared_mem, interp_args));
+      } else if (dim == 2) {
+        // Check if required threads is small enough to do multiple elems
+        const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
+                                                   thread_1d, elems_per_block, shared_mem, interp_args));
+      } else if (dim == 3) {
+        const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
+                                                   thread_1d, elems_per_block, shared_mem, interp_args));
+      }
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      CeedInt P_1d, Q_1d;
+      CeedInt block_size = data->block_sizes[0];
 
-      CeedCallBackend(CeedRunKernel_Hip(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, num_elem, block_size, grad_args));
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+      CeedInt thread_1d   = CeedIntMax(Q_1d, P_1d);
+      void   *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+
+      if (dim == 1) {
+        CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
+        elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;
+        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, 1,
+                                                   elems_per_block, shared_mem, grad_args));
+      } else if (dim == 2) {
+        // Check if required threads is small enough to do multiple elems
+        const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
+                                                   elems_per_block, shared_mem, grad_args));
+      } else if (dim == 3) {
+        const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+
+        CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
+                                                   elems_per_block, shared_mem, grad_args));
+      }
     } break;
     case CEED_EVAL_WEIGHT:
     case CEED_EVAL_NONE: /* handled separately below */
