@@ -194,7 +194,9 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
                                      "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
                                      max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "GradTransposeAtPoints", &data->GradTransposeAtPoints));
   }
 
   // Get read/write access to u, v
@@ -220,16 +222,17 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void *interp_args[]      = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
-      CeedCallBackend(CeedRunKernel_Cuda(ceed, data->InterpAtPoints, num_elem, block_size, interp_args));
+      CeedCallBackend(
+          CeedRunKernel_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void *grad_args[]        = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
-      CeedCallBackend(CeedRunKernel_Cuda(ceed, data->GradAtPoints, num_elem, block_size, grad_args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, num_elem, block_size, grad_args));
     } break;
     case CEED_EVAL_WEIGHT:
     case CEED_EVAL_NONE: /* handled separately below */

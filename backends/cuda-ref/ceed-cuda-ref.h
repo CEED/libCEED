@@ -70,7 +70,9 @@ typedef struct {
   CUmodule    moduleAtPoints;
   CeedInt     num_points;
   CUfunction  InterpAtPoints;
+  CUfunction  InterpTransposeAtPoints;
   CUfunction  GradAtPoints;
+  CUfunction  GradTransposeAtPoints;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_q_weight_1d;

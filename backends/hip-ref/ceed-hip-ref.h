@@ -74,7 +74,9 @@ typedef struct {
   hipModule_t   moduleAtPoints;
   CeedInt       num_points;
   hipFunction_t InterpAtPoints;
+  hipFunction_t InterpTransposeAtPoints;
   hipFunction_t GradAtPoints;
+  hipFunction_t GradTransposeAtPoints;
   CeedScalar   *d_interp_1d;
   CeedScalar   *d_grad_1d;
   CeedScalar   *d_q_weight_1d;
