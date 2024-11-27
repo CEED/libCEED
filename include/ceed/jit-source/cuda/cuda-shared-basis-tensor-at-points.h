@@ -51,26 +51,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
     }
 
     // Map to points
-    const CeedInt bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
-
-    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
-      CeedScalar    r_X[BASIS_DIM];
-
-      for (CeedInt d = 0; d < BASIS_DIM; d++) {
-        r_X[d] = d_X[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * d + p];
-      }
-      if (BASIS_DIM == 1) {
-        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      } else if (BASIS_DIM == 2) {
-        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      } else if (BASIS_DIM == 3) {
-        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      }
-      for (CeedInt j = 0; j < BASIS_NUM_COMP; j++) {
-        if (i < BASIS_NUM_PTS) d_V[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * j + i] = r_V[j];
-      }
-    }
+    InterpAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, r_C, &d_X[elem * BASIS_NUM_PTS], r_V,
+                                                                         &d_V[elem * BASIS_NUM_PTS]);
   }
 }
 
@@ -92,32 +74,9 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
-    // Clear register
-    for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
-
     // Map from points
-    const CeedInt bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
-
-    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
-      CeedScalar    r_X[BASIS_DIM];
-
-      for (CeedInt d = 0; d < BASIS_DIM; d++) {
-        r_X[d] = d_X[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * d + p];
-      }
-      for (CeedInt j = 0; j < BASIS_NUM_COMP; j++) {
-        if (i < points_per_elem[elem]) r_U[j] = d_U[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * j + p];
-        else r_U[j] = 0.0;
-      }
-      if (BASIS_DIM == 1) {
-        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      } else if (BASIS_DIM == 2) {
-        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      } else if (BASIS_DIM == 3) {
-        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      }
-    }
-    __syncthreads();
+    InterpTransposeAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, points_per_elem[elem],
+                                                                                  &d_U[elem * BASIS_NUM_PTS], r_U, &d_X[elem * BASIS_NUM_PTS], r_C);
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -168,26 +127,8 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
     }
 
     // Map to points
-    const CeedInt bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
-
-    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
-      CeedScalar    r_X[BASIS_DIM];
-
-      for (CeedInt d = 0; d < BASIS_DIM; d++) {
-        r_X[d] = d_X[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * d + p];
-      }
-      if (BASIS_DIM == 1) {
-        GradAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      } else if (BASIS_DIM == 2) {
-        GradAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      } else if (BASIS_DIM == 3) {
-        GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
-      }
-      for (CeedInt j = 0; j < BASIS_NUM_COMP * BASIS_DIM; j++) {
-        if (i < BASIS_NUM_PTS) d_V[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * j + i] = r_V[j];
-      }
-    }
+    GradAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, r_C, &d_X[elem * BASIS_NUM_PTS], r_V,
+                                                                       &d_V[elem * BASIS_NUM_PTS]);
   }
 }
 
@@ -209,32 +150,9 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
-    // Clear register
-    for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
-
     // Map from points
-    const CeedInt bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
-
-    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
-      CeedScalar    r_X[BASIS_DIM];
-
-      for (CeedInt d = 0; d < BASIS_DIM; d++) {
-        r_X[d] = d_X[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * d + p];
-      }
-      for (CeedInt j = 0; j < BASIS_NUM_COMP * BASIS_DIM; j++) {
-        if (i < points_per_elem[elem]) r_U[j] = d_U[elem * BASIS_NUM_PTS + num_elem * BASIS_NUM_PTS * j + p];
-        else r_U[j] = 0.0;
-      }
-      if (BASIS_DIM == 1) {
-        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      } else if (BASIS_DIM == 2) {
-        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      } else if (BASIS_DIM == 3) {
-        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
-      }
-    }
-    __syncthreads();
+    GradTransposeAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, points_per_elem[elem],
+                                                                                &d_U[elem * BASIS_NUM_PTS], r_U, &d_X[elem * BASIS_NUM_PTS], r_C);
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
