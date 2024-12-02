@@ -147,10 +147,10 @@ CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, cons
 
 /// libCEED library version numbering
 /// @ingroup Ceed
-#define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 12
+#define CEED_VERSION_MAJOR 1
+#define CEED_VERSION_MINOR 0
 #define CEED_VERSION_PATCH 0
-#define CEED_VERSION_RELEASE false
+#define CEED_VERSION_RELEASE true
 
 /// Compile-time check that the the current library version is at least as recent as the specified version.
 /// This macro is typically used in
