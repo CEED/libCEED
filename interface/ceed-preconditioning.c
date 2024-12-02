@@ -452,8 +452,8 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedElemRestriction elem_rstr_in, elem_rstr_out, index_elem_rstr_in, index_elem_rstr_out;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
   CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &num_nodes_in, &num_nodes_out));
   CeedCall(CeedOperatorGetActiveElemRestrictions(op, &elem_rstr_in, &elem_rstr_out));

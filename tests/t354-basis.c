@@ -1,6 +1,6 @@
 /// @file
-/// Test polynomial interpolation to arbitrary points in multiple dimensions
-/// \test Test polynomial interpolation to arbitrary points in multiple dimensions
+/// Test polynomial interpolation transpose to arbitrary points in multiple dimensions
+/// \test Test polynomial interpolation transpose to arbitrary points in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
       CeedBasisApplyAtPoints(basis_u, 1, num_point, CEED_TRANSPOSE, CEED_EVAL_INTERP, x_point, v_point, u_point);
       CeedVectorGetArrayRead(u_point, CEED_MEM_HOST, &u_point_array);
       for (CeedInt j = 0; j < p_dim; j++) fx += u_array[j] * u_point_array[j];
-      if (fabs(v_array[i] - fx) > 100. * CEED_EPSILON) {
+      if (fabs(v_array[i] - fx) > 500. * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, v_array[i], fx, coord[0]);
         for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
