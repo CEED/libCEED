@@ -64,7 +64,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
                                                                                                  1));  // avoid >512 total threads
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -77,7 +77,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
         CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -88,7 +88,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -115,7 +115,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
                                                                                                  1));  // avoid >512 total threads
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -128,7 +128,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
         CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -139,7 +139,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
@@ -159,19 +159,19 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
       if (dim == 1) {
         const CeedInt elems_per_block = block_size / Q_1d;
-        const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        const CeedInt grid_size       = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
 
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, elems_per_block, 1, weight_args));
       } else if (dim == 2) {
         const CeedInt opt_elems       = block_size / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
-        const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        const CeedInt grid_size       = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
 
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, Q_1d, elems_per_block, weight_args));
       } else if (dim == 3) {
         const CeedInt opt_elems       = block_size / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
-        const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        const CeedInt grid_size       = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
 
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, Q_1d, elems_per_block, weight_args));
       }
@@ -334,7 +334,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
                                                                                                  1));  // avoid >512 total threads
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d, 1,
@@ -343,14 +343,14 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
         CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
                                                     thread_1d, elems_per_block, shared_mem, interp_args));
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, grid, thread_1d,
@@ -370,7 +370,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
                                                                                                  1));  // avoid >512 total threads
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, 1,
@@ -379,14 +379,14 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
         CeedInt elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
                                                     elems_per_block, shared_mem, grad_args));
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, grid, thread_1d, thread_1d,
