@@ -1097,8 +1097,14 @@ int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_poi
   CeedCheck(is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for operator at points");
   CeedCall(CeedOperatorCheckReady(op));
 
-  if (rstr_points) CeedCall(CeedElemRestrictionReferenceCopy(op->rstr_points, rstr_points));
-  if (point_coords) CeedCall(CeedVectorReferenceCopy(op->point_coords, point_coords));
+  if (rstr_points) {
+    *rstr_points = NULL;
+    CeedCall(CeedElemRestrictionReferenceCopy(op->rstr_points, rstr_points));
+  }
+  if (point_coords) {
+    *point_coords = NULL;
+    CeedCall(CeedVectorReferenceCopy(op->point_coords, point_coords));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1693,16 +1699,39 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       *flops += suboperator_flops;
     }
   } else {
-    CeedInt             num_input_fields, num_output_fields, num_elem = 0;
+    bool                is_at_points;
+    CeedInt             num_input_fields, num_output_fields, num_elem = 0, num_points = 0;
     CeedQFunction       qf;
     CeedQFunctionField *qf_input_fields, *qf_output_fields;
     CeedOperatorField  *op_input_fields, *op_output_fields;
 
+    CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (is_at_points) {
+      CeedMemType         mem_type;
+      CeedElemRestriction rstr_points = NULL;
+
+      CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+      CeedCall(CeedGetPreferredMemType(CeedOperatorReturnCeed(op), &mem_type));
+      if (mem_type == CEED_MEM_DEVICE) {
+        // Device backends pad out to the same number of points per element
+        CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &num_points));
+      } else {
+        num_points = 0;
+        for (CeedInt i = 0; i < num_elem; i++) {
+          CeedInt points_in_elem = 0;
+
+          CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr_points, i, &points_in_elem));
+          num_points += points_in_elem;
+        }
+        num_points = num_points / num_elem + (num_points % num_elem > 0);
+      }
+      CeedCall(CeedElemRestrictionDestroy(&rstr_points));
+    }
     CeedCall(CeedOperatorGetQFunction(op, &qf));
     CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_input_fields, &num_output_fields, &qf_output_fields));
     CeedCall(CeedQFunctionDestroy(&qf));
     CeedCall(CeedOperatorGetFields(op, NULL, &op_input_fields, NULL, &op_output_fields));
-    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
 
     // Input FLOPs
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -1721,7 +1750,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
         *flops += rstr_flops;
         CeedCall(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCall(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-        CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_NOTRANSPOSE, eval_mode, &basis_flops));
+        CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_NOTRANSPOSE, eval_mode, is_at_points, num_points, &basis_flops));
         CeedCall(CeedBasisDestroy(&basis));
         *flops += basis_flops * num_elem;
       }
@@ -1733,7 +1762,8 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       CeedSize      qf_flops;
       CeedQFunction qf;
 
-      CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      if (is_at_points) num_qpts = num_points;
+      else CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
       CeedCall(CeedOperatorGetQFunction(op, &qf));
       CeedCall(CeedQFunctionGetFlopsEstimate(qf, &qf_flops));
       CeedCall(CeedQFunctionDestroy(&qf));
@@ -1759,7 +1789,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
         *flops += rstr_flops;
         CeedCall(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCall(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-        CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_TRANSPOSE, eval_mode, &basis_flops));
+        CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_TRANSPOSE, eval_mode, is_at_points, num_points, &basis_flops));
         CeedCall(CeedBasisDestroy(&basis));
         *flops += basis_flops * num_elem;
       }

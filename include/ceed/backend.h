@@ -324,7 +324,8 @@ CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
 CEED_EXTERN int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode, CeedInt *q_comp);
-CEED_EXTERN int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedSize *flops);
+CEED_EXTERN int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, bool is_at_points, CeedInt num_points,
+                                          CeedSize *flops);
 CEED_EXTERN int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space);
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
