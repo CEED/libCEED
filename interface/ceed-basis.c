@@ -779,17 +779,21 @@ int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode,
 /**
   @brief Estimate number of FLOPs required to apply `CeedBasis` in `t_mode` and `eval_mode`
 
-  @param[in]  basis     `CeedBasis` to estimate FLOPs for
-  @param[in]  t_mode    Apply basis or transpose
-  @param[in]  eval_mode @ref CeedEvalMode
-  @param[out] flops     Address of variable to hold FLOPs estimate
+  @param[in]  basis        `CeedBasis` to estimate FLOPs for
+  @param[in]  t_mode       Apply basis or transpose
+  @param[in]  eval_mode    @ref CeedEvalMode
+  @param[in]  is_at_points Evaluate the basis at points or quadrature points
+  @param[in]  num_points   Number of points basis is evaluated at
+  @param[out] flops        Address of variable to hold FLOPs estimate
 
   @ref Backend
 **/
-int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedSize *flops) {
+int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, bool is_at_points, CeedInt num_points,
+                              CeedSize *flops) {
   bool is_tensor;
 
   CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+  CeedCheck(!is_at_points || is_tensor, CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Can only evaluate tensor-product bases at points");
   if (is_tensor) {
     CeedInt dim, num_comp, P_1d, Q_1d;
 
@@ -802,32 +806,68 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
       Q_1d = P_1d;
     }
     CeedInt tensor_flops = 0, pre = num_comp * CeedIntPow(P_1d, dim - 1), post = 1;
+
     for (CeedInt d = 0; d < dim; d++) {
       tensor_flops += 2 * pre * P_1d * post * Q_1d;
       pre /= P_1d;
       post *= Q_1d;
     }
-    switch (eval_mode) {
-      case CEED_EVAL_NONE:
-        *flops = 0;
-        break;
-      case CEED_EVAL_INTERP:
-        *flops = tensor_flops;
-        break;
-      case CEED_EVAL_GRAD:
-        *flops = tensor_flops * 2;
-        break;
-      case CEED_EVAL_DIV:
-      case CEED_EVAL_CURL: {
-        // LCOV_EXCL_START
-        return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
-                         CeedEvalModes[eval_mode]);
-        break;
-        // LCOV_EXCL_STOP
+    if (is_at_points) {
+      CeedInt chebyshev_flops = (Q_1d - 2) * 3 + 1, d_chebyshev_flops = (Q_1d - 2) * 8 + 1;
+      CeedInt point_tensor_flops = 0, pre = CeedIntPow(Q_1d, dim - 1), post = 1;
+
+      for (CeedInt d = 0; d < dim; d++) {
+        point_tensor_flops += 2 * pre * Q_1d * post * 1;
+        pre /= P_1d;
+        post *= Q_1d;
       }
-      case CEED_EVAL_WEIGHT:
-        *flops = dim * CeedIntPow(Q_1d, dim);
-        break;
+
+      switch (eval_mode) {
+        case CEED_EVAL_NONE:
+          *flops = 0;
+          break;
+        case CEED_EVAL_INTERP:
+          *flops = tensor_flops + num_points * (dim * chebyshev_flops + point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          break;
+        case CEED_EVAL_GRAD:
+          *flops = tensor_flops + num_points * (dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops + point_tensor_flops +
+                                                       (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)));
+          break;
+        case CEED_EVAL_DIV:
+        case CEED_EVAL_CURL: {
+          // LCOV_EXCL_START
+          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
+                           CeedEvalModes[eval_mode]);
+          break;
+          // LCOV_EXCL_STOP
+        }
+        case CEED_EVAL_WEIGHT:
+          *flops = num_points;
+          break;
+      }
+    } else {
+      switch (eval_mode) {
+        case CEED_EVAL_NONE:
+          *flops = 0;
+          break;
+        case CEED_EVAL_INTERP:
+          *flops = tensor_flops;
+          break;
+        case CEED_EVAL_GRAD:
+          *flops = tensor_flops * 2;
+          break;
+        case CEED_EVAL_DIV:
+        case CEED_EVAL_CURL: {
+          // LCOV_EXCL_START
+          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
+                           CeedEvalModes[eval_mode]);
+          break;
+          // LCOV_EXCL_STOP
+        }
+        case CEED_EVAL_WEIGHT:
+          *flops = dim * CeedIntPow(Q_1d, dim);
+          break;
+      }
     }
   } else {
     CeedInt dim, num_comp, q_comp, num_nodes, num_qpts;
