@@ -18,6 +18,38 @@ inline __device__ void LoadMatrix(SharedData_Cuda &data, const CeedScalar *__res
 }
 
 //------------------------------------------------------------------------------
+// AtPoints
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// L-vector -> single point
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int NUM_PTS>
+inline __device__ void ReadPoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem,
+                                 const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  const CeedInt ind = indices[p + elem * NUM_PTS];
+
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_u[comp] = d_u[ind + comp * COMP_STRIDE];
+  }
+}
+
+//------------------------------------------------------------------------------
+// Single point -> L-vector
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int NUM_PTS>
+inline __device__ void WritePoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem,
+                                  const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ r_u, CeedScalar *d_u) {
+  if (p < points_in_elem) {
+    const CeedInt ind = indices[p + elem * NUM_PTS];
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      d_u[ind + comp * COMP_STRIDE] += r_u[comp];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // 1D
 //------------------------------------------------------------------------------
 

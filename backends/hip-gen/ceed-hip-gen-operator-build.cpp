@@ -461,7 +461,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
   CeedEvalMode        eval_mode = CEED_EVAL_NONE;
   CeedElemRestriction elem_rstr;
 
-  // Setup output arays
+  // Setup output arrays
   code << "\n    // -- Output field setup\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     std::string var_suffix = "_out_" + std::to_string(i);
