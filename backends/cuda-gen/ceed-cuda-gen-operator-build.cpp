@@ -156,7 +156,6 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
     code << "  const CeedInt " << P_name << " = " << (basis == CEED_BASIS_NONE ? Q_1d : P_1d) << ";\n";
     code << "  const CeedInt num_comp" << var_suffix << " = " << num_comp << ";\n";
   }
-  CeedCallBackend(CeedBasisDestroy(&basis));
 
   // Load basis data
   code << "  // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -240,6 +239,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       break;  // TODO: Not implemented
               // LCOV_EXCL_STOP
   }
+  CeedCallBackend(CeedBasisDestroy(&basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -319,10 +319,21 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
                << strides[2] << ">(data, elem, d" << var_suffix << ", r_e" << var_suffix << ");\n";
           break;
         }
+        case CEED_RESTRICTION_POINTS: {
+          CeedInt comp_stride;
+
+          CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
+          code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
+          CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+          code << "    // CompStride: " << comp_stride << "\n";
+          data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
+          code << "    ReadLVecStandard" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size"
+               << var_suffix << ", elem, indices.inputs[" << i << "], d" << var_suffix << ", r_e" << var_suffix << ");\n";
+          break;
+        }
         // LCOV_EXCL_START
         case CEED_RESTRICTION_ORIENTED:
         case CEED_RESTRICTION_CURL_ORIENTED:
-        case CEED_RESTRICTION_POINTS:
           break;  // TODO: Not implemented
                   // LCOV_EXCL_STOP
       }
@@ -358,10 +369,21 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
              << strides[2] << ">(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
         break;
       }
+      case CEED_RESTRICTION_POINTS: {
+        CeedInt comp_stride;
+
+        CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
+        code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
+        CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+        code << "    // CompStride: " << comp_stride << "\n";
+        data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
+        code << "    WriteLVecAtPoints" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size" << var_suffix
+             << ", elem, indices.outputs[" << i << "], points.num_per_elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
+        break;
+      }
       // LCOV_EXCL_START
       case CEED_RESTRICTION_ORIENTED:
       case CEED_RESTRICTION_CURL_ORIENTED:
-      case CEED_RESTRICTION_POINTS:
         break;  // TODO: Not implemented
                 // LCOV_EXCL_STOP
     }
@@ -406,9 +428,18 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
         }
         break;
       case CEED_EVAL_INTERP:
-        code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << Q_name << "];\n";
-        code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", P_1d" << var_suffix << ", " << Q_name
-             << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
+        if (is_at_points) {
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << Q_name << "];\n";
+          code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", P_1d" << var_suffix << ", " << Q_name
+               << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
+        } else {
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*max_num_points];\n";
+          code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", P_1d" << var_suffix << ", " << Q_name
+               << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
+
+          code << "    InterpAtPoints<" << dim << ", num_comp" << var_suffix << ", max_num_points, " << Q_name
+               << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
+        }
         break;
       case CEED_EVAL_GRAD:
         if (use_3d_slices) {
@@ -416,10 +447,16 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
           code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", P_1d" << var_suffix << ", " << Q_name
                << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
         } else {
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim*" << Q_name << "];\n";
-          code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d<num_comp" << var_suffix
-               << ", P_1d" << var_suffix << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", s_G" << var_suffix << ", r_q"
-               << var_suffix << ");\n";
+          if (is_at_points) {
+          } else {
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim*max_num_points];\n";
+          code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d<num_comp" << var_suffix << ", P_1d" << var_suffix << ", " << Q_name
+               << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
+
+            code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d<num_comp" << var_suffix
+                 << ", P_1d" << var_suffix << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B" << var_suffix << ", s_G" << var_suffix << ", r_q"
+                 << var_suffix << ");\n";
+          }
         }
         break;
       case CEED_EVAL_WEIGHT: {
