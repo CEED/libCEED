@@ -171,3 +171,42 @@ inline __device__ void SumElementStrided3d(SharedData_Hip &data, const CeedInt e
     }
   }
 }
+
+//------------------------------------------------------------------------------
+// AtPoints
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// E-vector -> single point
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int NUM_PTS>
+inline __device__ void ReadPoint(SharedData_Hip &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem, const CeedInt strides_point,
+                                 const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  const CeedInt ind = (p % NUM_PTS) * strides_point + elem * strides_elem;
+
+  if (p < points_in_elem) {
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      r_u[comp] = d_u[ind + comp * strides_comp];
+    }
+  } else {
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      r_u[comp] = 0.0;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// Single point -> E-vector
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int NUM_PTS>
+inline __device__ void WritePoint(SharedData_Hip &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem,
+                                  const CeedInt strides_point, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v,
+                                  CeedScalar *d_v) {
+  if (p < points_in_elem) {
+    const CeedInt ind = (p % NUM_PTS) * strides_point + elem * strides_elem;
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      d_v[ind + comp * strides_comp] = r_v[comp];
+    }
+  }
+}
