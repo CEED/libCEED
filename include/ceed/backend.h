@@ -75,7 +75,7 @@
 #endif
 
 /**
-  This enum supples common colors for CeedDebug256 debugging output.
+  This enum supplies common colors for CeedDebug256 debugging output.
   Set the environment variable `CEED_DEBUG = 1` to activate debugging output.
 
   @ingroup Ceed
@@ -267,8 +267,12 @@ CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
 
-/// Type of element restriction;
-/// @ingroup CeedElemRestriction
+/**
+  Specify type of restriction operation.
+
+  @ingroup CeedElemRestriction
+  @ref     Backend
+**/
 typedef enum {
   /// Standard element restriction with offsets
   CEED_RESTRICTION_STANDARD = 1,
@@ -305,8 +309,12 @@ CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data)
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);
 CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops);
 
-/// Type of FE space;
-/// @ingroup CeedBasis
+/**
+  Specify type of FE space.
+
+  @ingroup CeedBasis
+  @ref     Backend
+**/
 typedef enum {
   /// H^1 FE space
   CEED_FE_SPACE_H1 = 1,

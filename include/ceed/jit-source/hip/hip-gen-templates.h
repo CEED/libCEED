@@ -13,7 +13,7 @@
 // Load matrices for basis actions
 //------------------------------------------------------------------------------
 template <int P, int Q>
-inline __device__ void loadMatrix(SharedData_Hip &data, const CeedScalar *__restrict__ d_B, CeedScalar *B) {
+inline __device__ void LoadMatrix(SharedData_Hip &data, const CeedScalar *__restrict__ d_B, CeedScalar *B) {
   for (CeedInt i = data.t_id; i < P * Q; i += blockDim.x * blockDim.y * blockDim.z) B[i] = d_B[i];
 }
 
@@ -25,8 +25,8 @@ inline __device__ void loadMatrix(SharedData_Hip &data, const CeedScalar *__rest
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void readDofsOffset1d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStandard1d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                          const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d) {
     const CeedInt node = data.t_id_x;
     const CeedInt ind  = indices[node + elem * P_1d];
@@ -39,7 +39,7 @@ inline __device__ void readDofsOffset1d(SharedData_Hip &data, const CeedInt num_
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d) {
     const CeedInt node = data.t_id_x;
     const CeedInt ind  = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -52,8 +52,8 @@ inline __device__ void readDofsStrided1d(SharedData_Hip &data, const CeedInt ele
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void writeDofsOffset1d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                         const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+inline __device__ void WriteLVecStandard1d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d) {
     const CeedInt node = data.t_id_x;
     const CeedInt ind  = indices[node + elem * P_1d];
@@ -66,7 +66,7 @@ inline __device__ void writeDofsOffset1d(SharedData_Hip &data, const CeedInt num
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
+inline __device__ void WriteLVecStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
                                           CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d) {
     const CeedInt node = data.t_id_x;
@@ -84,8 +84,8 @@ inline __device__ void writeDofsStrided1d(SharedData_Hip &data, const CeedInt el
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void readDofsOffset2d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStandard2d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                          const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1d;
     const CeedInt ind  = indices[node + elem * P_1d * P_1d];
@@ -98,7 +98,7 @@ inline __device__ void readDofsOffset2d(SharedData_Hip &data, const CeedInt num_
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1d;
     const CeedInt ind  = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -111,8 +111,8 @@ inline __device__ void readDofsStrided2d(SharedData_Hip &data, const CeedInt ele
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void writeDofsOffset2d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                         const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+inline __device__ void WriteLVecStandard2d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1d;
     const CeedInt ind  = indices[node + elem * P_1d * P_1d];
@@ -125,7 +125,7 @@ inline __device__ void writeDofsOffset2d(SharedData_Hip &data, const CeedInt num
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
+inline __device__ void WriteLVecStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
                                           CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1d;
@@ -142,16 +142,9 @@ inline __device__ void writeDofsStrided2d(SharedData_Hip &data, const CeedInt el
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
-// TODO: remove "Dofs" and "Quads" in the following function names?
-//   - readDofsOffset3d -> readOffset3d ?
-//   - readDofsStrided3d -> readStrided3d ?
-//   - readSliceQuadsOffset3d -> readSliceOffset3d ?
-//   - readSliceQuadsStrided3d -> readSliceStrided3d ?
-//   - writeDofsOffset3d -> writeOffset3d ?
-//   - writeDofsStrided3d -> writeStrided3d ?
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void readDofsOffset3d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                        const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStandard3d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                          const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d)
     for (CeedInt z = 0; z < P_1d; z++) {
       const CeedInt node = data.t_id_x + data.t_id_y * P_1d + z * P_1d * P_1d;
@@ -165,7 +158,7 @@ inline __device__ void readDofsOffset3d(SharedData_Hip &data, const CeedInt num_
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readDofsStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadLVecStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d)
     for (CeedInt z = 0; z < P_1d; z++) {
       const CeedInt node = data.t_id_x + data.t_id_y * P_1d + z * P_1d * P_1d;
@@ -179,8 +172,9 @@ inline __device__ void readDofsStrided3d(SharedData_Hip &data, const CeedInt ele
 // E-vector -> Q-vector, offests provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int Q_1d>
-inline __device__ void readSliceQuadsOffset3d(SharedData_Hip &data, const CeedInt nquads, const CeedInt elem, const CeedInt q,
-                                              const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadEVecSliceStandard3d(SharedData_Hip &data, const CeedInt nquads, const CeedInt elem, const CeedInt q,
+                                               const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u,
+                                               CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < Q_1d && data.t_id_y < Q_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * Q_1d + q * Q_1d * Q_1d;
     const CeedInt ind  = indices[node + elem * Q_1d * Q_1d * Q_1d];
@@ -193,8 +187,8 @@ inline __device__ void readSliceQuadsOffset3d(SharedData_Hip &data, const CeedIn
 // E-vector -> Q-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int Q_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void readSliceQuadsStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt q, const CeedScalar *__restrict__ d_u,
-                                               CeedScalar *__restrict__ r_u) {
+inline __device__ void ReadEVecSliceStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt q, const CeedScalar *__restrict__ d_u,
+                                              CeedScalar *__restrict__ r_u) {
   if (data.t_id_x < Q_1d && data.t_id_y < Q_1d) {
     const CeedInt node = data.t_id_x + data.t_id_y * Q_1d + q * Q_1d * Q_1d;
     const CeedInt ind  = node * STRIDES_NODE + elem * STRIDES_ELEM;
@@ -207,8 +201,8 @@ inline __device__ void readSliceQuadsStrided3d(SharedData_Hip &data, const CeedI
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int COMP_STRIDE, int P_1d>
-inline __device__ void writeDofsOffset3d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
-                                         const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+inline __device__ void WriteLVecStandard3d(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d)
     for (CeedInt z = 0; z < P_1d; z++) {
       const CeedInt node = data.t_id_x + data.t_id_y * P_1d + z * P_1d * P_1d;
@@ -222,7 +216,7 @@ inline __device__ void writeDofsOffset3d(SharedData_Hip &data, const CeedInt num
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void writeDofsStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
+inline __device__ void WriteLVecStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedScalar *__restrict__ r_v,
                                           CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < P_1d && data.t_id_y < P_1d)
     for (CeedInt z = 0; z < P_1d; z++) {
@@ -237,8 +231,8 @@ inline __device__ void writeDofsStrided3d(SharedData_Hip &data, const CeedInt el
 // 3D collocated derivatives computation
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int Q_1d>
-inline __device__ void gradCollo3d(SharedData_Hip &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
-                                   CeedScalar *__restrict__ r_V) {
+inline __device__ void GradColloSlice3d(SharedData_Hip &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                        CeedScalar *__restrict__ r_V) {
   if (data.t_id_x < Q_1d && data.t_id_y < Q_1d) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[q + comp * Q_1d];
@@ -263,8 +257,8 @@ inline __device__ void gradCollo3d(SharedData_Hip &data, const CeedInt q, const 
 // 3D collocated derivatives transpose
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int Q_1d>
-inline __device__ void gradColloTranspose3d(SharedData_Hip &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
-                                            CeedScalar *__restrict__ r_V) {
+inline __device__ void GradColloSliceTranspose3d(SharedData_Hip &data, const CeedInt q, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                                 CeedScalar *__restrict__ r_V) {
   if (data.t_id_x < Q_1d && data.t_id_y < Q_1d) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       // X derivative
