@@ -37,6 +37,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
   data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
+  CeedScalar r_X[BASIS_DIM];
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -57,8 +58,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     }
 
     // Map to points
-    InterpAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, r_C, &d_X[elem * BASIS_NUM_PTS], r_V,
-                                                                         &d_V[elem * BASIS_NUM_PTS]);
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+
+    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
+      const CeedInt p = i % BASIS_NUM_PTS;
+
+      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      if (BASIS_DIM == 1) {
+        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      } else if (BASIS_DIM == 2) {
+        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      } else if (BASIS_DIM == 3) {
+        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      }
+      WritePoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
+    }
   }
 }
 
@@ -79,15 +93,33 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
   data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
+  CeedScalar r_X[BASIS_DIM];
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    // Clear register
+    for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
+
     // Map from points
-    InterpTransposeAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, points_per_elem[elem],
-                                                                                  &d_U[elem * BASIS_NUM_PTS], r_U, &d_X[elem * BASIS_NUM_PTS], r_C);
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+
+    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
+      const CeedInt p = i % BASIS_NUM_PTS;
+
+      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U, r_U);
+      if (BASIS_DIM == 1) {
+        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      } else if (BASIS_DIM == 2) {
+        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      } else if (BASIS_DIM == 3) {
+        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      }
+    }
+    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -124,6 +156,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
   data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
+  CeedScalar r_X[BASIS_DIM];
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * BASIS_DIM];
@@ -144,8 +177,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     }
 
     // Map to points
-    GradAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, r_C, &d_X[elem * BASIS_NUM_PTS], r_V,
-                                                                       &d_V[elem * BASIS_NUM_PTS]);
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+
+    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
+      const CeedInt p = i % BASIS_NUM_PTS;
+
+      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      if (BASIS_DIM == 1) {
+        GradAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      } else if (BASIS_DIM == 2) {
+        GradAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      } else if (BASIS_DIM == 3) {
+        GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+      }
+      WritePoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
+    }
   }
 }
 
@@ -166,15 +212,34 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
   data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
+  CeedScalar r_X[BASIS_DIM];
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    // Clear register
+    for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
+
     // Map from points
-    GradTransposeAtPoints<BASIS_DIM, BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, num_elem * BASIS_NUM_PTS, points_per_elem[elem],
-                                                                                &d_U[elem * BASIS_NUM_PTS], r_U, &d_X[elem * BASIS_NUM_PTS], r_C);
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+
+    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
+      const CeedInt p = i % BASIS_NUM_PTS;
+
+      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U,
+                                                           r_U);
+      if (BASIS_DIM == 1) {
+        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      } else if (BASIS_DIM == 2) {
+        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      } else if (BASIS_DIM == 3) {
+        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+      }
+    }
+    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {

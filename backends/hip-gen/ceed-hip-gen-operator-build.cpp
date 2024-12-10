@@ -187,18 +187,18 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
       if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
       else data->B.outputs[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B" << var_suffix << "[" << P_1d * Q_1d << "];\n";
-      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
+      code << "  LoadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
       break;
     case CEED_EVAL_GRAD:
       if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
       else data->B.outputs[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B" << var_suffix << "[" << P_1d * Q_1d << "];\n";
-      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
+      code << "  LoadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
       if (use_3d_slices) {
         if (is_input) data->G.inputs[i] = basis_data->d_collo_grad_1d;
         else data->G.outputs[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * Q_1d << "];\n";
-        code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
+        code << "  LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
       } else {
         bool has_collo_grad = basis_data->d_collo_grad_1d;
 
@@ -206,10 +206,10 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
         else data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         if (has_collo_grad) {
           code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * Q_1d << "];\n";
-          code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
+          code << "  LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
         } else {
           code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * P_1d << "];\n";
-          code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
+          code << "  LoadMatrix<" << P_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
         }
       }
       break;
@@ -236,6 +236,7 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
   CeedEvalMode             eval_mode  = CEED_EVAL_NONE;
   CeedInt                  elem_size = 0, num_comp = 0, P_1d = 0;
   CeedSize                 l_size;
+  CeedRestrictionType      rstr_type = CEED_RESTRICTION_STANDARD;
   CeedElemRestriction_Hip *rstr_data;
   CeedElemRestriction      elem_rstr;
   CeedBasis                basis;
@@ -243,6 +244,7 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
   // Get field data
   CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_field, &elem_rstr));
   if (elem_rstr != CEED_ELEMRESTRICTION_NONE) {
+    CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
@@ -256,15 +258,12 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
   // Restriction
   if (is_input) {
     // Input
-    // Input
     if (field_input_buffer[i] != i) {
       std::string buffer_name = "r_e_in_" + std::to_string(field_input_buffer[i]);
 
       // Restriction was already done for previous input
       code << "    CeedScalar *r_e" << var_suffix << " = " << buffer_name << ";\n";
     } else if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_3d_slices)) {
-      bool is_strided;
-
       if (eval_mode == CEED_EVAL_NONE) {
         // No basis action, so r_e_in_* in also r_q_in_* and needs to be allocated
         code << "    CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
@@ -272,18 +271,59 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
         // Otherwise we're using the scratch space
         code << "    CeedScalar *r_e" << var_suffix << " = r_e_scratch;\n";
       }
-      CeedCallBackend(CeedElemRestrictionIsStrided(elem_rstr, &is_strided));
-      if (!is_strided) {
+      switch (rstr_type) {
+        case CEED_RESTRICTION_STANDARD: {
+          CeedInt comp_stride;
+
+          CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
+          code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
+          CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+          code << "    // CompStride: " << comp_stride << "\n";
+          data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
+          code << "    ReadLVecStandard" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size"
+               << var_suffix << ", elem, indices.inputs[" << i << "], d" << var_suffix << ", r_e" << var_suffix << ");\n";
+          break;
+        }
+        case CEED_RESTRICTION_STRIDED: {
+          bool    has_backend_strides;
+          CeedInt num_elem;
+
+          CeedCallBackend(CeedElemRestrictionHasBackendStrides(elem_rstr, &has_backend_strides));
+          CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
+          CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
+
+          if (!has_backend_strides) {
+            CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
+          }
+          code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
+          code << "    ReadLVecStrided" << dim << "d<num_comp" << var_suffix << ", " << P_name << "," << strides[0] << "," << strides[1] << ","
+               << strides[2] << ">(data, elem, d" << var_suffix << ", r_e" << var_suffix << ");\n";
+          break;
+        }
+        // LCOV_EXCL_START
+        case CEED_RESTRICTION_ORIENTED:
+        case CEED_RESTRICTION_CURL_ORIENTED:
+        case CEED_RESTRICTION_POINTS:
+          break;  // TODO: Not implemented
+                  // LCOV_EXCL_STOP
+      }
+    }
+  } else {
+    // Output
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STANDARD: {
         CeedInt comp_stride;
 
         CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
         code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << "    // CompStride: " << comp_stride << "\n";
-        data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
-        code << "    readDofsOffset" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size" << var_suffix
-             << ", elem, indices.inputs[" << i << "], d" << var_suffix << ", r_e" << var_suffix << ");\n";
-      } else {
+        data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
+        code << "    WriteLVecStandard" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size"
+             << var_suffix << ", elem, indices.outputs[" << i << "], r_e" << var_suffix << ", d" << var_suffix << ");\n";
+        break;
+      }
+      case CEED_RESTRICTION_STRIDED: {
         bool    has_backend_strides;
         CeedInt num_elem;
 
@@ -295,39 +335,16 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
           CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-        code << "    readDofsStrided" << dim << "d<num_comp" << var_suffix << ", " << P_name << "," << strides[0] << "," << strides[1] << ","
-             << strides[2] << ">(data, elem, d" << var_suffix << ", r_e" << var_suffix << ");\n";
+        code << "    WriteLVecStrided" << dim << "d<num_comp" << var_suffix << ", " << P_name << "," << strides[0] << "," << strides[1] << ","
+             << strides[2] << ">(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
+        break;
       }
-    }
-  } else {
-    // Output
-    bool is_strided;
-
-    CeedCallBackend(CeedElemRestrictionIsStrided(elem_rstr, &is_strided));
-    if (!is_strided) {
-      CeedInt comp_stride;
-
-      CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
-      code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
-      CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-      code << "    // CompStride: " << comp_stride << "\n";
-      data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
-      code << "    writeDofsOffset" << dim << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name << ">(data, l_size" << var_suffix
-           << ", elem, indices.outputs[" << i << "], r_e" << var_suffix << ", d" << var_suffix << ");\n";
-    } else {
-      bool    has_backend_strides;
-      CeedInt num_elem;
-
-      CeedCallBackend(CeedElemRestrictionHasBackendStrides(elem_rstr, &has_backend_strides));
-      CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
-      CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
-
-      if (!has_backend_strides) {
-        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
-      }
-      code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-      code << "    writeDofsStrided" << dim << "d<num_comp" << var_suffix << ", " << P_name << "," << strides[0] << "," << strides[1] << ","
-           << strides[2] << ">(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
+      // LCOV_EXCL_START
+      case CEED_RESTRICTION_ORIENTED:
+      case CEED_RESTRICTION_CURL_ORIENTED:
+      case CEED_RESTRICTION_POINTS:
+        break;  // TODO: Not implemented
+                // LCOV_EXCL_STOP
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -501,7 +518,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
               CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
             }
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-            code << "      readSliceQuadsStrided3d<num_comp" << var_suffix << ", " << Q_name << "," << strides[0] << "," << strides[1] << ","
+            code << "      ReadEVecSliceStrided3d<num_comp" << var_suffix << ", " << Q_name << "," << strides[0] << "," << strides[1] << ","
                  << strides[2] << ">(data, elem, q, d" << var_suffix << ", r_s" << var_suffix << ");\n";
           } else {
             CeedSize                 l_size = 0;
@@ -514,7 +531,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
             code << "      // CompStride: " << comp_stride << "\n";
             CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
             data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
-            code << "      readSliceQuadsOffset3d<num_comp" << var_suffix << ", " << comp_stride << ", " << Q_name << ">(data, l_size" << var_suffix
+            code << "      ReadEVecSliceStandard3d<num_comp" << var_suffix << ", " << comp_stride << ", " << Q_name << ">(data, l_size" << var_suffix
                  << ", elem, q, indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
           }
           break;
@@ -526,8 +543,8 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           break;
         case CEED_EVAL_GRAD:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "*dim];\n";
-          code << "      gradCollo3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_q" << var_suffix << ", s_G" << var_suffix << ", r_s"
-               << var_suffix << ");\n";
+          code << "      GradColloSlice3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_q" << var_suffix << ", s_G" << var_suffix
+               << ", r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_s" << var_suffix << "[1];\n";
@@ -631,8 +648,8 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           code << "      }\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      gradColloTranspose3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_s" << var_suffix << ", s_G" << var_suffix
-               << ", r_q" << var_suffix << ");\n";
+          code << "      GradColloSliceTranspose3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_s" << var_suffix << ", s_G"
+               << var_suffix << ", r_q" << var_suffix << ");\n";
           break;
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
