@@ -24,6 +24,12 @@ typedef struct {
 } FieldsInt_Cuda;
 
 typedef struct {
+  CeedInt           num_elem;
+  const CeedInt    *num_per_elem;
+  const CeedScalar *coords;
+} Points_Cuda;
+
+typedef struct {
   CeedInt     t_id_x;
   CeedInt     t_id_y;
   CeedInt     t_id_z;

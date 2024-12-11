@@ -64,6 +64,22 @@ inline __device__ void WriteLVecStandard1d(SharedData_Cuda &data, const CeedInt 
 }
 
 //------------------------------------------------------------------------------
+// E-vector -> L-vector, AtPoints
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1d>
+inline __device__ void writeDofsAtPoints1d(SharedData_Cuda &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < P_1d) {
+    const CeedInt node = data.t_id_x;
+    const CeedInt ind  = indices[node + elem * P_1d];
+
+    if (node < points_per_elem[elem]) {
+      for (CeedInt comp = 0; comp < NUM_COMP; comp++) atomicAdd(&d_v[ind + COMP_STRIDE * comp], r_v[comp]);
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1d, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
@@ -120,6 +136,22 @@ inline __device__ void WriteLVecStandard2d(SharedData_Cuda &data, const CeedInt 
     const CeedInt ind  = indices[node + elem * P_1d * P_1d];
 
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) atomicAdd(&d_v[ind + COMP_STRIDE * comp], r_v[comp]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, AtPoints
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1d>
+inline __device__ void writeDofsAtPoints2d(SharedData_Cuda &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < P_1d && data.t_id_y < P_1d) {
+    const CeedInt node = data.t_id_x + data.t_id_y * P_1d;
+    const CeedInt ind  = indices[node + elem * P_1d * P_1d];
+
+    if (node < points_per_elem[elem]) {
+      for (CeedInt comp = 0; comp < NUM_COMP; comp++) atomicAdd(&d_v[ind + COMP_STRIDE * comp], r_v[comp]);
+    }
   }
 }
 
@@ -212,6 +244,23 @@ inline __device__ void WriteLVecStandard3d(SharedData_Cuda &data, const CeedInt 
       const CeedInt ind  = indices[node + elem * P_1d * P_1d * P_1d];
 
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) atomicAdd(&d_v[ind + COMP_STRIDE * comp], r_v[z + comp * P_1d]);
+    }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, AtPoints
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1d>
+inline __device__ void writeDofsAtPoints3d(SharedData_Cuda &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt *__restrict__ indices,
+                                           const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < P_1d && data.t_id_y < P_1d)
+    for (CeedInt z = 0; z < P_1d; z++) {
+      const CeedInt node = data.t_id_x + data.t_id_y * P_1d + z * P_1d * P_1d;
+      const CeedInt ind  = indices[node + elem * P_1d * P_1d * P_1d];
+
+      if (node < points_per_elem[elem]) {
+        for (CeedInt comp = 0; comp < NUM_COMP; comp++) atomicAdd(&d_v[ind + COMP_STRIDE * comp], r_v[z + comp * P_1d]);
+      }
     }
 }
 
