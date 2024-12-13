@@ -136,12 +136,14 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   @ref Utility
 **/
 int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
+  bool                is_at_points;
   const char         *pre = sub ? "  " : "";
   CeedInt             num_elem, num_qpts, total_fields = 0, num_input_fields, num_output_fields;
   CeedQFunction       qf;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedOperatorField  *op_input_fields, *op_output_fields;
 
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   CeedCall(CeedOperatorGetNumElements(op, &num_elem));
   CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
   CeedCall(CeedOperatorGetNumArgs(op, &total_fields));
@@ -150,7 +152,17 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   CeedCall(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedCall(CeedQFunctionDestroy(&qf));
 
-  fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
+  if (is_at_points) {
+    CeedInt             max_points = 0;
+    CeedElemRestriction rstr_points;
+
+    CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+    CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_points));
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " max points each\n", pre, num_elem, max_points);
+    CeedCall(CeedElemRestrictionDestroy(&rstr_points));
+  } else {
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
+  }
   fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", pre, total_fields, total_fields > 1 ? "s" : "");
   fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", pre, num_input_fields, num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -1551,9 +1563,10 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @return Error code: 0 - success, otherwise - failure
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
-  bool has_name = op->name, is_composite;
+  bool has_name = op->name, is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_composite) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
@@ -1564,11 +1577,12 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
 
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
-      fprintf(stream, "  SubOperator %" CeedInt_FMT "%s%s%s\n", i, has_name ? " - " : "", has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
+      fprintf(stream, "  SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
+              has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
       if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
     }
   } else {
-    fprintf(stream, "CeedOperator%s%s\n", has_name ? " - " : "", has_name ? op->name : "");
+    fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? op->name : "");
     if (is_full) CeedCall(CeedOperatorSingleView(op, 0, stream));
   }
   return CEED_ERROR_SUCCESS;
