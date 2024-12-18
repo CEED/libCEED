@@ -22,6 +22,7 @@ typedef struct {
   Fields_Cuda    B;
   Fields_Cuda    G;
   CeedScalar    *W;
+  Points_Cuda    points;
 } CeedOperator_Cuda_gen;
 
 typedef struct {

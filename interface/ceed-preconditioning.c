@@ -136,6 +136,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedCall(CeedCompositeOperatorAddSub(op_fallback, op_sub_fallback));
     }
   } else {
+    bool               is_at_points = false;
     CeedInt            num_input_fields, num_output_fields;
     CeedQFunction      qf_fallback = NULL, dqf_fallback = NULL, dqfT_fallback = NULL;
     CeedOperatorField *input_fields, *output_fields;
@@ -143,7 +144,19 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->qf, &qf_fallback));
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->dqf, &dqf_fallback));
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->dqfT, &dqfT_fallback));
-    CeedCall(CeedOperatorCreate(ceed_fallback, qf_fallback, dqf_fallback, dqfT_fallback, &op_fallback));
+    CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+    if (is_at_points) {
+      CeedVector          points;
+      CeedElemRestriction rstr_points;
+
+      CeedCall(CeedOperatorCreateAtPoints(ceed_fallback, qf_fallback, dqf_fallback, dqfT_fallback, &op_fallback));
+      CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, &points));
+      CeedCall(CeedOperatorAtPointsSetPoints(op_fallback, rstr_points, points));
+      CeedCall(CeedVectorDestroy(&points));
+      CeedCall(CeedElemRestrictionDestroy(&rstr_points));
+    } else {
+      CeedCall(CeedOperatorCreate(ceed_fallback, qf_fallback, dqf_fallback, dqfT_fallback, &op_fallback));
+    }
     CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
     for (CeedInt i = 0; i < num_input_fields; i++) {
       const char         *field_name;

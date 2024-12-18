@@ -22,6 +22,7 @@ typedef struct {
   Fields_Hip    B;
   Fields_Hip    G;
   CeedScalar   *W;
+  Points_Hip    points;
 } CeedOperator_Hip_gen;
 
 typedef struct {

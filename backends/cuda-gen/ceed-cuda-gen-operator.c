@@ -8,6 +8,8 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-source/cuda/cuda-types.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include <stddef.h>
 
 #include "../cuda/ceed-cuda-common.h"
@@ -19,10 +21,14 @@
 // Destroy operator
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
+  Ceed                   ceed;
   CeedOperator_Cuda_gen *impl;
 
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)impl->points.num_per_elem));
   CeedCallBackend(CeedFree(&impl));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -92,6 +98,7 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
+  bool                    is_at_points;
   Ceed                    ceed;
   Ceed_Cuda              *cuda_data;
   CeedInt                 num_elem, num_input_fields, num_output_fields;
@@ -181,25 +188,52 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
     }
   }
 
+  // Point coordinates, if needed
+  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
+  if (is_at_points) {
+    // Coords
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+    CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+
+    // Points per elem
+    if (num_elem != data->points.num_elem) {
+      CeedInt            *points_per_elem;
+      const CeedInt       num_bytes   = num_elem * sizeof(CeedInt);
+      CeedElemRestriction rstr_points = NULL;
+
+      data->points.num_elem = num_elem;
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+      CeedCallBackend(CeedCalloc(num_elem, &points_per_elem));
+      for (CeedInt e = 0; e < num_elem; e++) {
+        CeedInt num_points_elem;
+
+        CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
+        points_per_elem[e] = num_points_elem;
+      }
+      if (data->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)data->points.num_per_elem));
+      CeedCallCuda(ceed, cudaMalloc((void **)&data->points.num_per_elem, num_bytes));
+      CeedCallCuda(ceed, cudaMemcpy((void *)data->points.num_per_elem, points_per_elem, num_bytes, cudaMemcpyHostToDevice));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+      CeedCallBackend(CeedFree(&points_per_elem));
+    }
+  }
+
   // Get context data
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
 
   // Apply operator
-  void         *opargs[]  = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W};
+  void         *opargs[]  = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points};
   const CeedInt dim       = data->dim;
   const CeedInt Q_1d      = data->Q_1d;
   const CeedInt P_1d      = data->max_P_1d;
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-  int           max_threads_per_block, min_grid_size;
+  int           max_threads_per_block, min_grid_size, grid;
 
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] =
-      {
-          thread_1d,
-          dim < 2 ? 1 : thread_1d,
-          -1,
-      },
-      grid;
+  int block[3] = {thread_1d, dim < 2 ? 1 : thread_1d, -1};
 
   CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
                                      cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
@@ -236,6 +270,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
       if (is_active) vec = output_vec;
       // Check for multiple output modes
       CeedInt index = -1;
+
       for (CeedInt j = 0; j < i; j++) {
         if (vec == output_vecs[j]) {
           index = j;
@@ -247,6 +282,15 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
       }
       if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     }
+  }
+
+  // Restore point coordinates, if needed
+  if (is_at_points) {
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+    CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->points.coords));
+    CeedCallBackend(CeedVectorDestroy(&vec));
   }
 
   // Restore context data
