@@ -53,7 +53,7 @@ src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 # Path to install directory for SmartRedis. Example: /software/smartredis/install
 SMARTREDIS_DIR ?=
 ifdef SMARTREDIS_DIR
-	hiredis.pc := $(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc
+	hiredis.pc := $(wildcard $(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc $(SMARTREDIS_DIR)/lib64/pkgconfig/hiredis.pc)
 	lsmartredis:= -lsmartredis
 	redis++.pc = $(wildcard $(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc $(SMARTREDIS_DIR)/lib64/pkgconfig/redis++.pc)
 
