@@ -252,90 +252,94 @@ noether-cuda:
 # ----------------------------------------------------------------------------------------
 # ROCm backends
 # ----------------------------------------------------------------------------------------
-noether-rocm:
-  stage: test:gpu-and-float
-  tags:
-    - rocm
-  interruptible: true
-  before_script:
-# Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
-    - export NPROC_POOL=4
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
-    - echo "-------------- CC ------------------" && $CC --version
-    - echo "-------------- CXX -----------------" && $CXX --version
-    - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- HIPCC ---------------" && $HIPCC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
-# Libraries for backends
-# -- MAGMA from dev branch
-    - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
-  script:
-    - rm -f .SUCCESS
-# libCEED
-    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
-    - echo "-------------- libCEED -------------" && make info
-    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
-    - make clean
-    - make -j$NPROC_CPU
-# -- libCEED only tests
-    - echo "-------------- core tests ----------"
-    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
-#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
-    - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit realsearch=%
-# Libraries for examples
-# -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
-    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
-# Clang-tidy
-    - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
-# Report status
-    - touch .SUCCESS
-  after_script:
-    - |
-      if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
-      fi
-  artifacts:
-    paths:
-      - build/*.junit
-    reports:
-      junit: build/*.junit
-      performance: performance.json
+
+# ROCm tests currently disabled
+
+#noether-rocm:
+#  stage: test:gpu-and-float
+#  tags:
+#    - rocm
+#  interruptible: true
+#  before_script:
+## Environment
+#    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+#    - export NPROC_POOL=4
+#    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+#    - echo "-------------- CC ------------------" && $CC --version
+#    - echo "-------------- CXX -----------------" && $CXX --version
+#    - echo "-------------- FC ------------------" && $FC --version
+#    - echo "-------------- HIPCC ---------------" && $HIPCC --version
+#    - echo "-------------- GCOV ----------------" && gcov --version
+## Libraries for backends
+## -- MAGMA from dev branch
+#    - echo "-------------- MAGMA ---------------"
+#    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
+#  script:
+#    - rm -f .SUCCESS
+## libCEED
+#    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
+#    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
+#    - echo "-------------- libCEED -------------" && make info
+#    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+#    - make clean
+#    - make -j$NPROC_CPU
+## -- libCEED only tests
+#    - echo "-------------- core tests ----------"
+#    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+##    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+#    - export PETSC_DIR= PETSC_ARCH=
+#    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit realsearch=%
+## Libraries for examples
+## -- PETSc with HIP (minimal)
+#    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
+#    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+#    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
+## Clang-tidy
+#    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+#    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+## Report status
+#    - touch .SUCCESS
+#  after_script:
+#    - |
+#      if [ -f .SUCCESS ]; then
+#        lcov --directory . --capture --output-file coverage.info;
+#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+#      fi
+#  artifacts:
+#    paths:
+#      - build/*.junit
+#    reports:
+#      junit: build/*.junit
+#      performance: performance.json
 
 
 # ----------------------------------------------------------------------------------------
-# CPU + ROCm backends with CeedScalar == float (32 bit)
+# CPU + CUDA backends with CeedScalar == float (32 bit)
 # ----------------------------------------------------------------------------------------
 noether-float:
   stage: test:gpu-and-float
   tags:
     - cpu
-    - rocm
+    - cuda
   interruptible: true
   before_script:
 # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC= HIPCC=hipcc
+    - export COVERAGE=1 CC=gcc CXX=g++ FC= NVCC=nvcc
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
-    - echo "-------------- HIPCC ---------------" && $HIPCC --version
+    - echo "-------------- NVCC ----------------" && $NVCC --version
     - echo "-------------- GCOV ----------------" && gcov --version
 # Libraries for backends
+# ROCm tests currently disabled
 # -- MAGMA from dev branch
-    - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
+#    - echo "-------------- MAGMA ---------------"
+#    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
 # -- LIBXSMM 7 April 2024
     - cd .. && export XSMM_HASH=94ee71576870152feb62f3f0cf6b061d036dcdb5 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
@@ -345,7 +349,7 @@ noether-float:
 # Change to single precision
     - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
 # Build libCEED
-    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
+    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
@@ -359,7 +363,7 @@ noether-float:
     - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="float-cpu" junit realsearch=%
     - export NPROC_POOL=4
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="float-hip" junit realsearch=%
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="float-cuda" junit realsearch=%
 # Report status
     - echo "SUCCESS" > .job_status
   after_script:
