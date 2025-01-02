@@ -79,7 +79,7 @@ inline __device__ void InterpTransposeAtPoints1d(SharedData_Hip &data, const Cee
     }
     // Pull from shared to register
     __syncthreads();
-    if (data.t_id_x < Q_1D) r_C[comp] = data.slice[p];
+    if (data.t_id_x < Q_1D) r_C[comp] += data.slice[data.t_id_x];
   }
 }
 
@@ -125,7 +125,7 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Hip &data, const CeedI
     }
     // Pull from shared to register
     __syncthreads();
-    if (data.t_id_x < Q_1D) r_C[comp] = data.slice[p];
+    if (data.t_id_x < Q_1D) r_C[comp] += data.slice[data.t_id_x];
   }
 }
 
