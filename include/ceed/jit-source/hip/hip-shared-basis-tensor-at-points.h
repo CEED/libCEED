@@ -21,14 +21,9 @@
 // Interp
 //------------------------------------------------------------------------------
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
-    void InterpAtPoints(const CeedInt num_elem, const CeedScalar *d_chebyshev_interp_1d, const CeedInt *points_per_elem,
-                        const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+    void InterpAtPoints(const CeedInt num_elem, const CeedScalar *c_B, const CeedInt *points_per_elem, const CeedScalar *__restrict__ d_X,
+                        const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
-
-  // load chebyshev_interp_1d into shared memory
-  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
-  loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_chebyshev_interp_1d, s_B);
-  __syncthreads();
 
   SharedData_Hip data;
   data.t_id_x = threadIdx.x;
@@ -41,6 +36,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP];
+
+  // load chebyshev_interp_1d into shared memory
+  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
+  LoadMatrix<BASIS_P_1D, BASIS_Q_1D>(data, c_B, s_B);
+  __syncthreads();
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
@@ -77,14 +77,9 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 }
 
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
-    void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalar *d_chebyshev_interp_1d, const CeedInt *points_per_elem,
-                                 const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+    void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalar *c_B, const CeedInt *points_per_elem, const CeedScalar *__restrict__ d_X,
+                                 const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
-
-  // load chebyshev_interp_1d into shared memory
-  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
-  loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_chebyshev_interp_1d, s_B);
-  __syncthreads();
 
   SharedData_Hip data;
   data.t_id_x = threadIdx.x;
@@ -97,6 +92,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
+
+  // load chebyshev_interp_1d into shared memory
+  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
+  LoadMatrix<BASIS_P_1D, BASIS_Q_1D>(data, c_B, s_B);
+  __syncthreads();
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
@@ -140,14 +140,9 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 // Grad
 //------------------------------------------------------------------------------
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
-    void GradAtPoints(const CeedInt num_elem, const CeedScalar *d_chebyshev_interp_1d, const CeedInt *points_per_elem,
-                      const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+    void GradAtPoints(const CeedInt num_elem, const CeedScalar *c_B, const CeedInt *points_per_elem, const CeedScalar *__restrict__ d_X,
+                      const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
-
-  // load chebyshev_interp_1d into shared memory
-  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
-  loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_chebyshev_interp_1d, s_B);
-  __syncthreads();
 
   SharedData_Hip data;
   data.t_id_x = threadIdx.x;
@@ -160,6 +155,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * BASIS_DIM];
+
+  // load chebyshev_interp_1d into shared memory
+  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
+  LoadMatrix<BASIS_P_1D, BASIS_Q_1D>(data, c_B, s_B);
+  __syncthreads();
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
@@ -196,14 +196,9 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 }
 
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
-    void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalar *d_chebyshev_interp_1d, const CeedInt *points_per_elem,
-                               const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+    void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalar *c_B, const CeedInt *points_per_elem, const CeedScalar *__restrict__ d_X,
+                               const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
-
-  // load chebyshev_interp_1d into shared memory
-  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
-  loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_chebyshev_interp_1d, s_B);
-  __syncthreads();
 
   SharedData_Hip data;
   data.t_id_x = threadIdx.x;
@@ -216,6 +211,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_C[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
+
+  // load chebyshev_interp_1d into shared memory
+  __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
+  LoadMatrix<BASIS_P_1D, BASIS_Q_1D>(data, c_B, s_B);
+  __syncthreads();
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {

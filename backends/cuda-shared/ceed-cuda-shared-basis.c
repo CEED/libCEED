@@ -19,13 +19,6 @@
 #include "ceed-cuda-shared.h"
 
 //------------------------------------------------------------------------------
-// Device initalization
-//------------------------------------------------------------------------------
-int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B);
-int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
-int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
-
-//------------------------------------------------------------------------------
 // Apply tensor basis
 //------------------------------------------------------------------------------
 static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add, const CeedInt num_elem, CeedTransposeMode t_mode,
@@ -58,8 +51,7 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_interp_1d, P_1d, Q_1d, &data->c_B));
-      void *interp_args[] = {(void *)&num_elem, &data->c_B, &d_u, &d_v};
+      void *interp_args[] = {(void *)&num_elem, &data->d_interp_1d, &d_u, &d_v};
 
       if (dim == 1) {
         // avoid >512 total threads
@@ -104,14 +96,14 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
 
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-      CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+      CeedInt     thread_1d = CeedIntMax(Q_1d, P_1d);
+      CeedScalar *d_grad_1d = data->d_grad_1d;
 
       if (data->d_collo_grad_1d) {
-        CeedCallBackend(CeedInit_CudaCollocatedGrad(data->d_interp_1d, data->d_collo_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
-      } else {
-        CeedCallBackend(CeedInit_CudaGrad(data->d_interp_1d, data->d_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
+        d_grad_1d = data->d_collo_grad_1d;
       }
-      void *grad_args[] = {(void *)&num_elem, &data->c_B, &data->c_G, &d_u, &d_v};
+      void *grad_args[] = {(void *)&num_elem, &data->d_interp_1d, &d_grad_1d, &d_u, &d_v};
+
       if (dim == 1) {
         // avoid >512 total threads
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d, 1));
@@ -328,8 +320,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_chebyshev_interp_1d, P_1d, Q_1d, &data->c_B));
-      void *interp_args[] = {(void *)&num_elem, &data->c_B, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      void *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
 
       if (dim == 1) {
         // avoid >512 total threads
@@ -364,7 +355,6 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_chebyshev_interp_1d, P_1d, Q_1d, &data->c_B));
       void *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
 
       if (dim == 1) {
@@ -456,8 +446,7 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread = CeedIntMax(Q, P);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_interp_1d, P, Q, &data->c_B));
-      void *interp_args[] = {(void *)&num_elem, &data->c_B, &d_u, &d_v};
+      void *interp_args[] = {(void *)&num_elem, &data->d_interp_1d, &d_u, &d_v};
 
       {
         // avoid >512 total threads
@@ -480,8 +469,7 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread = CeedIntMax(Q, P);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_grad_1d, P, Q * dim, &data->c_G));
-      void *grad_args[] = {(void *)&num_elem, &data->c_G, &d_u, &d_v};
+      void *grad_args[] = {(void *)&num_elem, &data->d_grad_1d, &d_u, &d_v};
 
       {
         // avoid >512 total threads
@@ -641,6 +629,10 @@ int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim, CeedInt nu
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
+
+  // Check max sizes
+  CeedCheck(dim <= 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with dim > 3");
+  CeedCheck(num_nodes * num_qpts * dim < 52 * 52 * 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with P * Q this large");
 
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));

@@ -170,6 +170,7 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         d_grad_1d = data->d_collo_grad_1d;
       }
       void *grad_args[] = {(void *)&num_elem, &data->d_interp_1d, &d_grad_1d, &d_u, &d_v};
+
       if (dim == 1) {
         CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
         elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;

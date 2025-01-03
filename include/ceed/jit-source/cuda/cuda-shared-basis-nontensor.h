@@ -28,9 +28,15 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *c_B,
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
 
+  // load interp into shared memory
+  __shared__ CeedScalar s_B[BASIS_P * BASIS_Q];
+  LoadMatrix<BASIS_P, BASIS_Q>(data, c_B, s_B);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
-    InterpNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, c_B, r_V);
+    InterpNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
   }
 }
@@ -49,9 +55,15 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedSca
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
 
+  // load interp into shared memory
+  __shared__ CeedScalar s_B[BASIS_P * BASIS_Q];
+  LoadMatrix<BASIS_P, BASIS_Q>(data, c_B, s_B);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, c_B, r_V);
+    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -70,9 +82,15 @@ extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const Ceed
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
 
+  // load interp into shared memory
+  __shared__ CeedScalar s_B[BASIS_P * BASIS_Q];
+  LoadMatrix<BASIS_P, BASIS_Q>(data, c_B, s_B);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, c_B, r_V);
+    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
     SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -93,9 +111,15 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_G, c
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP * BASIS_DIM];
 
+  // load grad into shared memory
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
-    GradNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, c_G, r_V);
+    GradNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
   }
 }
@@ -114,9 +138,15 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScala
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_V[BASIS_NUM_COMP];
 
+  // load grad into shared memory
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, c_G, r_V);
+    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -135,9 +165,15 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_V[BASIS_NUM_COMP];
 
+  // load grad into shared memory
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
+  __syncthreads();
+
+  // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, c_G, r_V);
+    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
     SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
