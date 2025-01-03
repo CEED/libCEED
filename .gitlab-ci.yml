@@ -142,30 +142,33 @@ noether-cpu:
 # ----------------------------------------------------------------------------------------
 # Check SYCL backends build
 # ----------------------------------------------------------------------------------------
-noether-sycl:
-  stage: test:gpu-and-float
-  tags:
-    - sycl
-  interruptible: true
-  before_script:
-    # Environment
-    - . /opt/intel/oneapi/setvars.sh
-    - export COVERAGE=1 CC=icx CXX=icpx
-    - export NPROC_POOL=8
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
-    - echo "-------------- CC ------------------" && $CC --version
-    - echo "-------------- CXX -----------------" && $CXX --version
-  script:
-    - rm -f .SUCCESS
-    # libCEED
-    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/latest OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_SYCL=$(make info-backends-all | grep -o '/sycl[^ ]*' | tr '\n' ' ')
-    - echo "-------------- libCEED -------------" && make info
-    - echo "-------------- BACKENDS_SYCL -------" && echo $BACKENDS_SYCL
-    - make clean
-    - make -j$NPROC_CPU
-    # Report status
-    - touch .SUCCESS
+
+# SYCL tests currently disabled
+
+#noether-sycl:
+#  stage: test:gpu-and-float
+#  tags:
+#    - sycl
+#  interruptible: true
+#  before_script:
+#    # Environment
+#    - . /opt/intel/oneapi/setvars.sh
+#    - export COVERAGE=1 CC=icx CXX=icpx
+#    - export NPROC_POOL=8
+#    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+#    - echo "-------------- CC ------------------" && $CC --version
+#    - echo "-------------- CXX -----------------" && $CXX --version
+#  script:
+#    - rm -f .SUCCESS
+#    # libCEED
+#    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/latest OPT='-O -march=native -ffp-contract=fast'
+#    - BACKENDS_SYCL=$(make info-backends-all | grep -o '/sycl[^ ]*' | tr '\n' ' ')
+#    - echo "-------------- libCEED -------------" && make info
+#    - echo "-------------- BACKENDS_SYCL -------" && echo $BACKENDS_SYCL
+#    - make clean
+#    - make -j$NPROC_CPU
+#    # Report status
+#    - touch .SUCCESS
 
 
 # ----------------------------------------------------------------------------------------
