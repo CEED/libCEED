@@ -24,6 +24,7 @@
 int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B);
 int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
 int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
+int CeedInit_CudaNonTensor(CeedScalar *d_B, CeedInt dim, CeedInt P, CeedInt Q, CeedScalar **c_B);
 
 //------------------------------------------------------------------------------
 // Apply tensor basis
@@ -456,7 +457,7 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread = CeedIntMax(Q, P);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_interp_1d, P, Q, &data->c_B));
+      CeedCallBackend(CeedInit_CudaNonTensor(data->d_interp_1d, 1, P, Q, &data->c_B));
       void *interp_args[] = {(void *)&num_elem, &data->c_B, &d_u, &d_v};
 
       {
@@ -480,7 +481,7 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread = CeedIntMax(Q, P);
 
-      CeedCallBackend(CeedInit_CudaInterp(data->d_grad_1d, P, Q * dim, &data->c_G));
+      CeedCallBackend(CeedInit_CudaNonTensor(data->d_grad_1d, 3, P, Q * dim, &data->c_G));
       void *grad_args[] = {(void *)&num_elem, &data->c_G, &d_u, &d_v};
 
       {
@@ -640,6 +641,10 @@ int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim, CeedInt nu
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
+
+  // Check max sizes
+  CeedCheck(dim <= 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with dim > 3");
+  CeedCheck(num_nodes * num_qpts * dim < 52 * 52 * 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with P * Q this large");
 
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
