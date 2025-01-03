@@ -8,9 +8,9 @@
 #include <ceed.h>
 #include <cuda.h>
 
-const int               sizeMax = 16;
-__constant__ CeedScalar c_B[sizeMax * sizeMax];
-__constant__ CeedScalar c_G[sizeMax * sizeMax];
+const int               MAX_SIZE = 16;
+__constant__ CeedScalar c_B[MAX_SIZE * MAX_SIZE];
+__constant__ CeedScalar c_G[MAX_SIZE * MAX_SIZE];
 
 //------------------------------------------------------------------------------
 // Interp device initialization
