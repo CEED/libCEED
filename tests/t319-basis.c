@@ -155,24 +155,24 @@ int main(int argc, char **argv) {
     CeedBasis basis_from_nontensor, basis_to_nontensor;
     {
       CeedElemTopology  topo;
-      CeedInt           num_comp, num_nodes, nqpts;
+      CeedInt           num_comp, num_nodes, num_qpts;
       const CeedScalar *interp, *grad;
 
       CeedBasisGetTopology(basis_from, &topo);
       CeedBasisGetNumComponents(basis_from, &num_comp);
       CeedBasisGetNumNodes(basis_from, &num_nodes);
-      CeedBasisGetNumQuadraturePoints(basis_from, &nqpts);
+      CeedBasisGetNumQuadraturePoints(basis_from, &num_qpts);
       CeedBasisGetInterp(basis_from, &interp);
       CeedBasisGetGrad(basis_from, &grad);
-      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, NULL, NULL, &basis_from_nontensor);
+      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, num_qpts, interp, grad, NULL, NULL, &basis_from_nontensor);
 
       CeedBasisGetTopology(basis_to, &topo);
       CeedBasisGetNumComponents(basis_to, &num_comp);
       CeedBasisGetNumNodes(basis_to, &num_nodes);
-      CeedBasisGetNumQuadraturePoints(basis_to, &nqpts);
+      CeedBasisGetNumQuadraturePoints(basis_to, &num_qpts);
       CeedBasisGetInterp(basis_to, &interp);
       CeedBasisGetGrad(basis_to, &grad);
-      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, NULL, NULL, &basis_to_nontensor);
+      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, num_qpts, interp, grad, NULL, NULL, &basis_to_nontensor);
     }
 
     // Test projection on non-tensor bases
