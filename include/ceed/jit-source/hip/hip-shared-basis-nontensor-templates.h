@@ -66,8 +66,7 @@ inline __device__ void InterpTranspose1d(SharedData_Hip &data, const CeedScalar 
 // Derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P, int Q>
-inline __device__ void Grad1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
-                              CeedScalar *__restrict__ r_V) {
+inline __device__ void Grad1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       Contract1d<NUM_COMP, P, Q>(data, &r_U[comp], &c_G[dim * P * Q], &r_V[comp + dim * NUM_COMP]);

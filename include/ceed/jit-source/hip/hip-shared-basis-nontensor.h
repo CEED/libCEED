@@ -9,8 +9,8 @@
 /// Internal header for HIP shared memory non-tensor basis
 #include <ceed/types.h>
 
-#include "hip-shared-basis-read-write-templates.h"
 #include "hip-shared-basis-nontensor-templates.h"
+#include "hip-shared-basis-read-write-templates.h"
 
 //------------------------------------------------------------------------------
 // Interp kernels
@@ -99,8 +99,8 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 //------------------------------------------------------------------------------
 // Grad kernels
 //------------------------------------------------------------------------------
-extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_G,
-                                                                         const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
+    void Grad(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Hip data;
@@ -127,8 +127,7 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__ void Grad(const C
 }
 
 extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
-    void GradTranspose(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U,
-                       CeedScalar *__restrict__ d_V) {
+    void GradTranspose(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Hip data;
