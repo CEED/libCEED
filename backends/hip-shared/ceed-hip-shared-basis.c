@@ -480,6 +480,121 @@ static int CeedBasisApplyAddAtPoints_Hip_shared(CeedBasis basis, const CeedInt n
 }
 
 //------------------------------------------------------------------------------
+// Apply basis
+//------------------------------------------------------------------------------
+static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_add, const CeedInt num_elem, CeedTransposeMode t_mode,
+                                                  CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+  Ceed                  ceed;
+  Ceed_Hip             *ceed_Hip;
+  CeedInt               dim, num_comp;
+  const CeedScalar     *d_u;
+  CeedScalar           *d_v;
+  CeedBasis_Hip_shared *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Hip));
+  CeedCallBackend(CeedBasisGetData(basis, &data));
+  CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+  CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+
+  // Get read/write access to u, v
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+
+  // Apply basis operation
+  switch (eval_mode) {
+    case CEED_EVAL_INTERP: {
+      CeedInt P, Q;
+
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
+      CeedInt thread        = CeedIntMax(Q, P);
+      void   *interp_args[] = {(void *)&num_elem, &data->d_interp_1d, &d_u, &d_v};
+
+      {
+        CeedInt elems_per_block = 64 * thread > 256 ? 256 / thread : 64;
+        elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+        CeedInt shared_mem      = elems_per_block * thread * sizeof(CeedScalar);
+
+        if (t_mode == CEED_TRANSPOSE) {
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread, 1,
+                                                     elems_per_block, shared_mem, interp_args));
+        } else {
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, grid, thread, 1, elems_per_block, shared_mem, interp_args));
+        }
+      }
+    } break;
+    case CEED_EVAL_GRAD: {
+      CeedInt P, Q;
+
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
+      CeedInt thread      = CeedIntMax(Q, P);
+      void   *grad_args[] = {(void *)&num_elem, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
+
+      {
+        CeedInt elems_per_block = 64 * thread > 256 ? 256 / thread : 64;
+        elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;
+        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+        CeedInt shared_mem      = elems_per_block * thread * sizeof(CeedScalar);
+
+        if (t_mode == CEED_TRANSPOSE) {
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread, 1, elems_per_block,
+                                                     shared_mem, grad_args));
+        } else {
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, grid, thread, 1, elems_per_block, shared_mem, grad_args));
+        }
+      }
+    } break;
+    case CEED_EVAL_WEIGHT: {
+      CeedInt Q;
+      CeedInt block_size = data->block_sizes[2];
+
+      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q));
+      void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
+
+      {
+        const CeedInt opt_elems       = block_size / Q;
+        const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
+        const CeedInt grid_size       = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+
+        CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid_size, Q, elems_per_block, 1, weight_args));
+      }
+    } break;
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
+    // LCOV_EXCL_START
+    case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL:
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+      // LCOV_EXCL_STOP
+  }
+
+  // Restore vectors, cover CEED_EVAL_NONE
+  CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedBasisApplyNonTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                       CeedVector v) {
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Hip_shared(basis, false, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedBasisApplyAddNonTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                          CeedVector v) {
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Hip_shared(basis, true, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Destroy basis
 //------------------------------------------------------------------------------
 static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
@@ -566,6 +681,67 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddTensor_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAddAtPoints", CeedBasisApplyAddAtPoints_Hip_shared));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Hip_shared));
+  CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Create non-tensor basis
+//------------------------------------------------------------------------------
+int CeedBasisCreateH1_Hip_shared(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                 const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
+  Ceed                  ceed;
+  CeedInt               num_comp, q_comp_interp, q_comp_grad;
+  const CeedInt         q_bytes = num_qpts * sizeof(CeedScalar);
+  CeedBasis_Hip_shared *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedCalloc(1, &data));
+
+  // Check max sizes
+  CeedCheck(dim <= 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with dim > 3");
+  CeedCheck(num_nodes * num_qpts * dim < 52 * 52 * 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with P * Q this large");
+
+  // Copy basis data to GPU
+  CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
+  CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp_grad));
+  if (q_weight) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight, q_bytes, hipMemcpyHostToDevice));
+  }
+  if (interp) {
+    const CeedInt interp_bytes = q_bytes * num_nodes * q_comp_interp;
+
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_interp_1d, interp_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_interp_1d, interp, interp_bytes, hipMemcpyHostToDevice));
+  }
+  if (grad) {
+    const CeedInt grad_bytes = q_bytes * num_nodes * q_comp_grad;
+
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, grad_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_grad_1d, grad, grad_bytes, hipMemcpyHostToDevice));
+  }
+
+  // Compile basis kernels
+  const char basis_kernel_source[] = "// Non-tensor basis source\n#include <ceed/jit-source/hip/hip-shared-basis-nontensor.h>\n";
+
+  CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "T_1D",
+                                  CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
+
+  CeedCallBackend(CeedBasisSetData(basis, data));
+
+  // Register backend functions
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Hip_shared));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddNonTensor_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Hip_shared));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
