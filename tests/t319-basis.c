@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
   for (CeedInt dim = 1; dim <= 3; dim++) {
     CeedVector x_corners, x_from, x_to, u_from, u_to, du_to;
     CeedBasis  basis_x, basis_from, basis_to, basis_project;
-    CeedInt    p_from = 5, p_to = 6, q = 7, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
+    CeedInt    p_from = 3, p_to = 4, q = 4, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
 
     CeedVectorCreate(ceed, x_dim * dim, &x_corners);
     {
@@ -155,24 +155,24 @@ int main(int argc, char **argv) {
     CeedBasis basis_from_nontensor, basis_to_nontensor;
     {
       CeedElemTopology  topo;
-      CeedInt           num_comp, num_nodes, nqpts;
+      CeedInt           num_comp, num_nodes, num_qpts;
       const CeedScalar *interp, *grad;
 
       CeedBasisGetTopology(basis_from, &topo);
       CeedBasisGetNumComponents(basis_from, &num_comp);
       CeedBasisGetNumNodes(basis_from, &num_nodes);
-      CeedBasisGetNumQuadraturePoints(basis_from, &nqpts);
+      CeedBasisGetNumQuadraturePoints(basis_from, &num_qpts);
       CeedBasisGetInterp(basis_from, &interp);
       CeedBasisGetGrad(basis_from, &grad);
-      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, NULL, NULL, &basis_from_nontensor);
+      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, num_qpts, interp, grad, NULL, NULL, &basis_from_nontensor);
 
       CeedBasisGetTopology(basis_to, &topo);
       CeedBasisGetNumComponents(basis_to, &num_comp);
       CeedBasisGetNumNodes(basis_to, &num_nodes);
-      CeedBasisGetNumQuadraturePoints(basis_to, &nqpts);
+      CeedBasisGetNumQuadraturePoints(basis_to, &num_qpts);
       CeedBasisGetInterp(basis_to, &interp);
       CeedBasisGetGrad(basis_to, &grad);
-      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, NULL, NULL, &basis_to_nontensor);
+      CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, num_qpts, interp, grad, NULL, NULL, &basis_to_nontensor);
     }
 
     // Test projection on non-tensor bases

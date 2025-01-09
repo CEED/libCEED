@@ -12,11 +12,9 @@
 //------------------------------------------------------------------------------
 // Helper function: load matrices for basis actions
 //------------------------------------------------------------------------------
-template <int SIZE>
-inline __device__ void loadMatrix(const CeedScalar *d_B, CeedScalar *B) {
-  CeedInt tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-
-  for (CeedInt i = tid; i < SIZE; i += blockDim.x * blockDim.y * blockDim.z) B[i] = d_B[i];
+template <int P, int Q>
+inline __device__ void LoadMatrix(SharedData_Hip &data, const CeedScalar *__restrict__ d_B, CeedScalar *B) {
+  for (CeedInt i = data.t_id; i < P * Q; i += blockDim.x * blockDim.y * blockDim.z) B[i] = d_B[i];
 }
 
 //------------------------------------------------------------------------------
