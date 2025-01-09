@@ -256,7 +256,7 @@ noether-cuda:
 # ROCm backends
 # ----------------------------------------------------------------------------------------
 
-# ROCm tests currently disabled
+# ROCm test execution currently disabled
 
 #noether-rocm:
 #  stage: test:gpu-and-float
@@ -318,6 +318,42 @@ noether-cuda:
 #    reports:
 #      junit: build/*.junit
 #      performance: performance.json
+
+
+noether-rocm:
+  stage: test:gpu-and-float
+  tags:
+    - rocm
+  interruptible: true
+  before_script:
+    # Environment
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - export NPROC_POOL=4
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- HIPCC ---------------" && $HIPCC --version
+    - echo "-------------- GCOV ----------------" && gcov --version
+    # Libraries for backends
+    # -- MAGMA from dev branch
+    - echo "-------------- MAGMA ---------------"
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
+  script:
+    - rm -f .SUCCESS
+    # libCEED
+    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - make clean
+    - make -j$NPROC_CPU
+    # Clang-tidy
+    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+    - make clean
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+    # Report status
+    - touch .SUCCESS
 
 
 # ----------------------------------------------------------------------------------------
