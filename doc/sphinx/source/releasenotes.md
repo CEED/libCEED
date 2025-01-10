@@ -8,6 +8,16 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+### New features
+
+### Examples
+
+(v0-13)=
+
+## v0.13 (Dec 20, 2024)
+
+### Interface changes
+
 - Add `bool` field type for `CeedQFunctionContext` and related interfaces to use `bool` fields.
 - `CEED_BASIS_COLLOCATED` removed; users should only use `CEED_BASIS_NONE`.
 - Remove unneeded pointer for `CeedElemRestrictionGetELayout`.
