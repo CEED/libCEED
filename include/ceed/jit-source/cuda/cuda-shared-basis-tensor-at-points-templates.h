@@ -74,7 +74,7 @@ inline __device__ void InterpTransposeAtPoints1d(SharedData_Cuda &data, const Ce
     // Contract x direction
     if (p < NUM_POINTS) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        atomicAdd(&data.slice[comp * Q_1D + (i + p) % Q_1D], chebyshev_x[(i + p) % Q_1D] * r_U[comp]);
+        atomicAdd(&data.slice[comp * Q_1D + (i + data.t_id_x) % Q_1D], chebyshev_x[(i + data.t_id_x) % Q_1D] * r_U[comp]);
       }
     }
     // Pull from shared to register
@@ -120,7 +120,7 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Cuda &data, const Ceed
     // Contract x direction
     if (p < NUM_POINTS) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        atomicAdd(&data.slice[comp * Q_1D + (i + p) % Q_1D], chebyshev_x[(i + p) % Q_1D] * r_U[comp]);
+        atomicAdd(&data.slice[comp * Q_1D + (i + data.t_id_x) % Q_1D], chebyshev_x[(i + data.t_id_x) % Q_1D] * r_U[comp]);
       }
     }
     // Pull from shared to register
@@ -186,10 +186,10 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const Ce
     if (p < NUM_POINTS) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         // Note: shifting to avoid atomic adds
-        const CeedInt ii = (i + (p / Q_1D)) % Q_1D;
+        const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
         for (CeedInt j = 0; j < Q_1D; j++) {
-          const CeedInt jj = (j + p) % Q_1D;
+          const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
           atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
@@ -261,10 +261,10 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const Ceed
       if (p < NUM_POINTS) {
         for (CeedInt i = 0; i < Q_1D; i++) {
           // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + (p / Q_1D)) % Q_1D;
+          const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
           for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = (j + p) % Q_1D;
+            const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
             atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
@@ -343,10 +343,10 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const Ce
       if (p < NUM_POINTS) {
         for (CeedInt i = 0; i < Q_1D; i++) {
           // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + (p / Q_1D)) % Q_1D;
+          const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
           for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = ((j + p) % Q_1D);
+            const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
             atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
@@ -430,10 +430,10 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const Ceed
         if (p < NUM_POINTS) {
           for (CeedInt i = 0; i < Q_1D; i++) {
             // Note: shifting to avoid atomic adds
-            const CeedInt ii = (i + (p / Q_1D)) % Q_1D;
+            const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
             for (CeedInt j = 0; j < Q_1D; j++) {
-              const CeedInt jj = ((j + p) % Q_1D);
+              const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
               atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
             }
