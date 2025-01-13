@@ -99,7 +99,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 //------------------------------------------------------------------------------
 // Grad kernels
 //------------------------------------------------------------------------------
-extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
+extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     void Grad(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
@@ -114,8 +114,8 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   CeedScalar r_V[BASIS_NUM_COMP * BASIS_DIM];
 
   // load grad into shared memory
-  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q];
-  LoadMatrix<BASIS_P, BASIS_Q>(data, c_G, s_G);
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
   __syncthreads();
 
   // Apply basis element by element
@@ -126,7 +126,7 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   }
 }
 
-extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
+extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     void GradTranspose(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
@@ -141,8 +141,8 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   CeedScalar r_V[BASIS_NUM_COMP];
 
   // load grad into shared memory
-  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q];
-  LoadMatrix<BASIS_P, BASIS_Q>(data, c_G, s_G);
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
   __syncthreads();
 
   // Apply basis element by element
@@ -153,9 +153,8 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   }
 }
 
-extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
-    void GradTransposeAdd(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U,
-                          CeedScalar *__restrict__ d_V) {
+extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
+    void GradTransposeAdd(const CeedInt num_elem, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Hip data;
@@ -163,14 +162,14 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = &slice[data.t_id_z * T_1D];
+  data.slice  = slice + data.t_id_z * T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_V[BASIS_NUM_COMP];
 
   // load grad into shared memory
-  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q];
-  LoadMatrix<BASIS_P, BASIS_Q>(data, c_G, s_G);
+  __shared__ CeedScalar s_G[BASIS_P * BASIS_Q * BASIS_DIM];
+  LoadMatrix<BASIS_P, BASIS_Q * BASIS_DIM>(data, c_G, s_G);
   __syncthreads();
 
   // Apply basis element by element
@@ -184,8 +183,8 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
 //------------------------------------------------------------------------------
 // Weight kernel
 //------------------------------------------------------------------------------
-extern "C" __launch_bounds__(BASIS_WEIGHT_BLOCK_SIZE) __global__
-    void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *__restrict__ d_W) {
+extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
+    void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight, CeedScalar *__restrict__ d_W) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Hip data;

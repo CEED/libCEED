@@ -44,7 +44,8 @@ inline __device__ void ContractTranspose1d(SharedData_Hip &data, const CeedScala
 // Interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P, int Q>
-inline __device__ void Interp1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void InterpNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                       CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     Contract1d<NUM_COMP, P, Q>(data, &r_U[comp], c_B, &r_V[comp]);
   }
@@ -54,8 +55,8 @@ inline __device__ void Interp1d(SharedData_Hip &data, const CeedScalar *__restri
 // Interpolate transpose
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P, int Q>
-inline __device__ void InterpTranspose1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                         CeedScalar *__restrict__ r_V) {
+inline __device__ void InterpTransposeNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     r_V[comp] = 0.0;
     ContractTranspose1d<NUM_COMP, P, Q>(data, &r_U[comp], c_B, &r_V[comp]);
@@ -65,8 +66,8 @@ inline __device__ void InterpTranspose1d(SharedData_Hip &data, const CeedScalar 
 //------------------------------------------------------------------------------
 // Derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q>
-inline __device__ void Grad1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int DIM, int P, int Q>
+inline __device__ void GradNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       Contract1d<NUM_COMP, P, Q>(data, &r_U[comp], &c_G[dim * P * Q], &r_V[comp + dim * NUM_COMP]);
@@ -77,9 +78,9 @@ inline __device__ void Grad1d(SharedData_Hip &data, const CeedScalar *__restrict
 //------------------------------------------------------------------------------
 // Derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q>
-inline __device__ void GradTranspose1d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
-                                       CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int DIM, int P, int Q>
+inline __device__ void GradTransposeNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                              CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) r_V[comp] = 0.0;
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -92,6 +93,6 @@ inline __device__ void GradTranspose1d(SharedData_Hip &data, const CeedScalar *_
 // Quadrature weights
 //------------------------------------------------------------------------------
 template <int Q>
-inline __device__ void Weight1d(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
-  *w = (data.t_id_x < Q) ? q_weight_1d[data.t_id_x] : 0.0;
+inline __device__ void WeightNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight, CeedScalar *w) {
+  *w = (data.t_id_x < Q) ? q_weight[data.t_id_x] : 0.0;
 }
