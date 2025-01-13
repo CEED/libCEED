@@ -533,7 +533,7 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread      = CeedIntMax(Q, P);
-      void   *grad_args[] = {(void *)&num_elem, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
+      void   *grad_args[] = {(void *)&num_elem, &data->d_grad_1d, &d_u, &d_v};
 
       {
         CeedInt elems_per_block = 64 * thread > 256 ? 256 / thread : 64;
@@ -554,7 +554,7 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
       CeedInt block_size = data->block_sizes[2];
 
       CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
-      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q));
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
 
       {
@@ -723,8 +723,10 @@ int CeedBasisCreateH1_Hip_shared(CeedElemTopology topo, CeedInt dim, CeedInt num
   const char basis_kernel_source[] = "// Non-tensor basis source\n#include <ceed/jit-source/hip/hip-shared-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "T_1D",
-                                  CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(ComputeBasisThreadBlockSizes(dim, num_nodes, num_qpts, num_comp, data->block_sizes));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 6, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "T_1D",
+                                  CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_INTERP_BLOCK_SIZE",
+                                  data->block_sizes[0]));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
