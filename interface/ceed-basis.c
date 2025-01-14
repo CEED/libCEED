@@ -601,6 +601,42 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
 /// @{
 
 /**
+  @brief Fallback to a reference implementation for a non tensor-product basis for \f$H^1\f$ discretizations.
+    This function may only be called inside of a backend `BasisCreateH1` function.
+    This is used by a backend when the specific parameters for a `CeedBasis` exceed the backend's support, such as
+    when a `interp` and `grad` matrices require too many bytes to fit into shared memory on a GPU.
+
+  @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
+  @param[in]  topo      Topology of element, e.g. hypercube, simplex, etc
+  @param[in]  num_comp  Number of field components (1 for scalar fields)
+  @param[in]  num_nodes Total number of nodes
+  @param[in]  num_qpts  Total number of quadrature points
+  @param[in]  interp    Row-major (`num_qpts * num_nodes`) matrix expressing the values of nodal basis functions at quadrature points
+  @param[in]  grad      Row-major (`dim * num_qpts * num_nodes`) matrix expressing derivatives of nodal basis functions at quadrature points
+  @param[in]  q_ref     Array of length `num_qpts * dim` holding the locations of quadrature points on the reference element
+  @param[in]  q_weight  Array of length `num_qpts` holding the quadrature weights on the reference element
+  @param[out] basis     Newly created `CeedBasis`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                              const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
+  CeedInt P = num_nodes, Q = num_qpts, dim = 0;
+  Ceed    delegate;
+
+  CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
+  CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateH1");
+
+  CeedCall(CeedReferenceCopy(delegate, &(basis)->ceed));
+  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
+  CeedCall(delegate->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, basis));
+  CeedCall(CeedDestroy(&delegate));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Return collocated gradient matrix
 
   @param[in]  basis         `CeedBasis`
@@ -1493,7 +1529,7 @@ cleanup:
   @param[in]  num_qpts  Total number of quadrature points
   @param[in]  interp    Row-major (`num_qpts * num_nodes`) matrix expressing the values of nodal basis functions at quadrature points
   @param[in]  grad      Row-major (`dim * num_qpts * num_nodes`) matrix expressing derivatives of nodal basis functions at quadrature points
-  @param[in]  q_ref     Array of length `num_qpts` * dim holding the locations of quadrature points on the reference element
+  @param[in]  q_ref     Array of length `num_qpts * dim` holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length `num_qpts` holding the quadrature weights on the reference element
   @param[out] basis     Address of the variable where the newly created `CeedBasis` will be stored
 

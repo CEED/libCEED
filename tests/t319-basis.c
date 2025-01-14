@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
   for (CeedInt dim = 1; dim <= 3; dim++) {
     CeedVector x_corners, x_from, x_to, u_from, u_to, du_to;
     CeedBasis  basis_x, basis_from, basis_to, basis_project;
-    CeedInt    p_from = 3, p_to = 4, q = 4, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
+    CeedInt    p_from = 4, p_to = 5, q = 6, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
 
     CeedVectorCreate(ceed, x_dim * dim, &x_corners);
     {

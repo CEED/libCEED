@@ -338,6 +338,9 @@ CEED_EXTERN int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space);
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract);
+CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts,
+                                          const CeedScalar *interp, const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights,
+                                          CeedBasis basis);
 
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
