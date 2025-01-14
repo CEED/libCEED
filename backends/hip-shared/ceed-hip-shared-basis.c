@@ -550,19 +550,20 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
       }
     } break;
     case CEED_EVAL_WEIGHT: {
-      CeedInt Q;
-      CeedInt block_size = data->block_sizes[2];
+      CeedInt P, Q;
 
       CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
-      void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
+      CeedInt thread        = CeedIntMax(Q, P);
+      void   *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
 
       {
-        const CeedInt opt_elems       = block_size / Q;
-        const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
-        const CeedInt grid_size       = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+        CeedInt elems_per_block = 64 * thread > 256 ? 256 / thread : 64;
+        elems_per_block         = elems_per_block > 0 ? elems_per_block : 1;
+        const CeedInt grid_size = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
 
-        CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid_size, Q, elems_per_block, 1, weight_args));
+        CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid_size, thread, elems_per_block, 1, weight_args));
       }
     } break;
     case CEED_EVAL_NONE: /* handled separately below */
