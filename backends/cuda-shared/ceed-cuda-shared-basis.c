@@ -486,18 +486,21 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
       }
     } break;
     case CEED_EVAL_WEIGHT: {
-      CeedInt Q;
+      CeedInt P, Q;
 
       CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
+      CeedInt thread = CeedIntMax(Q, P);
+
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
 
       {
         // avoid >512 total threads
-        CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / Q, 1));
+        CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread, 1));
         CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
 
-        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid, Q, elems_per_block, 1, weight_args));
+        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid, thread, elems_per_block, 1, weight_args));
       }
     } break;
     case CEED_EVAL_NONE: /* handled separately below */
