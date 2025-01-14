@@ -628,11 +628,21 @@ int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim, CeedInt nu
   CeedBasis_Cuda_shared *data;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedCalloc(1, &data));
 
-  // Check max sizes
-  CeedCheck(dim <= 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with dim > 3");
-  CeedCheck(num_nodes * num_qpts * dim < 52 * 52 * 3, ceed, CEED_ERROR_BACKEND, "Backend does not implement nontensor bases with P * Q this large");
+  // Check shared memory size
+  {
+    Ceed_Cuda *cuda_data;
+
+    CeedCallBackend(CeedGetData(ceed, &cuda_data));
+    if (((size_t)num_nodes * (size_t)num_qpts * (size_t)dim + (size_t)CeedIntMax(num_nodes, num_qpts)) * sizeof(CeedScalar) >
+        cuda_data->device_prop.sharedMemPerBlock) {
+      CeedCallBackend(CeedBasisCreateH1Fallback(ceed, topo, dim, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
+      CeedCallBackend(CeedDestroy(&ceed));
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
+  CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));

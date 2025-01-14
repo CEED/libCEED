@@ -697,6 +697,19 @@ int CeedBasisCreateH1_Hip_shared(CeedElemTopology topo, CeedInt dim, CeedInt num
   CeedBasis_Hip_shared *data;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+
+  // Check shared memory size
+  {
+    Ceed_Hip *hip_data;
+
+    CeedCallBackend(CeedGetData(ceed, &hip_data));
+    if (((size_t)num_nodes * (size_t)num_qpts * (size_t)dim + (size_t)CeedIntMax(num_nodes, num_qpts)) * sizeof(CeedScalar) >
+        hip_data->device_prop.sharedMemPerBlock) {
+      CeedCallBackend(CeedBasisCreateH1Fallback(ceed, topo, dim, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
