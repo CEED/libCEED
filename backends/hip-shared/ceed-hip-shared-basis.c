@@ -115,6 +115,7 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
       CeedInt P_1d, Q_1d;
       CeedInt block_size = data->block_sizes[0];
 
+      CeedCheck(data->d_interp_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; interp_1d not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d     = CeedIntMax(Q_1d, P_1d);
@@ -161,6 +162,7 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
       CeedInt P_1d, Q_1d;
       CeedInt block_size = data->block_sizes[1];
 
+      CeedCheck(data->d_grad_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; grad_1d not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt     thread_1d = CeedIntMax(Q_1d, P_1d);
@@ -508,6 +510,7 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
     case CEED_EVAL_INTERP: {
       CeedInt P, Q;
 
+      CeedCheck(data->d_interp_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; interp not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread        = CeedIntMax(Q, P);
@@ -530,6 +533,7 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
     case CEED_EVAL_GRAD: {
       CeedInt P, Q;
 
+      CeedCheck(data->d_grad_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; grad not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread      = CeedIntMax(Q, P);
@@ -552,7 +556,7 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
     case CEED_EVAL_WEIGHT: {
       CeedInt P, Q;
 
-      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
+      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &Q));
       CeedInt thread        = CeedIntMax(Q, P);
