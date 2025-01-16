@@ -53,10 +53,15 @@ static inline int CeedSetDeviceGenericArray_Hip(Ceed ceed, const void *source_ar
                                                 void *target_array_owned, void *target_array_borrowed, void *target_array) {
   switch (copy_mode) {
     case CEED_COPY_VALUES:
-      if (!*(void **)target_array_owned) CeedCallHip(ceed, hipMalloc(target_array_owned, size_unit * num_values));
-      if (source_array) CeedCallHip(ceed, hipMemcpy(*(void **)target_array_owned, source_array, size_unit * num_values, hipMemcpyDeviceToDevice));
-      *(void **)target_array_borrowed = NULL;
-      *(void **)target_array          = *(void **)target_array_owned;
+      if (!*(void **)target_array) {
+        if (*(void **)target_array_borrowed) {
+          *(void **)target_array = *(void **)target_array_borrowed;
+        } else {
+          if (!*(void **)target_array_owned) CeedCallHip(ceed, hipMalloc(target_array_owned, size_unit * num_values));
+          *(void **)target_array = *(void **)target_array_owned;
+        }
+      }
+      if (source_array) CeedCallHip(ceed, hipMemcpy(*(void **)target_array, source_array, size_unit * num_values, hipMemcpyDeviceToDevice));
       break;
     case CEED_OWN_POINTER:
       CeedCallHip(ceed, hipFree(*(void **)target_array_owned));

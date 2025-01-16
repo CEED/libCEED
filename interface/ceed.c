@@ -349,10 +349,15 @@ static inline int CeedSetHostGenericArray(const void *source_array, CeedCopyMode
                                           void *target_array_owned, void *target_array_borrowed, void *target_array) {
   switch (copy_mode) {
     case CEED_COPY_VALUES:
-      if (!*(void **)target_array_owned) CeedCall(CeedCallocArray(num_values, size_unit, target_array_owned));
-      if (source_array) memcpy(*(void **)target_array_owned, source_array, size_unit * num_values);
-      *(void **)target_array_borrowed = NULL;
-      *(void **)target_array          = *(void **)target_array_owned;
+      if (!*(void **)target_array) {
+        if (*(void **)target_array_borrowed) {
+          *(void **)target_array = *(void **)target_array_borrowed;
+        } else {
+          if (!*(void **)target_array_owned) CeedCall(CeedCallocArray(num_values, size_unit, target_array_owned));
+          *(void **)target_array = *(void **)target_array_owned;
+        }
+      }
+      if (source_array) memcpy(*(void **)target_array, source_array, size_unit * num_values);
       break;
     case CEED_OWN_POINTER:
       CeedCall(CeedFree(target_array_owned));
