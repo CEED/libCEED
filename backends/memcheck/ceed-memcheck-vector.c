@@ -57,11 +57,13 @@ static int CeedVectorSetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
     VALGRIND_DISCARD(impl->allocated_block_id);
   }
   CeedCallBackend(CeedFree(&impl->array_allocated));
-  if (impl->array_owned) {
-    for (CeedSize i = 0; i < length; i++) impl->array_owned[i] = NAN;
-    VALGRIND_DISCARD(impl->owned_block_id);
+  if (copy_mode != CEED_COPY_VALUES) {
+    if (impl->array_owned) {
+      for (CeedSize i = 0; i < length; i++) impl->array_owned[i] = NAN;
+      VALGRIND_DISCARD(impl->owned_block_id);
+    }
+    CeedCallBackend(CeedFree(&impl->array_owned));
   }
-  CeedCallBackend(CeedFree(&impl->array_owned));
 
   // Clear borrowed block id, if present
   if (impl->array_borrowed) VALGRIND_DISCARD(impl->borrowed_block_id);
@@ -69,8 +71,7 @@ static int CeedVectorSetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
   // Set internal pointers to external arrays
   switch (copy_mode) {
     case CEED_COPY_VALUES:
-      impl->array_owned    = NULL;
-      impl->array_borrowed = NULL;
+      // Nothing to update
       break;
     case CEED_OWN_POINTER:
       impl->array_owned    = array;

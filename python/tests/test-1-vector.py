@@ -359,7 +359,7 @@ def test_126(ceed_resource, capsys):
     a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
-    a2 = np.arange(10, n, dtype=ceed.scalar_type())
+    a2 = np.arange(0, n, dtype=ceed.scalar_type())
     y.set_array(a2, cmode=libceed.USE_POINTER)
 
     y.copy_from(x)
