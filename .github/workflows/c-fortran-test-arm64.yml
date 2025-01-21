@@ -1,0 +1,28 @@
+name: ARM
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04-arm]
+        compiler: [gcc-13, clang]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v4
+    - name: Build and test libCEED
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-13
+      run: |
+        make info
+        make -j2
+        PROVE_OPTS=-v make prove -j2
