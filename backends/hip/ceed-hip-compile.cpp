@@ -57,8 +57,8 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   // With ROCm 4.5, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
   else {
     code << "#include <stddef.h>\n";
-    code << "#define __forceinline__ inline __attribute__((always_inline))\n";
-    code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
+    // code << "#define __forceinline__ inline __attribute__((always_inline))\n";
+    // code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
   }
 
   // Kernel specific options, such as kernel constants
@@ -185,7 +185,11 @@ int CeedGetKernel_Hip(Ceed ceed, hipModule_t module, const char *name, hipFuncti
 // Run HIP kernel
 //------------------------------------------------------------------------------
 int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size, void **args) {
+  Ceed_Hip *data;
+
+  CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size, 1, 1, 0, NULL, args, NULL));
+  if (data->has_unified_addressing) CeedCallHip(ceed, hipDeviceSynchronize());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -194,7 +198,11 @@ int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, cons
 //------------------------------------------------------------------------------
 int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y, const int block_size_z,
                          void **args) {
+  Ceed_Hip *data;
+
+  CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, 0, NULL, args, NULL));
+  if (data->has_unified_addressing) CeedCallHip(ceed, hipDeviceSynchronize());
   return CEED_ERROR_SUCCESS;
 }
 

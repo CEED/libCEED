@@ -107,6 +107,7 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
   const CeedScalar *d_x, *d_u;
   CeedScalar       *d_v;
   CeedBasis_Hip    *data;
+  Ceed_Hip         *hip_data;
 
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
@@ -119,6 +120,7 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
   }
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &hip_data));
 
   // Check padded to uniform number of points per elem
   for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
