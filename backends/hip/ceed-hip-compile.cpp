@@ -57,8 +57,8 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   // With ROCm 4.5, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
   else {
     code << "#include <stddef.h>\n";
-    // code << "#define __forceinline__ inline __attribute__((always_inline))\n";
-    // code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
+    code << "#define __forceinline__ inline __attribute__((always_inline))\n";
+    code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
   }
 
   // Kernel specific options, such as kernel constants
