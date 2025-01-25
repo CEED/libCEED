@@ -588,9 +588,10 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #endif
       CeedCallHip(ceed, hipDeviceSynchronize());
       if (hip_data->has_unified_addressing) {
-        *norm = d_array[index - 1];
+        *norm = fabs(d_array[index - 1]);
       } else {
         CeedCallHip(ceed, hipMemcpy(norm, d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        *norm = fabs(*norm);
       }
       break;
     }
