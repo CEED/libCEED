@@ -11,6 +11,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
@@ -98,7 +99,7 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                    is_at_points;
+  bool                    is_at_points, is_tensor;
   Ceed                    ceed;
   Ceed_Cuda              *cuda_data;
   CeedInt                 num_elem, num_input_fields, num_output_fields;
@@ -110,16 +111,62 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedOperatorField      *op_input_fields, *op_output_fields;
   CeedOperator_Cuda_gen  *data;
 
-  // Check for tensor-product bases
+  // Check for shared bases
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   {
-    bool has_tensor_bases;
+    bool has_shared_bases = true, is_all_tensor = true, is_all_nontensor = true;
 
-    CeedCallBackend(CeedOperatorHasTensorBases(op, &has_tensor_bases));
-    // -- Fallback to ref if not all bases are tensor-product
-    if (!has_tensor_bases) {
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor    &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/cuda/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor    &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/cuda/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+    // -- Fallback to ref if not all bases are shared
+    if (!has_shared_bases || (!is_all_tensor && !is_all_nontensor)) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to non-tensor bases");
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to large non-tensor bases");
       CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;
@@ -132,7 +179,6 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // Creation of the operator
@@ -232,8 +278,9 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
   int           max_threads_per_block, min_grid_size, grid;
 
+  CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] = {thread_1d, dim < 2 ? 1 : thread_1d, -1};
+  int block[3] = {thread_1d, ((!is_tensor || dim == 1) ? 1 : thread_1d), -1};
 
   CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
                                      cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
