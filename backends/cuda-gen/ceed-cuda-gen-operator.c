@@ -127,7 +127,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
         Ceed        basis_ceed;
 
         CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor    &= is_tensor;
+        is_all_tensor &= is_tensor;
         is_all_nontensor &= !is_tensor;
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
@@ -150,7 +150,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
         Ceed        basis_ceed;
 
         CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor    &= is_tensor;
+        is_all_tensor &= is_tensor;
         is_all_nontensor &= !is_tensor;
 
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
@@ -166,7 +166,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
     if (!has_shared_bases || (!is_all_tensor && !is_all_nontensor)) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to large non-tensor bases");
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due unsupported bases");
       CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;

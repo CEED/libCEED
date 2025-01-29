@@ -45,7 +45,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
       // Collect dim, P_1d, and Q_1d
       CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
-      *is_tensor          = *is_tensor && is_field_tensor;
+      *is_tensor = *is_tensor && is_field_tensor;
       if (is_field_tensor) CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
       else CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P_1d));
       *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
@@ -69,7 +69,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
       // Collect dim, P_1d, and Q_1d
       CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
-      *is_tensor          = *is_tensor && is_field_tensor;
+      *is_tensor = *is_tensor && is_field_tensor;
       if (is_field_tensor) CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
       else CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P_1d));
       *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
@@ -1040,7 +1040,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   code << "// d_[in,out]_i:   CeedVector device array\n";
   code << "// r_[in,out]_e_i: Element vector register\n";
   code << "// r_[in,out]_q_i: Quadrature space vector register\n";
-  code << "// r_[in,out]_c_i: AtPoints Chebyshev coefficents register\n";
+  code << "// r_[in,out]_c_i: AtPoints Chebyshev coefficients register\n";
   code << "// r_[in,out]_s_i: Quadrature space slice vector register\n";
   code << "// \n";
   code << "// s_B_[in,out]_i: Interpolation matrix, shared memory\n";

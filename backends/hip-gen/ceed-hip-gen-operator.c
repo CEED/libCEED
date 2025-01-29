@@ -35,7 +35,7 @@ static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                   is_at_points;
+  bool                   is_at_points, is_tensor;
   Ceed                   ceed;
   CeedInt                num_elem, num_input_fields, num_output_fields;
   CeedEvalMode           eval_mode;
@@ -46,16 +46,62 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedOperatorField     *op_input_fields, *op_output_fields;
   CeedOperator_Hip_gen  *data;
 
-  // Check for tensor-product bases
+  // Check for shared bases
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   {
-    bool has_tensor_bases;
+    bool has_shared_bases = true, is_all_tensor = true, is_all_nontensor = true;
 
-    CeedCallBackend(CeedOperatorHasTensorBases(op, &has_tensor_bases));
-    // -- Fallback to ref if not all bases are tensor-product
-    if (!has_tensor_bases) {
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+    // -- Fallback to ref if not all bases are shared
+    if (!has_shared_bases || (!is_all_tensor && !is_all_nontensor)) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to non-tensor bases");
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to unsupported bases");
       CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;
@@ -67,7 +113,6 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // Creation of the operator
@@ -160,8 +205,9 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
   CeedInt       block_sizes[3];
 
-  CeedCallBackend(BlockGridCalculate_Hip_gen(dim, num_elem, P_1d, Q_1d, block_sizes));
-  if (dim == 1) {
+  CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
+  CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, P_1d, Q_1d, block_sizes));
+  if (dim == 1 || !is_tensor) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * sizeof(CeedScalar);
 

@@ -131,7 +131,7 @@ static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op, bool i
     // Input CEED_VECTOR_ACTIVE
     // Output CEED_VECTOR_ACTIVE without CEED_EVAL_NONE
     // Input CEED_VECTOR_NONE with CEED_EVAL_WEIGHT
-    // Input passive vectorr with CEED_EVAL_NONE and strided restriction with CEED_STRIDES_BACKEND
+    // Input passive vector with CEED_EVAL_NONE and strided restriction with CEED_STRIDES_BACKEND
     CeedCallBackend(CeedOperatorFieldGetVector(op_fields[i], &l_vec));
     is_active = l_vec == CEED_VECTOR_ACTIVE;
     CeedCallBackend(CeedVectorDestroy(&l_vec));
