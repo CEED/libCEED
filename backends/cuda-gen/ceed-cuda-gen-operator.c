@@ -282,8 +282,15 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
   int block[3] = {thread_1d, ((!is_tensor || dim == 1) ? 1 : thread_1d), -1};
 
-  CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
-                                     cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
+  if (is_tensor) {
+    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
+                                       cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
+  } else {
+    CeedInt elems_per_block = CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d, 1));
+
+    grid     = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+    block[2] = elems_per_block;
+  }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
 
   CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, opargs));

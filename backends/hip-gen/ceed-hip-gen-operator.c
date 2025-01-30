@@ -203,10 +203,18 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   const CeedInt Q_1d      = data->Q_1d;
   const CeedInt P_1d      = data->max_P_1d;
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-  CeedInt       block_sizes[3];
 
   CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
-  CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, P_1d, Q_1d, block_sizes));
+  CeedInt block_sizes[3] = {thread_1d, ((!is_tensor || dim == 1) ? 1 : thread_1d), -1};
+
+  if (is_tensor) {
+    CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, P_1d, Q_1d, block_sizes));
+  } else {
+    CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
+
+    elems_per_block = elems_per_block > 0 ? elems_per_block : 1;
+    block_sizes[2]  = elems_per_block;
+  }
   if (dim == 1 || !is_tensor) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * sizeof(CeedScalar);
