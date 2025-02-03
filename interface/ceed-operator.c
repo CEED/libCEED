@@ -1719,8 +1719,9 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
     CeedQFunctionField *qf_input_fields, *qf_output_fields;
     CeedOperatorField  *op_input_fields, *op_output_fields;
 
-    CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
+    CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
     if (is_at_points) {
       CeedMemType         mem_type;
       CeedElemRestriction rstr_points = NULL;
