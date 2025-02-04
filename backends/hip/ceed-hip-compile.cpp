@@ -189,7 +189,6 @@ int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, cons
 
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size, 1, 1, 0, NULL, args, NULL));
-  if (data->has_unified_addressing) CeedCallHip(ceed, hipDeviceSynchronize());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -202,7 +201,6 @@ int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, c
 
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, 0, NULL, args, NULL));
-  if (data->has_unified_addressing) CeedCallHip(ceed, hipDeviceSynchronize());
   return CEED_ERROR_SUCCESS;
 }
 
