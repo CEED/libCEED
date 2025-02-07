@@ -7,4 +7,4 @@
 #pragma once
 
 CEED_INTERN int BlockGridCalculate_Hip_gen(CeedInt dim, CeedInt num_elem, CeedInt P_1d, CeedInt Q_1d, CeedInt *block_sizes);
-CEED_INTERN int CeedOperatorBuildKernel_Hip_gen(CeedOperator op);
+CEED_INTERN int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_build);
