@@ -99,7 +99,7 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                    is_at_points, is_tensor, is_good_run = true;
+  bool                    is_at_points, is_tensor, is_run_good = true;
   Ceed                    ceed;
   Ceed_Cuda              *cuda_data;
   CeedInt                 num_elem, num_input_fields, num_output_fields;
@@ -244,7 +244,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
 
-  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, &is_good_run, opargs));
+  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, &is_run_good, opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -306,7 +306,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedQFunctionDestroy(&qf));
 
   // Fallback if run was bad (out of resources)
-  if (!is_good_run) {
+  if (!is_run_good) {
     CeedOperator op_fallback;
 
     data->use_fallback = true;

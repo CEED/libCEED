@@ -937,9 +937,9 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       return CEED_ERROR_SUCCESS;
     }
   }
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
   // Check field compatibility
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   {
     bool has_shared_bases = true, is_all_tensor = true, is_all_nontensor = true;
 

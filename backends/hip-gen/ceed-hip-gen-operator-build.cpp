@@ -942,7 +942,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
 //------------------------------------------------------------------------------
 // Build single operator kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
+extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_build) {
   bool                   is_tensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                   ceed;
   CeedInt                Q_1d, num_input_fields, num_output_fields, dim = 1, max_num_points = 0, coords_comp_stride = 0;
@@ -953,18 +953,77 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   CeedOperator_Hip_gen  *data;
   std::ostringstream     code;
 
+  CeedCallBackend(CeedOperatorGetData(op, &data));
   {
     bool is_setup_done;
 
     CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
-    if (is_setup_done) return CEED_ERROR_SUCCESS;
+    if (is_setup_done) {
+      *is_good_build = !data->use_fallback;
+      return CEED_ERROR_SUCCESS;
+    }
   }
 
+  // Check field compatibility
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  {
+    bool has_shared_bases = true, is_all_tensor = true, is_all_nontensor = true;
+
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedBasis basis;
+
+      CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
+      if (basis != CEED_BASIS_NONE) {
+        bool        is_tensor = true;
+        const char *resource;
+        char       *resource_root;
+        Ceed        basis_ceed;
+
+        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+        is_all_tensor &= is_tensor;
+        is_all_nontensor &= !is_tensor;
+
+        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
+        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
+        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
+        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        CeedCallBackend(CeedFree(&resource_root));
+        CeedCallBackend(CeedDestroy(&basis_ceed));
+      }
+      CeedCallBackend(CeedBasisDestroy(&basis));
+    }
+    // -- Fallback to ref if not all bases are shared
+    if (!has_shared_bases || (!is_all_tensor && !is_all_nontensor)) {
+      *is_good_build = false;
+      return CEED_ERROR_SUCCESS;
+    }
+  }
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // Get operator data
@@ -1225,9 +1284,19 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, data->max_P_1d, Q_1d, block_sizes));
-  CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
-                                  block_sizes[0] * block_sizes[1] * block_sizes[2]));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
+  {
+    bool is_compile_good = false;
+
+    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
+                                       block_sizes[0] * block_sizes[1] * block_sizes[2]));
+    if (is_compile_good) {
+      *is_good_build = true;
+      CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
+    } else {
+      *is_good_build     = false;
+      data->use_fallback = true;
+    }
+  }
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedQFunctionDestroy(&qf));

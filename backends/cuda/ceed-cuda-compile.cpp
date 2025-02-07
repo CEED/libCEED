@@ -132,16 +132,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   }
   CeedCallBackend(CeedFree(&opts));
   *is_compile_good = result == NVRTC_SUCCESS;
-  if (!*is_compile_good) {
+  if (!*is_compile_good && throw_error) {
     char  *log;
     size_t log_size;
 
-    if (throw_error) {
-      CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
-      CeedCallBackend(CeedMalloc(log_size, &log));
-      CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
-      return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
-    }
+    CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
+    CeedCallBackend(CeedMalloc(log_size, &log));
+    CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
+    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
   }
 
 #if CUDA_VERSION >= 11010

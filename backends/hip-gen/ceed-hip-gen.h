@@ -12,6 +12,7 @@
 #include <hip/hip_runtime.h>
 
 typedef struct {
+  bool          use_fallback;
   CeedInt       dim;
   CeedInt       Q_1d;
   CeedInt       max_P_1d;
