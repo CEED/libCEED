@@ -34,7 +34,8 @@
 //------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
-int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
+static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, CUmodule *module,
+                                const CeedInt num_defines, va_list args) {
   size_t                ptx_size;
   char                 *ptx;
   const int             num_opts            = 4;
@@ -50,8 +51,6 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
-    va_list args;
-    va_start(args, num_defines);
     char *name;
     int   val;
 
@@ -60,7 +59,6 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
       val  = va_arg(args, int);
       code << "#define " << name << " " << val << "\n";
     }
-    va_end(args);
   }
 
   // Standard libCEED definitions for CUDA backends
@@ -133,14 +131,17 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
     CeedCallBackend(CeedFree(&opts[num_opts + num_jit_source_dirs + i]));
   }
   CeedCallBackend(CeedFree(&opts));
-  if (result != NVRTC_SUCCESS) {
+  *is_compile_good = result == NVRTC_SUCCESS;
+  if (!*is_compile_good) {
     char  *log;
     size_t log_size;
 
-    CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
-    CeedCallBackend(CeedMalloc(log_size, &log));
-    CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
-    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
+    if (throw_error) {
+      CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
+      CeedCallBackend(CeedMalloc(log_size, &log));
+      CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
+    }
   }
 
 #if CUDA_VERSION >= 11010
@@ -156,6 +157,25 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
 
   CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
   CeedCallBackend(CeedFree(&ptx));
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
+  bool    is_compile_good = true;
+  va_list args;
+
+  va_start(args, num_defines);
+  CeedCallBackend(CeedCompileCore_Cuda(ceed, source, true, &is_compile_good, module, num_defines, args));
+  va_end(args);
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CUmodule *module, const CeedInt num_defines, ...) {
+  va_list args;
+
+  va_start(args, num_defines);
+  CeedCallBackend(CeedCompileCore_Cuda(ceed, source, false, is_compile_good, module, num_defines, args));
+  va_end(args);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -200,23 +220,43 @@ int CeedRunKernelDim_Cuda(Ceed ceed, CUfunction kernel, const int grid_size, con
 //------------------------------------------------------------------------------
 // Run CUDA kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
-int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                const int block_size_z, const int shared_mem_size, void **args) {
+static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                                           const int block_size_z, const int shared_mem_size, const bool throw_error, bool *is_good_run,
+                                           void **args) {
 #if CUDA_VERSION >= 9000
   cuFuncSetAttribute(kernel, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, shared_mem_size);
 #endif
   CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL);
 
   if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
-    int max_threads_per_block, shared_size_bytes, num_regs;
+    *is_good_run = false;
+    if (throw_error) {
+      int max_threads_per_block, shared_size_bytes, num_regs;
 
-    cuFuncGetAttribute(&max_threads_per_block, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
-    cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, kernel);
-    cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
-                     max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
+      cuFuncGetAttribute(&max_threads_per_block, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
+      cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, kernel);
+      cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
+      return CeedError(ceed, CEED_ERROR_BACKEND,
+                       "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
+                       max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
+    }
   } else CeedChk_Cu(ceed, result);
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                                const int block_size_z, const int shared_mem_size, void **args) {
+  bool is_good_run = true;
+
+  CeedCallBackend(
+      CeedRunKernelDimSharedCore_Cuda(ceed, kernel, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, true, &is_good_run, args));
+  return CEED_ERROR_SUCCESS;
+}
+
+int CeedTryRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                                   const int block_size_z, const int shared_mem_size, bool *is_good_run, void **args) {
+  CeedCallBackend(
+      CeedRunKernelDimSharedCore_Cuda(ceed, kernel, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, false, is_good_run, args));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -6,4 +6,4 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op);
+CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_build);

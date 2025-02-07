@@ -99,7 +99,7 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                    is_at_points, is_tensor;
+  bool                    is_at_points, is_tensor, is_good_run = true;
   Ceed                    ceed;
   Ceed_Cuda              *cuda_data;
   CeedInt                 num_elem, num_input_fields, num_output_fields;
@@ -111,62 +111,15 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedOperatorField      *op_input_fields, *op_output_fields;
   CeedOperator_Cuda_gen  *data;
 
-  // Check for shared bases
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  // Creation of the operator
   {
-    bool has_shared_bases = true, is_all_tensor = true, is_all_nontensor = true;
+    bool is_good_build = false;
 
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedBasis basis;
-
-      CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-      if (basis != CEED_BASIS_NONE) {
-        bool        is_tensor = true;
-        const char *resource;
-        char       *resource_root;
-        Ceed        basis_ceed;
-
-        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor &= is_tensor;
-        is_all_nontensor &= !is_tensor;
-        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
-        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
-        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases &= !strcmp(resource_root, "/gpu/cuda/shared");
-        CeedCallBackend(CeedFree(&resource_root));
-        CeedCallBackend(CeedDestroy(&basis_ceed));
-      }
-      CeedCallBackend(CeedBasisDestroy(&basis));
-    }
-
-    for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedBasis basis;
-
-      CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-      if (basis != CEED_BASIS_NONE) {
-        bool        is_tensor = true;
-        const char *resource;
-        char       *resource_root;
-        Ceed        basis_ceed;
-
-        CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor &= is_tensor;
-        is_all_nontensor &= !is_tensor;
-
-        CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
-        CeedCallBackend(CeedGetResource(basis_ceed, &resource));
-        CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases &= !strcmp(resource_root, "/gpu/cuda/shared");
-        CeedCallBackend(CeedFree(&resource_root));
-        CeedCallBackend(CeedDestroy(&basis_ceed));
-      }
-      CeedCallBackend(CeedBasisDestroy(&basis));
-    }
-    // -- Fallback to ref if not all bases are shared
-    if (!has_shared_bases || (!is_all_tensor && !is_all_nontensor)) {
+    CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_good_build));
+    if (!is_good_build) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due unsupported bases");
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to code generation issue");
       CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;
@@ -179,10 +132,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-
-  // Creation of the operator
-  CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op));
 
   // Input vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -293,7 +244,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
 
-  CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, opargs));
+  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, &is_good_run, opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -349,8 +300,21 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 
   // Restore context data
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
+
+  // Cleanup
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
+
+  // Fallback if run was bad (out of resources)
+  if (!is_good_run) {
+    CeedOperator op_fallback;
+
+    data->use_fallback = true;
+    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to kernel execution issue");
+    CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+    CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+    return CEED_ERROR_SUCCESS;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
