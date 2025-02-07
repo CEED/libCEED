@@ -980,12 +980,12 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
         Ceed        basis_ceed;
 
         CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor &= is_tensor;
-        is_all_nontensor &= !is_tensor;
+        is_all_tensor    = is_all_tensor && is_tensor;
+        is_all_nontensor = is_all_nontensor && !is_tensor;
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
@@ -1003,13 +1003,13 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
         Ceed        basis_ceed;
 
         CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-        is_all_tensor &= is_tensor;
-        is_all_nontensor &= !is_tensor;
+        is_all_tensor    = is_all_tensor && is_tensor;
+        is_all_nontensor = is_all_nontensor && !is_tensor;
 
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases &= !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
