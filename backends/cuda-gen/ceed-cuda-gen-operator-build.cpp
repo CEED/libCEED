@@ -22,6 +22,12 @@
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-gen.h"
 
+struct FieldReuse_Cuda {
+  CeedInt      index;
+  bool         is_input;
+  CeedEvalMode eval_mode;
+};
+
 //------------------------------------------------------------------------------
 // Determine type of operator
 //------------------------------------------------------------------------------
@@ -127,8 +133,8 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 // Setup fields
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, CeedOperator_Cuda_gen *data, CeedInt i, CeedOperatorField op_field,
-                                                     CeedQFunctionField qf_field, CeedInt field_reuse[3], CeedInt Q_1d, bool is_input, bool is_tensor,
-                                                     bool is_at_points, bool use_3d_slices) {
+                                                     CeedQFunctionField qf_field, FieldReuse_Cuda field_reuse, CeedInt Q_1d, bool is_input,
+                                                     bool is_tensor, bool is_at_points, bool use_3d_slices) {
   std::string            var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string            P_name = (is_tensor ? "P_1d" : "P") + var_suffix, Q_name = is_tensor ? "Q_1d" : "Q";
   std::string            option_name = (is_input ? "inputs" : "outputs");
@@ -139,10 +145,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   CeedBasis              basis;
 
   // Field reuse info
-  bool         use_previous_field = field_reuse[0] != -1;
-  bool         reuse_input        = field_reuse[1];
-  CeedInt      reuse_field        = field_reuse[0];
-  CeedEvalMode reuse_mode         = (CeedEvalMode)field_reuse[2];
+  bool use_previous_field = field_reuse.index != -1;
 
   code << "  // -- " << (is_input ? "Input" : "Output") << " field " << i << "\n";
 
@@ -195,7 +198,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
         else data->B.outputs[i] = basis_data->d_interp_1d;
       }
       if (use_previous_field) {
-        std::string reuse_var = "s_B" + ((reuse_input ? "_in_" : "_out_") + std::to_string(reuse_field));
+        std::string reuse_var = "s_B" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
         code << "  CeedScalar *s_B" << var_suffix << " = " << reuse_var << ";\n";
       } else {
@@ -227,7 +230,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       }
       if (is_tensor) {
         if (use_previous_field) {
-          std::string reuse_var = "s_B" + ((reuse_input ? "_in_" : "_out_") + std::to_string(reuse_field));
+          std::string reuse_var = "s_B" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
           code << "  CeedScalar *s_B" << var_suffix << " = " << reuse_var << ";\n";
         } else {
@@ -239,8 +242,8 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       if (use_3d_slices) {
         if (is_input) data->G.inputs[i] = basis_data->d_collo_grad_1d;
         else data->G.outputs[i] = basis_data->d_collo_grad_1d;
-        if (use_previous_field && reuse_mode == CEED_EVAL_GRAD) {
-          std::string reuse_var = "s_G" + ((reuse_input ? "_in_" : "_out_") + std::to_string(reuse_field));
+        if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+          std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
           code << "  CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
         } else {
@@ -253,8 +256,8 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
         if (is_input) data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         else data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         if (has_collo_grad) {
-          if (use_previous_field && reuse_mode == CEED_EVAL_GRAD) {
-            std::string reuse_var = "s_G" + ((reuse_input ? "_in_" : "_out_") + std::to_string(reuse_field));
+          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+            std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
             code << "  CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
           } else {
@@ -262,8 +265,8 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
             code << "  LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
           }
         } else {
-          if (use_previous_field && reuse_mode == CEED_EVAL_GRAD) {
-            std::string reuse_var = "s_G" + ((reuse_input ? "_in_" : "_out_") + std::to_string(reuse_field));
+          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+            std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
             code << "  CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
           } else {
@@ -991,7 +994,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
         CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
         is_all_tensor    = is_all_tensor && is_tensor;
-        is_all_nontensor = is_all_not_tensor && !is_tensor;
+        is_all_nontensor = is_all_nontensor && !is_tensor;
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
@@ -1175,10 +1178,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   code << "  data.slice = slice + data.t_id_z*T_1D" << ((!is_tensor || dim == 1) ? "" : "*T_1D") << ";\n";
 
   // -- Determine input mat reuse
-  CeedInt input_matrix_reuse[CEED_FIELD_MAX][3];  // field, is_input, eval_mode
+  FieldReuse_Cuda input_matrix_reuse[CEED_FIELD_MAX];
 
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    input_matrix_reuse[i][0] = -1;
+    input_matrix_reuse[i].index = -1;
   }
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedEvalMode eval_mode_i;
@@ -1187,7 +1190,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode_i));
     if (eval_mode_i == CEED_EVAL_WEIGHT) continue;
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis_i));
-    for (CeedInt j = 0; (input_matrix_reuse[i][0] == -1) && (j < i); j++) {
+    for (CeedInt j = 0; (input_matrix_reuse[i].index == -1) && (j < i); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
 
@@ -1196,15 +1199,15 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[j], &basis_j));
       if (basis_i == basis_j) {
         if (is_tensor) {
-          input_matrix_reuse[i][0] = j;
-          input_matrix_reuse[i][1] = true;
-          input_matrix_reuse[i][2] = eval_mode_j;
+          input_matrix_reuse[i].index     = j;
+          input_matrix_reuse[i].is_input  = true;
+          input_matrix_reuse[i].eval_mode = eval_mode_j;
         } else {
           // For non-tensor can only re-use with the same eval mode
           if (eval_mode_i == eval_mode_j) {
-            input_matrix_reuse[i][0] = j;
-            input_matrix_reuse[i][1] = true;
-            input_matrix_reuse[i][2] = eval_mode_j;
+            input_matrix_reuse[i].index     = j;
+            input_matrix_reuse[i].is_input  = true;
+            input_matrix_reuse[i].eval_mode = eval_mode_j;
           }
         }
       }
@@ -1214,10 +1217,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   }
 
   // -- Determine output mat reuse
-  CeedInt output_matrix_reuse[CEED_FIELD_MAX][3];  // field, is_input, eval_mode
+  FieldReuse_Cuda output_matrix_reuse[CEED_FIELD_MAX];
 
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    output_matrix_reuse[i][0] = -1;
+    output_matrix_reuse[i].index = -1;
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedEvalMode eval_mode_i;
@@ -1225,7 +1228,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode_i));
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis_i));
-    for (CeedInt j = 0; (output_matrix_reuse[i][0] == -1) && (j < num_input_fields); j++) {
+    for (CeedInt j = 0; (output_matrix_reuse[i].index == -1) && (j < num_input_fields); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
 
@@ -1234,21 +1237,21 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[j], &basis_j));
       if (basis_i == basis_j) {
         if (is_tensor) {
-          output_matrix_reuse[i][0] = j;
-          output_matrix_reuse[i][1] = true;
-          output_matrix_reuse[i][2] = eval_mode_j;
+          output_matrix_reuse[i].index     = j;
+          output_matrix_reuse[i].is_input  = true;
+          output_matrix_reuse[i].eval_mode = eval_mode_j;
         } else {
           // For non-tensor can only re-use with the same eval mode
           if (eval_mode_i == eval_mode_j) {
-            output_matrix_reuse[i][0] = j;
-            output_matrix_reuse[i][1] = true;
-            output_matrix_reuse[i][2] = eval_mode_j;
+            output_matrix_reuse[i].index     = j;
+            output_matrix_reuse[i].is_input  = true;
+            output_matrix_reuse[i].eval_mode = eval_mode_j;
           }
         }
       }
       CeedCallBackend(CeedBasisDestroy(&basis_j));
     }
-    for (CeedInt j = 0; (output_matrix_reuse[i][0] == -1) && (j < i); j++) {
+    for (CeedInt j = 0; (output_matrix_reuse[i].index == -1) && (j < i); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
 
@@ -1257,15 +1260,15 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[j], &basis_j));
       if (basis_i == basis_j) {
         if (is_tensor) {
-          output_matrix_reuse[i][0] = j;
-          output_matrix_reuse[i][1] = false;
-          output_matrix_reuse[i][2] = eval_mode_j;
+          output_matrix_reuse[i].index     = j;
+          output_matrix_reuse[i].is_input  = false;
+          output_matrix_reuse[i].eval_mode = eval_mode_j;
         } else {
           // For non-tensor can only re-use with the same eval mode
           if (eval_mode_i == eval_mode_j) {
-            output_matrix_reuse[i][0] = j;
-            output_matrix_reuse[i][1] = false;
-            output_matrix_reuse[i][2] = eval_mode_j;
+            output_matrix_reuse[i].index     = j;
+            output_matrix_reuse[i].is_input  = false;
+            output_matrix_reuse[i].eval_mode = eval_mode_j;
           }
         }
       }
