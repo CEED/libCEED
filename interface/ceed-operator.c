@@ -354,7 +354,7 @@ int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Developer
 **/
 static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
   bool is_composite = false;
@@ -417,7 +417,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Developer
 **/
 static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, size_t *num_values,
                                              void *values) {
@@ -484,7 +484,7 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Developer
 **/
 static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
   bool is_composite = false;
@@ -1561,6 +1561,8 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @param[in] is_full Whether to write full operator view or terse
 
   @return Error code: 0 - success, otherwise - failure
+
+  @ref Developer
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   bool has_name = op->name, is_composite, is_at_points;

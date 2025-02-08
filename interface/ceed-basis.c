@@ -292,6 +292,60 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 }
 
 /**
+  @brief Check input vector dimensions for CeedBasisApply[Add]
+
+  @param[in]  basis     `CeedBasis` to evaluate
+  @param[in]  num_elem  The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  t_mode    @ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature points;
+                          @ref CEED_TRANSPOSE to apply the transpose, mapping from quadrature points to nodes
+  @param[in]  eval_mode @ref CEED_EVAL_NONE to use values directly,
+                          @ref CEED_EVAL_INTERP to use interpolated values,
+                          @ref CEED_EVAL_GRAD to use gradients,
+                          @ref CEED_EVAL_DIV to use divergence,
+                          @ref CEED_EVAL_CURL to use curl,
+                          @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  u         Input `CeedVector`
+  @param[out] v         Output `CeedVector`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisApplyCheckDims(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+  CeedInt  dim, num_comp, q_comp, num_nodes, num_qpts;
+  CeedSize u_length = 0, v_length;
+
+  CeedCall(CeedBasisGetDimension(basis, &dim));
+  CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+  CeedCall(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
+  CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
+  CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  CeedCall(CeedVectorGetLength(v, &v_length));
+  if (u) CeedCall(CeedVectorGetLength(u, &u_length));
+
+  // Check vector lengths to prevent out of bounds issues
+  bool has_good_dims = true;
+  switch (eval_mode) {
+    case CEED_EVAL_NONE:
+    case CEED_EVAL_INTERP:
+    case CEED_EVAL_GRAD:
+    case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL:
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_qpts * (CeedSize)q_comp &&
+                        v_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes) ||
+                       (t_mode == CEED_NOTRANSPOSE && v_length >= (CeedSize)num_elem * (CeedSize)num_qpts * (CeedSize)num_comp * (CeedSize)q_comp &&
+                        u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes));
+      break;
+    case CEED_EVAL_WEIGHT:
+      has_good_dims = v_length >= (CeedSize)num_elem * (CeedSize)num_qpts;
+      break;
+  }
+  CeedCheck(has_good_dims, CeedBasisReturnCeed(basis), CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check input vector dimensions for CeedBasisApply[Add]AtPoints
 
   @param[in]  basis      `CeedBasis` to evaluate
@@ -1863,60 +1917,6 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
       CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * Q, P, curl, stream));
     }
   }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Check input vector dimensions for CeedBasisApply[Add]
-
-  @param[in]  basis     `CeedBasis` to evaluate
-  @param[in]  num_elem  The number of elements to apply the basis evaluation to;
-                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
-  @param[in]  t_mode    @ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature points;
-                          @ref CEED_TRANSPOSE to apply the transpose, mapping from quadrature points to nodes
-  @param[in]  eval_mode @ref CEED_EVAL_NONE to use values directly,
-                          @ref CEED_EVAL_INTERP to use interpolated values,
-                          @ref CEED_EVAL_GRAD to use gradients,
-                          @ref CEED_EVAL_DIV to use divergence,
-                          @ref CEED_EVAL_CURL to use curl,
-                          @ref CEED_EVAL_WEIGHT to use quadrature weights
-  @param[in]  u         Input `CeedVector`
-  @param[out] v         Output `CeedVector`
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-static int CeedBasisApplyCheckDims(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
-  CeedInt  dim, num_comp, q_comp, num_nodes, num_qpts;
-  CeedSize u_length = 0, v_length;
-
-  CeedCall(CeedBasisGetDimension(basis, &dim));
-  CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCall(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
-  CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
-  CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
-  CeedCall(CeedVectorGetLength(v, &v_length));
-  if (u) CeedCall(CeedVectorGetLength(u, &u_length));
-
-  // Check vector lengths to prevent out of bounds issues
-  bool has_good_dims = true;
-  switch (eval_mode) {
-    case CEED_EVAL_NONE:
-    case CEED_EVAL_INTERP:
-    case CEED_EVAL_GRAD:
-    case CEED_EVAL_DIV:
-    case CEED_EVAL_CURL:
-      has_good_dims = ((t_mode == CEED_TRANSPOSE && u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_qpts * (CeedSize)q_comp &&
-                        v_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes) ||
-                       (t_mode == CEED_NOTRANSPOSE && v_length >= (CeedSize)num_elem * (CeedSize)num_qpts * (CeedSize)num_comp * (CeedSize)q_comp &&
-                        u_length >= (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes));
-      break;
-    case CEED_EVAL_WEIGHT:
-      has_good_dims = v_length >= (CeedSize)num_elem * (CeedSize)num_qpts;
-      break;
-  }
-  CeedCheck(has_good_dims, CeedBasisReturnCeed(basis), CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
   return CEED_ERROR_SUCCESS;
 }
 
