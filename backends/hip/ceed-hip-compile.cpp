@@ -185,9 +185,6 @@ int CeedGetKernel_Hip(Ceed ceed, hipModule_t module, const char *name, hipFuncti
 // Run HIP kernel
 //------------------------------------------------------------------------------
 int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size, void **args) {
-  Ceed_Hip *data;
-
-  CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size, 1, 1, 0, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
@@ -197,9 +194,6 @@ int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, cons
 //------------------------------------------------------------------------------
 int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y, const int block_size_z,
                          void **args) {
-  Ceed_Hip *data;
-
-  CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, 0, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
