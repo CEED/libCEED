@@ -39,8 +39,11 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
   // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
-  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) {
+    CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  } else {
+    CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  }
 
   // Apply basis operation
   switch (eval_mode) {
@@ -428,8 +431,11 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
   // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
-  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) {
+    CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  } else {
+    CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  }
 
   // Apply basis operation
   switch (eval_mode) {
