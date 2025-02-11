@@ -34,12 +34,12 @@ static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                   is_at_points, is_tensor, is_good_run = true;
+static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
+                                            CeedRequest *request) {
+  bool                   is_at_points, is_tensor;
   Ceed                   ceed;
   CeedInt                num_elem, num_input_fields, num_output_fields;
   CeedEvalMode           eval_mode;
-  CeedVector             output_vecs[CEED_FIELD_MAX] = {NULL};
   CeedQFunctionField    *qf_input_fields, *qf_output_fields;
   CeedQFunction_Hip_gen *qf_data;
   CeedQFunction          qf;
@@ -47,19 +47,8 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedOperator_Hip_gen  *data;
 
   // Creation of the operator
-  {
-    bool is_good_build = false;
-
-    CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_good_build));
-    if (!is_good_build) {
-      CeedOperator op_fallback;
-
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to code generation issue");
-      CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-      CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
-      return CEED_ERROR_SUCCESS;
-    }
-  }
+  CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, is_run_good));
+  if (!(*is_run_good)) return CEED_ERROR_SUCCESS;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &data));
@@ -81,9 +70,9 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) vec = input_vec;
-      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
+      if (is_active) data->fields.inputs[i] = input_arr;
+      else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+      CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -99,23 +88,9 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) vec = output_vec;
-      output_vecs[i] = vec;
-      // Check for multiple output modes
-      CeedInt index = -1;
-
-      for (CeedInt j = 0; j < i; j++) {
-        if (vec == output_vecs[j]) {
-          index = j;
-          break;
-        }
-      }
-      if (index == -1) {
-        CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
-      } else {
-        data->fields.outputs[i] = data->fields.outputs[index];
-      }
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
+      if (is_active) data->fields.outputs[i] = output_arr;
+      else CeedCallBackend(CeedVectorGetArrayWrite(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
+      CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -178,19 +153,19 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
     CeedInt sharedMem = block_sizes[2] * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_good_run, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   } else if (dim == 2) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_good_run, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   } else if (dim == 3) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_good_run, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   }
 
   // Restore input arrays
@@ -203,9 +178,8 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) vec = input_vec;
-      CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]));
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
+      if (!is_active) CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]));
+      CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -219,20 +193,8 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) vec = output_vec;
-      // Check for multiple output modes
-      CeedInt index = -1;
-
-      for (CeedInt j = 0; j < i; j++) {
-        if (vec == output_vecs[j]) {
-          index = j;
-          break;
-        }
-      }
-      if (index == -1) {
-        CeedCallBackend(CeedVectorRestoreArray(vec, &data->fields.outputs[i]));
-      }
-      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
+      if (!is_active) CeedCallBackend(CeedVectorRestoreArray(vec, &data->fields.outputs[i]));
+      CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -251,16 +213,29 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   // Cleanup
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
+  if (!(*is_run_good)) data->use_fallback = true;
+  return CEED_ERROR_SUCCESS;
+}
 
-  // Fallback if run was bad (out of resources)
-  if (!is_good_run) {
+static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
+  bool              is_run_good = false;
+  const CeedScalar *input_arr   = NULL;
+  CeedScalar       *output_arr  = NULL;
+
+  // Try to run kernel
+  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
+  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, input_arr, output_arr, &is_run_good, request));
+  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
+  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+
+  // Fallback on unsuccessful run
+  if (!is_run_good) {
     CeedOperator op_fallback;
 
-    data->use_fallback = true;
-    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator due to kernel execution issue");
+    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
-    return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;
 }
