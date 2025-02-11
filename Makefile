@@ -170,7 +170,7 @@ ifneq ($(CUDA_ARCH),)
 endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
-  HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
+  HIPCCFLAGS += --offload-arch=$(HIP_ARCH)
 endif
 SYCL_FLAG := $(SYCL_FLAG.$(CC_VENDOR))
 SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) $(filter-out $(OMP_SIMD_FLAG),$(OPT))
