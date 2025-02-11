@@ -60,7 +60,7 @@ int main(int argc, const char *argv[]) {
   CeedInt     sol_degree  = 4;               // polynomial degree for the solution
   CeedInt     num_qpts    = sol_degree + 2;  // number of 1D quadrature points
   CeedInt     prob_size   = -1;              // approximate problem size
-  CeedInt     help = 0, test = 0, gallery = 0;
+  CeedInt     help = 0, test = 0, gallery = 0, benchmark = 0;
 
   // Process command line arguments.
   for (int ia = 1; ia < argc; ia++) {
@@ -81,6 +81,8 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? num_qpts = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia], "-s")) {
       parse_error = next_arg ? prob_size = atoi(argv[++ia]), 0 : 1;
+    } else if (!strcmp(argv[ia], "-b")) {
+      parse_error = next_arg ? benchmark = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia], "-t")) {
       test = 1;
     } else if (!strcmp(argv[ia], "-g")) {
@@ -222,6 +224,18 @@ int main(int argc, const char *argv[]) {
 
   // Compute the mesh volume using the mass operator: volume = 1^T \cdot M \cdot 1
   CeedOperatorApply(op_apply, u, v, CEED_REQUEST_IMMEDIATE);
+
+  // Benchmark runs
+  if (!test && benchmark) {
+    // LCOV_EXCL_START
+    printf(" Executing %d benchmarking runs...\n", benchmark);
+    // LCOV_EXCL_STOP
+  }
+  for (CeedInt i = 0; i < benchmark; i++) {
+    // LCOV_EXCL_START
+    CeedOperatorApply(op_apply, u, v, CEED_REQUEST_IMMEDIATE);
+    // LCOV_EXCL_STOP
+  }
 
   // Compute and print the sum of the entries of 'v' giving the mesh volume.
   CeedScalar volume = 0.;
