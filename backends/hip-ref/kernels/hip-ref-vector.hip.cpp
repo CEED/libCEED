@@ -12,10 +12,11 @@
 // Kernel for copy strided on device
 //------------------------------------------------------------------------------
 __global__ static void copyStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize step, CeedSize size, CeedScalar *__restrict__ vec_copy) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  if ((index - start) % step == 0) vec_copy[index] = vec[index];
+  if (index < size) {
+    if ((index - start) % step == 0) vec_copy[index] = vec[index];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -35,10 +36,9 @@ extern "C" int CeedDeviceCopyStrided_Hip(CeedScalar *d_array, CeedSize start, Ce
 // Kernel for set value on device
 //------------------------------------------------------------------------------
 __global__ static void setValueK(CeedScalar *__restrict__ vec, CeedSize size, CeedScalar val) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  vec[index] = val;
+  if (index < size) vec[index] = val;
 }
 
 //------------------------------------------------------------------------------
@@ -58,10 +58,11 @@ extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, Ceed
 // Kernel for set value strided on device
 //------------------------------------------------------------------------------
 __global__ static void setValueStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize step, CeedSize size, CeedScalar val) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  if ((index - start) % step == 0) vec[index] = val;
+  if (index < size) {
+    if ((index - start) % step == 0) vec[index] = val;
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -81,10 +82,11 @@ extern "C" int CeedDeviceSetValueStrided_Hip(CeedScalar *d_array, CeedSize start
 // Kernel for taking reciprocal
 //------------------------------------------------------------------------------
 __global__ static void rcpValueK(CeedScalar *__restrict__ vec, CeedSize size) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  if (fabs(vec[index]) > 1E-16) vec[index] = 1. / vec[index];
+  if (index < size) {
+    if (fabs(vec[index]) > 1E-16) vec[index] = 1. / vec[index];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -104,10 +106,9 @@ extern "C" int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedSize length) {
 // Kernel for scale
 //------------------------------------------------------------------------------
 __global__ static void scaleValueK(CeedScalar *__restrict__ x, CeedScalar alpha, CeedSize size) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  x[index] *= alpha;
+  if (index < size) x[index] *= alpha;
 }
 
 //------------------------------------------------------------------------------
@@ -127,10 +128,9 @@ extern "C" int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSi
 // Kernel for axpy
 //------------------------------------------------------------------------------
 __global__ static void axpyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar *__restrict__ x, CeedSize size) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  y[index] += alpha * x[index];
+  if (index < size) y[index] += alpha * x[index];
 }
 
 //------------------------------------------------------------------------------
@@ -150,11 +150,12 @@ extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedSca
 // Kernel for axpby
 //------------------------------------------------------------------------------
 __global__ static void axpbyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar beta, CeedScalar *__restrict__ x, CeedSize size) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  y[index] = beta * y[index];
-  y[index] += alpha * x[index];
+  if (index < size) {
+    y[index] = beta * y[index];
+    y[index] += alpha * x[index];
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -174,10 +175,9 @@ extern "C" int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedSc
 // Kernel for pointwise mult
 //------------------------------------------------------------------------------
 __global__ static void pointwiseMultValueK(CeedScalar *__restrict__ w, CeedScalar *x, CeedScalar *__restrict__ y, CeedSize size) {
-  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index >= size) return;
-  w[index] = x[index] * y[index];
+  if (index < size) w[index] = x[index] * y[index];
 }
 
 //------------------------------------------------------------------------------
