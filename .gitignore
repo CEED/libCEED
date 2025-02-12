@@ -91,3 +91,10 @@ libCEED.includes
 *.aux
 *.fdb_latexmk
 *.fls
+
+# profiling files
+*.so
+*.so.*
+*.txt
+*.proto
+*.csv
