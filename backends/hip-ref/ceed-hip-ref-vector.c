@@ -349,7 +349,7 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   }
 
   if (impl->d_array) {
-    if (val == 0) {
+    if (!hip_data->has_unified_addressing && val == 0) {
       CeedCallHip(CeedVectorReturnCeed(vec), hipMemset(impl->d_array, 0, length * sizeof(CeedScalar)));
     } else {
       CeedCallBackend(CeedDeviceSetValue_Hip(impl->d_array, length, val));
