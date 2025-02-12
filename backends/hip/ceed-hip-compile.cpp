@@ -159,8 +159,10 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   va_list args;
 
   va_start(args, num_defines);
-  CeedCallBackend(CeedCompileCore_Hip(ceed, source, true, &is_compile_good, module, num_defines, args));
+  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, true, &is_compile_good, module, num_defines, args);
+
   va_end(args);
+  CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -168,8 +170,10 @@ int CeedTryCompile_Hip(Ceed ceed, const char *source, bool *is_compile_good, hip
   va_list args;
 
   va_start(args, num_defines);
-  CeedCallBackend(CeedCompileCore_Hip(ceed, source, false, is_compile_good, module, num_defines, args));
+  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, false, is_compile_good, module, num_defines, args);
+
   va_end(args);
+  CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
