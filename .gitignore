@@ -7,6 +7,7 @@ lib/*
 # General
 *.o
 *.so
+*.so.*
 *.d
 *.DIR
 ceed.pc
@@ -91,3 +92,8 @@ libCEED.includes
 *.aux
 *.fdb_latexmk
 *.fls
+
+# profiling files
+*.txt
+*.proto
+*.csv
