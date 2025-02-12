@@ -253,14 +253,30 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
     CeedScalar *copy_array;
 
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_DEVICE, &copy_array));
+#if (CUDA_VERSION >= 12000)
+    cublasHandle_t handle;
+    Ceed           ceed;
+
+    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+    CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
+#if defined(CEED_SCALAR_IS_FP32)
+    CeedCallCublas(ceed, cublasScopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+#else  /* CEED_SCALAR */
+    CeedCallCublas(ceed, cublasDcopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+#endif /* CEED_SCALAR */
+    CeedCallBackend(CeedDestroy(&ceed));
+#else  /* CUDA_VERSION */
     CeedCallBackend(CeedDeviceCopyStrided_Cuda(impl->d_array, start, step, length, copy_array));
+#endif /* CUDA_VERSION */
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
+    impl->h_array = NULL;
   } else if (impl->h_array) {
     CeedScalar *copy_array;
 
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &copy_array));
     CeedCallBackend(CeedHostCopyStrided_Cuda(impl->h_array, start, step, length, copy_array));
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
+    impl->d_array = NULL;
   } else {
     return CeedError(CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "CeedVector must have valid data set");
   }
@@ -459,9 +475,9 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
 static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *norm) {
   Ceed     ceed;
   CeedSize length;
-#if CUDA_VERSION < 12000
+#if (CUDA_VERSION < 12000)
   CeedSize num_calls;
-#endif
+#endif /* CUDA_VERSION */
   const CeedScalar *d_array;
   CeedVector_Cuda  *impl;
   cublasHandle_t    handle;
@@ -471,142 +487,142 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
 
-#if CUDA_VERSION < 12000
+#if (CUDA_VERSION < 12000)
   // With CUDA 12, we can use the 64-bit integer interface. Prior to that,
   // we need to check if the vector is too long to handle with int32,
   // and if so, divide it into subsections for repeated cuBLAS calls.
   num_calls = length / INT_MAX;
   if (length % INT_MAX > 0) num_calls += 1;
-#endif
+#endif /* CUDA_VERSION */
 
   // Compute norm
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
       *norm = 0.0;
-      if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-#if CUDA_VERSION >= 12000  // We have CUDA 12, and can use 64-bit integers
-        CeedCallCublas(ceed, cublasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
-#else
-        float  sub_norm = 0.0;
-        float *d_array_start;
+#if defined(CEED_SCALAR_IS_FP32)
+#if (CUDA_VERSION >= 12000)  // We have CUDA 12, and can use 64-bit integers
+      CeedCallCublas(ceed, cublasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else  /* CUDA_VERSION */
+      float  sub_norm = 0.0;
+      float *d_array_start;
 
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
-          CeedCallCublas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
-          *norm += sub_norm;
-        }
-#endif
-      } else {
-#if CUDA_VERSION >= 12000
-        CeedCallCublas(ceed, cublasDasum_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
-#else
-        double  sub_norm = 0.0;
-        double *d_array_start;
-
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-
-          CeedCallCublas(ceed, cublasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
-          *norm += sub_norm;
-        }
-#endif
+        CeedCallCublas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        *norm += sub_norm;
       }
+#endif /* CUDA_VERSION */
+#else  /* CEED_SCALAR */
+#if (CUDA_VERSION >= 12000)
+      CeedCallCublas(ceed, cublasDasum_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else  /* CUDA_VERSION */
+      double  sub_norm = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallCublas(ceed, cublasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        *norm += sub_norm;
+      }
+#endif /* CUDA_VERSION */
+#endif /* CEED_SCALAR */
       break;
     }
     case CEED_NORM_2: {
-      if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-#if CUDA_VERSION >= 12000
-        CeedCallCublas(ceed, cublasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
-#else
-        float  sub_norm = 0.0, norm_sum = 0.0;
-        float *d_array_start;
+#if defined(CEED_SCALAR_IS_FP32)
+#if (CUDA_VERSION >= 12000)
+      CeedCallCublas(ceed, cublasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else  /* CUDA_VERSION */
+      float  sub_norm = 0.0, norm_sum = 0.0;
+      float *d_array_start;
 
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
-          CeedCallCublas(ceed, cublasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
-          norm_sum += sub_norm * sub_norm;
-        }
-        *norm = sqrt(norm_sum);
-#endif
-      } else {
-#if CUDA_VERSION >= 12000
-        CeedCallCublas(ceed, cublasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
-#else
-        double  sub_norm = 0.0, norm_sum = 0.0;
-        double *d_array_start;
-
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-
-          CeedCallCublas(ceed, cublasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
-          norm_sum += sub_norm * sub_norm;
-        }
-        *norm = sqrt(norm_sum);
-#endif
+        CeedCallCublas(ceed, cublasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        norm_sum += sub_norm * sub_norm;
       }
+      *norm = sqrt(norm_sum);
+#endif /* CUDA_VERSION */
+#else  /* CEED_SCALAR */
+#if (CUDA_VERSION >= 12000)
+      CeedCallCublas(ceed, cublasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else  /* CUDA_VERSION */
+      double  sub_norm = 0.0, norm_sum = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallCublas(ceed, cublasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        norm_sum += sub_norm * sub_norm;
+      }
+      *norm = sqrt(norm_sum);
+#endif /* CUDA_VERSION */
+#endif /* CEED_SCALAR */
       break;
     }
     case CEED_NORM_MAX: {
-      if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-#if CUDA_VERSION >= 12000
-        int64_t    index;
-        CeedScalar norm_no_abs;
+#if defined(CEED_SCALAR_IS_FP32)
+#if (CUDA_VERSION >= 12000)
+      int64_t    index;
+      CeedScalar norm_no_abs;
 
-        CeedCallCublas(ceed, cublasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &index));
-        CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-        *norm = fabs(norm_no_abs);
-#else
-        CeedInt index;
-        float   sub_max = 0.0, current_max = 0.0;
-        float  *d_array_start;
+      CeedCallCublas(ceed, cublasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &index));
+      CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+      *norm = fabs(norm_no_abs);
+#else  /* CUDA_VERSION */
+      CeedInt index;
+      float   sub_max = 0.0, current_max = 0.0;
+      float  *d_array_start;
 
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
-          CeedCallCublas(ceed, cublasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
-          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
-        }
-        *norm = current_max;
-#endif
-      } else {
-#if CUDA_VERSION >= 12000
-        int64_t    index;
-        CeedScalar norm_no_abs;
-
-        CeedCallCublas(ceed, cublasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
-        CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-        *norm = fabs(norm_no_abs);
-#else
-        CeedInt index;
-        double  sub_max = 0.0, current_max = 0.0;
-        double *d_array_start;
-
-        for (CeedInt i = 0; i < num_calls; i++) {
-          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-
-          CeedCallCublas(ceed, cublasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
-          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
-        }
-        *norm = current_max;
-#endif
+        CeedCallCublas(ceed, cublasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
+        CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
       }
+      *norm = current_max;
+#endif /* CUDA_VERSION */
+#else  /* CEED_SCALAR */
+#if (CUDA_VERSION >= 12000)
+      int64_t    index;
+      CeedScalar norm_no_abs;
+
+      CeedCallCublas(ceed, cublasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
+      CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+      *norm = fabs(norm_no_abs);
+#else  /* CUDA_VERSION */
+      CeedInt index;
+      double  sub_max = 0.0, current_max = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallCublas(ceed, cublasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
+        CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+      }
+      *norm = current_max;
+#endif /* CUDA_VERSION */
+#endif /* CEED_SCALAR */
       break;
     }
   }
@@ -663,13 +679,29 @@ int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedSize length)
 //------------------------------------------------------------------------------
 static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
   CeedSize         length;
-  CeedVector_Cuda *x_impl;
+  CeedVector_Cuda *impl;
 
-  CeedCallBackend(CeedVectorGetData(x, &x_impl));
+  CeedCallBackend(CeedVectorGetData(x, &impl));
   CeedCallBackend(CeedVectorGetLength(x, &length));
   // Set value for synced device/host array
-  if (x_impl->d_array) CeedCallBackend(CeedDeviceScale_Cuda(x_impl->d_array, alpha, length));
-  if (x_impl->h_array) CeedCallBackend(CeedHostScale_Cuda(x_impl->h_array, alpha, length));
+  if (impl->d_array) {
+#if (CUDA_VERSION >= 12000)
+    cublasHandle_t handle;
+
+    CeedCallBackend(CeedGetCublasHandle_Cuda(CeedVectorReturnCeed(x), &handle));
+#if defined(CEED_SCALAR_IS_FP32)
+    CeedCallCublas(CeedVectorReturnCeed(x), cublasSscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
+#else  /* CEED_SCALAR */
+    CeedCallCublas(CeedVectorReturnCeed(x), cublasDscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
+#endif /* CEED_SCALAR */
+#else  /* CUDA_VERSION */
+    CeedCallBackend(CeedDeviceScale_Cuda(impl->d_array, alpha, length));
+#endif /* CUDA_VERSION */
+    impl->h_array = NULL;
+  } else if (impl->h_array) {
+    CeedCallBackend(CeedHostScale_Cuda(impl->h_array, alpha, length));
+    impl->d_array = NULL;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -699,11 +731,23 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
   // Set value for synced device/host array
   if (y_impl->d_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
+#if (CUDA_VERSION >= 12000)
+    cublasHandle_t handle;
+
+    CeedCallBackend(CeedGetCublasHandle_Cuda(CeedVectorReturnCeed(y), &handle));
+#if defined(CEED_SCALAR_IS_FP32)
+    CeedCallCublas(CeedVectorReturnCeed(y), cublasSaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
+#else  /* CEED_SCALAR */
+    CeedCallCublas(CeedVectorReturnCeed(y), cublasDaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
+#endif /* CEED_SCALAR */
+#else  /* CUDA_VERSION */
     CeedCallBackend(CeedDeviceAXPY_Cuda(y_impl->d_array, alpha, x_impl->d_array, length));
-  }
-  if (y_impl->h_array) {
+#endif /* CUDA_VERSION */
+    y_impl->h_array = NULL;
+  } else if (y_impl->h_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
     CeedCallBackend(CeedHostAXPY_Cuda(y_impl->h_array, alpha, x_impl->h_array, length));
+    y_impl->d_array = NULL;
   }
   return CEED_ERROR_SUCCESS;
 }
