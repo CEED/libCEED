@@ -87,6 +87,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
     }
   }
   PetscCall(DMSetVecType(dm, vec_type));
+  PetscCall(DMSetFromOptions(dm));
 
   // Create global and local solution vectors
   PetscCall(DMCreateGlobalVector(dm, &X));

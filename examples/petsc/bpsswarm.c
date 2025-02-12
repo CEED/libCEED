@@ -216,6 +216,7 @@ int main(int argc, char **argv) {
     }
   }
   PetscCall(DMSetVecType(dm_mesh, vec_type));
+  PetscCall(DMSetFromOptions(dm_mesh));
 
   // Create vectors
   PetscCall(DMCreateGlobalVector(dm_mesh, &X));
