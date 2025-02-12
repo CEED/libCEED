@@ -403,6 +403,7 @@ int main(int argc, char **argv) {
       break;
     case CEED_MEM_DEVICE: {
       const char *resolved;
+
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) default_vec_type = VECCUDA;
       else if (strstr(resolved, "/gpu/hip/occa")) default_vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
