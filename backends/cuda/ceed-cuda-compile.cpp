@@ -163,8 +163,10 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   va_list args;
 
   va_start(args, num_defines);
-  CeedCallBackend(CeedCompileCore_Cuda(ceed, source, true, &is_compile_good, module, num_defines, args));
+  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, true, &is_compile_good, module, num_defines, args);
+
   va_end(args);
+  CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -172,8 +174,10 @@ int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CU
   va_list args;
 
   va_start(args, num_defines);
-  CeedCallBackend(CeedCompileCore_Cuda(ceed, source, false, is_compile_good, module, num_defines, args));
+  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, false, is_compile_good, module, num_defines, args);
+
   va_end(args);
+  CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
