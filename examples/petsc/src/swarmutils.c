@@ -617,6 +617,7 @@ PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedDat
   // Swarm objects
   {
     const PetscInt *cell_points;
+    CeedInt        *offsets;
     IS              is_points;
     Vec             X_ref;
     CeedInt         num_elem;
@@ -628,7 +629,7 @@ PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedDat
 
     PetscCall(ISGetIndices(is_points, &cell_points));
     PetscInt num_points = cell_points[num_elem + 1] - num_elem - 2;
-    CeedInt  offsets[num_elem + 1 + num_points];
+    PetscCall(PetscCalloc1(num_elem + 1 + num_points, &offsets));
 
     for (PetscInt i = 0; i < num_elem + 1; i++) offsets[i] = cell_points[i + 1] - 1;
     for (PetscInt i = num_elem + 1; i < num_points + num_elem + 1; i++) offsets[i] = cell_points[i + 1];
@@ -685,6 +686,7 @@ PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedDat
 
     // Cleanup
     PetscCall(ISDestroy(&is_points));
+    PetscCall(PetscFree(offsets));
     PetscCall(VecDestroy(&X_ref));
   }
 
