@@ -120,13 +120,16 @@ int main(int argc, char **argv) {
     PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, simplex, mesh_elem, NULL, NULL, NULL, PETSC_TRUE, 0, PETSC_FALSE, &dm_orig));
   }
 
-  VecType vec_type;
+  // Set mesh vec_type
+  VecType vec_type = VECSTANDARD;
+
   switch (mem_type_backend) {
     case CEED_MEM_HOST:
       vec_type = VECSTANDARD;
       break;
     case CEED_MEM_DEVICE: {
       const char *resolved;
+
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
       else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678

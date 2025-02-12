@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   CeedData             ceed_data;
   CeedOperator         op_error;
   BPType               bp_choice;
-  VecType              vec_type;
+  VecType              vec_type         = VECSTANDARD;
   PointSwarmType       point_swarm_type = SWARM_GAUSS;
   PetscMPIInt          ranks_per_node;
   char                 hostname[PETSC_MAX_PATH_LEN];
@@ -195,6 +195,28 @@ int main(int argc, char **argv) {
   PetscCall(PetscObjectSetName((PetscObject)dm_swarm, "Particle Swarm"));
   PetscCall(DMViewFromOptions(dm_swarm, NULL, "-dm_swarm_view"));
 
+  // Set up libCEED
+  CeedInit(ceed_resource, &ceed);
+  CeedMemType mem_type_backend;
+  CeedGetPreferredMemType(ceed, &mem_type_backend);
+
+  // Set background mesh vec_type
+  switch (mem_type_backend) {
+    case CEED_MEM_HOST:
+      vec_type = VECSTANDARD;
+      break;
+    case CEED_MEM_DEVICE: {
+      const char *resolved;
+
+      CeedGetResource(ceed, &resolved);
+      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
+      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+      else vec_type = VECSTANDARD;
+    }
+  }
+  PetscCall(DMSetVecType(dm_mesh, vec_type));
+
   // Create vectors
   PetscCall(DMCreateGlobalVector(dm_mesh, &X));
   PetscCall(VecGetLocalSize(X, &l_size));
@@ -210,29 +232,6 @@ int main(int argc, char **argv) {
   PetscCall(MatSetDM(mat_O, dm_mesh));
   PetscCall(MatShellSetOperation(mat_O, MATOP_MULT, (void (*)(void))MatMult_Ceed));
   PetscCall(MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag));
-
-  // Set up libCEED
-  CeedInit(ceed_resource, &ceed);
-  CeedMemType mem_type_backend;
-  CeedGetPreferredMemType(ceed, &mem_type_backend);
-
-  PetscCall(DMGetVecType(dm_mesh, &vec_type));
-  if (!vec_type) {  // Not yet set by user -dm_vec_type
-    switch (mem_type_backend) {
-      case CEED_MEM_HOST:
-        vec_type = VECSTANDARD;
-        break;
-      case CEED_MEM_DEVICE: {
-        const char *resolved;
-        CeedGetResource(ceed, &resolved);
-        if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-        else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-        else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-        else vec_type = VECSTANDARD;
-      }
-    }
-    PetscCall(DMSetVecType(dm_mesh, vec_type));
-  }
 
   // Print summary
   if (!test_mode) {
