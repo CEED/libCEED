@@ -23,8 +23,10 @@ typedef struct {
   CeedInt     num_points;
   CUfunction  InterpAtPoints;
   CUfunction  InterpTransposeAtPoints;
+  CUfunction  InterpTransposeAddAtPoints;
   CUfunction  GradAtPoints;
   CUfunction  GradTransposeAtPoints;
+  CUfunction  GradTransposeAddAtPoints;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_collo_grad_1d;
