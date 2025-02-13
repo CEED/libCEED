@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
                              &write_true_solution_swarm, NULL));
   degree = 2;
   PetscCall(PetscOptionsInt("-degree", "Polynomial degree of tensor product basis", NULL, degree, &degree, NULL));
-  q_extra = 0;
+  q_extra = bp_options[bp_choice].q_extra;
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
   PetscCall(PetscGetHostName(hostname, sizeof hostname));
