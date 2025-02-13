@@ -360,8 +360,10 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
                                     data->block_sizes[0]));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpTransposeAddAtPoints", &data->InterpTransposeAddAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradTransposeAtPoints", &data->GradTransposeAtPoints));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradTransposeAddAtPoints", &data->GradTransposeAddAtPoints));
   }
 
   // Get read/write access to u, v
