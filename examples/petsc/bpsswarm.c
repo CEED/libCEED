@@ -146,6 +146,27 @@ int main(int argc, char **argv) {
   }
   PetscOptionsEnd();
 
+  // Set up libCEED
+  CeedInit(ceed_resource, &ceed);
+  CeedMemType mem_type_backend;
+  CeedGetPreferredMemType(ceed, &mem_type_backend);
+
+  // Set background mesh vec_type
+  switch (mem_type_backend) {
+    case CEED_MEM_HOST:
+      vec_type = VECSTANDARD;
+      break;
+    case CEED_MEM_DEVICE: {
+      const char *resolved;
+
+      CeedGetResource(ceed, &resolved);
+      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
+      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+      else vec_type = VECSTANDARD;
+    }
+  }
+
   // Setup DM
   if (read_mesh) {
     PetscCall(DMPlexCreateFromFile(comm, filename, NULL, PETSC_TRUE, &dm_mesh));
@@ -162,11 +183,13 @@ int main(int argc, char **argv) {
       PetscCheck(!is_simplex, comm, PETSC_ERR_USER, "Only tensor-product background meshes supported");
     }
   }
+  PetscCall(DMSetVecType(dm_mesh, vec_type));
+  PetscCall(DMSetFromOptions(dm_mesh));
+
   PetscCall(DMGetDimension(dm_mesh, &dim));
   PetscCall(SetupDMByDegree(dm_mesh, degree, q_extra, num_comp_u, dim, bp_options[bp_choice].enforce_bc));
 
   // View mesh
-  PetscCall(DMSetOptionsPrefix(dm_mesh, "final_"));
   PetscCall(DMViewFromOptions(dm_mesh, NULL, "-dm_view"));
 
   // Create particle swarm
@@ -194,29 +217,6 @@ int main(int argc, char **argv) {
   // -- Final particle swarm
   PetscCall(PetscObjectSetName((PetscObject)dm_swarm, "Particle Swarm"));
   PetscCall(DMViewFromOptions(dm_swarm, NULL, "-dm_swarm_view"));
-
-  // Set up libCEED
-  CeedInit(ceed_resource, &ceed);
-  CeedMemType mem_type_backend;
-  CeedGetPreferredMemType(ceed, &mem_type_backend);
-
-  // Set background mesh vec_type
-  switch (mem_type_backend) {
-    case CEED_MEM_HOST:
-      vec_type = VECSTANDARD;
-      break;
-    case CEED_MEM_DEVICE: {
-      const char *resolved;
-
-      CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-      else vec_type = VECSTANDARD;
-    }
-  }
-  PetscCall(DMSetVecType(dm_mesh, vec_type));
-  PetscCall(DMSetFromOptions(dm_mesh));
 
   // Create vectors
   PetscCall(DMCreateGlobalVector(dm_mesh, &X));
