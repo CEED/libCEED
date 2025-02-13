@@ -690,7 +690,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         *norm = fabs(d_array[index - 1]);
       } else {
         CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-        *norm = fabs(*norm_no_abs);
+        *norm = fabs(norm_no_abs);
       }
 #else  /* HIP_VERSION */
       CeedInt index;
