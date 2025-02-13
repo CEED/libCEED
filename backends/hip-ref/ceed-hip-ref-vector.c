@@ -289,20 +289,30 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
     // start value (1) + floor((length - start) / step) addl. values
     length = (length - start) / step + 1;
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_DEVICE, &copy_array));
+#if (HIP_VERSION >= 60000000)
+    hipblasHandle_t handle;
+    Ceed            ceed;
+
+    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+    CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
 #if defined(CEED_SCALAR_IS_FP32)
-    CeedCallHipblas(CeedVectorReturnCeed(vec),
-                    hipblasScopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
-#else
-    CeedCallHipblas(CeedVectorReturnCeed(vec),
-                    hipblasDcopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
-#endif
+    CeedCallHipblas(ceed, hipblasScopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+#else  /* CEED_SCALAR */
+    CeedCallHipblas(ceed, hipblasDcopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+#endif /* CEED_SCALAR */
+#else  /* HIP_VERSION */
+    CeedCallBackend(CeedDeviceCopyStrided_Hip(impl->d_array, start, step, length, copy_array));
+#endif /* HIP_VERSION */
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
+    impl->h_array = NULL;
+    CeedCallBackend(CeedDestroy(&ceed));
   } else if (impl->h_array) {
     CeedScalar *copy_array;
 
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &copy_array));
     CeedCallBackend(CeedHostCopyStrided_Hip(impl->h_array, start, step, length, copy_array));
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
+    impl->d_array = NULL;
   } else {
     return CeedError(CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "CeedVector must have valid data set");
   }
@@ -533,8 +543,11 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, const CeedMemType m
 // Get the norm of a CeedVector
 //------------------------------------------------------------------------------
 static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *norm) {
-  Ceed              ceed;
-  CeedSize          length;
+  Ceed     ceed;
+  CeedSize length;
+#if (HIP_VERSION < 60000000)
+  CeedSize num_calls;
+#endif /* HIP_VERSION */
   const CeedScalar *d_array;
   CeedVector_Hip   *impl;
   hipblasHandle_t   handle;
@@ -546,44 +559,156 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
 
+#if (HIP_VERSION < 60000000)
+  // With ROCm 6, we can use the 64-bit integer interface. Prior to that,
+  // we need to check if the vector is too long to handle with int32,
+  // and if so, divide it into subsections for repeated hipBLAS calls.
+  num_calls = length / INT_MAX;
+  if (length % INT_MAX > 0) num_calls += 1;
+#endif /* HIP_VERSION */
+
   // Compute norm
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
 
   *norm = 0.0;
   switch (type) {
     case CEED_NORM_1: {
+      *norm = 0.0;
 #if defined(CEED_SCALAR_IS_FP32)
-      CeedCallHipblas(ceed, hipblasSasum_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, norm));
-#else
-      CeedCallHipblas(ceed, hipblasDasum_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, norm));
-#endif
+#if (HIP_VERSION >= 60000000)  // We have ROCm 6, and can use 64-bit integers
+      CeedCallHipblas(ceed, hipblasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else  /* HIP_VERSION */
+      float  sub_norm = 0.0;
+      float *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        *norm += sub_norm;
+      }
+#endif /* HIP_VERSION */
+#else  /* CEED_SCALAR */
+#if (HIP_VERSION >= 60000000)
+      CeedCallHipblas(ceed, hipblasDasum_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else  /* HIP_VERSION */
+      double  sub_norm = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        *norm += sub_norm;
+      }
+#endif /* HIP_VERSION */
+#endif /* CEED_SCALAR */
       CeedCallHip(ceed, hipDeviceSynchronize());
       break;
     }
     case CEED_NORM_2: {
 #if defined(CEED_SCALAR_IS_FP32)
-      CeedCallHipblas(ceed, hipblasSnrm2_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, norm));
-#else
-      CeedCallHipblas(ceed, hipblasDnrm2_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, norm));
-#endif
+#if (HIP_VERSION >= 60000000)
+      CeedCallHipblas(ceed, hipblasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else  /* CUDA_VERSION */
+      float  sub_norm = 0.0, norm_sum = 0.0;
+      float *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        norm_sum += sub_norm * sub_norm;
+      }
+      *norm = sqrt(norm_sum);
+#endif /* HIP_VERSION */
+#else  /* CEED_SCALAR */
+#if (HIP_VERSION >= 60000000)
+      CeedCallHipblas(ceed, hipblasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else  /* CUDA_VERSION */
+      double  sub_norm = 0.0, norm_sum = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        norm_sum += sub_norm * sub_norm;
+      }
+      *norm = sqrt(norm_sum);
+#endif /* HIP_VERSION */
+#endif /* CEED_SCALAR */
       CeedCallHip(ceed, hipDeviceSynchronize());
       break;
     }
     case CEED_NORM_MAX: {
-      int64_t index;
-
 #if defined(CEED_SCALAR_IS_FP32)
-      CeedCallHipblas(ceed, hipblasIsamax_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, &index));
-#else
-      CeedCallHipblas(ceed, hipblasIdamax_64(handle, (int64_t)length, (CeedScalar *)d_array, 1, &index));
-#endif
-      CeedCallHip(ceed, hipDeviceSynchronize());
+#if (HIP_VERSION >= 60000000)
+      int64_t    index;
+      CeedScalar norm_no_abs;
+
+      CeedCallHipblas(ceed, hipblasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &index));
       if (hip_data->has_unified_addressing) {
+        CeedCallHip(ceed, hipDeviceSynchronize());
         *norm = fabs(d_array[index - 1]);
       } else {
-        CeedCallHip(ceed, hipMemcpy(norm, d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-        *norm = fabs(*norm);
+        CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        *norm = fabs(*norm_no_abs);
       }
+#else  /* HIP_VERSION */
+      CeedInt index;
+      float   sub_max = 0.0, current_max = 0.0;
+      float  *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
+        CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+      }
+      *norm = current_max;
+#endif /* HIP_VERSION */
+#else  /* CEED_SCALAR */
+#if (HIP_VERSION >= 60000000)
+      int64_t    index;
+      CeedScalar norm_no_abs;
+
+      CeedCallHipblas(ceed, hipblasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
+      if (hip_data->has_unified_addressing) {
+        CeedCallHip(ceed, hipDeviceSynchronize());
+        *norm = fabs(d_array[index - 1]);
+      } else {
+        CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        *norm = fabs(*norm_no_abs);
+      }
+#else  /* HIP_VERSION */
+      CeedInt index;
+      double  sub_max = 0.0, current_max = 0.0;
+      double *d_array_start;
+
+      for (CeedInt i = 0; i < num_calls; i++) {
+        d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+        CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+        CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
+        CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
+        CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+      }
+      *norm = current_max;
+#endif /* HIP_VERSION */
+#endif /* CEED_SCALAR */
       break;
     }
   }
@@ -639,23 +764,30 @@ static int CeedHostScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize len
 static int CeedVectorScale_Hip(CeedVector x, CeedScalar alpha) {
   CeedSize        length;
   CeedVector_Hip *impl;
-  Ceed_Hip       *hip_data;
-  hipblasHandle_t handle;
 
-  CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(x), &handle));
-  CeedCallBackend(CeedGetData(CeedVectorReturnCeed(x), &hip_data));
   CeedCallBackend(CeedVectorGetData(x, &impl));
   CeedCallBackend(CeedVectorGetLength(x, &length));
 
   // Set value for synced device/host array
   if (impl->d_array) {
+#if (HIP_VERSION >= 60000000)
+    hipblasHandle_t handle;
+
+    CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(x), &handle));
 #if defined(CEED_SCALAR_IS_FP32)
     CeedCallHipblas(CeedVectorReturnCeed(x), hipblasSscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
-#else
+#else  /* CEED_SCALAR */
     CeedCallHipblas(CeedVectorReturnCeed(x), hipblasDscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
-#endif
+#endif /* CEED_SCALAR */
+#else  /* HIP_VERSION */
+    CeedCallBackend(CeedDeviceScale_Hip(impl->d_array, alpha, length));
+#endif /* HIP_VERSION */
+    impl->h_array = NULL;
   }
-  if (impl->h_array) CeedCallBackend(CeedHostScale_Hip(impl->h_array, alpha, length));
+  if (impl->h_array) {
+    CeedCallBackend(CeedHostScale_Hip(impl->h_array, alpha, length));
+    impl->d_array = NULL;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -686,15 +818,23 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
   // Set value for synced device/host array
   if (y_impl->d_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
+#if (HIP_VERSION >= 60000000)
+    hipblasHandle_t handle;
+
+    CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(y), &handle));
 #if defined(CEED_SCALAR_IS_FP32)
     CeedCallHipblas(CeedVectorReturnCeed(y), hipblasSaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
-#else
+#else  /* CEED_SCALAR */
     CeedCallHipblas(CeedVectorReturnCeed(y), hipblasDaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
-#endif
-  }
-  if (y_impl->h_array) {
+#endif /* CEED_SCALAR */
+#else  /* HIP_VERSION */
+    CeedCallBackend(CeedDeviceAXPY_Hip(y_impl->d_array, alpha, x_impl->d_array, length));
+#endif /* HIP_VERSION */
+    y_impl->h_array = NULL;
+  } else if (y_impl->h_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
     CeedCallBackend(CeedHostAXPY_Hip(y_impl->h_array, alpha, x_impl->h_array, length));
+    y_impl->d_array = NULL;
   }
   return CEED_ERROR_SUCCESS;
 }
