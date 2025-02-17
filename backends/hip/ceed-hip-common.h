@@ -72,6 +72,7 @@ typedef struct {
   hipblasHandle_t        hipblas_handle;
   struct hipDeviceProp_t device_prop;
   int                    opt_block_size;
+  int                    has_unified_addressing;
 } Ceed_Hip;
 
 CEED_INTERN int CeedInit_Hip(Ceed ceed, const char *resource);
