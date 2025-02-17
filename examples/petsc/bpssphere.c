@@ -92,39 +92,6 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsBool("-simplex", "Use simplices, or tensor product cells", NULL, simplex, &simplex, NULL));
   PetscOptionsEnd();
 
-  // Setup DM
-  if (read_mesh) {
-    PetscCall(DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE, &dm));
-  } else {
-    // Create the mesh as a 0-refined sphere.
-    // This will create a cubic surface, not a box, and will snap to the unit sphere upon refinement.
-    PetscCall(DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm));
-    // Set the object name
-    PetscCall(PetscObjectSetName((PetscObject)dm, "Sphere"));
-    // Refine DMPlex with uniform refinement using runtime option -dm_refine
-    PetscCall(DMPlexSetRefinementUniform(dm, PETSC_TRUE));
-  }
-  PetscCall(DMSetFromOptions(dm));
-  // View DMPlex via runtime option
-  PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
-
-  // Create DM
-  PetscCall(SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false));
-
-  // Create vectors
-  PetscCall(DMCreateGlobalVector(dm, &X));
-  PetscCall(VecGetLocalSize(X, &l_size));
-  PetscCall(VecGetSize(X, &g_size));
-  PetscCall(DMCreateLocalVector(dm, &X_loc));
-  PetscCall(VecGetSize(X_loc, &xl_size));
-  PetscCall(VecDuplicate(X, &rhs));
-
-  // Operator
-  PetscCall(PetscMalloc1(1, &op_apply_ctx));
-  PetscCall(PetscMalloc1(1, &op_error_ctx));
-  PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, op_apply_ctx, &mat_O));
-  PetscCall(MatShellSetOperation(mat_O, MATOP_MULT, (void (*)(void))MatMult_Ceed));
-
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);
   CeedMemType mem_type_backend;
@@ -145,7 +112,40 @@ int main(int argc, char **argv) {
       else vec_type = VECSTANDARD;
     }
   }
+
+  // Setup DM
+  if (read_mesh) {
+    PetscCall(DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE, &dm));
+  } else {
+    // Create the mesh as a 0-refined sphere.
+    // This will create a cubic surface, not a box, and will snap to the unit sphere upon refinement.
+    PetscCall(DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm));
+    // Set the object name
+    PetscCall(PetscObjectSetName((PetscObject)dm, "Sphere"));
+    // Refine DMPlex with uniform refinement using runtime option -dm_refine
+    PetscCall(DMPlexSetRefinementUniform(dm, PETSC_TRUE));
+  }
   PetscCall(DMSetVecType(dm, vec_type));
+  PetscCall(DMSetFromOptions(dm));
+  // View DMPlex via runtime option
+  PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
+
+  // Create DM
+  PetscCall(SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false));
+
+  // Create vectors
+  PetscCall(DMCreateGlobalVector(dm, &X));
+  PetscCall(VecGetLocalSize(X, &l_size));
+  PetscCall(VecGetSize(X, &g_size));
+  PetscCall(DMCreateLocalVector(dm, &X_loc));
+  PetscCall(VecGetSize(X_loc, &xl_size));
+  PetscCall(VecDuplicate(X, &rhs));
+
+  // Operator
+  PetscCall(PetscMalloc1(1, &op_apply_ctx));
+  PetscCall(PetscMalloc1(1, &op_error_ctx));
+  PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, op_apply_ctx, &mat_O));
+  PetscCall(MatShellSetOperation(mat_O, MATOP_MULT, (void (*)(void))MatMult_Ceed));
 
   // Print summary
   if (!test_mode) {
