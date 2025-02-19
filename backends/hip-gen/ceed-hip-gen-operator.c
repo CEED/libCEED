@@ -34,8 +34,8 @@ static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
-                                            CeedRequest *request) {
+static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream, const CeedScalar *input_arr, CeedScalar *output_arr,
+                                            bool *is_run_good, CeedRequest *request) {
   bool                   is_at_points, is_tensor;
   Ceed                   ceed;
   CeedInt                num_elem, num_input_fields, num_output_fields;
@@ -153,19 +153,19 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, const CeedScalar *i
     CeedInt sharedMem = block_sizes[2] * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   } else if (dim == 2) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   } else if (dim == 3) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
 
     CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
   }
 
   // Restore input arrays
@@ -225,7 +225,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, input_arr, output_arr, &is_run_good, request));
+  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
 

@@ -98,7 +98,7 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
+static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
                                              CeedRequest *request) {
   bool                    is_at_points, is_tensor;
   Ceed                    ceed;
@@ -219,7 +219,7 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, const CeedScalar *
   }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
 
-  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
+  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -278,7 +278,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, input_arr, output_arr, &is_run_good, request));
+  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
 
