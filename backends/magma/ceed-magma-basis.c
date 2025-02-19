@@ -117,10 +117,10 @@ static int CeedBasisApplyCore_Magma(CeedBasis basis, bool apply_add, CeedInt num
       void   *args[] = {&impl->d_interp_1d, &d_u, &u_elem_stride, &u_comp_stride, &d_v, &v_elem_stride, &v_comp_stride, &num_elem};
 
       if (t_mode == CEED_TRANSPOSE) {
-        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, apply_add ? impl->InterpTransposeAdd : impl->InterpTranspose, grid, num_threads, num_t_col,
-                                                    1, shared_mem, args));
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, apply_add ? impl->InterpTransposeAdd : impl->InterpTranspose, NULL, grid, num_threads,
+                                                    num_t_col, 1, shared_mem, args));
       } else {
-        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Interp, grid, num_threads, num_t_col, 1, shared_mem, args));
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Interp, NULL, grid, num_threads, num_t_col, 1, shared_mem, args));
       }
     } break;
     case CEED_EVAL_GRAD: {
@@ -195,10 +195,10 @@ static int CeedBasisApplyCore_Magma(CeedBasis basis, bool apply_add, CeedInt num
                         &v_elem_stride,     &v_comp_stride,   &v_dim_stride, &num_elem};
 
       if (t_mode == CEED_TRANSPOSE) {
-        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, apply_add ? impl->GradTransposeAdd : impl->GradTranspose, grid, num_threads, num_t_col, 1,
-                                                    shared_mem, args));
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, apply_add ? impl->GradTransposeAdd : impl->GradTranspose, NULL, grid, num_threads,
+                                                    num_t_col, 1, shared_mem, args));
       } else {
-        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Grad, grid, num_threads, num_t_col, 1, shared_mem, args));
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Grad, NULL, grid, num_threads, num_t_col, 1, shared_mem, args));
       }
     } break;
     case CEED_EVAL_WEIGHT: {
@@ -230,7 +230,7 @@ static int CeedBasisApplyCore_Magma(CeedBasis basis, bool apply_add, CeedInt num
       CeedInt grid   = CeedDivUpInt(num_elem, num_t_col);
       void   *args[] = {&impl->d_q_weight_1d, &d_v, &elem_dofs_size, &num_elem};
 
-      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Weight, grid, num_threads, num_t_col, 1, shared_mem, args));
+      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Weight, NULL, grid, num_threads, num_t_col, 1, shared_mem, args));
     } break;
     // LCOV_EXCL_START
     case CEED_EVAL_DIV:
@@ -429,7 +429,7 @@ static int CeedBasisApplyNonTensorCore_Magma(CeedBasis basis, bool apply_add, Ce
       CeedInt shared_mem   = (t_mode != CEED_TRANSPOSE && q_comp > 1) ? (shared_mem_A + shared_mem_B) : CeedIntMax(shared_mem_A, shared_mem_B);
       void   *args[]       = {&N, &d_b, &d_u, &d_v};
 
-      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, Kernel, grid, M, num_t_col, 1, shared_mem, args));
+      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, Kernel, NULL, grid, M, num_t_col, 1, shared_mem, args));
     } else {
       for (CeedInt d = 0; d < q_comp; d++) {
         if (t_mode == CEED_TRANSPOSE) {
@@ -448,7 +448,7 @@ static int CeedBasisApplyNonTensorCore_Magma(CeedBasis basis, bool apply_add, Ce
     CeedInt shared_mem = Q * sizeof(CeedScalar) + num_t_col * Q * sizeof(CeedScalar);
     void   *args[]     = {&num_elem, &impl->d_q_weight, &d_v};
 
-    CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Weight, grid, Q, num_t_col, 1, shared_mem, args));
+    CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->Weight, NULL, grid, Q, num_t_col, 1, shared_mem, args));
   }
 
   // Must sync to ensure completeness
