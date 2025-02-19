@@ -131,10 +131,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, 1,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d, 1,
                                                      elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 2) {
         // Check if required threads is small enough to do multiple elems
@@ -143,10 +143,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, thread_1d,
-                                                     elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
+                                                     thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
@@ -154,10 +154,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, thread_1d,
-                                                     elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
+                                                     thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       }
     } break;
@@ -183,10 +183,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, 1,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, NULL, grid, thread_1d, 1,
                                                      elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 2) {
         // Check if required threads is small enough to do multiple elems
@@ -195,10 +195,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, thread_1d,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, NULL, grid, thread_1d, thread_1d,
                                                      elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d * thread_1d), 1);
@@ -206,10 +206,10 @@ static int CeedBasisApplyTensorCore_Hip_shared(CeedBasis basis, bool apply_add, 
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, thread_1d,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, NULL, grid, thread_1d, thread_1d,
                                                      elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       }
     } break;
@@ -394,10 +394,10 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, grid,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                      thread_1d, 1, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 2) {
         // Check if required threads is small enough to do multiple elems
@@ -406,11 +406,11 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, grid,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
           CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = 1;
@@ -418,11 +418,11 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, grid,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
           CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       }
     } break;
@@ -442,10 +442,10 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, grid, thread_1d,
-                                                     1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
+                                                     thread_1d, 1, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 2) {
         // Check if required threads is small enough to do multiple elems
@@ -454,10 +454,11 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, grid, thread_1d,
-                                                     thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
+                                                     thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(
+              CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = 1;
@@ -465,10 +466,11 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
         CeedInt       shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (is_transpose) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, grid, thread_1d,
-                                                     thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
+                                                     thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(
+              CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       }
     } break;
@@ -547,10 +549,10 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
         CeedInt shared_mem      = elems_per_block * thread * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread, 1,
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread, 1,
                                                      elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, grid, thread, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Interp, NULL, grid, thread, 1, elems_per_block, shared_mem, interp_args));
         }
       }
     } break;
@@ -570,10 +572,10 @@ static int CeedBasisApplyNonTensorCore_Hip_shared(CeedBasis basis, bool apply_ad
         CeedInt shared_mem      = elems_per_block * thread * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread, 1, elems_per_block,
-                                                     shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, NULL, grid, thread, 1,
+                                                     elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, grid, thread, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->Grad, NULL, grid, thread, 1, elems_per_block, shared_mem, grad_args));
         }
       }
     } break;

@@ -22,7 +22,7 @@ CEED_INTERN int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, int grid_size
 CEED_INTERN int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
                                      void **args);
 
-CEED_INTERN int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
-                                           int shared_mem_size, void **args);
-CEED_INTERN int CeedTryRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
-                                              int shared_mem_size, bool *is_good_run, void **args);
+CEED_INTERN int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, hipStream_t stream, int grid_size, int block_size_x, int block_size_y,
+                                           int block_size_z, int shared_mem_size, void **args);
+CEED_INTERN int CeedTryRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, hipStream_t stream, int grid_size, int block_size_x, int block_size_y,
+                                              int block_size_z, int shared_mem_size, bool *is_good_run, void **args);

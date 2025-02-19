@@ -205,28 +205,29 @@ int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, c
 //------------------------------------------------------------------------------
 // Run HIP kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
-static int CeedRunKernelDimSharedCore_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                          const int block_size_z, const int shared_mem_size, const bool throw_error, bool *is_good_run, void **args) {
-  hipError_t result = hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL);
+static int CeedRunKernelDimSharedCore_Hip(Ceed ceed, hipFunction_t kernel, hipStream_t stream, const int grid_size, const int block_size_x,
+                                          const int block_size_y, const int block_size_z, const int shared_mem_size, const bool throw_error,
+                                          bool *is_good_run, void **args) {
+  hipError_t result = hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, stream, args, NULL);
 
   *is_good_run = result == hipSuccess;
   if (throw_error) CeedCallHip(ceed, result);
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                               const int block_size_z, const int shared_mem_size, void **args) {
+int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, hipStream_t stream, const int grid_size, const int block_size_x,
+                               const int block_size_y, const int block_size_z, const int shared_mem_size, void **args) {
   bool is_good_run = true;
 
-  CeedCallBackend(
-      CeedRunKernelDimSharedCore_Hip(ceed, kernel, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, true, &is_good_run, args));
+  CeedCallBackend(CeedRunKernelDimSharedCore_Hip(ceed, kernel, stream, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, true,
+                                                 &is_good_run, args));
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedTryRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                  const int block_size_z, const int shared_mem_size, bool *is_good_run, void **args) {
-  CeedCallBackend(
-      CeedRunKernelDimSharedCore_Hip(ceed, kernel, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, false, is_good_run, args));
+int CeedTryRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, hipStream_t stream, const int grid_size, const int block_size_x,
+                                  const int block_size_y, const int block_size_z, const int shared_mem_size, bool *is_good_run, void **args) {
+  CeedCallBackend(CeedRunKernelDimSharedCore_Hip(ceed, kernel, stream, grid_size, block_size_x, block_size_y, block_size_z, shared_mem_size, false,
+                                                 is_good_run, args));
   return CEED_ERROR_SUCCESS;
 }
 
