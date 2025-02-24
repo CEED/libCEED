@@ -225,7 +225,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
+  CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
 
@@ -245,8 +245,10 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
   CeedInt           num_suboperators;
   const CeedScalar *input_arr  = NULL;
   CeedScalar       *output_arr = NULL;
+  Ceed              ceed;
   CeedOperator     *sub_operators;
 
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
   CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
@@ -256,22 +258,28 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
 
     CeedCall(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (num_elem > 0) {
-      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], NULL, input_arr, output_arr, &is_run_good[i], request));
+      hipStream_t stream = NULL;
+
+      CeedCallHip(ceed, hipStreamCreate(&stream));
+      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request));
+      CeedCallHip(ceed, hipStreamDestroy(stream));
     }
   }
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+  CeedCallHip(ceed, hipDeviceSynchronize());
 
   // Fallback on unsuccessful run
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
       CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
     }
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -298,8 +298,10 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   CeedInt           num_suboperators;
   const CeedScalar *input_arr  = NULL;
   CeedScalar       *output_arr = NULL;
+  Ceed              ceed;
   CeedOperator     *sub_operators;
 
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
   CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
@@ -309,22 +311,28 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
 
     CeedCall(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (num_elem > 0) {
-      CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], NULL, input_arr, output_arr, &is_run_good[i], request));
+      cudaStream_t stream = NULL;
+
+      CeedCallCuda(ceed, cudaStreamCreate(&stream));
+      CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request));
+      CeedCallCuda(ceed, cudaStreamDestroy(stream));
     }
   }
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+  CeedCallCuda(ceed, cudaDeviceSynchronize());
 
   // Fallback on unsuccessful run
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
 
-      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator");
       CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
     }
   }
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
