@@ -240,17 +240,58 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   return CEED_ERROR_SUCCESS;
 }
 
+static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
+  bool              is_run_good[CEED_COMPOSITE_MAX] = {false};
+  CeedInt           num_suboperators;
+  const CeedScalar *input_arr  = NULL;
+  CeedScalar       *output_arr = NULL;
+  CeedOperator     *sub_operators;
+
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
+    if (num_elem > 0) {
+      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], NULL, input_arr, output_arr, &is_run_good[i], request));
+    }
+  }
+  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
+  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+
+  // Fallback on unsuccessful run
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    if (!is_run_good[i]) {
+      CeedOperator op_fallback;
+
+      CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+      CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
+      CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Hip_gen(CeedOperator op) {
+  bool                  is_composite;
   Ceed                  ceed;
   CeedOperator_Hip_gen *impl;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Hip_gen));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAddComposite", CeedOperatorApplyAddComposite_Hip_gen));
+  } else {
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Hip_gen));
+  }
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip_gen));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
