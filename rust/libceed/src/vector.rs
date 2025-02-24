@@ -828,15 +828,15 @@ pub struct VectorViewMut<'a> {
 impl<'a> VectorViewMut<'a> {
     /// Construct a VectorViewMut from a Vector reference
     fn new(vec: &'a mut Vector) -> crate::Result<Self> {
-        let mut ptr = std::ptr::null_mut();
+        let mut array = std::ptr::null_mut();
         vec.check_error(unsafe {
             bind_ceed::CeedVectorGetArray(
                 vec.ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
-                &mut ptr,
+                &mut array,
             )
         })?;
-        Ok(Self { vec, array: ptr })
+        Ok(Self { vec, array })
     }
 }
 
