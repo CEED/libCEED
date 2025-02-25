@@ -23,8 +23,10 @@ typedef struct {
   CeedInt       num_points;
   hipFunction_t InterpAtPoints;
   hipFunction_t InterpTransposeAtPoints;
+  hipFunction_t InterpTransposeAddAtPoints;
   hipFunction_t GradAtPoints;
   hipFunction_t GradTransposeAtPoints;
+  hipFunction_t GradTransposeAddAtPoints;
   CeedInt       block_sizes[3];  // interp, grad, weight thread block sizes
   CeedScalar   *d_interp_1d;
   CeedScalar   *d_grad_1d;
