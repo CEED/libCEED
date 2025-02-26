@@ -155,7 +155,7 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
       if (is_active) data->fields.outputs[i] = output_arr;
-      else CeedCallBackend(CeedVectorGetArrayWrite(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
+      else CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
       CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
