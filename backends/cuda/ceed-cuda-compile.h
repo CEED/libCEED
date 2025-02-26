@@ -23,7 +23,7 @@ CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t 
 
 CEED_INTERN int CeedRunKernelDim_Cuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z, void **args);
 
-CEED_INTERN int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
-                                            int shared_mem_size, void **args);
-CEED_INTERN int CeedTryRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
-                                               int shared_mem_size, bool *is_good_run, void **args);
+CEED_INTERN int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, CUstream stream, int grid_size, int block_size_x, int block_size_y,
+                                            int block_size_z, int shared_mem_size, void **args);
+CEED_INTERN int CeedTryRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, CUstream stream, int grid_size, int block_size_x, int block_size_y,
+                                               int block_size_z, int shared_mem_size, bool *is_good_run, void **args);

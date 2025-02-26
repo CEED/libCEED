@@ -1752,8 +1752,8 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedV
   void   *args[] = {(void *)&num_elem_in, &asmb->d_B_in,     &asmb->d_B_out,      &orients_in,  &curl_orients_in,
                     &orients_out,         &curl_orients_out, &assembled_qf_array, &values_array};
 
-  CeedCallBackend(
-      CeedRunKernelDimShared_Hip(ceed, asmb->LinearAssemble, grid, asmb->block_size_x, asmb->block_size_y, asmb->elems_per_block, shared_mem, args));
+  CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, asmb->LinearAssemble, NULL, grid, asmb->block_size_x, asmb->block_size_y, asmb->elems_per_block,
+                                             shared_mem, args));
 
   // Restore arrays
   CeedCallBackend(CeedVectorRestoreArray(values, &values_array));

@@ -2161,10 +2161,8 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
           CeedCall(CeedVectorDestroy(&vec));
         }
       }
-      // Apply
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
-      }
+      // ApplyAdd
+      CeedCall(CeedOperatorApplyAdd(op, in, out, request));
     }
   } else {
     // Standard Operator
