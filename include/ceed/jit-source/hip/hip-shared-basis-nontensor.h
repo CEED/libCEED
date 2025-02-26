@@ -197,7 +197,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_W[1];
 
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
-    WeightNonTensor<BASIS_Q>(data, q_weight, r_W);
+    WeightNonTensor<BASIS_P, BASIS_Q>(data, q_weight, r_W);
     WriteElementStrided1d<1, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_W, d_W);
   }
 }
