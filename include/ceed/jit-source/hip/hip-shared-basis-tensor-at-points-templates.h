@@ -40,7 +40,7 @@ inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar
 //------------------------------------------------------------------------------
 // 1D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints1d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                         CeedScalar *__restrict__ r_V) {
   CeedScalar chebyshev_x[Q_1D];
@@ -61,7 +61,7 @@ inline __device__ void InterpAtPoints1d(SharedData_Hip &data, const CeedInt p, c
 //------------------------------------------------------------------------------
 // 1D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpTransposeAtPoints1d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                  const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   CeedScalar chebyshev_x[Q_1D];
@@ -86,7 +86,7 @@ inline __device__ void InterpTransposeAtPoints1d(SharedData_Hip &data, const Cee
 //------------------------------------------------------------------------------
 // 1D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints1d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                       CeedScalar *__restrict__ r_V) {
   CeedScalar chebyshev_x[Q_1D];
@@ -107,7 +107,7 @@ inline __device__ void GradAtPoints1d(SharedData_Hip &data, const CeedInt p, con
 //------------------------------------------------------------------------------
 // 1D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradTransposeAtPoints1d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   CeedScalar chebyshev_x[Q_1D];
@@ -136,7 +136,7 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Hip &data, const CeedI
 //------------------------------------------------------------------------------
 // 2D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                         CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
@@ -166,7 +166,7 @@ inline __device__ void InterpAtPoints2d(SharedData_Hip &data, const CeedInt p, c
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                  const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -204,7 +204,7 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const Cee
 //------------------------------------------------------------------------------
 // 2D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                       CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP * 2; i++) r_V[i] = 0.0;
@@ -238,7 +238,7 @@ inline __device__ void GradAtPoints2d(SharedData_Hip &data, const CeedInt p, con
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -284,7 +284,7 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedI
 //------------------------------------------------------------------------------
 // 3D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints3d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                         CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
@@ -319,7 +319,7 @@ inline __device__ void InterpAtPoints3d(SharedData_Hip &data, const CeedInt p, c
 //------------------------------------------------------------------------------
 // 3D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void InterpTransposeAtPoints3d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                  const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -362,7 +362,7 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Hip &data, const Cee
 //------------------------------------------------------------------------------
 // 3D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints3d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
                                       CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP * 3; i++) r_V[i] = 0.0;
@@ -402,7 +402,7 @@ inline __device__ void GradAtPoints3d(SharedData_Hip &data, const CeedInt p, con
 //------------------------------------------------------------------------------
 // 3D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
 inline __device__ void GradTransposeAtPoints3d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
                                                const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
