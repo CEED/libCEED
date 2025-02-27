@@ -203,6 +203,14 @@ inline __device__ void InterpTensor2d(SharedData_Cuda &data, const CeedScalar *_
   InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                               CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
@@ -220,6 +228,14 @@ template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void InterpTransposeTensor2d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                CeedScalar *__restrict__ r_V) {
   InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, r_V);
+}
+
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                        CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -243,6 +259,14 @@ inline __device__ void GradTensor2d(SharedData_Cuda &data, const CeedScalar *__r
   GradTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, c_G, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
+                                             CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  GradTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
@@ -264,6 +288,14 @@ inline __device__ void GradTransposeTensor2d(SharedData_Cuda &data, const CeedSc
   GradTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, c_G, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                      const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  GradTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
@@ -276,6 +308,13 @@ inline __device__ void WeightTensor2d_Core(SharedData_Cuda &data, const int t_id
 template <int P_1D, int Q_1D>
 inline __device__ void WeightTensor2d(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   WeightTensor2d_Core<Q_1D>(data, data.t_id_x, data.t_id_y, q_weight_1d, w);
+}
+
+template <int P_1D, int Q_1D>
+inline __device__ void WeightTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  WeightTensor2d_Core<Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, q_weight_1d, w);
 }
 
 //------------------------------------------------------------------------------

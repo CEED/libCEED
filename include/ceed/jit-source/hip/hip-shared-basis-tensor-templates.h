@@ -203,6 +203,14 @@ inline __device__ void InterpTensor2d(SharedData_Hip &data, const CeedScalar *__
   InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTensor2dFlattened(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                               CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
@@ -220,6 +228,14 @@ template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void InterpTransposeTensor2d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                CeedScalar *__restrict__ r_V) {
   InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, r_V);
+}
+
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                        CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -243,6 +259,14 @@ inline __device__ void GradTensor2d(SharedData_Hip &data, const CeedScalar *__re
   GradTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, c_G, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTensor2dFlattened(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
+                                             CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  GradTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
@@ -264,12 +288,33 @@ inline __device__ void GradTransposeTensor2d(SharedData_Hip &data, const CeedSca
   GradTansposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x, data.t_id_y, r_U, c_B, c_G, r_V);
 }
 
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeTensor2dFlattened(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                      const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  GradTansposeTensor2d_Core<NUM_COMP, P_1D, Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+}
+
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q_1D>
+inline __device__ void WeightTensor2d_Core(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *__restrict__ q_weight_1d,
+                                           CeedScalar *w) {
+  *w = (t_id_x < Q_1D && t_id_y < Q_1D) ? q_weight_1d[t_id_x] * q_weight_1d[t_id_y] : 0.0;
+}
+
+template <int P_1D, int Q_1D>
 inline __device__ void WeightTensor2d(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
-  *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1D) ? q_weight_1d[data.t_id_x] * q_weight_1d[data.t_id_y] : 0.0;
+  WeightTensor2d_Core<Q_1D>(data, data.t_id_x, data.t_id_y, q_weight_1d, w);
+}
+
+template <int P_1D, int Q_1D>
+inline __device__ void WeightTensor2dFlattened(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
+
+  WeightTensor2d_Core<Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, q_weight_1d, w);
 }
 
 //------------------------------------------------------------------------------
