@@ -1548,32 +1548,75 @@ int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt e
 }
 
 /**
-  @brief Get the maximum number of points in an element for a `CeedElemRestriction` at points
+  @brief Get the minimum and/or maximum number of points in an element for a `CeedElemRestriction` at points
 
   @param[in]  rstr       `CeedElemRestriction`
-  @param[out] max_points Variable to store size of elements
+  @param[out] min_points Variable to minimum number of points in an element, or `NULL`
+  @param[out] max_points Variable to maximum number of points in an element, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Advanced
 **/
-int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
-  CeedInt             num_elem;
+int CeedElemRestrictionGetMinMaxPointsInElement(CeedElemRestriction rstr, CeedInt *min_points, CeedInt *max_points) {
+  CeedInt             num_elem, num_points;
   CeedRestrictionType rstr_type;
 
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
-            "Cannot compute max points for a CeedElemRestriction that does not use points");
+            "Cannot compute min/max points for a CeedElemRestriction that does not use points");
 
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  *max_points = 0;
-  for (CeedInt e = 0; e < num_elem; e++) {
-    CeedInt num_points;
 
+  // Exit early if there are no elements
+  if (num_elem == 0) {
+    if (min_points) *min_points = 0;
+    if (max_points) *max_points = 0;
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Initialize to the number of points in the first element
+  CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, 0, &num_points));
+  if (min_points) *min_points = num_points;
+  if (max_points) *max_points = num_points;
+  for (CeedInt e = 1; e < num_elem; e++) {
     CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
-    *max_points = CeedIntMax(num_points, *max_points);
+    if (min_points) *min_points = CeedIntMin(num_points, *min_points);
+    if (max_points) *max_points = CeedIntMax(num_points, *max_points);
   }
   return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the maximum number of points in an element for a `CeedElemRestriction` at points
+
+  @param[in]  rstr       `CeedElemRestriction`
+  @param[out] max_points Variable to store maximum number of points in an element
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+
+  @see CeedElemRestrictionGetMinMaxPointsInElement()
+**/
+int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
+  return CeedElemRestrictionGetMinMaxPointsInElement(rstr, NULL, max_points);
+}
+
+/**
+  @brief Get the minimum number of points in an element for a `CeedElemRestriction` at points
+
+  @param[in]  rstr       `CeedElemRestriction`
+  @param[out] min_points Variable to store minimum number of points in an element
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+
+  @see CeedElemRestrictionGetMinMaxPointsInElement()
+**/
+int CeedElemRestrictionGetMinPointsInElement(CeedElemRestriction rstr, CeedInt *min_points) {
+  return CeedElemRestrictionGetMinMaxPointsInElement(rstr, min_points, NULL);
 }
 
 /**
