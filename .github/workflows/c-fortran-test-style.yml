@@ -29,4 +29,4 @@ jobs:
         FC: gfortran-11
       run: |
         make info
-        make format-c -j2 CLANG_FORMAT=clang-format-18 && git diff --exit-code
+        make format-c -j CLANG_FORMAT=clang-format-18 && git diff --exit-code

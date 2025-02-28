@@ -37,4 +37,4 @@ jobs:
           uname -a
           make info
           make -j
-          PROVE_OPTS=-v make prove -j
+          make prove -j
