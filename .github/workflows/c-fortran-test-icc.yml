@@ -32,6 +32,6 @@ jobs:
           export CC=icx CXX=icx FC=ifx
           export OPENMP=1
           make info
-          make -j2
-          PROVE_OPTS=-v make prove -j2
+          make -j
+          make prove -j
 
