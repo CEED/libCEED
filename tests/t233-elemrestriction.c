@@ -48,9 +48,15 @@ int main(int argc, char **argv) {
   }
 
   {
-    CeedInt max_points;
+    CeedInt min_points, max_points;
 
+    CeedElemRestrictionGetMinPointsInElement(elem_restriction, &min_points);
     CeedElemRestrictionGetMaxPointsInElement(elem_restriction, &max_points);
+    if (min_points != 1 || max_points != num_elem) {
+      // LCOV_EXCL_START
+      printf("Error in min/max points: min %" CeedInt_FMT " max %" CeedInt_FMT "\n", min_points, max_points);
+      // LCOV_EXCL_STOP
+    }
     CeedVectorCreate(ceed, max_points, &y);
   }
 
