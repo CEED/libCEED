@@ -192,8 +192,8 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
   // Set field constants
+  code << "  const CeedInt " << P_name << " = " << (basis == CEED_BASIS_NONE ? Q_1d : P_1d) << ";\n";
   if (eval_mode != CEED_EVAL_WEIGHT) {
-    code << "  const CeedInt " << P_name << " = " << (basis == CEED_BASIS_NONE ? Q_1d : P_1d) << ";\n";
     code << "  const CeedInt num_comp" << var_suffix << " = " << num_comp << ";\n";
   }
 
@@ -542,7 +542,7 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
           code << "    CeedScalar r_q" << var_suffix << "[" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           CeedCallBackend(CeedBasisGetData(basis, &basis_data));
           data->W = basis_data->d_q_weight_1d;
-          code << "    " << function_name << "<" << Q_name << ">(data, W, r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<" << P_name << ", " << Q_name << ">(data, W, r_q" << var_suffix << ");\n";
         }
         break;
       }
@@ -691,6 +691,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
       std::string var_suffix = "_in_" + std::to_string(i);
+      std::string P_name     = "P_1d" + var_suffix;
 
       code << "      // ---- Input field " << i << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
@@ -704,13 +705,13 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           break;
         case CEED_EVAL_INTERP:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "];\n";
-          code << "      InterpAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << Q_name << ">(data, i, r_c" << var_suffix
-               << ", r_x, r_s" << var_suffix << ");\n";
+          code << "      InterpAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name << ">(data, i, r_c"
+               << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_GRAD:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "*dim];\n";
-          code << "      GradAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << Q_name << ">(data, i, r_c" << var_suffix
-               << ", r_x, r_s" << var_suffix << ");\n";
+          code << "      GradAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name << ">(data, i, r_c"
+               << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_s" << var_suffix << "[1];\n";
@@ -919,15 +920,15 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           code << "      if (i >= points.num_per_elem[elem]) {\n";
           code << "        for (CeedInt j = 0; j < num_comp" << var_suffix << "; j++) r_s" << var_suffix << "[j] = 0.0;\n";
           code << "      }\n";
-          code << "      InterpTransposeAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << Q_name << ">(data, i, r_s"
-               << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
+          code << "      InterpTransposeAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
+               << ">(data, i, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
           break;
         case CEED_EVAL_GRAD:
           code << "      if (i >= points.num_per_elem[elem]) {\n";
           code << "        for (CeedInt j = 0; j < num_comp" << var_suffix << "*dim; j++) r_s" << var_suffix << "[j] = 0.0;\n";
           code << "      }\n";
-          code << "      GradTransposeAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << Q_name << ">(data, i, r_s"
-               << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
+          code << "      GradTransposeAtPoints" << dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
+               << ">(data, i, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
           break;
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
