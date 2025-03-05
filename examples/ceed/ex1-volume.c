@@ -117,15 +117,18 @@ int main(int argc, const char *argv[]) {
 
   // Select appropriate backend and logical device based on the (-ceed) command line argument.
   Ceed ceed;
+
   CeedInit(ceed_spec, &ceed);
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;
+
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, mesh_degree + 1, num_qpts, CEED_GAUSS, &mesh_basis);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, sol_degree + 1, num_qpts, CEED_GAUSS, &sol_basis);
 
   // Determine the mesh size based on the given approximate problem size.
   CeedInt num_xyz[dim];
+
   GetCartesianMeshSize(dim, sol_degree, prob_size, num_xyz);
   if (!test) {
     // LCOV_EXCL_START
@@ -139,6 +142,7 @@ int main(int argc, const char *argv[]) {
   // Build CeedElemRestriction objects describing the mesh and solution discrete representations.
   CeedInt             mesh_size, sol_size;
   CeedElemRestriction mesh_restriction, sol_restriction, q_data_restriction;
+
   BuildCartesianRestriction(ceed, dim, num_xyz, mesh_degree, num_comp_x, &mesh_size, num_qpts, &mesh_restriction, NULL);
   BuildCartesianRestriction(ceed, dim, num_xyz, sol_degree, 1, &sol_size, num_qpts, &sol_restriction, &q_data_restriction);
   if (!test) {
@@ -150,6 +154,7 @@ int main(int argc, const char *argv[]) {
 
   // Create a CeedVector with the mesh coordinates.
   CeedVector mesh_coords;
+
   CeedVectorCreate(ceed, mesh_size, &mesh_coords);
   SetCartesianMeshCoords(dim, num_xyz, mesh_degree, mesh_coords);
 
@@ -159,12 +164,14 @@ int main(int argc, const char *argv[]) {
   // Context data to be passed to the 'build_mass' QFunction.
   CeedQFunctionContext build_ctx;
   struct BuildContext  build_ctx_data;
+
   build_ctx_data.dim = build_ctx_data.space_dim = dim;
   CeedQFunctionContextCreate(ceed, &build_ctx);
   CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(build_ctx_data), &build_ctx_data);
 
   // Create the QFunction that builds the mass operator (i.e. computes its quadrature data) and set its context data.
   CeedQFunction qf_build;
+
   if (gallery) {
     // This creates the QFunction via the gallery.
     char name[13] = "";
@@ -181,6 +188,7 @@ int main(int argc, const char *argv[]) {
 
   // Create the operator that builds the quadrature data for the mass operator.
   CeedOperator op_build;
+
   CeedOperatorCreate(ceed, qf_build, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_build);
   CeedOperatorSetField(op_build, "dx", mesh_restriction, mesh_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_build, "weights", CEED_ELEMRESTRICTION_NONE, mesh_basis, CEED_VECTOR_NONE);
@@ -190,12 +198,14 @@ int main(int argc, const char *argv[]) {
   CeedVector q_data;
   CeedInt    elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt    num_elem  = 1;
+
   for (CeedInt d = 0; d < dim; d++) num_elem *= num_xyz[d];
   CeedVectorCreate(ceed, num_elem * elem_qpts, &q_data);
   CeedOperatorApply(op_build, mesh_coords, q_data, CEED_REQUEST_IMMEDIATE);
 
   // Create the QFunction that defines the action of the mass operator.
   CeedQFunction qf_apply;
+
   if (gallery) {
     // This creates the QFunction via the gallery.
     CeedQFunctionCreateInteriorByName(ceed, "MassApply", &qf_apply);
@@ -209,6 +219,7 @@ int main(int argc, const char *argv[]) {
 
   // Create the mass operator.
   CeedOperator op_apply;
+
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "u", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
@@ -216,6 +227,7 @@ int main(int argc, const char *argv[]) {
 
   // Create auxiliary solution-size vectors.
   CeedVector u, v;
+
   CeedVectorCreate(ceed, sol_size, &u);
   CeedVectorCreate(ceed, sol_size, &v);
 
@@ -239,8 +251,10 @@ int main(int argc, const char *argv[]) {
 
   // Compute and print the sum of the entries of 'v' giving the mesh volume.
   CeedScalar volume = 0.;
+
   {
     const CeedScalar *v_array;
+
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < sol_size; i++) volume += v_array[i];
     CeedVectorRestoreArrayRead(v, &v_array);
@@ -254,6 +268,7 @@ int main(int argc, const char *argv[]) {
     // LCOV_EXCL_STOP
   } else {
     CeedScalar tol = (dim == 1 ? 200. * CEED_EPSILON : dim == 2 ? 1E-5 : 1E-5);
+
     if (fabs(volume - exact_volume) > tol) printf("Volume error : % .1e\n", volume - exact_volume);
   }
 
@@ -281,13 +296,16 @@ int GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt
   //    prob_size ~ num_elem * degree^dim
   CeedInt num_elem = prob_size / CeedIntPow(degree, dim);
   CeedInt s        = 0;  // find s: num_elem/2 < 2^s <= num_elem
+
   while (num_elem > 1) {
     num_elem /= 2;
     s++;
   }
   CeedInt r = s % dim;
+
   for (CeedInt d = 0; d < dim; d++) {
     CeedInt sd = s / dim;
+
     if (r > 0) {
       sd++;
       r--;
@@ -303,6 +321,7 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
   CeedInt num_nodes = CeedIntPow(p, dim);         // number of scalar nodes per element
   CeedInt elem_qpts = CeedIntPow(num_qpts, dim);  // number of qpts per element
   CeedInt nd[3], num_elem = 1, scalar_size = 1;
+
   for (CeedInt d = 0; d < dim; d++) {
     num_elem *= num_xyz[d];
     nd[d] = num_xyz[d] * (p - 1) + 1;
@@ -313,15 +332,19 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
   //           |---*-...-*---|---*-...-*---|- ... -|--...--|
   // num_nodes:   0   1    p-1  p  p+1       2*p             n*p
   CeedInt *elem_nodes = malloc(sizeof(CeedInt) * num_elem * num_nodes);
+
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt e_xyz[3] = {1, 1, 1}, re = e;
+
     for (CeedInt d = 0; d < dim; d++) {
       e_xyz[d] = re % num_xyz[d];
       re /= num_xyz[d];
     }
     CeedInt *local_elem_nodes = elem_nodes + e * num_nodes;
+
     for (CeedInt l_nodes = 0; l_nodes < num_nodes; l_nodes++) {
       CeedInt g_nodes = 0, g_nodes_stride = 1, r_nodes = l_nodes;
+
       for (CeedInt d = 0; d < dim; d++) {
         g_nodes += (e_xyz[d] * (p - 1) + r_nodes % p) * g_nodes_stride;
         g_nodes_stride *= nd[d];
@@ -342,20 +365,25 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
 int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[dim], CeedInt mesh_degree, CeedVector mesh_coords) {
   CeedInt p = mesh_degree + 1;
   CeedInt nd[3], scalar_size = 1;
+
   for (CeedInt d = 0; d < dim; d++) {
     nd[d] = num_xyz[d] * (p - 1) + 1;
     scalar_size *= nd[d];
   }
   CeedScalar *coords;
+
   CeedVectorGetArrayWrite(mesh_coords, CEED_MEM_HOST, &coords);
   CeedScalar *nodes = malloc(sizeof(CeedScalar) * p);
+
   // The H1 basis uses Lobatto quadrature points as nodes.
   CeedLobattoQuadrature(p, nodes, NULL);  // nodes are in [-1,1]
   for (CeedInt i = 0; i < p; i++) nodes[i] = 0.5 + 0.5 * nodes[i];
   for (CeedInt gs_nodes = 0; gs_nodes < scalar_size; gs_nodes++) {
     CeedInt r_nodes = gs_nodes;
+
     for (CeedInt d = 0; d < dim; d++) {
-      CeedInt d_1d                       = r_nodes % nd[d];
+      CeedInt d_1d = r_nodes % nd[d];
+
       coords[gs_nodes + scalar_size * d] = ((d_1d / (p - 1)) + nodes[d_1d % (p - 1)]) / num_xyz[d];
       r_nodes /= nd[d];
     }
@@ -373,6 +401,7 @@ int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[dim], CeedInt mesh_degre
 CeedScalar TransformMeshCoords(CeedInt dim, CeedInt mesh_size, CeedVector mesh_coords) {
   CeedScalar  exact_volume;
   CeedScalar *coords;
+
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
   if (dim == 1) {
     for (CeedInt i = 0; i < mesh_size; i++) {
@@ -382,10 +411,12 @@ CeedScalar TransformMeshCoords(CeedInt dim, CeedInt mesh_size, CeedVector mesh_c
     exact_volume = 1.;
   } else {
     CeedInt num_nodes = mesh_size / dim;
+
     for (CeedInt i = 0; i < num_nodes; i++) {
       // map (x,y) from [0,1]x[0,1] to the quarter annulus with polar
       // coordinates, (r,phi) in [1,2]x[0,pi/2] with area = 3/4*pi
       CeedScalar u = coords[i], v = coords[i + num_nodes];
+
       u                     = 1. + u;
       v                     = M_PI_2 * v;
       coords[i]             = u * cos(v);

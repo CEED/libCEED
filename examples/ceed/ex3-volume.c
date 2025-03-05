@@ -5,9 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-//                             libCEED Example 2
+//                             libCEED Example 1
 //
-// This example illustrates a simple usage of libCEED to compute the surface area of a 3D body using matrix-free application of a diffusion operator.
+// This example illustrates a simple usage of libCEED to compute the volume of a 3D body using matrix-free application of a mass operator.
+// This example also uses a diffusion operator, which provides zero contribution to the computed volume but demonstrates libCEED's ability
+// to handle multiple basis evaluation modes for the same input and output vectors.
 // Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the same code.
 //
 // The example has no dependencies, and is designed to be self-contained.
@@ -17,26 +19,23 @@
 //
 // Build with:
 //
-//     make ex2-surface [CEED_DIR=</path/to/libceed>]
+//     make ex3-volume [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     ./ex2-surface
-//     ./ex2-surface -ceed /cpu/self
-//     ./ex2-surface -ceed /gpu/cuda
+//     ./ex3-volume
+//     ./ex3-volume -ceed /cpu/self
+//     ./ex3-volume -ceed /gpu/cuda
 //
 // Test in 1D-3D
 //TESTARGS(name="1D User QFunction") -ceed {ceed_resource} -d 1 -t
 //TESTARGS(name="2D User QFunction") -ceed {ceed_resource} -d 2 -t
 //TESTARGS(name="3D User QFunction") -ceed {ceed_resource} -d 3 -t
-//TESTARGS(name="1D Gallery QFunction") -ceed {ceed_resource} -d 1 -t -g
-//TESTARGS(name="2D Gallery QFunction") -ceed {ceed_resource} -d 2 -t -g
-//TESTARGS(name="3D Gallery QFunction") -ceed {ceed_resource} -d 3 -t -g
 
 /// @file
-/// libCEED example using diffusion operator to compute surface area
+/// libCEED example using mass operator to compute volume
 
-#include "ex2-surface.h"
+#include "ex3-volume.h"
 
 #include <ceed.h>
 #include <math.h>
@@ -45,10 +44,10 @@
 #include <string.h>
 
 // Auxiliary functions
-int        GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[3]);
-int        BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedInt degree, CeedInt num_comp, CeedInt *size, CeedInt num_qpts,
+int        GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[dim]);
+int        BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], CeedInt degree, CeedInt num_comp, CeedInt *size, CeedInt num_qpts,
                                      CeedElemRestriction *restriction, CeedElemRestriction *q_data_restriction);
-int        SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[3], CeedInt mesh_degree, CeedVector mesh_coords);
+int        SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[dim], CeedInt mesh_degree, CeedVector mesh_coords);
 CeedScalar TransformMeshCoords(CeedInt dim, CeedInt mesh_size, CeedVector mesh_coords);
 
 // Main example
@@ -60,7 +59,7 @@ int main(int argc, const char *argv[]) {
   CeedInt     sol_degree  = 4;               // polynomial degree for the solution
   CeedInt     num_qpts    = sol_degree + 2;  // number of 1D quadrature points
   CeedInt     prob_size   = -1;              // approximate problem size
-  CeedInt     help = 0, test = 0, gallery = 0, benchmark = 0;
+  CeedInt     help = 0, test = 0, benchmark = 0;
 
   // Process command line arguments.
   for (int ia = 1; ia < argc; ia++) {
@@ -85,8 +84,6 @@ int main(int argc, const char *argv[]) {
       parse_error = next_arg ? benchmark = atoi(argv[++ia]), 0 : 1;
     } else if (!strcmp(argv[ia], "-t")) {
       test = 1;
-    } else if (!strcmp(argv[ia], "-g")) {
-      gallery = 1;
     }
     if (parse_error) {
       printf("Error parsing command line options.\n");
@@ -94,11 +91,7 @@ int main(int argc, const char *argv[]) {
     }
     // LCOV_EXCL_STOP
   }
-  if (prob_size < 0) prob_size = test ? 16 * 16 * dim * dim : 256 * 1024;
-
-  // Set mesh_degree = sol_degree.
-  mesh_degree = fmax(mesh_degree, sol_degree);
-  sol_degree  = mesh_degree;
+  if (prob_size < 0) prob_size = test ? 8 * 16 : 256 * 1024;
 
   // Print the values of all options:
   if (!test || help) {
@@ -110,7 +103,7 @@ int main(int argc, const char *argv[]) {
     printf("  Solution degree        [-p] : %" CeedInt_FMT "\n", sol_degree);
     printf("  Num. 1D quadrature pts [-q] : %" CeedInt_FMT "\n", num_qpts);
     printf("  Approx. # unknowns     [-s] : %" CeedInt_FMT "\n", prob_size);
-    printf("  QFunction source       [-g] : %s\n", gallery ? "gallery" : "header");
+    printf("  QFunction source            : header");
     if (help) {
       printf("Test/quiet mode is %s\n", (test ? "ON" : "OFF (use -t to enable)"));
       return 0;
@@ -131,10 +124,9 @@ int main(int argc, const char *argv[]) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, sol_degree + 1, num_qpts, CEED_GAUSS, &sol_basis);
 
   // Determine the mesh size based on the given approximate problem size.
-  CeedInt num_xyz[3];
+  CeedInt num_xyz[dim];
 
   GetCartesianMeshSize(dim, sol_degree, prob_size, num_xyz);
-
   if (!test) {
     // LCOV_EXCL_START
     printf("Mesh size: nx = %" CeedInt_FMT, num_xyz[0]);
@@ -149,7 +141,7 @@ int main(int argc, const char *argv[]) {
   CeedElemRestriction mesh_restriction, sol_restriction, q_data_restriction;
 
   BuildCartesianRestriction(ceed, dim, num_xyz, mesh_degree, num_comp_x, &mesh_size, num_qpts, &mesh_restriction, NULL);
-  BuildCartesianRestriction(ceed, dim, num_xyz, sol_degree, dim * (dim + 1) / 2, &sol_size, num_qpts, NULL, &q_data_restriction);
+  BuildCartesianRestriction(ceed, dim, num_xyz, sol_degree, 1 + dim * (dim + 1) / 2, &sol_size, num_qpts, NULL, &q_data_restriction);
   BuildCartesianRestriction(ceed, dim, num_xyz, sol_degree, 1, &sol_size, num_qpts, &sol_restriction, NULL);
   if (!test) {
     // LCOV_EXCL_START
@@ -165,9 +157,9 @@ int main(int argc, const char *argv[]) {
   SetCartesianMeshCoords(dim, num_xyz, mesh_degree, mesh_coords);
 
   // Apply a transformation to the mesh.
-  CeedScalar exact_surface_area = TransformMeshCoords(dim, mesh_size, mesh_coords);
+  CeedScalar exact_volume = TransformMeshCoords(dim, mesh_size, mesh_coords);
 
-  // Context data to be passed to the 'build_diff' QFunction.
+  // Context data to be passed to the 'build_mass_diff' QFunction.
   CeedQFunctionContext build_ctx;
   struct BuildContext  build_ctx_data;
 
@@ -175,24 +167,16 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionContextCreate(ceed, &build_ctx);
   CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(build_ctx_data), &build_ctx_data);
 
-  // Create the QFunction that builds the diffusion operator (i.e. computes its quadrature data) and set its context data.
+  // Create the QFunction that builds the mass + diffusion operator (i.e. computes its quadrature data) and set its context data.
   CeedQFunction qf_build;
 
-  if (gallery) {
-    // This creates the QFunction via the gallery.
-    char name[16] = "";
-    snprintf(name, sizeof name, "Poisson%" CeedInt_FMT "DBuild", dim);
-    CeedQFunctionCreateInteriorByName(ceed, name, &qf_build);
-  } else {
-    // This creates the QFunction directly.
-    CeedQFunctionCreateInterior(ceed, 1, build_diff, build_diff_loc, &qf_build);
-    CeedQFunctionAddInput(qf_build, "dx", num_comp_x * dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
-    CeedQFunctionAddOutput(qf_build, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
-    CeedQFunctionSetContext(qf_build, build_ctx);
-  }
+  CeedQFunctionCreateInterior(ceed, 1, build_mass_diff, build_mass_diff_loc, &qf_build);
+  CeedQFunctionAddInput(qf_build, "dx", num_comp_x * dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
+  CeedQFunctionAddOutput(qf_build, "qdata", 1 + dim * (dim + 1) / 2, CEED_EVAL_NONE);
+  CeedQFunctionSetContext(qf_build, build_ctx);
 
-  // Create the operator that builds the quadrature data for the diffusion operator.
+  // Create the operator that builds the quadrature data for the mass + diffusion operator.
   CeedOperator op_build;
 
   CeedOperatorCreate(ceed, qf_build, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_build);
@@ -200,38 +184,34 @@ int main(int argc, const char *argv[]) {
   CeedOperatorSetField(op_build, "weights", CEED_ELEMRESTRICTION_NONE, mesh_basis, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_build, "qdata", q_data_restriction, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
-  // Compute the quadrature data for the diffusion operator.
+  // Compute the quadrature data for the mass + diffusion operator.
   CeedVector q_data;
   CeedInt    elem_qpts = CeedIntPow(num_qpts, dim);
   CeedInt    num_elem  = 1;
 
   for (CeedInt d = 0; d < dim; d++) num_elem *= num_xyz[d];
-  CeedVectorCreate(ceed, num_elem * elem_qpts * dim * (dim + 1) / 2, &q_data);
+  CeedVectorCreate(ceed, num_elem * elem_qpts * (1 + dim * (dim + 1) / 2), &q_data);
   CeedOperatorApply(op_build, mesh_coords, q_data, CEED_REQUEST_IMMEDIATE);
 
-  // Create the QFunction that defines the action of the diffusion operator.
+  // Create the QFunction that defines the action of the mass + diffusion operator.
   CeedQFunction qf_apply;
 
-  if (gallery) {
-    // This creates the QFunction via the gallery.
-    char name[25] = "";
-    snprintf(name, sizeof name, "Poisson%" CeedInt_FMT "DApply", dim);
-    CeedQFunctionCreateInteriorByName(ceed, name, &qf_apply);
-  } else {
-    // This creates the QFunction directly.
-    CeedQFunctionCreateInterior(ceed, 1, apply_diff, apply_diff_loc, &qf_apply);
-    CeedQFunctionAddInput(qf_apply, "du", dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_apply, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_apply, "dv", dim, CEED_EVAL_GRAD);
-    CeedQFunctionSetContext(qf_apply, build_ctx);
-  }
+  CeedQFunctionCreateInterior(ceed, 1, apply_mass_diff, apply_mass_diff_loc, &qf_apply);
+  CeedQFunctionAddInput(qf_apply, "u", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_apply, "du", dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_apply, "qdata", 1 + dim * (dim + 1) / 2, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_apply, "v", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_apply, "dv", dim, CEED_EVAL_GRAD);
+  CeedQFunctionSetContext(qf_apply, build_ctx);
 
-  // Create the diffusion operator.
+  // Create the mass +diffusion operator.
   CeedOperator op_apply;
 
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
+  CeedOperatorSetField(op_apply, "u", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "du", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
+  CeedOperatorSetField(op_apply, "v", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "dv", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
 
   // Create auxiliary solution-size vectors.
@@ -240,22 +220,10 @@ int main(int argc, const char *argv[]) {
   CeedVectorCreate(ceed, sol_size, &u);
   CeedVectorCreate(ceed, sol_size, &v);
 
-  // Initialize 'u' with sum of coordinates, x+y+z.
-  {
-    CeedScalar       *u_array;
-    const CeedScalar *x_array;
+  // Initialize 'u' with ones.
+  CeedVectorSetValue(u, 1.0);
 
-    CeedVectorGetArrayWrite(u, CEED_MEM_HOST, &u_array);
-    CeedVectorGetArrayRead(mesh_coords, CEED_MEM_HOST, &x_array);
-    for (CeedInt i = 0; i < sol_size; i++) {
-      u_array[i] = 0;
-      for (CeedInt d = 0; d < dim; d++) u_array[i] += x_array[i + d * sol_size];
-    }
-    CeedVectorRestoreArray(u, &u_array);
-    CeedVectorRestoreArrayRead(mesh_coords, &x_array);
-  }
-
-  // Compute the mesh surface area using the diff operator: surface_area = 1^T \cdot abs( K \cdot x).
+  // Compute the mesh volume using the mass + diffusion operator: volume = 1^T \cdot M \cdot 1
   CeedOperatorApply(op_apply, u, v, CEED_REQUEST_IMMEDIATE);
 
   // Benchmark runs
@@ -270,26 +238,27 @@ int main(int argc, const char *argv[]) {
     // LCOV_EXCL_STOP
   }
 
-  // Compute and print the sum of the entries of 'v' giving the mesh surface area.
-  CeedScalar surface_area = 0.;
+  // Compute and print the sum of the entries of 'v' giving the mesh volume.
+  CeedScalar volume = 0.;
+
   {
     const CeedScalar *v_array;
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    for (CeedInt i = 0; i < sol_size; i++) surface_area += fabs(v_array[i]);
+    for (CeedInt i = 0; i < sol_size; i++) volume += v_array[i];
     CeedVectorRestoreArrayRead(v, &v_array);
   }
   if (!test) {
     // LCOV_EXCL_START
     printf(" done.\n");
-    printf("Exact mesh surface area    : % .14g\n", exact_surface_area);
-    printf("Computed mesh surface area : % .14g\n", surface_area);
-    printf("Surface area error         : % .14g\n", surface_area - exact_surface_area);
+    printf("Exact mesh volume    : % .14g\n", exact_volume);
+    printf("Computed mesh volume : % .14g\n", volume);
+    printf("Volume error         : % .14g\n", volume - exact_volume);
     // LCOV_EXCL_STOP
   } else {
-    CeedScalar tol = (dim == 1 ? 10000. * CEED_EPSILON : dim == 2 ? 1E-1 : 1E-1);
+    CeedScalar tol = (dim == 1 ? 200. * CEED_EPSILON : dim == 2 ? 1E-5 : 1E-5);
 
-    if (fabs(surface_area - exact_surface_area) > tol) printf("Surface area error         : % .14g\n", surface_area - exact_surface_area);
+    if (fabs(volume - exact_volume) > tol) printf("Volume error : % .1e\n", volume - exact_volume);
   }
 
   // Free dynamically allocated memory.
@@ -311,7 +280,7 @@ int main(int argc, const char *argv[]) {
   return 0;
 }
 
-int GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[3]) {
+int GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[dim]) {
   // Use the approximate formula:
   //    prob_size ~ num_elem * degree^dim
   CeedInt num_elem = prob_size / CeedIntPow(degree, dim);
@@ -335,7 +304,7 @@ int GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt
   return 0;
 }
 
-int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedInt degree, CeedInt num_comp, CeedInt *size, CeedInt num_qpts,
+int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], CeedInt degree, CeedInt num_comp, CeedInt *size, CeedInt num_qpts,
                               CeedElemRestriction *restriction, CeedElemRestriction *q_data_restriction) {
   CeedInt p         = degree + 1;
   CeedInt num_nodes = CeedIntPow(p, dim);         // number of scalar nodes per element
@@ -351,7 +320,7 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedIn
   // elem:         0             1                 n-1
   //           |---*-...-*---|---*-...-*---|- ... -|--...--|
   // num_nodes:   0   1    p-1  p  p+1       2*p             n*p
-  CeedInt *el_nodes = malloc(sizeof(CeedInt) * num_elem * num_nodes);
+  CeedInt *elem_nodes = malloc(sizeof(CeedInt) * num_elem * num_nodes);
 
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt e_xyz[3] = {1, 1, 1}, re = e;
@@ -360,7 +329,7 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedIn
       e_xyz[d] = re % num_xyz[d];
       re /= num_xyz[d];
     }
-    CeedInt *local_elem_nodes = el_nodes + e * num_nodes;
+    CeedInt *local_elem_nodes = elem_nodes + e * num_nodes;
 
     for (CeedInt l_nodes = 0; l_nodes < num_nodes; l_nodes++) {
       CeedInt g_nodes = 0, g_nodes_stride = 1, r_nodes = l_nodes;
@@ -374,19 +343,17 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedIn
     }
   }
   if (restriction) {
-    CeedElemRestrictionCreate(ceed, num_elem, num_nodes, num_comp, scalar_size, num_comp * scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES, el_nodes,
+    CeedElemRestrictionCreate(ceed, num_elem, num_nodes, num_comp, scalar_size, num_comp * scalar_size, CEED_MEM_HOST, CEED_COPY_VALUES, elem_nodes,
                               restriction);
   }
-  free(el_nodes);
-
   if (q_data_restriction) {
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts, num_comp, num_comp * elem_qpts * num_elem, CEED_STRIDES_BACKEND, q_data_restriction);
   }
-
+  free(elem_nodes);
   return 0;
 }
 
-int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[3], CeedInt mesh_degree, CeedVector mesh_coords) {
+int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[dim], CeedInt mesh_degree, CeedVector mesh_coords) {
   CeedInt p = mesh_degree + 1;
   CeedInt nd[3], scalar_size = 1;
 
@@ -406,9 +373,8 @@ int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[3], CeedInt mesh_degree,
     CeedInt r_nodes = gs_nodes;
 
     for (CeedInt d = 0; d < dim; d++) {
-      CeedInt d1d = r_nodes % nd[d];
-
-      coords[gs_nodes + scalar_size * d] = ((d1d / (p - 1)) + nodes[d1d % (p - 1)]) / num_xyz[d];
+      CeedInt d_1d                       = r_nodes % nd[d];
+      coords[gs_nodes + scalar_size * d] = ((d_1d / (p - 1)) + nodes[d_1d % (p - 1)]) / num_xyz[d];
       r_nodes /= nd[d];
     }
   }
@@ -419,17 +385,34 @@ int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[3], CeedInt mesh_degree,
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#define M_PI_2 1.57079632679489661923
 #endif
 
 CeedScalar TransformMeshCoords(CeedInt dim, CeedInt mesh_size, CeedVector mesh_coords) {
-  CeedScalar  exact_surface_area = (dim == 1 ? 2 : dim == 2 ? 4 : 6);
+  CeedScalar  exact_volume;
   CeedScalar *coords;
 
   CeedVectorGetArray(mesh_coords, CEED_MEM_HOST, &coords);
-  for (CeedInt i = 0; i < mesh_size; i++) {
-    // map [0,1] to [0,1] varying the mesh density
-    coords[i] = 0.5 + 1. / sqrt(3.) * sin((2. / 3.) * M_PI * (coords[i] - 0.5));
+  if (dim == 1) {
+    for (CeedInt i = 0; i < mesh_size; i++) {
+      // map [0,1] to [0,1] varying the mesh density
+      coords[i] = 0.5 + 1. / sqrt(3.) * sin((2. / 3.) * M_PI * (coords[i] - 0.5));
+    }
+    exact_volume = 1.;
+  } else {
+    CeedInt num_nodes = mesh_size / dim;
+    for (CeedInt i = 0; i < num_nodes; i++) {
+      // map (x,y) from [0,1]x[0,1] to the quarter annulus with polar
+      // coordinates, (r,phi) in [1,2]x[0,pi/2] with area = 3/4*pi
+      CeedScalar u = coords[i], v = coords[i + num_nodes];
+
+      u                     = 1. + u;
+      v                     = M_PI_2 * v;
+      coords[i]             = u * cos(v);
+      coords[i + num_nodes] = u * sin(v);
+    }
+    exact_volume = 3. / 4. * M_PI;
   }
   CeedVectorRestoreArray(mesh_coords, &coords);
-  return exact_surface_area;
+  return exact_volume;
 }
