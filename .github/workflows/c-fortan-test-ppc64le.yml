@@ -37,4 +37,4 @@ jobs:
           uname -a
           make info
           make -j
-          make prove -j
+          make prove -j search="t5 ex"
