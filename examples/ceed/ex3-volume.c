@@ -19,7 +19,7 @@
 //
 // Build with:
 //
-//     make ex1-volume [CEED_DIR=</path/to/libceed>]
+//     make ex3-volume [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
