@@ -5,11 +5,60 @@
 #
 # This file is part of CEED:  http://github.com/ceed
 
+# ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
+
+# config.mk stores cached configuration variables
 CONFIG ?= config.mk
 -include $(CONFIG)
+
+# common.mk holds definitions used in various makefiles throughout the project
 COMMON ?= common.mk
 -include $(COMMON)
 
+# Quiet, color output
+quiet ?= $($(1))
+
+# Cancel built-in and old-fashioned implicit rules which we don't use
+.SUFFIXES:
+
+.SECONDEXPANSION: # to expand $$(@D)/.DIR
+
+%/.DIR :
+	@mkdir -p $(@D)
+	@touch $@
+
+.PRECIOUS: %/.DIR
+
+
+# ------------------------------------------------------------
+# Root directories for backend dependencies
+# ------------------------------------------------------------
+
+# XSMM_DIR env variable should point to XSMM main (github.com/hfp/libxsmm)
+XSMM_DIR ?= ../libxsmm
+
+# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
+CUDA_DIR  ?=
+CUDA_ARCH ?=
+
+# Often /opt/rocm, but sometimes present on machines that don't support HIP
+ROCM_DIR ?=
+HIP_ARCH ?=
+
+# env variable MAGMA_DIR can be used too
+MAGMA_DIR ?= ../magma
+
+# OCCA_DIR env variable should point to OCCA main (github.com/libocca/occa)
+OCCA_DIR ?= ../occa/install
+
+
+# ------------------------------------------------------------
+# Compiler flags
+# ------------------------------------------------------------
+
+# Detect user compiler options and set defaults
 ifeq (,$(filter-out undefined default,$(origin CC)))
   CC = gcc
 endif
@@ -47,55 +96,12 @@ ASAN ?=
 # if any. If the user sets CEED_LDFLAGS or CEED_LDLIBS, they are used *instead
 # of* what we populate here (thus that's advanced usage and not recommended).
 CEED_LDFLAGS ?=
-CEED_LDLIBS ?=
+CEED_LDLIBS  ?=
 
 UNDERSCORE ?= 1
 
 # Verbose mode, V or VERBOSE
 V ?= $(VERBOSE)
-
-# MFEM_DIR env variable should point to sibling directory
-ifneq ($(wildcard ../mfem/libmfem.*),)
-  MFEM_DIR ?= ../mfem
-endif
-
-# NEK5K_DIR env variable should point to sibling directory
-ifneq ($(wildcard ../Nek5000/*),)
-  NEK5K_DIR ?= $(abspath ../Nek5000)
-endif
-export NEK5K_DIR
-MPI ?= 1
-
-# DEAL_II_DIR env variable should point to sibling directory
-ifneq ($(wildcard ../dealii/install/lib/libdeal_II.*),)
-  DEAL_II_DIR ?= ../dealii/install
-endif
-export DEAL_II_DIR
-
-# CEED_DIR env for NEK5K testing
-export CEED_DIR = $(abspath .)
-
-# XSMM_DIR env variable should point to XSMM main (github.com/hfp/libxsmm)
-XSMM_DIR ?= ../libxsmm
-
-# OCCA_DIR env variable should point to OCCA main (github.com/libocca/occa)
-OCCA_DIR ?= ../occa/install
-
-# env variable MAGMA_DIR can be used too
-MAGMA_DIR ?= ../magma
-
-# Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
-CUDA_DIR  ?=
-CUDA_ARCH ?=
-
-# Often /opt/rocm, but sometimes present on machines that don't support HIP
-ROCM_DIR ?=
-HIP_ARCH ?=
-
-# Check for PETSc in ../petsc
-ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
-  PETSC_DIR ?= ../petsc
-endif
 
 # Warning: SANTIZ options still don't run with /gpu/occa
 AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
@@ -159,6 +165,7 @@ OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 PEDANTIC      ?=
 PEDANTICFLAGS ?= -Werror -pedantic
 
+# Compiler flags
 OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
@@ -198,7 +205,6 @@ OBJDIR := build
 for_install := $(filter install,$(MAKECMDGOALS))
 LIBDIR := $(if $(for_install),$(OBJDIR),lib)
 
-
 # Installation variables
 prefix ?= /usr/local
 bindir = $(prefix)/bin
@@ -226,48 +232,69 @@ libceed.so := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.a := $(LIBDIR)/libceed.a
 libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
 CEED_LIBS = -lceed
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
-gallery.c := $(wildcard gallery/*/ceed*.c)
-libceed.c += $(gallery.c)
 libceeds = $(libceed)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
 
-# Tests
-tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
-tests.f   := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
-tests     := $(tests.c:tests/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
-ctests    := $(tests)
-tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
-# Examples
-examples.c := $(sort $(wildcard examples/ceed/*.c))
-examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
-examples   := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
-examples   += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
-# MFEM Examples
-mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
-mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
-# Nek5K Examples
-nekexamples   := $(OBJDIR)/nek-bps
-# PETSc Examples
-petscexamples.c := $(wildcard examples/petsc/*.c)
-petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
-# deal.II Examples
-dealiiexamples  := $(OBJDIR)/dealii-bps
-# Fluid Dynamics Examples
-fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
-fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
-# Solid Mechanics Examples
-solidsexamples.c  := $(sort $(wildcard examples/solids/*.c))
-solidsexamples    := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
-# Backends/[ref, blocked, memcheck, opt, avx, occa, magma]
+# ------------------------------------------------------------
+# Root directories for examples using external libraries
+# ------------------------------------------------------------
+
+# DEAL_II_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../dealii/install/lib/libdeal_II.*),)
+  DEAL_II_DIR ?= ../dealii/install
+endif
+# Export for deal.II testing
+export DEAL_II_DIR
+
+# MFEM_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../mfem/libmfem.*),)
+  MFEM_DIR ?= ../mfem
+endif
+
+# NEK5K_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../Nek5000/*),)
+  NEK5K_DIR ?= $(abspath ../Nek5000)
+endif
+# Exports for NEK5K testing
+export CEED_DIR = $(abspath .)
+export NEK5K_DIR
+MPI ?= 1
+
+# Check for PETSc in ../petsc
+ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
+  PETSC_DIR ?= ../petsc
+endif
+
+# ------------------------------------------------------------
+# Build the library (default target)
+# ------------------------------------------------------------
+
+lib: $(libceed) $(ceed.pc)
+# run 'lib' target in parallel
+par:;@$(MAKE) $(MFLAGS) V=$(V) lib
+
+$(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
+
+# ------------------------------------------------------------
+# Source files
+# ------------------------------------------------------------
+
+# Interface and gallery
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
+gallery.c := $(wildcard gallery/*/ceed*.c)
+libceed.c += $(gallery.c)
+
+# Backends
+# - CPU
 ref.c          := $(sort $(wildcard backends/ref/*.c))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
 opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
+# - GPU
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
@@ -278,9 +305,6 @@ cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
-occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
-magma.c        := $(sort $(wildcard backends/magma/*.c))
-magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -293,28 +317,55 @@ sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
 sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
 sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
 sycl-gen.cpp   := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
+magma.c        := $(sort $(wildcard backends/magma/*.c))
+magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
+occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 
-hip-all.c := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+hip-all.c   := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
 hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
 
-# Quiet, color output
-quiet ?= $($(1))
+# Tests
+tests.c := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
+tests.f := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
+tests   := $(tests.c:tests/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
+ctests  := $(tests)
+tests   += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 
-# Cancel built-in and old-fashioned implicit rules which we don't use
-.SUFFIXES:
+# Examples
+examples.c := $(sort $(wildcard examples/ceed/*.c))
+examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
+examples   := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
+examples   += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
 
-.SECONDEXPANSION: # to expand $$(@D)/.DIR
+# deal.II Examples
+dealiiexamples := $(OBJDIR)/dealii-bps
 
-%/.DIR :
-	@mkdir -p $(@D)
-	@touch $@
+# MFEM Examples
+mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
+mfemexamples     := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 
-.PRECIOUS: %/.DIR
+# Nek5K Examples
+nekexamples := $(OBJDIR)/nek-bps
 
-lib: $(libceed) $(ceed.pc)
-# run 'lib' target in parallel
-par:;@$(MAKE) $(MFLAGS) V=$(V) lib
+# PETSc Examples
+petscexamples.c := $(wildcard examples/petsc/*.c)
+petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+
+# Fluid Dynamics Example
+fluidsexamples.c := $(sort $(wildcard examples/fluids/*.c))
+fluidsexamples   := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+
+# Solid Mechanics Example
+solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
+solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
+
+
+# ------------------------------------------------------------
+# View configuration options
+# ------------------------------------------------------------
+
 backend_status = $(if $(filter $1,$(BACKENDS_MAKE)), [backends: $1], [not found])
+
 info:
 	$(info ------------------------------------)
 	$(info CC            = $(CC))
@@ -356,14 +407,19 @@ info:
 	$(info pkgconfigdir  = $(value pkgconfigdir))
 	$(info ------------------------------------)
 	@true
+
 info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
 	@true
+
 info-backends-all:
 	$(info make: 'lib' with backends: $(BACKENDS))
 	@true
 
-$(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
+
+# ------------------------------------------------------------
+# Backends
+# ------------------------------------------------------------
 
 # Standard Backends
 libceed.c += $(ref.c)
@@ -415,22 +471,6 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS_MAKE += $(XSMM_BACKENDS)
-endif
-
-# OCCA Backends
-OCCA_BACKENDS = /cpu/self/occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_MODES := $(shell LD_LIBRARY_PATH=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
-  OCCA_BACKENDS += $(if $(filter dpcpp,$(OCCA_MODES)),/gpu/dpcpp/occa)
-  OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
-  $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
-  PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
-  LIBCEED_CONTAINS_CXX = 1
-  libceed.cpp += $(occa.cpp)
-  BACKENDS_MAKE += $(OCCA_BACKENDS)
 endif
 
 # CUDA Backends
@@ -519,9 +559,29 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   BACKENDS_MAKE += $(MAGMA_BACKENDS)
 endif
 
+# OCCA Backends
+OCCA_BACKENDS = /cpu/self/occa
+ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
+  OCCA_MODES := $(shell LD_LIBRARY_PATH=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa modes)
+  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
+  OCCA_BACKENDS += $(if $(filter dpcpp,$(OCCA_MODES)),/gpu/dpcpp/occa)
+  OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
+  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
+  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
+  $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
+  PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
+  LIBCEED_CONTAINS_CXX = 1
+  libceed.cpp += $(occa.cpp)
+  BACKENDS_MAKE += $(OCCA_BACKENDS)
+endif
+
 BACKENDS ?= $(BACKENDS_MAKE)
 export BACKENDS
 
+
+# ------------------------------------------------------------
+# Linker Flags
+# ------------------------------------------------------------
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
 $(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
@@ -539,6 +599,11 @@ ifeq ($(LIBCEED_CONTAINS_CXX),1)
     pkgconfig-libs-private += $(LIBCXX)
   endif
 endif
+
+
+# ------------------------------------------------------------
+# Building core library components
+# ------------------------------------------------------------
 
 # File names *-weak.c contain weak symbol definitions, which must be listed last
 # when creating shared or static libraries.
@@ -583,11 +648,26 @@ $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
+
+# ------------------------------------------------------------
+# Building examples
+# ------------------------------------------------------------
+
+# deal.II
+# Note: Invoking deal.II's CMAKE build system here
+$(OBJDIR)/dealii-bps : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
+	mkdir -p examples/deal.II/build
+	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
+	+$(call quiet,MAKE) -C examples/deal.II/build
+	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
+
+# MFEM
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
 	cp examples/mfem/$* $@
 
+# Nek5000
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
 #       this single Nek bps file to be built in parallel with other examples,
 #       such as when calling `make prove-all -j2`.
@@ -596,13 +676,7 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
-# Note: Invoking deal.II's CMAKE build system here
-$(OBJDIR)/dealii-bps : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
-	mkdir -p examples/deal.II/build
-	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
-	+$(call quiet,MAKE) -C examples/deal.II/build
-	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
-
+# PETSc
 # Several executables have common utilities, but we can't build the utilities
 # from separate submake invocations because they'll compete with each
 # other/corrupt output. So we put it in this utility library, but we don't want
@@ -617,11 +691,13 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
+# Fluid dynamics proxy application
 $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/include/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) examples/fluids/Makefile | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
+# Solid mechanics proxy application
 $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
     examples/solids/problems/*.c examples/solids/src/*.c \
     examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
@@ -630,9 +706,30 @@ $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
 
+examples : $(allexamples)
+ceedexamples : $(examples)
+nekexamples : $(nekexamples)
+mfemexamples : $(mfemexamples)
+petscexamples : $(petscexamples)
+
+external_examples := \
+	$(if $(MFEM_DIR),$(mfemexamples)) \
+	$(if $(PETSC_DIR),$(petscexamples)) \
+	$(if $(NEK5K_DIR),$(nekexamples)) \
+	$(if $(DEAL_II_DIR),$(dealiiexamples)) \
+	$(if $(PETSC_DIR),$(fluidsexamples)) \
+	$(if $(PETSC_DIR),$(solidsexamples))
+
+allexamples = $(examples) $(external_examples)
+
 $(examples) : $(libceed)
 $(tests) : $(libceed)
 $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
+
+
+# ------------------------------------------------------------
+# Testing
+# ------------------------------------------------------------
 
 # Set number processes for testing
 NPROC_TEST ?= 1
@@ -644,16 +741,6 @@ export NPROC_POOL
 
 run-% : $(OBJDIR)/%
 	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) $(<:$(OBJDIR)/%=%)
-
-external_examples := \
-	$(if $(MFEM_DIR),$(mfemexamples)) \
-	$(if $(PETSC_DIR),$(petscexamples)) \
-	$(if $(NEK5K_DIR),$(nekexamples)) \
-	$(if $(DEAL_II_DIR),$(dealiiexamples)) \
-	$(if $(PETSC_DIR),$(fluidsexamples)) \
-	$(if $(PETSC_DIR),$(solidsexamples))
-
-allexamples = $(examples) $(external_examples)
 
 # The test and prove targets can be controlled via pattern searches.  The
 # default is to run tests and those examples that have no external dependencies.
@@ -675,6 +762,8 @@ tst : ;@$(MAKE) $(MFLAGS) V=$(V) test
 # CPU C tests only for backend %
 ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
+# Testing with TAP format
+# https://testanything.org/tap-specification.html
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
 	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
@@ -690,12 +779,6 @@ junit-% : $(OBJDIR)/%
 junit : $(matched:$(OBJDIR)/%=junit-%)
 
 all: $(alltests)
-
-examples : $(allexamples)
-ceedexamples : $(examples)
-nekexamples : $(nekexamples)
-mfemexamples : $(mfemexamples)
-petscexamples : $(petscexamples)
 
 # Benchmarks
 allbenchmarks = petsc-bps
@@ -716,6 +799,10 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
 
+
+# ------------------------------------------------------------
+# Installation
+# ------------------------------------------------------------
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
@@ -740,8 +827,10 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/magma/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/magma/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/sycl/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/sycl/"
 
-.PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all
 
+# ------------------------------------------------------------
+# Cleaning
+# ------------------------------------------------------------
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
@@ -751,7 +840,10 @@ cln clean :
 distclean : clean
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
 
+
+# ------------------------------------------------------------
 # Documentation
+# ------------------------------------------------------------
 DOXYGEN ?= doxygen
 
 doxygen :
@@ -761,6 +853,11 @@ doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 	make -C doc/sphinx $*
 
 doc : doc-html
+
+
+# ------------------------------------------------------------
+# Linting utilities
+# ------------------------------------------------------------
 
 # Style/Format
 CLANG_FORMAT      ?= clang-format
@@ -812,6 +909,11 @@ endif
 iwyu :
 	$(MAKE) -B CC=$(IWYU_CC)
 
+
+# ------------------------------------------------------------
+# Variable printing for debugging
+# ------------------------------------------------------------
+
 print :
 	@echo $(VAR)=$($(VAR))
 
@@ -824,6 +926,10 @@ print-% :
 	$(info )
 	@true
 
+
+# ------------------------------------------------------------
+# Configuration caching
+# ------------------------------------------------------------
 # "make configure" detects any variables passed on the command line or
 # previously set in config.mk, caching them in config.mk as simple
 # (:=) variables.  Variables set in config.mk or on the command line
@@ -856,6 +962,10 @@ configure :
 	@echo "Configuration cached in $(CONFIG):"
 	@cat $(CONFIG)
 
+
+# ------------------------------------------------------------
+# Building Python wheels for deployment
+# ------------------------------------------------------------
 wheel : export MARCHFLAG = -march=generic
 wheel : export WHEEL_PLAT = manylinux2010_x86_64
 wheel :
@@ -863,7 +973,12 @@ wheel :
 	  -e MARCHFLAG -e WHEEL_PLAT \
 	  quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
 
-.PHONY : configure wheel
+# ------------------------------------------------------------
+# Phony targets
+# ------------------------------------------------------------
+# These targets are not files but rather commands to run
+.PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all configure wheel
+
 
 # Include *.d deps when not -B = --always-make: useful if the paths are wonky in a container
 -include $(if $(filter B,$(MAKEFLAGS)),,$(libceed.c:%.c=$(OBJDIR)/%.d) $(tests.c:tests/%.c=$(OBJDIR)/%.d))
