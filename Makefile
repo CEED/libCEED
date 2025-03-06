@@ -632,6 +632,7 @@ export BACKENDS
 # ------------------------------------------------------------
 # Linker Flags
 # ------------------------------------------------------------
+
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
 $(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
@@ -853,6 +854,7 @@ $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUR
 # ------------------------------------------------------------
 # Installation
 # ------------------------------------------------------------
+
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
@@ -881,6 +883,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 # ------------------------------------------------------------
 # Cleaning
 # ------------------------------------------------------------
+
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
@@ -894,6 +897,7 @@ distclean : clean
 # ------------------------------------------------------------
 # Documentation
 # ------------------------------------------------------------
+
 DOXYGEN ?= doxygen
 
 doxygen :
@@ -980,6 +984,7 @@ print-% :
 # ------------------------------------------------------------
 # Configuration caching
 # ------------------------------------------------------------
+
 # "make configure" detects any variables passed on the command line or
 # previously set in config.mk, caching them in config.mk as simple
 # (:=) variables.  Variables set in config.mk or on the command line
@@ -1016,6 +1021,7 @@ configure :
 # ------------------------------------------------------------
 # Building Python wheels for deployment
 # ------------------------------------------------------------
+
 wheel : export MARCHFLAG = -march=generic
 wheel : export WHEEL_PLAT = manylinux2010_x86_64
 wheel :
@@ -1026,6 +1032,7 @@ wheel :
 # ------------------------------------------------------------
 # Phony targets
 # ------------------------------------------------------------
+
 # These targets are not files but rather commands to run
 .PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all configure wheel
 
