@@ -301,10 +301,11 @@ cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
 cuda-ref.cpp   := $(sort $(wildcard backends/cuda-ref/*.cpp))
 cuda-ref.cu    := $(sort $(wildcard backends/cuda-ref/kernels/*.cu))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
-cuda-shared.cu := $(sort $(wildcard backends/cuda-shared/kernels/*.cu))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
-cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
+cuda-all.c     := interface/ceed-cuda.c $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
+cuda-all.cpp   := $(cuda.cpp) $(cuda-ref.cpp) $(cuda-gen.cpp)
+cuda-all.cu    := $(cuda-ref.cu)
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -313,6 +314,9 @@ hip-ref.hip    := $(sort $(wildcard backends/hip-ref/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
+hip-all.c      := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+hip-all.cpp    := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
+hip-all.hip    := $(hip-ref.hip)
 sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
 sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
 sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
@@ -320,9 +324,6 @@ sycl-gen.cpp   := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
-
-hip-all.c   := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
-hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
 
 # Tests
 tests.c := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -535,9 +536,9 @@ ifneq ($(CUDA_LIB_DIR),)
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
-  libceed.c     += $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp   += $(cuda.cpp) $(cuda-ref.cpp) $(cuda-gen.cpp)
-  libceed.cu    += $(cuda-ref.cu) $(cuda-shared.cu) $(cuda-gen.cu)
+  libceed.c     += $(cuda-all.c)
+  libceed.cpp   += $(cuda-all.cpp)
+  libceed.cu    += $(cuda-all.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
 
@@ -555,7 +556,7 @@ ifneq ($(HIP_LIB_DIR),)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += $(hip-all.c)
   libceed.cpp   += $(hip-all.cpp)
-  libceed.hip   += $(hip-ref.hip)
+  libceed.hip   += $(hip-all.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 
@@ -568,7 +569,7 @@ endif
 ifneq ($(SYCL_LIB_DIR),)
   PKG_LIBS += $(SYCL_FLAG) -lze_loader
   LIBCEED_CONTAINS_CXX = 1
-  libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
+  libceed.sycl  += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
   BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif
 
