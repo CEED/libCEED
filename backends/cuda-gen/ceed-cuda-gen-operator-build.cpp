@@ -74,6 +74,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
+      bool    is_field_tensor;
       CeedInt field_dim = 0, field_P = 0, field_P_1d = 0, field_Q = 0, field_Q_1d = 0;
 
       // Check if 3D
@@ -84,14 +85,15 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       // Collect P, P_1d, Q, and Q_1d
       CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P));
       *max_P = CeedIntMax(*max_P, field_P);
-      if (*is_all_tensor) {
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
+      if (is_field_tensor) {
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
         *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
       }
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &field_Q));
       CeedCheck(*Q == 0 || field_Q == *Q, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
       *Q = field_Q;
-      if (*is_all_tensor) {
+      if (is_field_tensor) {
         CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &field_Q_1d));
         CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
         *Q_1d = field_Q_1d;
@@ -104,6 +106,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
+      bool    is_field_tensor;
       CeedInt field_dim = 0, field_P = 0, field_P_1d = 0, field_Q = 0, field_Q_1d = 0;
 
       // Check if 3D
@@ -114,14 +117,15 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       // Collect P, P_1d, Q, and Q_1d
       CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P));
       *max_P = CeedIntMax(*max_P, field_P);
-      if (*is_all_tensor) {
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
+      if (is_field_tensor) {
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
         *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
       }
       CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &field_Q));
       CeedCheck(*Q == 0 || field_Q == *Q, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
       *Q = field_Q;
-      if (*is_all_tensor) {
+      if (is_field_tensor) {
         CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &field_Q_1d));
         CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
         *Q_1d = field_Q_1d;
@@ -1504,8 +1508,9 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   // Compile
   {
     bool is_compile_good = false;
+    const CeedInt T_1d = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));
+    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
