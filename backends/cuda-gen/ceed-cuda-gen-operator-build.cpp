@@ -42,7 +42,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
-      bool    is_field_tensor;
+      bool is_field_tensor;
 
       CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
       *is_all_tensor = *is_all_tensor && is_field_tensor;
@@ -54,7 +54,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
 
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
-      bool    is_field_tensor;
+      bool is_field_tensor;
 
       CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
       *is_all_tensor = *is_all_tensor && is_field_tensor;
@@ -80,7 +80,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       // Check if 3D
       CeedCallBackend(CeedBasisGetDimension(basis, &field_dim));
       is_all_3d = is_all_3d && (field_dim == 3);
-      *max_dim = CeedIntMax(*max_dim, field_dim);
+      *max_dim  = CeedIntMax(*max_dim, field_dim);
 
       // Collect P, P_1d, Q, and Q_1d
       CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P));
@@ -112,7 +112,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       // Check if 3D
       CeedCallBackend(CeedBasisGetDimension(basis, &field_dim));
       is_all_3d = is_all_3d && (field_dim == 3);
-      *max_dim = CeedIntMax(*max_dim, field_dim);
+      *max_dim  = CeedIntMax(*max_dim, field_dim);
 
       // Collect P, P_1d, Q, and Q_1d
       CeedCallBackend(CeedBasisGetNumNodes(basis, &field_P));
@@ -215,7 +215,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
   // Set field constants
-    code << "  const CeedInt dim" << var_suffix << " = " << dim << ";\n";
+  code << "  const CeedInt dim" << var_suffix << " = " << dim << ";\n";
   if (is_tensor && !is_all_tensor) {
     CeedInt P = 0;
 
@@ -327,9 +327,10 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
 
             code << "  CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
           } else {
-            code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << P_name << "*" << Q_name << (is_tensor ? "" : "*dim") << (is_tensor ? "" : var_suffix) << "];\n";
-            code << "  LoadMatrix<" << P_name << ", " << Q_name << (is_tensor ? "" : "*dim") << (is_tensor ? "" : var_suffix) << ">(data, G." << option_name << "[" << i << "], s_G"
-                 << var_suffix << ");\n";
+            code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << P_name << "*" << Q_name << (is_tensor ? "" : "*dim")
+                 << (is_tensor ? "" : var_suffix) << "];\n";
+            code << "  LoadMatrix<" << P_name << ", " << Q_name << (is_tensor ? "" : "*dim") << (is_tensor ? "" : var_suffix) << ">(data, G."
+                 << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
           }
         }
       }
@@ -480,8 +481,8 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
 // Basis
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedOperator_Cuda_gen *data, CeedInt i, CeedInt max_dim,
-                                                 CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt Q_1d, bool is_input, bool is_all_tensor,
-                                                 bool is_at_points, bool use_3d_slices) {
+                                                 CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt Q_1d, bool is_input,
+                                                 bool is_all_tensor, bool is_at_points, bool use_3d_slices) {
   bool      is_tensor = true;
   CeedBasis basis;
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
@@ -524,7 +525,9 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
                << var_suffix << ", r_c" << var_suffix << ");\n";
         } else {
-          std::string function_name = is_tensor ? ((dim == 1 ? "Interp" : "InterpTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened")) : "InterpNonTensor";
+          std::string function_name = is_tensor
+                                          ? ((dim == 1 ? "Interp" : "InterpTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
+                                          : "InterpNonTensor";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
@@ -546,17 +549,19 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                << var_suffix << ", r_q" << var_suffix << ");\n";
         } else if (is_tensor) {
           bool        is_collocated = dim == 3 && Q_1d >= P_1d;
-          std::string function_name = (dim == 1 ? "Grad" : (is_collocated ? "GradTensorCollocated" : "GradTensor")) + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened");
+          std::string function_name = (dim == 1 ? "Grad" : (is_collocated ? "GradTensorCollocated" : "GradTensor")) + std::to_string(dim) + "d" +
+                                      (is_all_tensor ? "" : "Flattened");
 
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*" << (dim >= 3 ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*" << (dim >= 3 ? Q_name : "1")
+               << "];\n";
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
                << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
         } else {
           std::string function_name = "GradNonTensor";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", dim" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix
-               << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", dim" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e"
+               << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
         }
         break;
       case CEED_EVAL_WEIGHT: {
@@ -564,7 +569,9 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
           code << "    // Nothing to do AtPoints\n";
         } else {
           CeedBasis_Cuda_shared *basis_data;
-          std::string            function_name = is_tensor ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d"+ (is_all_tensor ? "" : "Flattened")) : "WeightNonTensor";
+          std::string            function_name = is_tensor
+                                                     ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
+                                                     : "WeightNonTensor";
 
           code << "    CeedScalar r_q" << var_suffix << "[" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           CeedCallBackend(CeedBasisGetData(basis, &basis_data));
@@ -593,7 +600,8 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                << var_suffix << ", r_e" << var_suffix << ");\n";
         } else {
           std::string function_name =
-              is_tensor ? ((dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened")) : "InterpTransposeNonTensor";
+              is_tensor ? ((dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
+                        : "InterpTransposeNonTensor";
 
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix << ", s_B"
                << var_suffix << ", r_e" << var_suffix << ");\n";
@@ -613,16 +621,16 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                << var_suffix << ", r_e" << var_suffix << ");\n";
         } else if (is_tensor) {
           bool        is_collocated = dim == 3 && Q_1d >= P_1d;
-          std::string function_name =
-              (dim == 1 ? "GradTranspose" : (is_collocated ? "GradTransposeTensorCollocated" : "GradTransposeTensor")) + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened");
+          std::string function_name = (dim == 1 ? "GradTranspose" : (is_collocated ? "GradTransposeTensorCollocated" : "GradTransposeTensor")) +
+                                      std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened");
 
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix << ", s_B"
                << var_suffix << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
         } else {
           std::string function_name = "GradTransposeNonTensor";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", dim" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix
-               << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", dim" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q"
+               << var_suffix << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
         }
         break;
       // LCOV_EXCL_START
@@ -665,7 +673,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
         if (is_at_points) {
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "];\n";
         } else {
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1")
+               << "];\n";
         }
         break;
       case CEED_EVAL_INTERP:
@@ -676,13 +685,15 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << "      r_c" << var_suffix << "[i] = 0.0;\n";
           code << "    }\n";
         } else {
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1")
+               << "];\n";
         }
         break;
       case CEED_EVAL_GRAD:
         if (is_at_points) {
           // Accumulator for point data
-          code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "*dim" << var_suffix << "];\n";
+          code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "*dim" << var_suffix
+               << "];\n";
           code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) {\n";
           code << "      r_c" << var_suffix << "[i] = 0.0;\n";
           code << "    }\n";
@@ -693,7 +704,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << "      r_q" << var_suffix << "[i] = 0.0;\n";
           code << "    }\n";
         } else {
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*"
+               << (is_all_tensor && (max_dim >= 3) ? Q_name : "1") << "];\n";
         }
         break;
       case CEED_EVAL_WEIGHT:
@@ -737,13 +749,13 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           break;
         case CEED_EVAL_INTERP:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "];\n";
-          code << "      InterpAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name << ">(data, i, r_c"
-               << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
+          code << "      InterpAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
+               << ">(data, i, r_c" << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_GRAD:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "];\n";
-          code << "      GradAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name << ">(data, i, r_c"
-               << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
+          code << "      GradAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
+               << ">(data, i, r_c" << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_s" << var_suffix << "[1];\n";
@@ -1125,9 +1137,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   {
     CeedInt max_P, max_P_1d;
 
-    CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields, op_output_fields,
-                                                         qf_output_fields, &max_P, &max_P_1d, &Q, &Q_1d, &max_dim, &is_all_tensor, &use_3d_slices));
-    data->max_P_1d = is_all_tensor ? max_P_1d : max_P; 
+    CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
+                                                         op_output_fields, qf_output_fields, &max_P, &max_P_1d, &Q, &Q_1d, &max_dim, &is_all_tensor,
+                                                         &use_3d_slices));
+    data->max_P_1d = is_all_tensor ? max_P_1d : max_P;
   }
   if (max_dim == 0) max_dim = 1;
   data->dim = max_dim;
@@ -1480,8 +1493,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
   // -- Q function
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, max_dim, max_num_points, num_input_fields, op_input_fields, qf_input_fields,
-                                                            num_output_fields, op_output_fields, qf_output_fields, qfunction_name, Q_1d, is_all_tensor,
-                                                            is_at_points, use_3d_slices));
+                                                            num_output_fields, op_output_fields, qf_output_fields, qfunction_name, Q_1d,
+                                                            is_all_tensor, is_at_points, use_3d_slices));
 
   // -- Output basis and restriction
   code << "\n    // -- Output field basis action and restrictions\n";
@@ -1492,8 +1505,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     code << "    // ---- Output field " << i << ": " << field_name << "\n";
 
     // ---- Basis action
-    CeedCallBackend(CeedOperatorBuildKernelBasis_Cuda_gen(code, data, i, max_dim, op_output_fields[i], qf_output_fields[i], Q_1d, false, is_all_tensor,
-                                                          is_at_points, use_3d_slices));
+    CeedCallBackend(CeedOperatorBuildKernelBasis_Cuda_gen(code, data, i, max_dim, op_output_fields[i], qf_output_fields[i], Q_1d, false,
+                                                          is_all_tensor, is_at_points, use_3d_slices));
 
     // ---- Restriction
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, i, max_dim, NULL, op_output_fields[i], qf_output_fields[i], Q_1d, false,
@@ -1507,8 +1520,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
   // Compile
   {
-    bool is_compile_good = false;
-    const CeedInt T_1d = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    bool          is_compile_good = false;
+    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
     CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "T_1D", T_1d));
     if (is_compile_good) {
