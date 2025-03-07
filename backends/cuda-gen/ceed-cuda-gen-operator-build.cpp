@@ -1182,11 +1182,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << "  const CeedScalar *d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << "  const CeedScalar *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "  CeedScalar *d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << "  CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << "  const CeedInt dim = " << dim << ";\n";
