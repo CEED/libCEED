@@ -9,6 +9,7 @@
 #include "ceed-sycl-common.hpp"
 
 #include <string>
+#include <sstream>
 #include <sycl/sycl.hpp>
 
 //------------------------------------------------------------------------------
