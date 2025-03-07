@@ -162,6 +162,7 @@ static int CeedOperatorBuildKernelData_Hip_gen(Ceed ceed, CeedInt num_input_fiel
 static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, CeedOperator_Hip_gen *data, CeedInt i, CeedOperatorField op_field,
                                                     CeedQFunctionField qf_field, FieldReuse_Hip field_reuse, CeedInt Q_1d, bool is_input,
                                                     bool is_tensor, bool is_at_points, bool use_3d_slices) {
+  const char           *field_name;
   std::string           var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string           P_name = (is_tensor ? "P_1d" : "P") + var_suffix, Q_name = is_tensor ? "Q_1d" : "Q";
   std::string           option_name = (is_input ? "inputs" : "outputs");
@@ -174,7 +175,8 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
   // Field reuse info
   bool use_previous_field = field_reuse.index != -1;
 
-  code << "  // -- " << (is_input ? "Input" : "Output") << " field " << i << "\n";
+  CeedCallBackend(CeedOperatorFieldGetName(op_field, &field_name));
+  code << "  // -- " << (is_input ? "Input" : "Output") << " field " << i << ": " << field_name << "\n";
 
   // Get field data
   CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_field, &elem_rstr));
@@ -626,9 +628,11 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
   // Setup output arrays
   code << "\n    // -- Output field setup\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
+    const char *field_name;
     std::string var_suffix = "_out_" + std::to_string(i);
 
-    code << "    // ---- Output field " << i << "\n";
+    CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+    code << "    // ---- Output field " << i << ": " << field_name << "\n";
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     switch (eval_mode) {
       case CEED_EVAL_NONE:
@@ -690,9 +694,11 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
 
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_in_" + std::to_string(i);
 
-      code << "      // ---- Input field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_input_fields[i], &field_name));
+      code << "      // ---- Input field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
       // Basis action
       code << "      // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -725,9 +731,11 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     }
     code << "\n      // -- Output fields\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_out_" + std::to_string(i);
 
-      code << "      // ---- Output field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+      code << "      // ---- Output field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       // Basis action
       switch (eval_mode) {
@@ -757,9 +765,11 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     code << "    for (CeedInt q = 0; q < " << Q_name << "; q++) {\n";
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_in_" + std::to_string(i);
 
-      code << "      // ---- Input field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_input_fields[i], &field_name));
+      code << "      // ---- Input field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
       // Basis action
       code << "      // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -826,9 +836,11 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     }
     code << "\n      // -- Output fields\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_out_" + std::to_string(i);
 
-      code << "      // ---- Output field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+      code << "      // ---- Output field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       // Basis action
       switch (eval_mode) {
@@ -855,12 +867,18 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     code << "    {\n";
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      code << "      // ---- Input field " << i << "\n";
+      const char *field_name;
+
+      CeedCallBackend(CeedOperatorFieldGetName(op_input_fields[i], &field_name));
+      code << "      // ---- Input field " << i << ": " << field_name << "\n";
       code << "      CeedScalar *r_s_in_" << i << " = r_q_in_" << i << ";\n";
     }
     code << "      // -- Output fields\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
-      code << "      // ---- Output field " << i << "\n";
+      const char *field_name;
+
+      CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+      code << "      // ---- Output field " << i << ": " << field_name << "\n";
       code << "      CeedScalar *r_s_out_" << i << " = r_q_out_" << i << ";\n";
     }
   }
@@ -870,13 +888,19 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
   code << "      // ---- Inputs\n";
   code << "      CeedScalar *inputs[" << CeedIntMax(num_input_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    code << "      // ------ Input field " << i << "\n";
+    const char *field_name;
+
+    CeedCallBackend(CeedOperatorFieldGetName(op_input_fields[i], &field_name));
+    code << "      // ------ Input field " << i << ": " << field_name << "\n";
     code << "      inputs[" << i << "] = r_s_in_" << i << ";\n";
   }
   code << "      // ---- Outputs\n";
   code << "      CeedScalar *outputs[" << CeedIntMax(num_output_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "      // ------ Output field " << i << "\n";
+    const char *field_name;
+
+    CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+    code << "      // ------ Output field " << i << ": " << field_name << "\n";
     code << "      outputs[" << i << "] = r_s_out_" << i << ";\n";
   }
 
@@ -894,10 +918,12 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     // Map back to coefficients
     code << "\n      // -- Output fields\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_out_" + std::to_string(i);
       std::string P_name     = "P_1d" + var_suffix;
 
-      code << "      // ---- Output field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+      code << "      // ---- Output field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       // Basis action
       code << "      // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -942,10 +968,12 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     // Copy or apply transpose grad, if needed
     code << "\n      // -- Output fields\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      const char *field_name;
       std::string var_suffix = "_out_" + std::to_string(i);
       std::string P_name     = "P_1d" + var_suffix;
 
-      code << "      // ---- Output field " << i << "\n";
+      CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+      code << "      // ---- Output field " << i << ": " << field_name << "\n";
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       // Basis action
       code << "      // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -1167,11 +1195,11 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << "  const CeedScalar *d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << "  const CeedScalar *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "  CeedScalar *d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << "  CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << "  const CeedInt dim = " << dim << ";\n";
@@ -1380,9 +1408,11 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // -- Input restriction and basis
   code << "\n    // -- Input field restrictions and basis actions\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedInt f = input_field_order[i];
+    const char   *field_name;
+    const CeedInt f = input_field_order[i];
 
-    code << "    // ---- Input field " << f << "\n";
+    CeedCallBackend(CeedOperatorFieldGetName(op_input_fields[f], &field_name));
+    code << "    // ---- Input field " << f << ": " << field_name << "\n";
 
     // ---- Restriction
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Hip_gen(code, data, f, dim, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f], Q_1d,
@@ -1401,7 +1431,10 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // -- Output basis and restriction
   code << "\n    // -- Output field basis action and restrictions\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "    // ---- Output field " << i << "\n";
+    const char *field_name;
+
+    CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
+    code << "    // ---- Output field " << i << ": " << field_name << "\n";
 
     // ---- Basis action
     CeedCallBackend(CeedOperatorBuildKernelBasis_Hip_gen(code, data, i, dim, op_output_fields[i], qf_output_fields[i], Q_1d, false, is_tensor,
