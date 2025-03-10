@@ -23,7 +23,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *c_B,
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -36,7 +36,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *c_B,
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
-    InterpNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
+    InterpNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
   }
 }
@@ -50,7 +50,7 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedSca
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -63,7 +63,7 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedSca
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
+    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -77,7 +77,7 @@ extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const Ceed
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -90,7 +90,7 @@ extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const Ceed
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q>(data, r_U, s_B, r_V);
+    InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
     SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -106,7 +106,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_G, c
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP];
   CeedScalar r_V[BASIS_NUM_COMP * BASIS_DIM];
@@ -119,7 +119,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_G, c
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
-    GradNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
+    GradNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
   }
 }
@@ -133,7 +133,7 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScala
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -146,7 +146,7 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScala
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
+    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
     WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -160,7 +160,7 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM];
   CeedScalar r_V[BASIS_NUM_COMP];
@@ -173,7 +173,7 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
-    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q>(data, r_U, s_G, r_V);
+    GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
     SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
   }
 }
@@ -189,7 +189,7 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = slice + data.t_id_z * T_1D;
+  data.slice  = slice + data.t_id_z * BASIS_T_1D;
 
   CeedScalar r_W[1];
 

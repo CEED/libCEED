@@ -496,14 +496,14 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
           std::string function_name = (dim == 1 ? "Interp" : "InterpTensor") + std::to_string(dim) + "d";
 
           code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (dim >= 3 ? Q_name : "1") << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
-               << var_suffix << ", r_c" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e" << var_suffix
+               << ", s_B" << var_suffix << ", r_c" << var_suffix << ");\n";
         } else {
           std::string function_name = is_tensor ? ((dim == 1 ? "Interp" : "InterpTensor") + std::to_string(dim) + "d") : "InterpNonTensor";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
-               << var_suffix << ", r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e" << var_suffix
+               << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
         }
         break;
       case CEED_EVAL_GRAD:
@@ -511,27 +511,27 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
           std::string function_name = (dim == 1 ? "Interp" : "InterpTensor") + std::to_string(dim) + "d";
 
           code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (dim >= 3 ? Q_name : "1") << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
-               << var_suffix << ", r_c" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e" << var_suffix
+               << ", s_B" << var_suffix << ", r_c" << var_suffix << ");\n";
         } else if (use_3d_slices) {
           std::string function_name = (dim > 1 ? "InterpTensor" : "Interp") + std::to_string(dim) + "d";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << Q_name << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
-               << var_suffix << ", r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e" << var_suffix
+               << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
         } else if (is_tensor) {
           bool        is_collocated = dim == 3 && Q_1d >= P_1d;
           std::string function_name = (dim == 1 ? "Grad" : (is_collocated ? "GradTensorCollocated" : "GradTensor")) + std::to_string(dim) + "d";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim*" << (dim >= 3 ? Q_name : "1") << "];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix << ", s_B"
-               << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e" << var_suffix
+               << ", s_B" << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
         } else {
           std::string function_name = "GradNonTensor";
 
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim];\n";
-          code << "    " << function_name << "<num_comp" << var_suffix << ", dim, " << P_name << ", " << Q_name << ">(data, r_e" << var_suffix
-               << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", dim, " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_e"
+               << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
         }
         break;
       case CEED_EVAL_WEIGHT: {
@@ -564,14 +564,14 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
         if (is_at_points) {
           std::string function_name = (dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_c" << var_suffix << ", s_B"
-               << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_c" << var_suffix
+               << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
         } else {
           std::string function_name =
               is_tensor ? ((dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d") : "InterpTransposeNonTensor";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix << ", s_B"
-               << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_q" << var_suffix
+               << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
         }
         break;
       case CEED_EVAL_GRAD:
@@ -579,25 +579,25 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
         if (is_at_points) {
           std::string function_name = (dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_c" << var_suffix << ", s_B"
-               << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_c" << var_suffix
+               << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
         } else if (use_3d_slices) {
           std::string function_name = (dim == 1 ? "InterpTranspose" : "InterpTransposeTensor") + std::to_string(dim) + "d";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix << ", s_B"
-               << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_q" << var_suffix
+               << ", s_B" << var_suffix << ", r_e" << var_suffix << ");\n";
         } else if (is_tensor) {
           bool        is_collocated = dim == 3 && Q_1d >= P_1d;
           std::string function_name =
               (dim == 1 ? "GradTranspose" : (is_collocated ? "GradTransposeTensorCollocated" : "GradTransposeTensor")) + std::to_string(dim) + "d";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix << ", s_B"
-               << var_suffix << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_q" << var_suffix
+               << ", s_B" << var_suffix << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
         } else {
           std::string function_name = "GradTransposeNonTensor";
 
-          code << "    " << function_name << "<num_comp" << var_suffix << ", dim, " << P_name << ", " << Q_name << ">(data, r_q" << var_suffix
-               << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    " << function_name << "<num_comp" << var_suffix << ", dim, " << P_name << ", " << Q_name << ", OP_T_1D>(data, r_q"
+               << var_suffix << ", s_G" << var_suffix << ", r_e" << var_suffix << ");\n";
         }
         break;
       // LCOV_EXCL_START
@@ -820,8 +820,8 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           break;
         case CEED_EVAL_GRAD:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "*dim];\n";
-          code << "      GradColloSlice3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_q" << var_suffix << ", s_G" << var_suffix
-               << ", r_s" << var_suffix << ");\n";
+          code << "      GradColloSlice3d<num_comp" << var_suffix << ", " << Q_name << ", OP_T_1D>(data, q, r_q" << var_suffix << ", s_G"
+               << var_suffix << ", r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_s" << var_suffix << "[1];\n";
@@ -989,7 +989,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           code << "      }\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      GradColloSliceTranspose3d<num_comp" << var_suffix << ", " << Q_name << ">(data, q, r_s" << var_suffix << ", s_G"
+          code << "      GradColloSliceTranspose3d<num_comp" << var_suffix << ", " << Q_name << ", OP_T_1D>(data, q, r_s" << var_suffix << ", s_G"
                << var_suffix << ", r_q" << var_suffix << ");\n";
           break;
           // LCOV_EXCL_START
@@ -1216,7 +1216,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   code << "  data.t_id_y = threadIdx.y;\n";
   code << "  data.t_id_z = threadIdx.z;\n";
   code << "  data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;\n";
-  code << "  data.slice = slice + data.t_id_z*T_1D" << ((!is_tensor || dim == 1) ? "" : "*T_1D") << ";\n";
+  code << "  data.slice = slice + data.t_id_z*OP_T_1D" << ((!is_tensor || dim == 1) ? "" : "*OP_T_1D") << ";\n";
 
   // -- Determine input mat reuse
   FieldReuse_Hip input_matrix_reuse[CEED_FIELD_MAX];
@@ -1459,7 +1459,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   {
     bool is_compile_good = false;
 
-    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
+    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE",
                                        block_sizes[0] * block_sizes[1] * block_sizes[2]));
     if (is_compile_good) {
       *is_good_build = true;

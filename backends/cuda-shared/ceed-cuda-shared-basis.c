@@ -289,7 +289,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
     if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
                                      CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                      "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
@@ -630,7 +630,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
                                    CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                    "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
@@ -704,7 +704,7 @@ int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim, CeedInt nu
   const char basis_kernel_source[] = "// Non-tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "T_1D",
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_T_1D",
                                    CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
