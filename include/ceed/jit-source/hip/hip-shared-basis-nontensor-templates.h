@@ -43,7 +43,7 @@ inline __device__ void ContractTranspose1d(SharedData_Hip &data, const CeedScala
 //------------------------------------------------------------------------------
 // Interpolate to quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q>
+template <int NUM_COMP, int P, int Q, int T_1D>
 inline __device__ void InterpNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                        CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -54,7 +54,7 @@ inline __device__ void InterpNonTensor(SharedData_Hip &data, const CeedScalar *_
 //------------------------------------------------------------------------------
 // Interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q>
+template <int NUM_COMP, int P, int Q, int T_1D>
 inline __device__ void InterpTransposeNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                 CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -66,7 +66,7 @@ inline __device__ void InterpTransposeNonTensor(SharedData_Hip &data, const Ceed
 //------------------------------------------------------------------------------
 // Derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int DIM, int P, int Q>
+template <int NUM_COMP, int DIM, int P, int Q, int T_1D>
 inline __device__ void GradNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -78,7 +78,7 @@ inline __device__ void GradNonTensor(SharedData_Hip &data, const CeedScalar *__r
 //------------------------------------------------------------------------------
 // Derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int DIM, int P, int Q>
+template <int NUM_COMP, int DIM, int P, int Q, int T_1D>
 inline __device__ void GradTransposeNonTensor(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
                                               CeedScalar *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) r_V[comp] = 0.0;

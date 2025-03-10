@@ -354,7 +354,7 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
 
     if (data->moduleAtPoints) CeedCallHip(ceed, hipModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
                                     CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                     "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points, "BASIS_INTERP_BLOCK_SIZE",
                                     data->block_sizes[0]));
@@ -692,7 +692,7 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   // Compile basis kernels
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/hip/hip-shared-basis-tensor.h>\n";
 
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 11, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 11, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
                                   CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                   "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_INTERP_BLOCK_SIZE", data->block_sizes[0], "BASIS_GRAD_BLOCK_SIZE",
                                   data->block_sizes[1], "BASIS_WEIGHT_BLOCK_SIZE", data->block_sizes[2], "BASIS_HAS_COLLOCATED_GRAD",
@@ -768,7 +768,7 @@ int CeedBasisCreateH1_Hip_shared(CeedElemTopology topo, CeedInt dim, CeedInt num
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
   CeedCallBackend(ComputeBasisThreadBlockSizes(dim, num_nodes, num_qpts, num_comp, data->block_sizes));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 6, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "T_1D",
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 6, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_T_1D",
                                   CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_INTERP_BLOCK_SIZE",
                                   data->block_sizes[0]));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
