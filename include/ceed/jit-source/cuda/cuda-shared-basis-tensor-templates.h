@@ -185,6 +185,29 @@ inline __device__ void ContractTransposeAddX2d(SharedData_Cuda &data, const int 
 }
 
 //------------------------------------------------------------------------------
+// 2D pack/unpack quadrature values
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int Q_1D, int T_1D>
+inline __device__ void QPack2D(SharedData_Cuda &data, const int t_id_x, const int t_id_y, CeedScalar *U) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * T_1D] = U[comp];
+    __syncthreads();
+    U[comp] = data.t_id_x < (Q_1D * Q_1D) ? data.slice[(data.t_id_x % Q_1D) + (data.t_id_x / Q_1D) * T_1D] : 0.0;
+    __syncthreads();
+  }
+}
+
+template <int NUM_COMP, int Q_1D, int T_1D>
+inline __device__ void QUnpack2D(SharedData_Cuda &data, const int t_id_x, const int t_id_y, CeedScalar *U) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    if (data.t_id_x < (Q_1D * Q_1D)) data.slice[(data.t_id_x % Q_1D) + (data.t_id_x / Q_1D) * T_1D] = U[comp];
+    __syncthreads();
+    U[comp] = (t_id_x < Q_1D && t_id_y < Q_1D) ? data.slice[t_id_x + t_id_y * T_1D] : 0.0;
+    __syncthreads();
+  }
+}
+
+//------------------------------------------------------------------------------
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -204,11 +227,11 @@ inline __device__ void InterpTensor2d(SharedData_Cuda &data, const CeedScalar *_
 }
 
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                CeedScalar *__restrict__ r_V) {
-  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
-
-  InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
+  QUnpack2D<NUM_COMP, P_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U);
+  InterpTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U, c_B, r_V);
+  QPack2D<NUM_COMP, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -231,11 +254,11 @@ inline __device__ void InterpTransposeTensor2d(SharedData_Cuda &data, const Ceed
 }
 
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                         CeedScalar *__restrict__ r_V) {
-  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
-
-  InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, r_V);
+  QUnpack2D<NUM_COMP, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U);
+  InterpTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U, c_B, r_V);
+  QPack2D<NUM_COMP, P_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -260,11 +283,11 @@ inline __device__ void GradTensor2d(SharedData_Cuda &data, const CeedScalar *__r
 }
 
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
+inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
                                              CeedScalar *__restrict__ r_V) {
-  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
-
-  GradTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+  QUnpack2D<NUM_COMP, P_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U);
+  GradTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U, c_B, c_G, r_V);
+  QPack2D<NUM_COMP * 2, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -289,11 +312,11 @@ inline __device__ void GradTransposeTensor2d(SharedData_Cuda &data, const CeedSc
 }
 
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
                                                       const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
-  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
-
-  GradTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, r_U, c_B, c_G, r_V);
+  QUnpack2D<NUM_COMP * 2, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U);
+  GradTransposeTensor2d_Core<NUM_COMP, P_1D, Q_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_U, c_B, c_G, r_V);
+  QPack2D<NUM_COMP, P_1D, T_1D>(data, data.t_id_x % T_1D, data.t_id_x / T_1D, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -312,9 +335,7 @@ inline __device__ void WeightTensor2d(SharedData_Cuda &data, const CeedScalar *_
 
 template <int P_1D, int Q_1D>
 inline __device__ void WeightTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
-  const int max_1d = P_1D < Q_1D ? P_1D : Q_1D;
-
-  WeightTensor2d_Core<Q_1D>(data, data.t_id_x % max_1d, data.t_id_x / max_1d, q_weight_1d, w);
+  WeightTensor2d_Core<Q_1D>(data, data.t_id_x % Q_1D, data.t_id_x / Q_1D, q_weight_1d, w);
 }
 
 //------------------------------------------------------------------------------
