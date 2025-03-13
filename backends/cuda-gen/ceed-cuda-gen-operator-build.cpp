@@ -1205,6 +1205,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     code << "// Non-tensor basis source\n";
     code << "#include <ceed/jit-source/cuda/cuda-shared-basis-nontensor-templates.h>\n\n";
   }
+  if (!is_all_tensor && !is_all_nontensor) {
+    code << "// Tensor basis source\n";
+    code << "#include <ceed/jit-source/cuda/cuda-shared-basis-tensor-flattened-templates.h>\n\n";
+  }
   if (is_at_points) {
     code << "// AtPoints basis source\n";
     code << "#include <ceed/jit-source/cuda/cuda-shared-basis-tensor-at-points-templates.h>\n\n";
