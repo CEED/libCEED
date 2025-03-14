@@ -134,14 +134,23 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   }
   CeedCallBackend(CeedFree(&opts));
   *is_compile_good = result == HIPRTC_SUCCESS;
-  if (!*is_compile_good && throw_error) {
+  if (!*is_compile_good) {
     size_t log_size;
     char  *log;
 
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));
-    return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
+    if (throw_error) {
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
+    } else {
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+      CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", hiprtcGetErrorString(result), log);
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+      CeedCallBackend(CeedFree(&log));
+      CeedCallHiprtc(ceed, hiprtcDestroyProgram(&prog));
+      return CEED_ERROR_SUCCESS;
+    }
   }
 
   CeedCallHiprtc(ceed, hiprtcGetCodeSize(prog, &ptx_size));
