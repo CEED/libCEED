@@ -530,7 +530,7 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                                           : "InterpNonTensor";
           std::string op_t_1d_name  = (is_all_tensor || !is_tensor) ? "OP_T_1D" : (P_1d > Q_1d ? P_name : Q_name);
 
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", " << op_t_1d_name << ">(data, r_e"
                << var_suffix << ", s_B" << var_suffix << ", r_q" << var_suffix << ");\n";
         }
@@ -554,8 +554,8 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                                       (is_all_tensor ? "" : "Flattened");
           std::string op_t_1d_name = is_all_tensor ? "OP_T_1D" : (P_1d > Q_1d ? P_name : Q_name);
 
-          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*" << (dim >= 3 ? Q_name : "1")
-               << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*"
+               << (is_all_tensor && dim >= 3 ? Q_name : "1") << "];\n";
           code << "    " << function_name << "<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ", " << op_t_1d_name << ">(data, r_e"
                << var_suffix << ", s_B" << var_suffix << ", s_G" << var_suffix << ", r_q" << var_suffix << ");\n";
         } else {
@@ -575,7 +575,7 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                                                      ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
                                                      : "WeightNonTensor";
 
-          code << "    CeedScalar r_q" << var_suffix << "[" << (is_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
+          code << "    CeedScalar r_q" << var_suffix << "[" << (is_all_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           CeedCallBackend(CeedBasisGetData(basis, &basis_data));
           data->W = basis_data->d_q_weight_1d;
           code << "    " << function_name << "<" << P_name << ", " << Q_name << ">(data, W, r_q" << var_suffix << ");\n";
