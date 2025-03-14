@@ -1055,7 +1055,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
 extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_build) {
   bool                    is_all_tensor = true, is_all_nontensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
-  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
+  CeedInt                 Q = 0, Q_1d = 0, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
@@ -1139,7 +1139,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   // Get operator data
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   {
-    CeedInt max_P, max_P_1d;
+    CeedInt max_P = 0, max_P_1d = 0;
 
     CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
                                                          op_output_fields, qf_output_fields, &max_P, &max_P_1d, &Q, &Q_1d, &max_dim, &is_all_tensor,
