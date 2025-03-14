@@ -136,16 +136,16 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Hip &data, const CeedI
 //------------------------------------------------------------------------------
 // 2D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
-inline __device__ void InterpAtPoints2d_Core(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedInt p,
-                                             const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+inline __device__ void InterpAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
+                                        CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
 
     // Load coefficients
-    if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * Q_1D] = r_C[comp];
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[comp];
     __syncthreads();
     // Contract x direction
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
@@ -163,25 +163,18 @@ inline __device__ void InterpAtPoints2d_Core(SharedData_Hip &data, const int t_i
   }
 }
 
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void InterpAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
-                                        CeedScalar *__restrict__ r_V) {
-  InterpAtPoints2d_Core<NUM_COMP, NUM_POINTS, Q_1D>(data, data.t_id_x, data.t_id_y, p, r_C, r_X, r_V);
-}
-
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
-inline __device__ void InterpTransposeAtPoints2d_Core(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedInt p,
-                                                      const CeedScalar *__restrict__ r_U, const CeedScalar *__restrict__ r_X,
-                                                      CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
+                                                 const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
 
     // Clear shared memory
-    if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * Q_1D] = 0.0;
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = 0.0;
     __syncthreads();
     // Contract y direction
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
@@ -193,10 +186,10 @@ inline __device__ void InterpTransposeAtPoints2d_Core(SharedData_Hip &data, cons
     if (p < NUM_POINTS) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         // Note: shifting to avoid atomic adds
-        const CeedInt ii = (i + t_id_x) % Q_1D;
+        const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
         for (CeedInt j = 0; j < Q_1D; j++) {
-          const CeedInt jj = (j + t_id_y) % Q_1D;
+          const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
           atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
@@ -208,25 +201,19 @@ inline __device__ void InterpTransposeAtPoints2d_Core(SharedData_Hip &data, cons
   }
 }
 
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
-                                                 const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
-  InterpTransposeAtPoints2d_Core<NUM_COMP, NUM_POINTS, Q_1D>(data, data.t_id_x, data.t_id_y, p, r_U, r_X, r_C);
-}
-
 //------------------------------------------------------------------------------
 // 2D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
-inline __device__ void GradAtPoints2d_Core(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedInt p,
-                                           const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+inline __device__ void GradAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
+                                      CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP * 2; i++) r_V[i] = 0.0;
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
 
     // Load coefficients
-    if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * Q_1D] = r_C[comp];
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[comp];
     __syncthreads();
     for (CeedInt dim = 0; dim < 2; dim++) {
       // Contract x direction
@@ -248,25 +235,18 @@ inline __device__ void GradAtPoints2d_Core(SharedData_Hip &data, const int t_id_
   }
 }
 
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void GradAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *__restrict__ r_X,
-                                      CeedScalar *__restrict__ r_V) {
-  GradAtPoints2d_Core<NUM_COMP, NUM_POINTS, Q_1D>(data, data.t_id_x, data.t_id_y, p, r_C, r_X, r_V);
-}
-
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int Q_1D>
-inline __device__ void GradTransposeAtPoints2d_Core(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedInt p,
-                                                    const CeedScalar *__restrict__ r_U, const CeedScalar *__restrict__ r_X,
-                                                    CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
+                                               const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
 
     // Clear shared memory
-    if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * Q_1D] = 0.0;
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = 0.0;
     __syncthreads();
     for (CeedInt dim = 0; dim < 2; dim++) {
       // Contract y direction
@@ -281,10 +261,10 @@ inline __device__ void GradTransposeAtPoints2d_Core(SharedData_Hip &data, const 
       if (p < NUM_POINTS) {
         for (CeedInt i = 0; i < Q_1D; i++) {
           // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + t_id_x) % Q_1D;
+          const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
           for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = (j + t_id_y) % Q_1D;
+            const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
             atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
@@ -293,14 +273,8 @@ inline __device__ void GradTransposeAtPoints2d_Core(SharedData_Hip &data, const 
     }
     // Pull from shared to register
     __syncthreads();
-    if (t_id_x < Q_1D && t_id_y < Q_1D) r_C[comp] += data.slice[t_id_x + t_id_y * Q_1D];
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) r_C[comp] += data.slice[data.t_id_x + data.t_id_y * Q_1D];
   }
-}
-
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedInt p, const CeedScalar *__restrict__ r_U,
-                                               const CeedScalar *__restrict__ r_X, CeedScalar *__restrict__ r_C) {
-  GradTransposeAtPoints2d_Core<NUM_COMP, NUM_POINTS, Q_1D>(data, data.t_id_x, data.t_id_y, p, r_U, r_X, r_C);
 }
 
 //------------------------------------------------------------------------------
