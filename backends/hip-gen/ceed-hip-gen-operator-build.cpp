@@ -1428,22 +1428,32 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   CeedInt max_rstr_buffer_size = 1;
 
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedInt             num_comp;
-    CeedElemRestriction elem_rstr;
+    CeedEvalMode eval_mode;
 
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
-    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+    if (eval_mode != CEED_EVAL_NONE && eval_mode != CEED_EVAL_WEIGHT) {
+      CeedInt             num_comp;
+      CeedElemRestriction elem_rstr;
+
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
+      CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+      max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
+      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedInt             num_comp;
-    CeedElemRestriction elem_rstr;
+    CeedEvalMode eval_mode;
 
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
-    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+    if (eval_mode != CEED_EVAL_NONE) {
+      CeedInt             num_comp;
+      CeedElemRestriction elem_rstr;
+
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
+      CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+      max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
+      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    }
   }
   code << "    // Scratch restriction buffer space\n";
   code << "    CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
