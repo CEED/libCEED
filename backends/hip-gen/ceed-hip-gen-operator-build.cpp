@@ -711,9 +711,8 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
         if (is_at_points) {
           // Accumulator for point data
           code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "];\n";
-          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) {\n";
-          code << "      r_c" << var_suffix << "[i] = 0.0;\n";
-          code << "    }\n";
+          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) r_c" << var_suffix
+               << "[i] = 0.0;\n";
         } else {
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << (is_all_tensor && (max_dim >= 3) ? Q_name : "1")
                << "];\n";
@@ -723,15 +722,12 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
         if (is_at_points) {
           // Accumulator for point data
           code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "];\n";
-          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) {\n";
-          code << "      r_c" << var_suffix << "[i] = 0.0;\n";
-          code << "    }\n";
+          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) r_c" << var_suffix
+               << "[i] = 0.0;\n";
         } else if (use_3d_slices) {
           // Accumulator for gradient slices
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*" << Q_name << "];\n";
-          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << Q_name << "; i++) {\n";
-          code << "      r_q" << var_suffix << "[i] = 0.0;\n";
-          code << "    }\n";
+          code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << Q_name << "; i++) r_q" << var_suffix << "[i] = 0.0;\n";
         } else {
           code << "    CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*"
                << (is_all_tensor && (max_dim >= 3) ? Q_name : "1") << "];\n";
