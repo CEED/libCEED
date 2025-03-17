@@ -201,16 +201,14 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
   int   max_threads_per_block, min_grid_size, grid;
 
   CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
-  const CeedInt thread_1d = CeedIntMax(is_tensor ? data->Q_1d : data->Q, data->max_P_1d);
-
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] = {thread_1d, ((!is_tensor || data->dim == 1) ? 1 : thread_1d), -1};
+  int block[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
 
   if (is_tensor) {
     CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, is_at_points ? 1 : max_threads_per_block,
                                        cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
   } else {
-    CeedInt elems_per_block = CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d, 1));
+    CeedInt elems_per_block = CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(512 / data->thread_1d, 1));
 
     grid     = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
     block[2] = elems_per_block;

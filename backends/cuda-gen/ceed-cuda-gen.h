@@ -16,6 +16,7 @@ typedef struct {
   CeedInt        dim;
   CeedInt        Q, Q_1d;
   CeedInt        max_P_1d;
+  CeedInt        thread_1d;
   CUmodule       module;
   CUfunction     op;
   FieldsInt_Cuda indices;

@@ -696,8 +696,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
       case CEED_EVAL_GRAD:
         if (is_at_points) {
           // Accumulator for point data
-          code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "*dim" << var_suffix
-               << "];\n";
+          code << "    CeedScalar r_c" << var_suffix << "[num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "];\n";
           code << "    for (CeedInt i = 0; i < num_comp" << var_suffix << "*" << (max_dim >= 3 ? Q_name : "1") << "; i++) {\n";
           code << "      r_c" << var_suffix << "[i] = 0.0;\n";
           code << "    }\n";
@@ -725,9 +724,9 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
   if (is_at_points) {
     // We need to handle batches of points
     code << "\n    // Note: Using batches of points\n";
-    code << "    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));\n\n";
+    code << "    const CeedInt point_loop_bound = (blockDim.x*blockDim.y) * ceil((1.0*max_num_points) / (blockDim.x*blockDim.y));\n\n";
     code << "    #pragma unroll\n";
-    code << "    for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {\n";
+    code << "    for (CeedInt i = threadIdx.x + threadIdx.y*blockDim.x; i < point_loop_bound; i += blockDim.x*blockDim.y) {\n";
     code << "      const CeedInt p = i % max_num_points;\n\n";
 
     code << "      // -- Coordinates\n";
@@ -1289,8 +1288,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   code << "  data.t_id_x = threadIdx.x;\n";
   code << "  data.t_id_y = threadIdx.y;\n";
   code << "  data.t_id_z = threadIdx.z;\n";
-  code << "  data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;\n";
-  code << "  data.slice = slice + data.t_id_z*OP_T_1D" << ((!is_all_tensor || max_dim == 1) ? "" : "*OP_T_1D") << ";\n";
+  code << "  data.t_id   = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;\n";
+  code << "  data.slice  = slice + data.t_id_z*OP_T_1D" << ((!is_all_tensor || max_dim == 1) ? "" : "*OP_T_1D") << ";\n";
 
   // -- Determine input mat reuse
   FieldReuse_Cuda input_matrix_reuse[CEED_FIELD_MAX];
@@ -1417,23 +1416,21 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   CeedInt max_rstr_buffer_size = 1;
 
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedInt             num_comp, elem_size;
+    CeedInt             num_comp;
     CeedElemRestriction elem_rstr;
 
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? elem_size : 1));
+    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedInt             num_comp, elem_size;
+    CeedInt             num_comp;
     CeedElemRestriction elem_rstr;
 
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? elem_size : 1));
+    max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   code << "    // Scratch restriction buffer space\n";
@@ -1533,6 +1530,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
+    data->thread_1d = T_1d;
     CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
