@@ -133,13 +133,13 @@ inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, CeedScalar
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
-  QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (P_1D != T_1D) QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_B, r_t);
     ContractY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_B, &r_V[comp]);
   }
-  QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
-  QPack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QPack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -151,12 +151,12 @@ inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, C
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
-  QUnpack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QUnpack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractTransposeY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_B, r_t);
     ContractTransposeX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_B, &r_V[comp]);
   }
-  QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -168,15 +168,15 @@ inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, CeedScalar *
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
-  QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (P_1D != T_1D) QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_G, r_t);
     ContractY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_B, &r_V[comp + 0 * NUM_COMP]);
     ContractX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_B, r_t);
     ContractY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_G, &r_V[comp + 1 * NUM_COMP]);
   }
-  QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
-  QPack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QPack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -188,14 +188,14 @@ inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, Cee
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
-  QUnpack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QUnpack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractTransposeY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp + 0 * NUM_COMP], c_B, r_t);
     ContractTransposeX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_G, &r_V[comp]);
     ContractTransposeY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp + 1 * NUM_COMP], c_G, r_t);
     ContractTransposeAddX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_B, &r_V[comp]);
   }
-  QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -398,14 +398,14 @@ inline __device__ void InterpTensor3dFlattened(SharedData_Cuda &data, CeedScalar
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (P_1D != T_1D) QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp], c_B, r_t1);
     ContractY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
     ContractZ3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_B, &r_V[comp]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
-  QPack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QPack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -417,13 +417,13 @@ inline __device__ void InterpTransposeTensor3dFlattened(SharedData_Cuda &data, C
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QUnpack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractTransposeZ3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp], c_B, r_t1);
     ContractTransposeY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
     ContractTransposeX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_B, &r_V[comp]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -435,7 +435,7 @@ inline __device__ void GradTensor3dFlattened(SharedData_Cuda &data, CeedScalar *
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (P_1D != T_1D) QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp], c_G, r_t1);
     ContractY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
@@ -447,8 +447,8 @@ inline __device__ void GradTensor3dFlattened(SharedData_Cuda &data, CeedScalar *
     ContractY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
     ContractZ3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_G, &r_V[comp + 2 * NUM_COMP]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
-  QPack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QPack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -460,7 +460,7 @@ inline __device__ void GradTransposeTensor3dFlattened(SharedData_Cuda &data, Cee
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QUnpack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractTransposeZ3dFlattened<NUM_COMP, t_id_x, t_id_y, t_id_z, P_1D, Q_1D, T_1D>(data, &r_U[comp + 0 * NUM_COMP], c_B, r_t1);
     ContractTransposeY3dFlattened<NUM_COMP, t_id_x, t_id_y, t_id_z, P_1D, Q_1D, T_1D>(data, r_t1, c_B, r_t2);
@@ -472,7 +472,7 @@ inline __device__ void GradTransposeTensor3dFlattened(SharedData_Cuda &data, Cee
     ContractTransposeY3dFlattened<NUM_COMP, t_id_x, t_id_y, t_id_z, P_1D, Q_1D, T_1D>(data, r_t1, c_B, r_t2);
     ContractTransposeAddX3dFlattened<NUM_COMP, t_id_x, t_id_y, t_id_z, P_1D, Q_1D, T_1D>(data, r_t2, c_B, &r_V[comp]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -484,7 +484,7 @@ inline __device__ void GradTensorCollocated3dFlattened(SharedData_Cuda &data, Ce
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (P_1D != T_1D) QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp], c_B, r_t1);
     ContractY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
@@ -493,8 +493,8 @@ inline __device__ void GradTensorCollocated3dFlattened(SharedData_Cuda &data, Ce
     ContractY3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_G, &r_V[comp + 1 * NUM_COMP]);
     ContractZ3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_G, &r_V[comp + 2 * NUM_COMP]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
-  QPack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QPack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
@@ -506,7 +506,7 @@ inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Cuda 
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
-  QUnpack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QUnpack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractTransposeZ3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp + 2 * NUM_COMP], c_G, r_t2);
     ContractTransposeAddY3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp + 1 * NUM_COMP], c_G, r_t2);
@@ -515,7 +515,7 @@ inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Cuda 
     ContractTransposeY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
     ContractTransposeX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_B, &r_V[comp]);
   }
-  QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
 }
 
 //------------------------------------------------------------------------------
