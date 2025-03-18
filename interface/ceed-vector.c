@@ -367,18 +367,20 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   @ref User
 **/
 int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar value) {
+  CeedSize length;
+
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  CeedCall(CeedVectorGetLength(vec, &length));
+  CeedCheck(stop >= -1 && stop <= length, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Invalid value for stop, must be in the range [-1, length]");
 
   if (vec->SetValueStrided) {
     CeedCall(vec->SetValueStrided(vec, start, stop, step, value));
     vec->state += 2;
   } else {
-    CeedSize    length;
     CeedScalar *array;
 
-    CeedCall(CeedVectorGetLength(vec, &length));
     if (length <= 0) return CEED_ERROR_SUCCESS;
     if (stop == -1) stop = length;
     CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
