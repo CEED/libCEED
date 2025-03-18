@@ -184,7 +184,7 @@ CEED_EXTERN int  CeedVectorCopy(CeedVector vec, CeedVector vec_copy);
 CEED_EXTERN int  CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVector vec_copy);
 CEED_EXTERN int  CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
 CEED_EXTERN int  CeedVectorSetValue(CeedVector vec, CeedScalar value);
-CEED_EXTERN int  CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, CeedScalar value);
+CEED_EXTERN int  CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar value);
 CEED_EXTERN int  CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
 CEED_EXTERN int  CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
 CEED_EXTERN int  CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);

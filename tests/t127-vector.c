@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
   // Set strided
   CeedVectorSetValue(x, 1.0);
-  CeedVectorSetValueStrided(x, start, step, 42.0);
+  CeedVectorSetValueStrided(x, start, -1, step, 42.0);
   {
     const CeedScalar *read_array;
 

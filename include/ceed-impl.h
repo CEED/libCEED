@@ -140,7 +140,7 @@ struct CeedVector_private {
   int (*CopyStrided)(CeedVector, CeedSize, CeedSize, CeedVector);
   int (*SetArray)(CeedVector, CeedMemType, CeedCopyMode, CeedScalar *);
   int (*SetValue)(CeedVector, CeedScalar);
-  int (*SetValueStrided)(CeedVector, CeedSize, CeedSize, CeedScalar);
+  int (*SetValueStrided)(CeedVector, CeedSize, CeedSize, CeedSize, CeedScalar);
   int (*SyncArray)(CeedVector, CeedMemType);
   int (*TakeArray)(CeedVector, CeedMemType, CeedScalar **);
   int (*GetArray)(CeedVector, CeedMemType, CeedScalar **);

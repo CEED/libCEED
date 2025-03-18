@@ -1906,9 +1906,19 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
       if (!is_active) continue;
 
       // Update unit vector
-      if (s == 0) CeedCallBackend(CeedVectorSetValue(active_e_vec_in, 0.0));
-      else CeedCallBackend(CeedVectorSetValueStrided(active_e_vec_in, s - 1, e_vec_size, 0.0));
-      CeedCallBackend(CeedVectorSetValueStrided(active_e_vec_in, s, e_vec_size, 1.0));
+      {
+        CeedInt  node = (s - 1) % elem_size, comp = (s - 1) / elem_size;
+        CeedSize start = node * 1 + comp * (elem_size * num_elem);
+        CeedSize stop  = start + (num_elem - 1) * elem_size + 1;
+
+        if (s == 0) CeedCallBackend(CeedVectorSetValue(active_e_vec_in, 0.0));
+        else CeedCallBackend(CeedVectorSetValueStrided(active_e_vec_in, start, stop, elem_size, 0.0));
+
+        node = s % elem_size, comp = s / elem_size;
+        start = node * 1 + comp * (elem_size * num_elem);
+        stop  = start + (num_elem - 1) * elem_size + 1;
+        CeedCallBackend(CeedVectorSetValueStrided(active_e_vec_in, start, stop, elem_size, 1.0));
+      }
 
       // Basis action
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));

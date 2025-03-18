@@ -115,7 +115,7 @@ static int CeedVectorSetValue_Memcheck(CeedVector vec, CeedScalar value) {
 //------------------------------------------------------------------------------
 // Set internal array to value strided
 //------------------------------------------------------------------------------
-static int CeedVectorSetValueStrided_Memcheck(CeedVector vec, CeedSize start, CeedSize step, CeedScalar val) {
+static int CeedVectorSetValueStrided_Memcheck(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
   CeedSize             length;
   CeedVector_Memcheck *impl;
 
@@ -124,7 +124,8 @@ static int CeedVectorSetValueStrided_Memcheck(CeedVector vec, CeedSize start, Ce
 
   if (!impl->array_allocated) CeedCallBackend(CeedVectorSetArray_Memcheck(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
   assert(impl->array_allocated);
-  for (CeedSize i = start; i < length; i += step) impl->array_allocated[i] = val;
+  if (stop == -1) stop = length;
+  for (CeedSize i = start; i < stop; i += step) impl->array_allocated[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 

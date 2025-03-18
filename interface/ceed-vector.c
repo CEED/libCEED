@@ -357,7 +357,8 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   Note: The `CeedVector` must already have valid data set via @ref CeedVectorSetArray() or similar.
 
   @param[in,out] vec   `CeedVector`
-  @param[in]     start First index to set
+  @param[in]     start First index to set in range `[start, stop)`
+  @param[in]     stop  Last index to set in range `[start, stop)`, or `-1` for `length`
   @param[in]     step  Stride between indices to set
   @param[in]     value Value to be used
 
@@ -365,13 +366,13 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   @ref User
 **/
-int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, CeedScalar value) {
+int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar value) {
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   if (vec->SetValueStrided) {
-    CeedCall(vec->SetValueStrided(vec, start, step, value));
+    CeedCall(vec->SetValueStrided(vec, start, stop, step, value));
     vec->state += 2;
   } else {
     CeedSize    length;
@@ -379,8 +380,9 @@ int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, Ceed
 
     CeedCall(CeedVectorGetLength(vec, &length));
     if (length <= 0) return CEED_ERROR_SUCCESS;
+    if (stop == -1) stop = length;
     CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
-    for (CeedSize i = start; i < length; i += step) array[i] = value;
+    for (CeedSize i = start; i < stop; i += step) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
   return CEED_ERROR_SUCCESS;
