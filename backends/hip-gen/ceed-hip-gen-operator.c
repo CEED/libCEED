@@ -142,6 +142,7 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
 
   if (is_tensor) {
     CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, P_1d, Q_1d, block_sizes));
+    if (is_at_points) block_sizes[2] = 1;
   } else {
     CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
 
