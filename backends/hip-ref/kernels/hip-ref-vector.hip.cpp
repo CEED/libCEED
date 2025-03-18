@@ -57,7 +57,7 @@ extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, Ceed
 //------------------------------------------------------------------------------
 // Kernel for set value strided on device
 //------------------------------------------------------------------------------
-__global__ static void setValueStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize stop, CeedSize step, CeedSize length, CeedScalar val) {
+__global__ static void setValueStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
   const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
   if (index >= start && index < stop) {
@@ -74,7 +74,7 @@ extern "C" int CeedDeviceSetValueStrided_Hip(CeedScalar *d_array, CeedSize start
   int            grid_size  = vec_size / block_size;
 
   if (block_size * grid_size < vec_size) grid_size += 1;
-  hipLaunchKernelGGL(setValueStridedK, dim3(grid_size), dim3(block_size), 0, 0, d_array, start, stop, step, length, val);
+  hipLaunchKernelGGL(setValueStridedK, dim3(grid_size), dim3(block_size), 0, 0, d_array, start, stop, step, val);
   return 0;
 }
 

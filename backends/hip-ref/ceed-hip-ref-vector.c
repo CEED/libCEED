@@ -337,7 +337,7 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
 // Set host array to value strided
 //------------------------------------------------------------------------------
 static int CeedHostSetValueStrided_Hip(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedSize length, CeedScalar val) {
-  for (CeedSize i = start; i <= stop; i += step) h_array[i] = val;
+  for (CeedSize i = start; i < stop; i += step) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
