@@ -994,8 +994,8 @@ int CeedVectorReciprocal(CeedVector vec) {
         Any portion of the provided range that is outside the range of valid indices for the `CeedVector` will be ignored.
 
   @param[in] vec    `CeedVector` to view
-  @param[in] start  Index of first `CeedVector` entry to view
-  @param[in] stop   Index of last `CeedVector` entry to view
+  @param[in] start  Index of first `CeedVector` entry to view in the range `[start, stop)`
+  @param[in] stop   One past the last element to view in the range, or `-1` for `length`
   @param[in] step   Step between `CeedVector` entries to view
   @param[in] fp_fmt Printing format
   @param[in] stream Filestream to write to
@@ -1017,7 +1017,7 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
     fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", start, stop, step);
   }
   if (start > length) start = length;
-  if (stop > length) stop = length;
+  if (stop == -1 || stop > length) stop = length;
 
   snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
