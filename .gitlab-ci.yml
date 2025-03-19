@@ -379,8 +379,8 @@ noether-float:
 # -- MAGMA from dev branch
 #    - echo "-------------- MAGMA ---------------"
 #    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
-    # -- LIBXSMM 7 April 2024
-    - cd .. && export XSMM_HASH=94ee71576870152feb62f3f0cf6b061d036dcdb5 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    # -- LIBXSMM 19 March 2025
+    - cd .. && export XSMM_HASH=ba9d6bc69c421c10f0597d582ea1ace6a6126308 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
   script:
     - rm -f .SUCCESS
