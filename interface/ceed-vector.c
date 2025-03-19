@@ -358,7 +358,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   @param[in,out] vec   `CeedVector`
   @param[in]     start First index to set in range `[start, stop)`
-  @param[in]     stop  Last index to set in range `[start, stop)`, or `-1` for `length`
+  @param[in]     stop  One past the last element to set in the range, or `-1` for `length`
   @param[in]     step  Stride between indices to set
   @param[in]     value Value to be used
 
