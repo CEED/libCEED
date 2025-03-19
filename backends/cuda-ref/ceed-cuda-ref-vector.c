@@ -336,7 +336,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
 //------------------------------------------------------------------------------
 // Set host array to value strided
 //------------------------------------------------------------------------------
-static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedSize length, CeedScalar val) {
+static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
   for (CeedSize i = start; i < stop; i += step) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
@@ -344,7 +344,7 @@ static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, Cee
 //------------------------------------------------------------------------------
 // Set device array to value strided (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceSetValueStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize stop, CeedSize step, CeedSize length, CeedScalar val);
+int CeedDeviceSetValueStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val);
 
 //------------------------------------------------------------------------------
 // Set a vector to a value strided
@@ -358,10 +358,10 @@ static int CeedVectorSetValueStrided_Cuda(CeedVector vec, CeedSize start, CeedSi
   // Set value for synced device/host array
   if (stop == -1) stop = length;
   if (impl->d_array) {
-    CeedCallBackend(CeedDeviceSetValueStrided_Cuda(impl->d_array, start, stop, step, length, val));
+    CeedCallBackend(CeedDeviceSetValueStrided_Cuda(impl->d_array, start, stop, step, val));
     impl->h_array = NULL;
   } else if (impl->h_array) {
-    CeedCallBackend(CeedHostSetValueStrided_Cuda(impl->h_array, start, stop, step, length, val));
+    CeedCallBackend(CeedHostSetValueStrided_Cuda(impl->h_array, start, stop, step, val));
     impl->d_array = NULL;
   } else {
     return CeedError(CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "CeedVector must have valid data set");
