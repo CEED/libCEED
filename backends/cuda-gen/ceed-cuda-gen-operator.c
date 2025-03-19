@@ -209,7 +209,7 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
   int block[3] = {thread_1d, ((!is_tensor || dim == 1) ? 1 : thread_1d), -1};
 
   if (is_tensor) {
-    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
+    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, is_at_points ? 1 : max_threads_per_block,
                                        cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
   } else {
     CeedInt elems_per_block = CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d, 1));

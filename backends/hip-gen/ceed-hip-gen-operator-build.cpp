@@ -1456,6 +1456,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(is_tensor ? dim : 1, num_elem, data->max_P_1d, Q_1d, block_sizes));
+  if (is_at_points) block_sizes[2] = 1;
   {
     bool is_compile_good = false;
 
