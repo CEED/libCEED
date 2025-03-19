@@ -223,20 +223,20 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
 //------------------------------------------------------------------------------
 // Copy host array to value strided
 //------------------------------------------------------------------------------
-static int CeedHostCopyStrided_Hip(CeedScalar *h_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar *h_copy_array) {
-  for (CeedSize i = start; i < length; i += step) h_copy_array[i] = h_array[i];
+static int CeedHostCopyStrided_Hip(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *h_copy_array) {
+  for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Copy device array to value strided (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
-int CeedDeviceCopyStrided_Hip(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar *d_copy_array);
+int CeedDeviceCopyStrided_Hip(CeedScalar *d_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *d_copy_array);
 
 //------------------------------------------------------------------------------
 // Copy a vector to a value strided
 //------------------------------------------------------------------------------
-static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize step, CeedVector vec_copy) {
+static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedVector vec_copy) {
   CeedSize        length;
   CeedVector_Hip *impl;
 
@@ -248,6 +248,7 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
     CeedCallBackend(CeedVectorGetLength(vec_copy, &length_copy));
     length = length_vec < length_copy ? length_vec : length_copy;
   }
+  if (stop == -1) stop = length;
   // Set value for synced device/host array
   if (impl->d_array) {
     CeedScalar *copy_array;
@@ -260,12 +261,12 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
     CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
     CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
 #if defined(CEED_SCALAR_IS_FP32)
-    CeedCallHipblas(ceed, hipblasScopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+    CeedCallHipblas(ceed, hipblasScopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #else  /* CEED_SCALAR */
-    CeedCallHipblas(ceed, hipblasDcopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+    CeedCallHipblas(ceed, hipblasDcopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #endif /* CEED_SCALAR */
 #else  /* HIP_VERSION */
-    CeedCallBackend(CeedDeviceCopyStrided_Hip(impl->d_array, start, step, length, copy_array));
+    CeedCallBackend(CeedDeviceCopyStrided_Hip(impl->d_array, start, stop, step, copy_array));
 #endif /* HIP_VERSION */
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
     impl->h_array = NULL;
@@ -274,7 +275,7 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
     CeedScalar *copy_array;
 
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &copy_array));
-    CeedCallBackend(CeedHostCopyStrided_Hip(impl->h_array, start, step, length, copy_array));
+    CeedCallBackend(CeedHostCopyStrided_Hip(impl->h_array, start, stop, step, copy_array));
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
     impl->d_array = NULL;
   } else {

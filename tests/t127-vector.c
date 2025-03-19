@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
   // Copy strided
   CeedVectorSetValue(y, 0.0);
-  CeedVectorCopyStrided(x, start, step, y);
+  CeedVectorCopyStrided(x, start, -1, step, y);
   {
     const CeedScalar *read_array;
 

@@ -251,7 +251,8 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   @brief Copy a strided portion of `CeedVector` contents into a different `CeedVector`
 
   @param[in]     vec      `CeedVector` to copy
-  @param[in]     start    First index to copy
+  @param[in]     start    First index to copy in the range `[start, stop)`
+  @param[in]     stop     One past the last element to copy in the range, or `-1` for `length`
   @param[in]     step     Stride between indices to copy
   @param[in,out] vec_copy `CeedVector` to copy values to
 
@@ -259,19 +260,12 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
 
   @ref User
 **/
-int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVector vec_copy) {
+int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedVector vec_copy) {
   CeedSize          length;
   const CeedScalar *array      = NULL;
   CeedScalar       *array_copy = NULL;
 
-  // Backend version
-  if (vec->CopyStrided && vec_copy->CopyStrided) {
-    CeedCall(vec->CopyStrided(vec, start, step, vec_copy));
-    vec_copy->state += 2;
-    return CEED_ERROR_SUCCESS;
-  }
-
-  // Get length
+  // Check length
   {
     CeedSize length_vec, length_copy;
 
@@ -280,11 +274,23 @@ int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVect
     if (length_vec <= 0 || length_copy <= 0) return CEED_ERROR_SUCCESS;
     length = length_vec < length_copy ? length_vec : length_copy;
   }
+  CeedCheck(stop >= -1 && stop <= length, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
+            "Invalid value for stop %" CeedSize_FMT ", must be in the range [-1, length]", stop);
+  CeedCheck(start >= 0 && start <= length && (start <= stop || stop == -1), CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
+            "Invalid value for start %" CeedSize_FMT ", must be in the range [0, stop]", start);
+
+  // Backend version
+  if (vec->CopyStrided && vec_copy->CopyStrided) {
+    CeedCall(vec->CopyStrided(vec, start, stop, step, vec_copy));
+    vec_copy->state += 2;
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Copy
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array));
   CeedCall(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &array_copy));
-  for (CeedSize i = start; i < length; i += step) array_copy[i] = array[i];
+  if (stop == -1) stop = length;
+  for (CeedSize i = start; i < stop; i += step) array_copy[i] = array[i];
 
   // Cleanup
   CeedCall(CeedVectorRestoreArrayRead(vec, &array));
