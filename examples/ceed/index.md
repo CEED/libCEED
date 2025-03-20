@@ -1,45 +1,39 @@
 # Standalone libCEED
 
-The following two examples have no dependencies, and are designed to be self-contained.
-For additional examples that use external discretization libraries (MFEM, PETSc, Nek5000
-etc.) see the subdirectories in {file}`examples/`.
+The following three examples have no dependencies, and are designed to be self-contained.
+For additional examples that use external discretization libraries (MFEM, PETSc, Nek5000 etc.) see the subdirectories in {file}`examples/`.
 
 (ex1-volume)=
 
 ## Ex1-Volume
 
-This example is located in the subdirectory {file}`examples/ceed`. It illustrates a
-simple usage of libCEED to compute the volume of a given body using a matrix-free
-application of the mass operator. Arbitrary mesh and solution orders in 1D, 2D, and 3D
-are supported from the same code.
+This example is located in the subdirectory {file}`examples/ceed`.
+It illustrates a simple usage of libCEED to compute the volume of a given body using a matrix-free application of the mass operator.
+Arbitrary mesh and solution orders in 1D, 2D, and 3D are supported from the same code.
 
-This example shows how to compute line/surface/volume integrals of a 1D, 2D, or 3D
-domain $\Omega$ respectively, by applying the mass operator to a vector of
-$1$s. It computes:
+This example shows how to compute line/surface/volume integrals of a 1D, 2D, or 3D domain $\Omega$ respectively, by applying the mass operator to a vector of $1$s.
+It computes:
 
 $$
 I = \int_{\Omega} 1 \, dV .
 $$ (eq-ex1-volume)
 
-Using the same notation as in {ref}`theoretical-framework`, we write here the vector
-$u(x)\equiv 1$ in the Galerkin approximation,
-and find the volume of $\Omega$ as
+Using the same notation as in {ref}`theoretical-framework`, we write here the vector $u(x)\equiv 1$ in the Galerkin approximation, and find the volume of $\Omega$ as
 
 $$
 \sum_e \int_{\Omega_e} v(x) 1 \, dV
 $$ (volume-sum)
 
-with $v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}$,
-the test functions.
+with $v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}$, the test functions.
 
 (ex2-surface)=
 
 ## Ex2-Surface
 
-This example is located in the subdirectory {file}`examples/ceed`. It computes the
-surface area of a given body using matrix-free application of a diffusion operator.
-Similar to {ref}`Ex1-Volume`, arbitrary mesh and solution orders in 1D, 2D, and 3D
-are supported from the same code. It computes:
+This example is located in the subdirectory {file}`examples/ceed`.
+It computes the surface area of a given body using matrix-free application of a diffusion operator.
+Similar to {ref}`Ex1-Volume`, arbitrary mesh and solution orders in 1D, 2D, and 3D are supported from the same code.
+It computes:
 
 $$
 I = \int_{\partial \Omega} 1 \, dS ,
@@ -65,3 +59,29 @@ Since we have chosen $u$ such that $\nabla u \cdot \hat{\bm n} = 1$, the boundar
 $$
 \int_\Omega \nabla v \cdot \nabla u \, dV \approx \sum_e \int_{\partial \Omega_e} v(x) 1 \, dS .
 $$
+
+(ex3-volume)=
+
+## Ex3-Volume
+
+This example is located in the subdirectory {file}`examples/ceed`.
+It illustrates a more complex usage of libCEED to compute the volume of a given body using a matrix-free application of the screened Poisson operator.
+Arbitrary mesh and solution orders in 1D, 2D, and 3D are supported from the same code.
+
+This example shows how to compute line/surface/volume integrals of a 1D, 2D, or 3D domain $\Omega$ respectively, by applying the screened Poisson operator to a vector of $1$s.
+It computes:
+
+$$
+I = \int_{\Omega} \left( 1 + \nabla^2 1 \right) \, dV .
+$$ (eq-ex3-volume)
+
+Using the same notation as in {ref}`theoretical-framework`, we write here the vector $u(x)\equiv 1$ in the Galerkin approximation, and find the volume of $\Omega$ as
+
+$$
+\sum_e \int_{\Omega_e}\left( v(x) 1 + \nabla v(x) \cdot 0 \right) \, dV
+$$ (volume-sum)
+
+with $v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}$, the test functions.
+
+The addition of the Poisson term is not needed to compute the volume of the region, as shown in example 1.
+Rather, this example illustrates the ability to add multiple evaluation modes for the same input or output vector in a libCEED operator.
