@@ -142,8 +142,10 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedWarn(...) \
-  { CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, ##__VA_ARGS__); }
+#define CeedWarn(...)                                          \
+  {                                                            \
+    CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, ##__VA_ARGS__); \
+  }
 
 /**
   Swap the values of two CeedScalars
