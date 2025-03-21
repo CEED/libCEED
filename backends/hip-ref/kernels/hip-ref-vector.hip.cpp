@@ -57,24 +57,24 @@ extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, Ceed
 //------------------------------------------------------------------------------
 // Kernel for set value strided on device
 //------------------------------------------------------------------------------
-__global__ static void setValueStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize step, CeedSize size, CeedScalar val) {
+__global__ static void setValueStridedK(CeedScalar *__restrict__ vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
   const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
-  if (index < size) {
-    if ((index - start) % step == 0) vec[index] = val;
+  if (index < stop - start) {
+    if (index % step == 0) vec[start + index] = val;
   }
 }
 
 //------------------------------------------------------------------------------
 // Set value strided on device memory
 //------------------------------------------------------------------------------
-extern "C" int CeedDeviceSetValueStrided_Hip(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar val) {
+extern "C" int CeedDeviceSetValueStrided_Hip(CeedScalar *d_array, CeedSize start, CeedInt stop, CeedSize step, CeedSize length, CeedScalar val) {
   const int      block_size = 512;
-  const CeedSize vec_size   = length;
-  int            grid_size  = vec_size / block_size;
+  const CeedSize set_size   = stop - start;
+  int            grid_size  = set_size / block_size;
 
-  if (block_size * grid_size < vec_size) grid_size += 1;
-  hipLaunchKernelGGL(setValueStridedK, dim3(grid_size), dim3(block_size), 0, 0, d_array, start, step, length, val);
+  if (block_size * grid_size < set_size) grid_size += 1;
+  hipLaunchKernelGGL(setValueStridedK, dim3(grid_size), dim3(block_size), 0, 0, d_array, start, stop, step, val);
   return 0;
 }
 

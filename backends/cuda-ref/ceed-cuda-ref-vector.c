@@ -223,20 +223,20 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
 //------------------------------------------------------------------------------
 // Copy host array to value strided
 //------------------------------------------------------------------------------
-static int CeedHostCopyStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar *h_copy_array) {
-  for (CeedSize i = start; i < length; i += step) h_copy_array[i] = h_array[i];
+static int CeedHostCopyStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *h_copy_array) {
+  for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Copy device array to value strided (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceCopyStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar *d_copy_array);
+int CeedDeviceCopyStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *d_copy_array);
 
 //------------------------------------------------------------------------------
 // Copy a vector to a value strided
 //------------------------------------------------------------------------------
-static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize step, CeedVector vec_copy) {
+static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedVector vec_copy) {
   CeedSize         length;
   CeedVector_Cuda *impl;
 
@@ -248,6 +248,7 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
     CeedCallBackend(CeedVectorGetLength(vec_copy, &length_copy));
     length = length_vec < length_copy ? length_vec : length_copy;
   }
+  if (stop == -1) stop = length;
   // Set value for synced device/host array
   if (impl->d_array) {
     CeedScalar *copy_array;
@@ -260,13 +261,13 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
     CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
     CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
 #if defined(CEED_SCALAR_IS_FP32)
-    CeedCallCublas(ceed, cublasScopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+    CeedCallCublas(ceed, cublasScopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #else  /* CEED_SCALAR */
-    CeedCallCublas(ceed, cublasDcopy_64(handle, (int64_t)length, impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
+    CeedCallCublas(ceed, cublasDcopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #endif /* CEED_SCALAR */
     CeedCallBackend(CeedDestroy(&ceed));
 #else  /* CUDA_VERSION */
-    CeedCallBackend(CeedDeviceCopyStrided_Cuda(impl->d_array, start, step, length, copy_array));
+    CeedCallBackend(CeedDeviceCopyStrided_Cuda(impl->d_array, start, stop, step, copy_array));
 #endif /* CUDA_VERSION */
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
     impl->h_array = NULL;
@@ -274,7 +275,7 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
     CeedScalar *copy_array;
 
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &copy_array));
-    CeedCallBackend(CeedHostCopyStrided_Cuda(impl->h_array, start, step, length, copy_array));
+    CeedCallBackend(CeedHostCopyStrided_Cuda(impl->h_array, start, stop, step, copy_array));
     CeedCallBackend(CeedVectorRestoreArray(vec_copy, &copy_array));
     impl->d_array = NULL;
   } else {
@@ -336,31 +337,32 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
 //------------------------------------------------------------------------------
 // Set host array to value strided
 //------------------------------------------------------------------------------
-static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar val) {
-  for (CeedSize i = start; i < length; i += step) h_array[i] = val;
+static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
+  for (CeedSize i = start; i < stop; i += step) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Set device array to value strided (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceSetValueStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar val);
+int CeedDeviceSetValueStrided_Cuda(CeedScalar *d_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val);
 
 //------------------------------------------------------------------------------
 // Set a vector to a value strided
 //------------------------------------------------------------------------------
-static int CeedVectorSetValueStrided_Cuda(CeedVector vec, CeedSize start, CeedSize step, CeedScalar val) {
+static int CeedVectorSetValueStrided_Cuda(CeedVector vec, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
   CeedSize         length;
   CeedVector_Cuda *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   // Set value for synced device/host array
+  if (stop == -1) stop = length;
   if (impl->d_array) {
-    CeedCallBackend(CeedDeviceSetValueStrided_Cuda(impl->d_array, start, step, length, val));
+    CeedCallBackend(CeedDeviceSetValueStrided_Cuda(impl->d_array, start, stop, step, val));
     impl->h_array = NULL;
   } else if (impl->h_array) {
-    CeedCallBackend(CeedHostSetValueStrided_Cuda(impl->h_array, start, step, length, val));
+    CeedCallBackend(CeedHostSetValueStrided_Cuda(impl->h_array, start, stop, step, val));
     impl->d_array = NULL;
   } else {
     return CeedError(CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "CeedVector must have valid data set");
