@@ -28,7 +28,7 @@ impl<'a> From<&'a ElemRestriction<'_>> for ElemRestrictionOpt<'a> {
 impl<'a> ElemRestrictionOpt<'a> {
     /// Transform a Rust libCEED ElemRestrictionOpt into C libCEED
     /// CeedElemRestriction
-    pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
+    pub(crate) fn to_raw(&self) -> bind_ceed::CeedElemRestriction {
         match self {
             Self::Some(rstr) => rstr.ptr,
             Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
@@ -153,6 +153,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> ElemRestriction<'a> {
     // Constructors
+    #[allow(clippy::too_many_arguments)]
     pub fn create(
         ceed: &crate::Ceed,
         nelem: usize,
@@ -199,6 +200,7 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_oriented(
         ceed: &crate::Ceed,
         nelem: usize,
@@ -240,6 +242,7 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_curl_oriented(
         ceed: &crate::Ceed,
         nelem: usize,

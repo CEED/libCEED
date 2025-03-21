@@ -34,7 +34,7 @@ impl<'a> From<&'a Vector<'_>> for VectorOpt<'a> {
 }
 impl<'a> VectorOpt<'a> {
     /// Transform a Rust libCEED VectorOpt into C libCEED CeedVector
-    pub(crate) fn to_raw(self) -> bind_ceed::CeedVector {
+    pub(crate) fn to_raw(&self) -> bind_ceed::CeedVector {
         match self {
             Self::Some(vec) => vec.ptr,
             Self::Active => unsafe { bind_ceed::CEED_VECTOR_ACTIVE },
@@ -383,6 +383,23 @@ impl<'a> Vector<'a> {
     /// ```
     pub fn len(&self) -> usize {
         self.length()
+    }
+
+    /// Returns true if the Vector contains no elements
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let vec = ceed.vector(10)?;
+    /// assert!(!vec.is_empty(), "Incorrect emptiness");
+    /// let empty_vec = ceed.vector(0)?;
+    /// assert!(empty_vec.is_empty(), "Incorrect emptiness");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.length() == 0
     }
 
     /// Set the Vector to a constant value

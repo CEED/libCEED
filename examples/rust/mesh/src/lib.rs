@@ -6,6 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 use libceed::{Ceed, ElemRestriction, Vector};
+use std::convert::TryInto;
 
 // ----------------------------------------------------------------------------
 // Determine problem size in each dimension from size and dimenison
@@ -22,16 +23,19 @@ pub fn cartesian_mesh_size(dim: usize, solution_degree: usize, problem_size: i64
 
     // Size per dimension
     let mut r = s % dim;
-    let mut num_xyz = [0; 3];
-    for d in 0..dim {
-        let mut sd = s / dim;
-        if r > 0 {
-            sd += 1;
-            r -= 1;
-        }
-        num_xyz[d] = 1 << sd;
-    }
-    num_xyz
+    let xyz: [usize; 3] = (0..3)
+        .map(|_| -> usize {
+            let mut sd = s / dim;
+            if r > 0 {
+                sd += 1;
+                r -= 1;
+            }
+            1 << sd
+        })
+        .collect::<Vec<usize>>()
+        .try_into()
+        .unwrap();
+    xyz
 }
 
 // ----------------------------------------------------------------------------
@@ -95,7 +99,7 @@ pub fn build_cartesian_restriction(
         &elem_nodes,
     )?;
 
-    // Quadratue data restriction
+    // Quadrature data restriction
     let rstr_qdata = ceed.strided_elem_restriction(
         num_elem,
         elem_qpts,

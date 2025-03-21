@@ -27,7 +27,7 @@ impl<'a> From<&'a Basis<'_>> for BasisOpt<'a> {
 }
 impl<'a> BasisOpt<'a> {
     /// Transform a Rust libCEED BasisOpt into C libCEED CeedBasis
-    pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
+    pub(crate) fn to_raw(&self) -> bind_ceed::CeedBasis {
         match self {
             Self::Some(basis) => basis.ptr,
             Self::None => unsafe { bind_ceed::CEED_BASIS_NONE },
@@ -134,6 +134,7 @@ impl<'a> fmt::Display for Basis<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> Basis<'a> {
     // Constructors
+    #[allow(clippy::too_many_arguments)]
     pub fn create_tensor_H1(
         ceed: &crate::Ceed,
         dim: usize,
@@ -204,6 +205,7 @@ impl<'a> Basis<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_H1(
         ceed: &crate::Ceed,
         topo: crate::ElemTopology,
@@ -242,6 +244,7 @@ impl<'a> Basis<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_Hdiv(
         ceed: &crate::Ceed,
         topo: crate::ElemTopology,
@@ -280,6 +283,7 @@ impl<'a> Basis<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_Hcurl(
         ceed: &crate::Ceed,
         topo: crate::ElemTopology,

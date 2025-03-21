@@ -441,6 +441,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn elem_restriction<'a>(
         &self,
         nelem: usize,
@@ -504,6 +505,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn oriented_elem_restriction<'a>(
         &self,
         nelem: usize,
@@ -590,6 +592,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn curl_oriented_elem_restriction<'a>(
         &self,
         nelem: usize,
@@ -691,6 +694,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn basis_tensor_H1<'a>(
         &self,
         dim: usize,
@@ -853,6 +857,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn basis_H1<'a>(
         &self,
         topo: ElemTopology,
@@ -951,6 +956,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn basis_Hdiv<'a>(
         &self,
         topo: ElemTopology,
@@ -1045,6 +1051,7 @@ impl Ceed {
     /// # Ok(())
     /// # }
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn basis_Hcurl<'a>(
         &self,
         topo: ElemTopology,

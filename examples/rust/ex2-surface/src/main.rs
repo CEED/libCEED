@@ -34,6 +34,8 @@ fn main() -> libceed::Result<()> {
     example_2(options)
 }
 
+#[allow(clippy::erasing_op)]
+#[allow(clippy::identity_op)]
 fn example_2(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
