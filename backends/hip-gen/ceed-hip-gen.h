@@ -14,8 +14,9 @@
 typedef struct {
   bool          use_fallback;
   CeedInt       dim;
-  CeedInt       Q_1d;
+  CeedInt       Q, Q_1d;
   CeedInt       max_P_1d;
+  CeedInt       thread_1d;
   hipModule_t   module;
   hipFunction_t op;
   FieldsInt_Hip indices;

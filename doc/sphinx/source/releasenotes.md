@@ -25,6 +25,7 @@ On this page we provide a summary of the main API changes, new features and exam
 - Allow user to set additional compiler options for CUDA and HIP JiT.
 Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will be used to set `-Ifoo/bar` and defines set with `CeedAddJitDefine(ceed, "foo=bar")` will be used to set `-Dfoo=bar`.
 - Added non-tensor basis support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen`.
+- Added support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen` for operators with both tensor and non-tensor bases.
 
 ### Examples
 

@@ -92,7 +92,7 @@ inline __device__ void GradTransposeNonTensor(SharedData_Cuda &data, const CeedS
 //------------------------------------------------------------------------------
 // Quadrature weights
 //------------------------------------------------------------------------------
-template <int Q>
+template <int P, int Q>
 inline __device__ void WeightNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight, CeedScalar *w) {
   *w = (data.t_id_x < Q) ? q_weight[data.t_id_x] : 0.0;
 }

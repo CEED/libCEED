@@ -65,11 +65,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 
       ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
       if (BASIS_DIM == 1) {
-        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 2) {
-        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 3) {
-        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
       WritePoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
     }
@@ -123,11 +123,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
       ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
       ReadPoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U, r_U);
       if (BASIS_DIM == 1) {
-        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
     __syncthreads();
@@ -183,11 +183,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
       ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
       ReadPoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U, r_U);
       if (BASIS_DIM == 1) {
-        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
     __syncthreads();
@@ -255,11 +255,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 
       ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
       if (BASIS_DIM == 1) {
-        GradAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 2) {
-        GradAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 3) {
-        GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
       WritePoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
     }
@@ -314,11 +314,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
       ReadPoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U,
                                                            r_U);
       if (BASIS_DIM == 1) {
-        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
     __syncthreads();
@@ -375,11 +375,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
       ReadPoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U,
                                                            r_U);
       if (BASIS_DIM == 1) {
-        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
     __syncthreads();

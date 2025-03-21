@@ -91,7 +91,7 @@ inline __device__ void GradTranspose1d(SharedData_Hip &data, const CeedScalar *_
 //------------------------------------------------------------------------------
 // 1D quadrature weights
 //------------------------------------------------------------------------------
-template <int Q_1D>
+template <int P_1D, int Q_1D>
 inline __device__ void Weight1d(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   *w = (data.t_id_x < Q_1D) ? q_weight_1d[data.t_id_x] : 0.0;
 }
@@ -237,7 +237,7 @@ inline __device__ void GradTransposeTensor2d(SharedData_Hip &data, const CeedSca
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
-template <int Q_1D>
+template <int P_1D, int Q_1D>
 inline __device__ void WeightTensor2d(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1D) ? q_weight_1d[data.t_id_x] * q_weight_1d[data.t_id_y] : 0.0;
 }
@@ -522,7 +522,7 @@ inline __device__ void GradTransposeTensorCollocated3d(SharedData_Hip &data, con
 //------------------------------------------------------------------------------
 // 3D quadrature weights
 //------------------------------------------------------------------------------
-template <int Q_1D>
+template <int P_1D, int Q_1D>
 inline __device__ void WeightTensor3d(SharedData_Hip &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   const bool       quad = (data.t_id_x < Q_1D && data.t_id_y < Q_1D);
   const CeedScalar pw   = quad ? q_weight_1d[data.t_id_x] * q_weight_1d[data.t_id_y] : 0.0;
