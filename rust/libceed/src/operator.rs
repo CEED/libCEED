@@ -1898,7 +1898,7 @@ impl<'a> Operator<'a> {
         p_mult_fine: &Vector,
         rstr_coarse: &ElemRestriction,
         basis_coarse: &Basis,
-        interpCtoF: &Vec<crate::Scalar>,
+        interpCtoF: &[crate::Scalar],
     ) -> crate::Result<(Operator<'b>, Operator<'b>, Operator<'b>)> {
         let mut ptr_coarse = std::ptr::null_mut();
         let mut ptr_prolong = std::ptr::null_mut();
