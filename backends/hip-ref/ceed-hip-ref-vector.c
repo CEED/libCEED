@@ -95,7 +95,15 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
 // Sync arrays
 //------------------------------------------------------------------------------
 static int CeedVectorSyncArray_Hip(const CeedVector vec, CeedMemType mem_type) {
-  bool need_sync = false;
+  bool            need_sync = false;
+  CeedVector_Hip *impl;
+
+  // Sync for unified memory
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  if (impl->has_unified_addressing && !impl->h_array_borrowed) {
+    CeedCallHip(CeedVectorReturnCeed(vec), hipDeviceSynchronize());
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Check whether device/host sync is needed
   CeedCallBackend(CeedVectorNeedSync_Hip(vec, mem_type, &need_sync));
@@ -158,6 +166,10 @@ static inline int CeedVectorHasBorrowedArrayOfType_Hip(const CeedVector vec, Cee
   CeedVector_Hip *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+
+  // Use device memory for unified memory
+  mem_type = impl->has_unified_addressing && !impl->h_array_borrowed ? CEED_MEM_DEVICE : mem_type;
+
   switch (mem_type) {
     case CEED_MEM_HOST:
       *has_borrowed_array_of_type = impl->h_array_borrowed;
@@ -203,6 +215,43 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec, const CeedCopyMode
 }
 
 //------------------------------------------------------------------------------
+// Set array with unified memory
+//------------------------------------------------------------------------------
+static int CeedVectorSetArrayUnifiedHostToDevice_Hip(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
+  CeedSize        length;
+  Ceed            ceed;
+  CeedVector_Hip *impl;
+
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+
+  switch (copy_mode) {
+    case CEED_COPY_VALUES:
+    case CEED_OWN_POINTER:
+      if (!impl->d_array) {
+        if (impl->d_array_borrowed) {
+          impl->d_array = impl->d_array_borrowed;
+        } else {
+          if (!impl->d_array_owned) CeedCallHip(ceed, hipMalloc((void **)&impl->d_array_owned, sizeof(CeedScalar) * length));
+          impl->d_array = impl->d_array_owned;
+        }
+      }
+      if (array) CeedCallHip(ceed, hipMemcpy(impl->d_array, array, sizeof(CeedScalar) * length, hipMemcpyHostToDevice));
+      if (copy_mode == CEED_OWN_POINTER) CeedCallBackend(CeedFree(&array));
+      break;
+    case CEED_USE_POINTER:
+      CeedCallHip(ceed, hipFree(impl->d_array_owned));
+      CeedCallBackend(CeedFree(&impl->h_array_owned));
+      impl->h_array_owned    = NULL;
+      impl->h_array_borrowed = array;
+      impl->d_array          = impl->h_array_borrowed;
+  }
+  CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Set the array used by a vector,
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
@@ -213,7 +262,11 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
   CeedCallBackend(CeedVectorSetAllInvalid_Hip(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSetArrayHost_Hip(vec, copy_mode, array);
+      if (impl->has_unified_addressing) {
+        return CeedVectorSetArrayUnifiedHostToDevice_Hip(vec, copy_mode, array);
+      } else {
+        return CeedVectorSetArrayHost_Hip(vec, copy_mode, array);
+      }
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Hip(vec, copy_mode, array);
   }
@@ -303,8 +356,10 @@ int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, CeedScalar val)
 static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   CeedSize        length;
   CeedVector_Hip *impl;
+  Ceed_Hip       *hip_data;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedGetData(CeedVectorReturnCeed(vec), &hip_data));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   // Set value for synced device/host array
   if (!impl->d_array && !impl->h_array) {
@@ -321,7 +376,7 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
     }
   }
   if (impl->d_array) {
-    if (val == 0) {
+    if (val == 0 && !impl->h_array_borrowed) {
       CeedCallHip(CeedVectorReturnCeed(vec), hipMemset(impl->d_array, 0, length * sizeof(CeedScalar)));
     } else {
       CeedCallBackend(CeedDeviceSetValue_Hip(impl->d_array, length, val));
@@ -398,13 +453,16 @@ static int CeedVectorTakeArray_Hip(CeedVector vec, CeedMemType mem_type, CeedSca
 }
 
 //------------------------------------------------------------------------------
-// Core logic for array syncronization for GetArray.
+// Core logic for array synchronization for GetArray.
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayCore_Hip(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
+static int CeedVectorGetArrayCore_Hip(const CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
   CeedVector_Hip *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+
+  // Use device memory for unified memory
+  mem_type = impl->has_unified_addressing && !impl->h_array_borrowed ? CEED_MEM_DEVICE : mem_type;
 
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
@@ -431,15 +489,21 @@ static int CeedVectorGetArrayRead_Hip(const CeedVector vec, const CeedMemType me
 //------------------------------------------------------------------------------
 // Get read/write access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
-static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
+static int CeedVectorGetArray_Hip(const CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
   CeedVector_Hip *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+
+  // Use device memory for unified memory
+  mem_type = impl->has_unified_addressing && !impl->h_array_borrowed ? CEED_MEM_DEVICE : mem_type;
+
+  // 'Get' array and set only 'get'ed array as valid
   CeedCallBackend(CeedVectorGetArrayCore_Hip(vec, mem_type, array));
   CeedCallBackend(CeedVectorSetAllInvalid_Hip(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
       impl->h_array = *array;
+      if (impl->has_unified_addressing) impl->d_array = *array;
       break;
     case CEED_MEM_DEVICE:
       impl->d_array = *array;
@@ -451,11 +515,17 @@ static int CeedVectorGetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
 //------------------------------------------------------------------------------
 // Get write access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
+static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
   bool            has_array_of_type = true;
   CeedVector_Hip *impl;
+  Ceed_Hip       *hip_data;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedGetData(CeedVectorReturnCeed(vec), &hip_data));
+
+  // Use device memory for unified memory
+  mem_type = impl->has_unified_addressing && !impl->h_array_borrowed ? CEED_MEM_DEVICE : mem_type;
+
   CeedCallBackend(CeedVectorHasArrayOfType_Hip(vec, mem_type, &has_array_of_type));
   if (!has_array_of_type) {
     // Allocate if array is not yet allocated
@@ -487,8 +557,10 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   const CeedScalar *d_array;
   CeedVector_Hip   *impl;
   hipblasHandle_t   handle;
+  Ceed_Hip         *hip_data;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &hip_data));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
@@ -518,7 +590,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
-        CeedCallHipblas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
         *norm += sub_norm;
       }
 #endif /* HIP_VERSION */
@@ -545,7 +617,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #if defined(CEED_SCALAR_IS_FP32)
 #if (HIP_VERSION >= 60000000)
       CeedCallHipblas(ceed, hipblasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
-#else  /* CUDA_VERSION */
+#else  /* HIP_VERSION */
       float  sub_norm = 0.0, norm_sum = 0.0;
       float *d_array_start;
 
@@ -562,7 +634,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #else  /* CEED_SCALAR */
 #if (HIP_VERSION >= 60000000)
       CeedCallHipblas(ceed, hipblasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
-#else  /* CUDA_VERSION */
+#else  /* HIP_VERSION */
       double  sub_norm = 0.0, norm_sum = 0.0;
       double *d_array_start;
 
@@ -599,7 +671,12 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
-        CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        if (hip_data->has_unified_addressing) {
+          CeedCallHip(ceed, hipDeviceSynchronize());
+          sub_max = fabs(d_array[index - 1]);
+        } else {
+          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        }
         if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
       }
       *norm = current_max;
@@ -610,7 +687,12 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
       CeedScalar norm_no_abs;
 
       CeedCallHipblas(ceed, hipblasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
-      CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+      if (hip_data->has_unified_addressing) {
+        CeedCallHip(ceed, hipDeviceSynchronize());
+        norm_no_abs = fabs(d_array[index - 1]);
+      } else {
+        CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+      }
       *norm = fabs(norm_no_abs);
 #else  /* HIP_VERSION */
       CeedInt index;
@@ -623,7 +705,12 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
-        CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        if (hip_data->has_unified_addressing) {
+          CeedCallHip(ceed, hipDeviceSynchronize());
+          sub_max = fabs(d_array[index - 1]);
+        } else {
+          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        }
         if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
       }
       *norm = current_max;
@@ -854,6 +941,7 @@ static int CeedVectorDestroy_Hip(const CeedVector vec) {
 //------------------------------------------------------------------------------
 int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   CeedVector_Hip *impl;
+  Ceed_Hip       *hip_impl;
   Ceed            ceed;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
@@ -875,8 +963,10 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Hip));
-  CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedGetData(ceed, &hip_impl));
+  CeedCallBackend(CeedDestroy(&ceed));
+  impl->has_unified_addressing = hip_impl->has_unified_addressing;
   CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;
 }
