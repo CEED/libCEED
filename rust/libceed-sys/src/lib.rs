@@ -17,5 +17,6 @@ pub mod bind_ceed {
     #![allow(non_upper_case_globals)]
     #![allow(non_camel_case_types)]
     #![allow(dead_code)]
+    #![allow(clippy::too_long_first_doc_paragraph)]
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 }

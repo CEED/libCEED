@@ -8,7 +8,7 @@
 //! A Ceed ElemRestriction decomposes elements and groups the degrees of freedom
 //! (dofs) according to the different elements they belong to.
 
-use crate::prelude::*;
+use crate::{prelude::*, vector::Vector, TransposeMode};
 
 // -----------------------------------------------------------------------------
 // ElemRestriction option
@@ -28,7 +28,7 @@ impl<'a> From<&'a ElemRestriction<'_>> for ElemRestrictionOpt<'a> {
 impl<'a> ElemRestrictionOpt<'a> {
     /// Transform a Rust libCEED ElemRestrictionOpt into C libCEED
     /// CeedElemRestriction
-    pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
+    pub(crate) fn to_raw(&self) -> bind_ceed::CeedElemRestriction {
         match self {
             Self::Some(rstr) => rstr.ptr,
             Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
@@ -38,7 +38,7 @@ impl<'a> ElemRestrictionOpt<'a> {
     /// Check if an ElemRestrictionOpt is Some
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, ElemRestrictionOpt, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -66,7 +66,7 @@ impl<'a> ElemRestrictionOpt<'a> {
     /// Check if an ElemRestrictionOpt is None
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, ElemRestrictionOpt, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -121,7 +121,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
     /// View an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -153,6 +153,7 @@ impl<'a> fmt::Display for ElemRestriction<'a> {
 // -----------------------------------------------------------------------------
 impl<'a> ElemRestriction<'a> {
     // Constructors
+    #[allow(clippy::too_many_arguments)]
     pub fn create(
         ceed: &crate::Ceed,
         nelem: usize,
@@ -199,6 +200,7 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_oriented(
         ceed: &crate::Ceed,
         nelem: usize,
@@ -240,6 +242,7 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_curl_oriented(
         ceed: &crate::Ceed,
         nelem: usize,
@@ -328,7 +331,7 @@ impl<'a> ElemRestriction<'a> {
     /// Create an Lvector for an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -357,7 +360,7 @@ impl<'a> ElemRestriction<'a> {
     /// Create an Evector for an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -386,7 +389,7 @@ impl<'a> ElemRestriction<'a> {
     /// Create Vectors for an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -426,7 +429,7 @@ impl<'a> ElemRestriction<'a> {
     ///               decided by the backend.
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType, Scalar, TransposeMode};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -469,7 +472,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the Lvector component stride
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -495,7 +498,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the total number of elements in the range of a ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -520,7 +523,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the size of elements in the ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -546,7 +549,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the size of the Lvector for an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -571,7 +574,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the number of components in the elements of an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
@@ -597,7 +600,7 @@ impl<'a> ElemRestriction<'a> {
     /// Returns the multiplicity of nodes in an ElemRestriction
     ///
     /// ```
-    /// # use libceed::prelude::*;
+    /// # use libceed::{prelude::*, MemType};
     /// # fn main() -> libceed::Result<()> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;

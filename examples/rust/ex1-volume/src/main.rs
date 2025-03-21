@@ -19,7 +19,9 @@
 // line argument (-ceed).
 
 use clap::Parser;
-use libceed::{prelude::*, Ceed};
+use libceed::{
+    BasisOpt, Ceed, ElemRestrictionOpt, QFunctionInputs, QFunctionOpt, QFunctionOutputs, VectorOpt,
+};
 mod opt;
 mod transform;
 
@@ -31,6 +33,8 @@ fn main() -> libceed::Result<()> {
     example_1(options)
 }
 
+#[allow(clippy::erasing_op)]
+#[allow(clippy::identity_op)]
 fn example_1(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
@@ -44,17 +48,20 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
         quiet,
         gallery,
     } = options;
-    assert!(dim >= 1 && dim <= 3);
+    assert!((1..=3).contains(&dim));
     assert!(mesh_degree >= 1);
     assert!(solution_degree >= 1);
     assert!(num_qpts >= 1);
     let ncomp_x = dim;
-    let problem_size: i64;
-    if problem_size_requested < 0 {
-        problem_size = if test { 8 * 16 } else { 256 * 1024 };
+    let problem_size: i64 = if problem_size_requested < 0 {
+        if test {
+            8 * 16
+        } else {
+            256 * 1024
+        }
     } else {
-        problem_size = problem_size_requested;
-    }
+        problem_size_requested
+    };
 
     // Summary output
     if !quiet {
@@ -75,10 +82,20 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     let ceed = Ceed::init(&ceed_spec);
 
     // Mesh and solution bases
-    let basis_mesh =
-        ceed.basis_tensor_H1_Lagrange(dim, ncomp_x, mesh_degree + 1, num_qpts, QuadMode::Gauss)?;
-    let basis_solution =
-        ceed.basis_tensor_H1_Lagrange(dim, 1, solution_degree + 1, num_qpts, QuadMode::Gauss)?;
+    let basis_mesh = ceed.basis_tensor_H1_Lagrange(
+        dim,
+        ncomp_x,
+        mesh_degree + 1,
+        num_qpts,
+        libceed::QuadMode::Gauss,
+    )?;
+    let basis_solution = ceed.basis_tensor_H1_Lagrange(
+        dim,
+        1,
+        solution_degree + 1,
+        num_qpts,
+        libceed::QuadMode::Gauss,
+    )?;
 
     // Determine mesh size from approximate problem size
     let num_xyz = mesh::cartesian_mesh_size(dim, solution_degree, problem_size);
@@ -90,7 +107,7 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
         if dim > 2 {
             print!(", nz = {}", num_xyz[2]);
         }
-        print!("\n");
+        println!();
     }
 
     // Build ElemRestriction objects describing the mesh and solution discrete
@@ -157,9 +174,9 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_build_closure = ceed
         .q_function_interior(1, Box::new(build_mass))?
-        .input("dx", ncomp_x * dim, EvalMode::Grad)?
-        .input("weights", 1, EvalMode::Weight)?
-        .output("qdata", 1, EvalMode::None)?;
+        .input("dx", ncomp_x * dim, libceed::EvalMode::Grad)?
+        .input("weights", 1, libceed::EvalMode::Weight)?
+        .output("qdata", 1, libceed::EvalMode::None)?;
     // -- QFunction from gallery
     let qf_build_named = {
         let name = format!("Mass{}DBuild", dim);
@@ -204,9 +221,9 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     };
     let qf_mass_closure = ceed
         .q_function_interior(1, Box::new(apply_mass))?
-        .input("u", 1, EvalMode::Interp)?
-        .input("qdata", 1, EvalMode::None)?
-        .output("v", 1, EvalMode::Interp)?;
+        .input("u", 1, libceed::EvalMode::Interp)?
+        .input("qdata", 1, libceed::EvalMode::None)?
+        .output("v", 1, libceed::EvalMode::Interp)?;
     // -- QFunction from gallery
     let qf_mass_named = ceed.q_function_interior_by_name("MassApply")?;
     // -- QFunction for use with Operator
@@ -233,7 +250,7 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     op_mass.apply(&u, &mut v)?;
 
     // Compute the mesh volume
-    let volume: Scalar = v.view()?.iter().sum();
+    let volume: libceed::Scalar = v.view()?.iter().sum();
 
     // Output results
     if !quiet {
