@@ -1204,7 +1204,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   }
 
   // Load basis source files
-  if (!is_all_tensor) {
+  if (!is_all_nontensor) {
     code << "// Tensor basis source\n";
     code << "#include <ceed/jit-source/hip/hip-shared-basis-tensor-templates.h>\n\n";
   }
