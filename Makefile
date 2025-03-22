@@ -171,7 +171,7 @@ CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 LIBCXX ?= -lstdc++
-NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
@@ -660,7 +660,7 @@ endif
 # when creating shared or static libraries.
 weak_last = $(filter-out %-weak.o,$(1)) $(filter %-weak.o,$(1))
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(OBJDIR)/interface/ceed-config.o $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
@@ -670,6 +670,9 @@ $(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(OBJDIR)/%.c | $$(@D)/.DIR # source files generated in OBJDIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
@@ -846,6 +849,22 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
+
+GIT_DESCRIBE = $(shell git describe --dirty || printf "unknown\n")
+
+$(OBJDIR)/interface/ceed-config.c: Makefile
+	@$(file >$@,#include <ceed-impl.h>) \
+	$(file >>$@,int CeedGetGitVersion(const char **git_version) {) \
+  $(file >>$@,  *git_version = "$(GIT_DESCRIBE)";) \
+	$(file >>$@,  return 0;) \
+  $(file >>$@,}) \
+  $(file >>$@,) \
+  $(file >>$@,int CeedGetBuildConfiguration(const char **build_config) {) \
+  $(file >>$@,  *build_config =) \
+  $(foreach v,$(CONFIG_VARS),$(file >>$@,"$(v) = $($(v))\n")) \
+	$(file >>$@,  ;) \
+	$(file >>$@,  return 0;) \
+  $(file >>$@,})
 
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""

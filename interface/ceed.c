@@ -1672,7 +1672,7 @@ int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
 
   @ref Developer
 
-  @sa CEED_VERSION_GE()
+  @sa CEED_VERSION_GE() CeedGetGitVersion() CeedGetBuildConfiguration()
 */
 int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   if (major) *major = CEED_VERSION_MAJOR;
@@ -1681,6 +1681,41 @@ int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   if (release) *release = CEED_VERSION_RELEASE;
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Get output of `git describe --dirty` from build time
+
+  While @ref CeedGetVersion() uniqely identifies the source code for release
+  builds, it does not identify builds from other commits.
+
+  @param[out] git_version A static string containing the Git commit description.
+
+  If `git describe --dirty` fails, the string `"unknown"` will be provided. This
+  could occur if Git is not installed or if libCEED is not being built from a
+  repository, for example.`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+
+  @sa CeedGetVersion() CeedGetBuildConfiguration()
+*/
+int CeedGetGitVersion(const char **git_version);  // defined in generated ceed-config.h
+
+/**
+  @brief Get build variables as a multi-line string
+
+  Each line of the string has the format `VARNAME = value`.
+
+  @param[out] build_config A static string containing build variables
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+
+  @sa CeedGetVersion() CeedGetGitVersion()
+*/
+int CeedGetBuildConfiguration(const char **build_config);  // defined in generated ceed-config.h
 
 /**
   @brief Get libCEED scalar type, such as F64 or F32
