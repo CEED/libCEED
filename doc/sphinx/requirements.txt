@@ -1,11 +1,11 @@
 altair>=5.0
-breathe>=4.30
-myst-parser[linkify]>=0.14.0
-sphinx-hoverxref>=0.3b1
+breathe>=4.36
+myst-parser[linkify]>=4.0.1
+sphinx-hoverxref>=1.4.2
 sphinx-design
-sphinx>=5.3,<6
+sphinx>=7.2
 sphinx_rtd_theme
-sphinxcontrib-bibtex==2.5
+sphinxcontrib-bibtex==2.6.3
 sphinxcontrib-katex
 sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter

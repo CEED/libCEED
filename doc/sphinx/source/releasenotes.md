@@ -26,6 +26,8 @@ On this page we provide a summary of the main API changes, new features and exam
 Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will be used to set `-Ifoo/bar` and defines set with `CeedAddJitDefine(ceed, "foo=bar")` will be used to set `-Dfoo=bar`.
 - Added non-tensor basis support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen`.
 - Added support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen` for operators with both tensor and non-tensor bases.
+- Add `CeedGetGitVersion()` to access the Git commit and dirty state of the repository at build time.
+- Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
 
 ### Examples
 
