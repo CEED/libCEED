@@ -10,7 +10,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-13]
+        os: [ubuntu-24.04, macos-15]
         compiler: [gcc-13, clang]
 
     runs-on: ${{ matrix.os }}
@@ -25,4 +25,4 @@ jobs:
       run: |
         make info
         make -j
-        make prove -j
+        make prove -j2
