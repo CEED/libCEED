@@ -858,19 +858,17 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 GIT_DESCRIBE = $(shell git describe --always --dirty 2>/dev/null || printf "unknown\n")
 
 $(OBJDIR)/interface/ceed-config.c: Makefile
-	@$(file >$@,#include <ceed-impl.h>) \
-	$(file >>$@,) \
-	$(file >>$@,int CeedGetGitVersion(const char **git_version) {) \
-  $(file >>$@,  *git_version = "$(GIT_DESCRIBE)";) \
-	$(file >>$@,  return 0;) \
-  $(file >>$@,}) \
-  $(file >>$@,) \
-  $(file >>$@,int CeedGetBuildConfiguration(const char **build_config) {) \
-  $(file >>$@,  *build_config =) \
-  $(foreach v,$(CONFIG_VARS),$(file >>$@,"$(v) = $($(v))\n")) \
-	$(file >>$@,  ;) \
-	$(file >>$@,  return 0;) \
-  $(file >>$@,})
+	@printf '#include <ceed-impl.h>\n\n' > $@
+	@printf 'int CeedGetGitVersion(const char **git_version) {\n' >> $@
+	@printf '  *git_version = "$(GIT_DESCRIBE)";\n' >> $@
+	@printf '  return 0;\n' >> $@
+	@printf '}\n\n' >> $@
+	@printf 'int CeedGetBuildConfiguration(const char **build_config) {\n' >> $@
+	@printf '  *build_config =' >> $@
+	@printf "$(foreach v,$(CONFIG_VARS),\n\"$(v) = $($(v))\\\n\")\n" >> $@
+	@printf ';\n' >> $@
+	@printf '  return 0;\n' >> $@ 
+	@printf '}\n' >> $@
 
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
