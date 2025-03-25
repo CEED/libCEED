@@ -665,7 +665,7 @@ endif
 # when creating shared or static libraries.
 weak_last = $(filter-out %-weak.o,$(1)) $(filter %-weak.o,$(1))
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(OBJDIR)/interface/ceed-config.o $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
@@ -675,10 +675,7 @@ $(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
-
-$(OBJDIR)/%.o : $(OBJDIR)/%.c | $$(@D)/.DIR # source files generated in OBJDIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(CONFIGFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
@@ -857,18 +854,9 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 
 GIT_DESCRIBE = $(shell git describe --always --dirty 2>/dev/null || printf "unknown\n")
 
-$(OBJDIR)/interface/ceed-config.c: Makefile
-	@printf '#include <ceed-impl.h>\n\n' > $@
-	@printf 'int CeedGetGitVersion(const char **git_version) {\n' >> $@
-	@printf '  *git_version = "$(GIT_DESCRIBE)";\n' >> $@
-	@printf '  return 0;\n' >> $@
-	@printf '}\n\n' >> $@
-	@printf 'int CeedGetBuildConfiguration(const char **build_config) {\n' >> $@
-	@printf '  *build_config =' >> $@
-	@printf "$(foreach v,$(CONFIG_VARS),\n\"$(v) = $($(v))\\\n\")\n" >> $@
-	@printf ';\n' >> $@
-	@printf '  return 0;\n' >> $@ 
-	@printf '}\n' >> $@
+$(OBJDIR)/interface/ceed-config.o: Makefile
+$(OBJDIR)/interface/ceed-config.o: CONFIGFLAGS += -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\""
+$(OBJDIR)/interface/ceed-config.o: CONFIGFLAGS += -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
