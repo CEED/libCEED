@@ -25,4 +25,4 @@ jobs:
       run: |
         make info
         make -j
-        make prove -j
+        make prove -j2
