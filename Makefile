@@ -456,6 +456,11 @@ info:
 	$(info pkgconfigdir  = $(value pkgconfigdir))
 	$(info )
 	$(info -----------------------------------------)
+	$(info )
+	$(info Git:)
+	$(info describe      = $(GIT_DESCRIBE))
+	$(info )
+	$(info -----------------------------------------)
 	@true
 
 info-backends:
@@ -850,10 +855,11 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
-GIT_DESCRIBE = $(shell git describe --dirty || printf "unknown\n")
+GIT_DESCRIBE = $(shell git describe --always --dirty 2>/dev/null || printf "unknown\n")
 
 $(OBJDIR)/interface/ceed-config.c: Makefile
 	@$(file >$@,#include <ceed-impl.h>) \
+	$(file >>$@,) \
 	$(file >>$@,int CeedGetGitVersion(const char **git_version) {) \
   $(file >>$@,  *git_version = "$(GIT_DESCRIBE)";) \
 	$(file >>$@,  return 0;) \
