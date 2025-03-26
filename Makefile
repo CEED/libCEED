@@ -845,6 +845,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 %/ceed.pc : ceed.pc.template | $$(@D)/.DIR
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
+	    -e "s:%opt%:$(OPT):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
