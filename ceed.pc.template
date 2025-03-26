@@ -1,6 +1,7 @@
 prefix=%prefix%
 includedir=${prefix}/include
 libdir=${prefix}/lib
+cflags_extra=%opt%
 
 Name: CEED
 Description: Code for Efficient Extensible Discretization
