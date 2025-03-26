@@ -171,7 +171,7 @@ CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 LIBCXX ?= -lstdc++
-NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
+NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
@@ -456,6 +456,11 @@ info:
 	$(info pkgconfigdir  = $(value pkgconfigdir))
 	$(info )
 	$(info -----------------------------------------)
+	$(info )
+	$(info Git:)
+	$(info describe      = $(GIT_DESCRIBE))
+	$(info )
+	$(info -----------------------------------------)
 	@true
 
 info-backends:
@@ -670,7 +675,7 @@ $(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) $(CONFIGFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
@@ -847,6 +852,12 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%opt%:$(OPT):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
+
+GIT_DESCRIBE = $(shell git describe --always --dirty 2>/dev/null || printf "unknown\n")
+
+$(OBJDIR)/interface/ceed-config.o: Makefile
+$(OBJDIR)/interface/ceed-config.o: CONFIGFLAGS += -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\""
+$(OBJDIR)/interface/ceed-config.o: CONFIGFLAGS += -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 
 $(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""

@@ -949,12 +949,12 @@ int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
 
   @ref Backend
 **/
-int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines) {
+int CeedGetJitDefines(Ceed ceed, CeedInt *num_jit_defines, const char ***jit_defines) {
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
-  *num_defines = ceed_parent->num_jit_defines;
-  *jit_defines = (const char **)ceed_parent->jit_defines;
+  *num_jit_defines = ceed_parent->num_jit_defines;
+  *jit_defines     = (const char **)ceed_parent->jit_defines;
   ceed_parent->num_jit_defines_readers++;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
@@ -1672,7 +1672,7 @@ int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
 
   @ref Developer
 
-  @sa CEED_VERSION_GE()
+  @sa CEED_VERSION_GE() CeedGetGitVersion() CeedGetBuildConfiguration()
 */
 int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   if (major) *major = CEED_VERSION_MAJOR;

@@ -163,6 +163,8 @@ CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, cons
     (CEED_VERSION_MAJOR == major && (CEED_VERSION_MINOR > minor || (CEED_VERSION_MINOR == minor && CEED_VERSION_PATCH >= patch)))))
 
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release);
+CEED_EXTERN int CeedGetGitVersion(const char **git_version);
+CEED_EXTERN int CeedGetBuildConfiguration(const char **build_config);
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
