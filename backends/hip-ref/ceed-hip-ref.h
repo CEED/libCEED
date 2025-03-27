@@ -17,6 +17,7 @@
 #endif
 
 typedef struct {
+  int         has_unified_addressing;
   CeedScalar *h_array;
   CeedScalar *h_array_borrowed;
   CeedScalar *h_array_owned;
