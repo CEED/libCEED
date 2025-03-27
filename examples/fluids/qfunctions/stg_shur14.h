@@ -311,7 +311,7 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
     }
 
     CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5] = {0.};
-    State      s    = StateFromY(gas, Y);
+    State      s = StateFromY(gas, Y);
     StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) {
       q0[j][i] = q[j];
@@ -509,7 +509,7 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
     }
 
     CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5] = {0.};
-    State      s    = StateFromY(gas, Y);
+    State      s = StateFromY(gas, Y);
     StateToQ(gas, s, q, gas->state_var);
     switch (gas->state_var) {
       case STATEVAR_CONSERVATIVE:
