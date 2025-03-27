@@ -34,7 +34,7 @@ struct _p_BCDefinition {
 **/
 #define PetscOptionsBCDefinition(opt, text, man, name, bc_def, set) \
   PetscOptionsBCDefinition_Private(PetscOptionsObject, opt, text, man, name, bc_def, set)
-PetscErrorCode PetscOptionsBCDefinition_Private(PetscOptionItems *PetscOptionsObject, const char opt[], const char text[], const char man[],
+PetscErrorCode PetscOptionsBCDefinition_Private(PetscOptionItems PetscOptionsObject, const char opt[], const char text[], const char man[],
                                                 const char name[], BCDefinition *bc_def, PetscBool *set);
 
 PetscErrorCode BCDefinitionCreate(const char *name, PetscInt num_label_values, PetscInt label_values[], BCDefinition *bc_def);
