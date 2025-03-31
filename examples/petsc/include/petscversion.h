@@ -9,6 +9,6 @@
 /// Petsc version check
 #pragma once
 
-#if PETSC_VERSION_LT(3, 22, 0)
-#error "PETSc v3.22 or later is required"
+#if PETSC_VERSION_LT(3, 23, 0)
+#error "PETSc v3.23 or later is required"
 #endif
