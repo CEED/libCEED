@@ -137,7 +137,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
   // -- Compute size of source
   fseek(source_file, 0L, SEEK_END);
   file_size = ftell(source_file);
-  rewind(source_file);
+  fseek(source_file, 0L, SEEK_SET);
   //  -- Allocate memory for entire source file
   {
     const int ierr = CeedCalloc(file_size + 1, &temp_buffer);
