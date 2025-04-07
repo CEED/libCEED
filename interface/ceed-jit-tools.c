@@ -137,9 +137,15 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
   // -- Compute size of source
   fseek(source_file, 0L, SEEK_END);
   file_size = ftell(source_file);
-  rewind(source_file);
+  fseek(source_file, 0L, SEEK_SET);
   //  -- Allocate memory for entire source file
-  CeedCall(CeedCalloc(file_size + 1, &temp_buffer));
+  {
+    const int ierr = CeedCalloc(file_size + 1, &temp_buffer);
+
+    // Close stream before error handling, if necessary
+    if (ierr != CEED_ERROR_SUCCESS) fclose(source_file);
+    CeedCall(ierr);
+  }
   // -- Copy the file into the buffer
   if (1 != fread(temp_buffer, file_size, 1, source_file)) {
     // LCOV_EXCL_START
