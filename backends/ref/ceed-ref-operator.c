@@ -1766,7 +1766,7 @@ static int CeedSingleOperatorAssemble_Ref(CeedOperator op, CeedInt offset, CeedV
 
             CeedCallBackend(CeedVectorGetArrayRead(impl->e_vecs_out[j], CEED_MEM_HOST, &output));
             for (CeedInt k = 0; k < elem_size_active; k++) {
-              assembled[offset + e * elem_size_active * elem_size_active + i * elem_size_active + k] += output[k];
+              assembled[offset + e * elem_size_active * elem_size_active + s * elem_size_active + k] += output[k];
             }
             CeedCallBackend(CeedVectorRestoreArrayRead(impl->e_vecs_out[j], &output));
           }
