@@ -1551,12 +1551,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
 }
-}
 
 //------------------------------------------------------------------------------
 // Assemble Operator AtPoints
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedSingleOperatorLinearAssemble_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
   CeedInt             num_points_offset = 0, num_input_fields, num_output_fields, num_elem, num_comp_active = 1;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0}, *assembled;
   Ceed                ceed;
@@ -1615,24 +1614,20 @@ static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, 
   }
 
   // Input Evecs and Restriction
-  CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, request));
+  CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, CEED_REQUEST_IMMEDIATE));
 
   // Loop through elements
   for (CeedInt e = 0; e < num_elem; e++) {
     CeedInt num_points, e_vec_size = 0;
 
     // Setup points for element
-    CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+    CeedCallBackend(
+        CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, CEED_REQUEST_IMMEDIATE));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
 
     // Input basis apply for non-active bases
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
-                                                       impl->point_coords_elem, true, e_data, impl, request));
-
-    // ---- Clear output
-    for (CeedInt k = 0; k < elem_size * elem_size) {
-      assembled[offset + e * elem_size * elem_size + k] = 0.0;
-    }
+                                                       impl->point_coords_elem, true, e_data, impl, CEED_REQUEST_IMMEDIATE));
 
     // Loop over points on element
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -1647,6 +1642,7 @@ static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, 
       is_active = vec == CEED_VECTOR_ACTIVE;
       CeedCallBackend(CeedVectorDestroy(&vec));
       if (!is_active) continue;
+      if (impl->skip_rstr_in[i]) continue;
 
       // -- Get active restriction type
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
@@ -1656,6 +1652,11 @@ static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, 
       else elem_size_active = num_points;
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+
+      // ---- Clear output
+      for (CeedInt k = 0; k < elem_size_active * elem_size_active; k++) {
+        assembled[offset + e * elem_size_active * elem_size_active + k] = 0.0;
+      }
 
       e_vec_size = elem_size_active * num_comp_active;
       for (CeedInt s = 0; s < e_vec_size; s++) {
@@ -1696,11 +1697,11 @@ static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, 
           CeedCallBackend(CeedQFunctionApply(qf, num_points, impl->q_vecs_in, impl->q_vecs_out));
         }
 
-        // -- Output basis apply and restriction
+        // -- Output basis apply
         CeedCallBackend(CeedOperatorOutputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_output_fields, op_output_fields, num_input_fields,
                                                             num_output_fields, impl->apply_add_basis_out, impl->skip_rstr_out, op, out_vec,
-                                                            impl->point_coords_elem, impl, request));
-  
+                                                            impl->point_coords_elem, impl, CEED_REQUEST_IMMEDIATE));
+
         // -- Build element matrix
         for (CeedInt j = 0; j < num_output_fields; j++) {
           bool                is_active;
@@ -1763,30 +1764,15 @@ static int CeedSingleOperatorLinearAssembl_Ref(CeedOperator op, CeedInt offset, 
           {
             const CeedScalar *output;
 
-            CeedCallBackend(CeedVectorGetArray(impl->e_vecs_out[j], CEED_MEM_HOST, &output));
-            for (CeedInt k = 0; k < elem_size) {
-              assembled[offset + e * elem_size * elem_size + i * elem_size + k] += output[k];
+            CeedCallBackend(CeedVectorGetArrayRead(impl->e_vecs_out[j], CEED_MEM_HOST, &output));
+            for (CeedInt k = 0; k < elem_size_active; k++) {
+              assembled[offset + e * elem_size_active * elem_size_active + i * elem_size_active + k] += output[k];
             }
-            CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[j], &output));
+            CeedCallBackend(CeedVectorRestoreArrayRead(impl->e_vecs_out[j], &output));
           }
-
-// COPIED CODE NEED TO UPDATE ----------------------------------------------------------------------------------------------------------
-
-/**
-        // Put element matrix in coordinate data structure
-        for (CeedInt i = 0; i < elem_size_out; i++) {
-          for (CeedInt j = 0; j < elem_size_in; j++) {
-            assembled[offset + count] = elem_mat[i * elem_size_in + j];
-            count++;
-          }
+          // -- Reset unit vector
+          if (s == e_vec_size - 1) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         }
-**/
-
-// END OF COPIED CODE ------------------------------------------------------------------------------------------------------------------
-
-
-        // -- Reset unit vector
-        if (s == e_vec_size - 1) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
       }
     }
     num_points_offset += num_points;
