@@ -1653,11 +1653,6 @@ static int CeedSingleOperatorAssemble_Ref(CeedOperator op, CeedInt offset, CeedV
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 
-      // ---- Clear output
-      for (CeedInt k = 0; k < elem_size_active * elem_size_active; k++) {
-        assembled[offset + e * elem_size_active * elem_size_active + k] = 0.0;
-      }
-
       e_vec_size = elem_size_active * num_comp_active;
       for (CeedInt s = 0; s < e_vec_size; s++) {
         CeedEvalMode eval_mode;
@@ -1734,10 +1729,8 @@ static int CeedSingleOperatorAssemble_Ref(CeedOperator op, CeedInt offset, CeedV
             CeedInt num_comp = 0;
 
             CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-            if (e_vec_size != num_comp * elem_size) {
-              CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
-              continue;
-            }
+            CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+            if (e_vec_size != num_comp * elem_size) continue;
           }
 
           // ---- Basis action
