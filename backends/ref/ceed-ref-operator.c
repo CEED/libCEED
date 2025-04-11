@@ -1555,7 +1555,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
 //------------------------------------------------------------------------------
 // Assemble Operator AtPoints
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorLinearAssemble_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedSingleOperatorAssemble_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
   CeedInt             num_points_offset = 0, num_input_fields, num_output_fields, num_elem, num_comp_active = 1;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0}, *assembled;
   Ceed                ceed;
@@ -1862,6 +1862,7 @@ int CeedOperatorCreateAtPoints_Ref(CeedOperator op) {
   CeedCallBackend(
       CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionAtPointsUpdate_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssemble_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAddAtPoints_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Ref));
   CeedCallBackend(CeedDestroy(&ceed));

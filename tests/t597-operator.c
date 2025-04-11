@@ -47,8 +47,8 @@ int main(int argc, char **argv) {
     for (CeedInt i = 0; i < num_points; i++) ind_x[num_elem + 1 + i] = i;
     CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, dim, num_points * dim, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x,
                                       &elem_restriction_x_points);
-    CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, dim * (dim + 1) / 2, num_points, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x,
-                                      &elem_restriction_q_data);
+    CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, dim * (dim + 1) / 2, num_points * dim * (dim + 1) / 2, CEED_MEM_HOST,
+                                      CEED_COPY_VALUES, ind_x, &elem_restriction_q_data);
   }
 
   // Vectors
