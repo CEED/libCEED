@@ -550,16 +550,18 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
     CeedCallBackend(CeedMalloc(num_elem, &points_per_elem));
     for (CeedInt i = 0; i < num_elem; i++) {
       CeedInt num_points = offsets[i + 1] - offsets[i];
+      CeedInt last_point = offsets[offsets[i]] * num_comp;
 
       points_per_elem[i] = num_points;
       at_points_size += num_points;
       // -- Copy all points in element
       for (CeedInt j = 0; j < num_points; j++) {
         offsets_padded[i * max_points + j] = offsets[offsets[i] + j] * num_comp;
+        last_point                         = offsets_padded[i * max_points + j];
       }
       // -- Replicate out last point in element
       for (CeedInt j = num_points; j < max_points; j++) {
-        offsets_padded[i * max_points + j] = offsets[offsets[i] + num_points - 1] * num_comp;
+        offsets_padded[i * max_points + j] = last_point;
       }
     }
     CeedCallBackend(CeedSetHostCeedIntArray(offsets, copy_mode, at_points_size, &impl->h_offsets_at_points_owned, &impl->h_offsets_at_points_borrowed,
