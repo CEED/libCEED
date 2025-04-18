@@ -31,7 +31,7 @@ jobs:
     - name: Rust test with coverage
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran
       run: cargo llvm-cov test --doctests --lcov --output-path lcov.info
     - name: Codecov upload
       uses: codecov/codecov-action@v4

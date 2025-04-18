@@ -26,7 +26,7 @@ jobs:
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran
       run: |
         make info
         make format-c -j CLANG_FORMAT=clang-format-19 && git diff --exit-code
