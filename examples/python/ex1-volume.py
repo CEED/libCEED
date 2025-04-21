@@ -253,7 +253,7 @@ def main():
         ceed, dim, num_xyz, sol_degree, 1, num_qpts, create_qdata=True)
 
     if not args.test:
-        print(f"Number of mesh nodes     : {mesh_size//dim}")
+        print(f"Number of mesh nodes     : {mesh_size // dim}")
         print(f"Number of solution nodes : {sol_size}")
 
     # Create mesh coordinates vector
