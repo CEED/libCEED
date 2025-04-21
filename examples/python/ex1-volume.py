@@ -25,25 +25,26 @@ import math
 import numpy as np
 import libceed
 
+
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="Compute volume using libCEED")
     parser.add_argument("-c", "--ceed", default="/cpu/self",
-                       help="CEED resource specifier")
+                        help="CEED resource specifier")
     parser.add_argument("-d", "--dim", type=int, default=3,
-                       help="Dimension (1, 2, or 3)")
+                        help="Dimension (1, 2, or 3)")
     parser.add_argument("-m", "--mesh-degree", type=int, default=4,
-                       help="Mesh polynomial degree")
+                        help="Mesh polynomial degree")
     parser.add_argument("-p", "--solution-degree", type=int, default=4,
-                       help="Solution polynomial degree")
+                        help="Solution polynomial degree")
     parser.add_argument("-q", "--quadrature-points", type=int, default=0,
-                       help="Number of quadrature points (0 = default, p+2)")
+                        help="Number of quadrature points (0 = default, p+2)")
     parser.add_argument("-s", "--problem-size", type=int, default=0,
-                       help="Approximate problem size (0 = default, 256*1024)")
+                        help="Approximate problem size (0 = default, 256*1024)")
     parser.add_argument("-t", "--test", action="store_true",
-                       help="Test mode with smaller problem size")
+                        help="Test mode with smaller problem size")
     parser.add_argument("-g", "--gallery", action="store_true",
-                       help="Use gallery QFunction instead of user-defined QFunction")
+                        help="Use gallery QFunction instead of user-defined QFunction")
 
     args = parser.parse_args()
 
@@ -57,9 +58,10 @@ def parse_arguments():
 
     # Set default problem size
     if args.problem_size == 0:
-        args.problem_size = 8*16 if args.test else 256*1024
+        args.problem_size = 8 * 16 if args.test else 256 * 1024
 
     return args
+
 
 def get_cartesian_mesh_size(dim, degree, prob_size):
     """Determine mesh size based on approximate problem size"""
@@ -80,6 +82,7 @@ def get_cartesian_mesh_size(dim, degree, prob_size):
         num_xyz.append(1 << sd)
 
     return num_xyz
+
 
 def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, create_qdata=True):
     """Build element restrictions for the mesh and solution"""
@@ -123,7 +126,7 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
 
     # Create element restriction
     elem_restriction = ceed.ElemRestriction(num_elem, num_nodes, num_comp, 1, size,
-                                           elem_nodes, cmode=libceed.COPY_VALUES)
+                                            elem_nodes, cmode=libceed.COPY_VALUES)
 
     # Create strided restriction for quadrature data
     q_data_restriction = None
@@ -137,6 +140,7 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
             q_indices, cmode=libceed.COPY_VALUES)
 
     return elem_restriction, size, q_data_restriction, num_elem, elem_qpts
+
 
 def set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords):
     """Set the initial Cartesian mesh coordinates"""
@@ -172,6 +176,7 @@ def set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords):
     mesh_coords.set_value(0.0)
     mesh_coords.set_array(coords, cmode=libceed.COPY_VALUES)
 
+
 def transform_mesh_coords(dim, mesh_size, mesh_coords):
     """Apply transformation to mesh coordinates and return exact volume"""
     with mesh_coords.array_write() as coords:
@@ -190,7 +195,7 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
 
                 # Transform to polar coordinates
                 u = 1.0 + u  # r in [1,2]
-                v = math.pi/2 * v  # phi in [0,pi/2]
+                v = math.pi / 2 * v  # phi in [0,pi/2]
 
                 # Apply polar transformation
                 coords[i] = u * math.cos(v)  # x = r*cos(phi)
@@ -200,6 +205,7 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
             exact_volume = 3.0 / 4.0 * math.pi  # Volume of quarter annulus
 
     return exact_volume
+
 
 def main():
     """Main function for volume computation example"""
@@ -230,13 +236,15 @@ def main():
     num_xyz = get_cartesian_mesh_size(dim, sol_degree, args.problem_size)
     if not args.test:
         print(f"Mesh size: nx = {num_xyz[0]}", end="")
-        if dim > 1: print(f", ny = {num_xyz[1]}", end="")
-        if dim > 2: print(f", nz = {num_xyz[2]}", end="")
+        if dim > 1:
+            print(f", ny = {num_xyz[1]}", end="")
+        if dim > 2:
+            print(f", nz = {num_xyz[2]}", end="")
         print()
 
     # Create bases
-    mesh_basis = ceed.BasisTensorH1Lagrange(dim, num_comp_x, mesh_degree+1, num_qpts, libceed.GAUSS)
-    sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree+1, num_qpts, libceed.GAUSS)
+    mesh_basis = ceed.BasisTensorH1Lagrange(dim, num_comp_x, mesh_degree + 1, num_qpts, libceed.GAUSS)
+    sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree + 1, num_qpts, libceed.GAUSS)
 
     # Build element restrictions
     mesh_restriction, mesh_size, _, _, _ = build_cartesian_restriction(
@@ -259,10 +267,10 @@ def main():
     # In this example, we always use the gallery QFunction
     # If we had user-defined QFunctions, we would use a conditional here
     qf_build = ceed.QFunctionByName(f"Mass{dim}DBuild")
-    
+
     # Create the operator that builds the quadrature data for the mass operator
     op_build = ceed.Operator(qf_build)
-    
+
     # For Mass{dim}DBuild, the "dx" field needs to use EVAL_GRAD for dimensions > 1
     # This is a critical difference between the 1D case and higher dimensions
     op_build.set_field("dx", mesh_restriction, mesh_basis, libceed.VECTOR_ACTIVE)
@@ -273,7 +281,7 @@ def main():
     q_data = ceed.Vector(num_elem * elem_qpts)
     q_data.set_value(0.0)
     op_build.apply(mesh_coords, q_data)
-    
+
     # Take absolute value of quadrature data to ensure positive volume
     # This is needed because the determinant of the Jacobian might be negative
     # depending on the element orientation
@@ -284,7 +292,7 @@ def main():
     # In this example, we always use the gallery QFunction
     # If we had user-defined QFunctions, we would use a conditional here
     qf_mass = ceed.QFunctionByName("MassApply")
-    
+
     # Create the mass operator
     op_mass = ceed.Operator(qf_mass)
     op_mass.set_field("u", sol_restriction, sol_basis, libceed.VECTOR_ACTIVE)
@@ -305,7 +313,7 @@ def main():
     with v.array_read() as v_array:
         # Simply sum all values to compute the volume
         volume = np.sum(v_array)
-        
+
         # Optional debug info
         if not args.test and dim > 1:
             volume_abs = np.sum(np.abs(v_array))
@@ -317,7 +325,7 @@ def main():
         print(f"Exact mesh volume    : {exact_volume:.14g}")
         print(f"Computed mesh volume : {volume:.14g}")
         print(f"Volume error         : {volume - exact_volume:.14g}")
-        rel_error = abs((volume - exact_volume)/exact_volume)
+        rel_error = abs((volume - exact_volume) / exact_volume)
         print(f"Relative error       : {rel_error:.14g}")
     else:
         # Test mode - check if error is within tolerance
@@ -327,6 +335,7 @@ def main():
             sys.exit(1)
 
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
