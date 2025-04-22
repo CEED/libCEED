@@ -1,162 +1,207 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Apr 18 11:41:54 2025
-
-@author: surindersinghchhabra
+Surface Area Computation Example using libCEED
+This example computes the surface area of a 1D, 2D, or 3D body using matrix-free
+application of a diffusion operator.
+Usage:
+  python ex2-surface.py -d DIM [-m MDEG] [-p PDEG] [-q QPTS] [-c CEED] [-s SIZE] [-t] [-g]
 """
 
-import numpy as np
-from math import fabs
 import sys
 import argparse
-from libceed import Ceed, _ceed_cffi
-from libceed.ceed_elemrestriction import ElemRestriction
+import math
+import numpy as np
+import libceed
 
 
-# Import CEED constants from the compiled CFFI bindings
-lib = _ceed_cffi.lib
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Compute surface area using libCEED")
+    parser.add_argument("-c", "--ceed", default="/cpu/self", help="CEED resource specifier")
+    parser.add_argument("-d", "--dim", type=int, default=3, help="Dimension (1, 2, or 3)")
+    parser.add_argument("-m", "--mesh-degree", type=int, default=4, help="Mesh polynomial degree")
+    parser.add_argument("-p", "--solution-degree", type=int, default=4, help="Solution polynomial degree")
+    parser.add_argument("-q", "--quadrature-points", type=int, default=0, help="Quadrature points (0 = p+2)")
+    parser.add_argument("-s", "--problem-size", type=int, default=0, help="Approximate problem size (0 = 256*1024)")
+    parser.add_argument("-t", "--test", action="store_true", help="Test mode")
+    parser.add_argument("-g", "--gallery", action="store_true", help="Use gallery QFunction")
+    return parser.parse_args()
 
-QMODE_GAUSS        = lib.CEED_GAUSS
-CEED_EVAL_GRAD     = lib.CEED_EVAL_GRAD
-CEED_EVAL_WEIGHT   = lib.CEED_EVAL_WEIGHT
-CEED_EVAL_NONE     = lib.CEED_EVAL_NONE
-CEED_VECTOR_ACTIVE = lib.CEED_VECTOR_ACTIVE
-CEED_VECTOR_NONE   = lib.CEED_VECTOR_NONE
 
-# ------------------------------------------------------------------------------
+def get_cartesian_mesh_size(dim, degree, prob_size):
+    num_elem = prob_size // (degree ** dim)
+    s = 0
+    while 2**s <= num_elem:
+        s += 1
+    s -= 1
+    r = s % dim
+    num_xyz = []
+    for d in range(dim):
+        sd = s // dim
+        if r > 0:
+            sd += 1
+            r -= 1
+        num_xyz.append(1 << sd)
+    return num_xyz
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-ceed", type=str, default="/cpu/self")
-parser.add_argument("-d", type=int, default=3)
-parser.add_argument("-m", type=int, default=4)
-parser.add_argument("-p", type=int, default=4)
-parser.add_argument("-q", type=int, default=6)
-parser.add_argument("-s", type=int, default=-1)
-parser.add_argument("-g", action="store_true")
-parser.add_argument("-t", action="store_true")
-parser.add_argument("-b", type=int, default=0)
-args = parser.parse_args()
 
-ceed = Ceed(args.ceed)
-dim = args.d
-mesh_degree = sol_degree = max(args.m, args.p)
-num_qpts = args.q
-prob_size = args.s if args.s >= 0 else (16 * 16 * dim * dim if args.t else 256 * 1024)
+def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, create_qdata=True):
+    p = degree + 1
+    num_nodes = p ** dim
+    elem_qpts = num_qpts ** dim
+    nd = [num_xyz[d] * (p - 1) + 1 for d in range(dim)]
+    scalar_size = np.prod(nd)
+    num_elem = np.prod(num_xyz)
+    size = scalar_size * num_comp
 
-if not args.t:
-    print("Selected options: [command line option] : <current value>")
-    print(f"  Ceed specification     [-c] : {args.ceed}")
-    print(f"  Mesh dimension         [-d] : {dim}")
-    print(f"  Mesh degree            [-m] : {mesh_degree}")
-    print(f"  Solution degree        [-p] : {sol_degree}")
-    print(f"  Num. 1D quadrature pts [-q] : {num_qpts}")
-    print(f"  Approx. # unknowns     [-s] : {prob_size}")
-    print(f"  QFunction source       [-g] : {'gallery' if args.g else 'header'}\n")
+    elem_nodes = np.zeros(num_elem * num_nodes, dtype=np.int32)
+    for e in range(num_elem):
+        e_xyz = [0] * 3
+        re = e
+        for d in range(dim):
+            e_xyz[d] = re % num_xyz[d]
+            re //= num_xyz[d]
+        for n in range(num_nodes):
+            g_node = 0
+            g_stride = 1
+            r_node = n
+            for d in range(dim):
+                g_node += (e_xyz[d] * (p - 1) + r_node % p) * g_stride
+                g_stride *= nd[d]
+                r_node //= p
+            elem_nodes[e * num_nodes + n] = g_node
 
-mesh_basis = ceed.BasisTensorH1Lagrange(dim, dim, mesh_degree + 1, num_qpts, QMODE_GAUSS)
-sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree + 1, num_qpts, QMODE_GAUSS)
+    elem_restr = ceed.ElemRestriction(num_elem, num_nodes, num_comp, 1, size,
+                                      elem_nodes, cmode=libceed.COPY_VALUES)
 
-num_xyz = np.zeros(3, dtype=np.int32)
-lib.GetCartesianMeshSize(dim, sol_degree, prob_size, num_xyz.ctypes.data_as(lib.CeedIntP))
+    q_data_restr = None
+    if create_qdata:
+        q_indices = np.arange(num_elem * elem_qpts, dtype=np.int32)
+        q_data_restr = ceed.ElemRestriction(
+            num_elem, elem_qpts, num_comp, 1, num_elem * elem_qpts * num_comp,
+            q_indices, cmode=libceed.COPY_VALUES)
 
-if not args.t:
-    print("Mesh size: nx =", num_xyz[0], end="")
-    if dim > 1:
-        print(", ny =", num_xyz[1], end="")
-    if dim > 2:
-        print(", nz =", num_xyz[2], end="")
-    print()
+    return elem_restr, size, q_data_restr, num_elem, elem_qpts
 
-size_ptr = np.zeros(1, dtype=np.int32)
 
-mesh_restr = ElemRestriction.__new__(ElemRestriction)
-lib.BuildCartesianRestriction(ceed._pointer[0], dim, num_xyz.ctypes.data, mesh_degree, dim,
-                              size_ptr.ctypes.data_as(lib.CeedIntP), num_qpts, mesh_restr._pointer,
-                              lib.CeedElemRestrictionP(0))
-mesh_restr._ceed = ceed
-mesh_size = size_ptr[0]
+def set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords):
+    p = mesh_degree + 1
+    nd = [num_xyz[d] * (p - 1) + 1 for d in range(dim)]
+    scalar_size = np.prod(nd)
+    coords = np.zeros(scalar_size * dim)
+    nodes, _ = ceed.lobatto_quadrature(p)
+    nodes = 0.5 + 0.5 * nodes
+    for gs_node in range(scalar_size):
+        r_node = gs_node
+        for d in range(dim):
+            d1d = r_node % nd[d]
+            coords[gs_node + scalar_size * d] = ((d1d // (p - 1)) + nodes[d1d % (p - 1)]) / num_xyz[d]
+            r_node //= nd[d]
+    mesh_coords.set_array(coords, cmode=libceed.COPY_VALUES)
+    return scalar_size
 
-q_data_restr = ElemRestriction.__new__(ElemRestriction)
-lib.BuildCartesianRestriction(ceed._pointer[0], dim, num_xyz.ctypes.data, sol_degree, dim * (dim + 1) // 2,
-                              size_ptr.ctypes.data_as(lib.CeedIntP), num_qpts,
-                              lib.CeedElemRestrictionP(0), q_data_restr._pointer)
-q_data_restr._ceed = ceed
 
-sol_restr = ElemRestriction.__new__(ElemRestriction)
-lib.BuildCartesianRestriction(ceed._pointer[0], dim, num_xyz.ctypes.data, sol_degree, 1,
-                              size_ptr.ctypes.data_as(lib.CeedIntP), num_qpts,
-                              sol_restr._pointer, lib.CeedElemRestrictionP(0))
-sol_restr._ceed = ceed
-sol_size = size_ptr[0]
+def transform_mesh_coords(dim, mesh_size, mesh_coords):
+    with mesh_coords.array_write() as coords:
+        if dim == 1:
+            for i in range(mesh_size):
+                coords[i] = 0.5 + 1.0 / math.sqrt(3.0) * math.sin((2.0 / 3.0) * math.pi * (coords[i] - 0.5))
+        else:
+            num_nodes = mesh_size // dim
+            for i in range(num_nodes):
+                u = coords[i]
+                v = coords[i + num_nodes]
+                u = 1.0 + u
+                v = math.pi / 2 * v
+                coords[i] = u * math.cos(v)
+                coords[i + num_nodes] = u * math.sin(v)
+    return 2 if dim == 1 else 4 if dim == 2 else 6
 
-mesh_coords = ceed.Vector(mesh_size)
-lib.SetCartesianMeshCoords(dim, num_xyz.ctypes.data, mesh_degree, mesh_coords._pointer[0])
-exact_surface_area = lib.TransformMeshCoords(dim, mesh_size, mesh_coords._pointer[0])
 
-ctx = ceed.QFunctionContext()
-ctx_data = np.array([dim, dim], dtype=np.int32).view(np.float64)
-ctx.set_data(ctx_data)
+def main():
+    args = parse_arguments()
+    ceed = libceed.Ceed(args.ceed)
 
-if args.g:
+    dim = args.dim
+    num_comp_x = dim
+    mesh_degree = max(args.mesh_degree, args.solution_degree)
+    sol_degree = mesh_degree
+    num_qpts = args.quadrature_points or sol_degree + 2
+    prob_size = args.problem_size or (16 * 16 * dim * dim if args.test else 256 * 1024)
+
+    if not args.test:
+        print(f"Ceed specification     [-c] : {args.ceed}")
+        print(f"Mesh dimension         [-d] : {dim}")
+        print(f"Mesh degree            [-m] : {mesh_degree}")
+        print(f"Solution degree        [-p] : {sol_degree}")
+        print(f"Num. 1D quadrature pts [-q] : {num_qpts}")
+        print(f"Approx. # unknowns     [-s] : {prob_size}")
+        print(f"QFunction source       [-g] : {'gallery' if args.gallery else 'user'}")
+
+    num_xyz = get_cartesian_mesh_size(dim, sol_degree, prob_size)
+    if not args.test:
+        print(f"Mesh size: nx = {num_xyz[0]}", end="")
+        if dim > 1: print(f", ny = {num_xyz[1]}", end="")
+        if dim > 2: print(f", nz = {num_xyz[2]}", end="")
+        print()
+
+    mesh_basis = ceed.BasisTensorH1Lagrange(dim, num_comp_x, mesh_degree + 1, num_qpts, libceed.GAUSS)
+    sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree + 1, num_qpts, libceed.GAUSS)
+
+    mesh_restr, mesh_size, _, _, _ = build_cartesian_restriction(
+    ceed, dim, num_xyz, mesh_degree, num_comp_x, num_qpts, create_qdata=False)
+
+    sol_restr_q, _, q_data_restr, num_elem, elem_qpts = build_cartesian_restriction(
+    ceed, dim, num_xyz, sol_degree, dim*(dim + 1)//2, num_qpts)
+
+    sol_restr, sol_size, _, _, _ = build_cartesian_restriction(
+    ceed, dim, num_xyz, sol_degree, 1, num_qpts, create_qdata=False)
+   
+
+    mesh_coords = ceed.Vector(mesh_size)
+    set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords)
+    exact_surface_area = transform_mesh_coords(dim, mesh_size, mesh_coords)
+
     qf_build = ceed.QFunctionByName(f"Poisson{dim}DBuild")
-else:
-    qf_build = ceed.QFunction(1, lib.build_diff, "build_diff")
-    qf_build.add_input("dx", dim * dim, CEED_EVAL_GRAD)
-    qf_build.add_input("weights", 1, CEED_EVAL_WEIGHT)
-    qf_build.add_output("qdata", dim * (dim + 1) // 2, CEED_EVAL_NONE)
-    qf_build.set_context(ctx)
+    op_build = ceed.Operator(qf_build)
+    op_build.set_field("dx", mesh_restr, mesh_basis, libceed.VECTOR_ACTIVE)
+    op_build.set_field("weights", libceed.ELEMRESTRICTION_NONE, mesh_basis, libceed.VECTOR_NONE)
+    op_build.set_field("qdata", q_data_restr, libceed.BASIS_NONE, libceed.VECTOR_ACTIVE)
 
-op_build = ceed.Operator(qf_build)
-op_build.set_field("dx", mesh_restr, mesh_basis, CEED_VECTOR_ACTIVE)
-op_build.set_field("weights", None, mesh_basis, CEED_VECTOR_NONE)
-op_build.set_field("qdata", q_data_restr, None, CEED_VECTOR_ACTIVE)
+    q_data = ceed.Vector(num_elem * elem_qpts * dim * (dim + 1) // 2)
+    op_build.apply(mesh_coords, q_data)
 
-q_data = ceed.Vector(q_data_restr.get_l_layout().prod())
-op_build.apply(mesh_coords, q_data)
-
-if args.g:
     qf_apply = ceed.QFunctionByName(f"Poisson{dim}DApply")
-else:
-    qf_apply = ceed.QFunction(1, lib.apply_diff, "apply_diff")
-    qf_apply.add_input("du", dim, CEED_EVAL_GRAD)
-    qf_apply.add_input("qdata", dim * (dim + 1) // 2, CEED_EVAL_NONE)
-    qf_apply.add_output("dv", dim, CEED_EVAL_GRAD)
-    qf_apply.set_context(ctx)
+    op_apply = ceed.Operator(qf_apply)
+    op_apply.set_field("du", sol_restr, sol_basis, libceed.VECTOR_ACTIVE)
+    op_apply.set_field("qdata", q_data_restr, libceed.BASIS_NONE, q_data)
+    op_apply.set_field("dv", sol_restr, sol_basis, libceed.VECTOR_ACTIVE)
 
-op_apply = ceed.Operator(qf_apply)
-op_apply.set_field("du", sol_restr, sol_basis, CEED_VECTOR_ACTIVE)
-op_apply.set_field("qdata", q_data_restr, None, q_data)
-op_apply.set_field("dv", sol_restr, sol_basis, CEED_VECTOR_ACTIVE)
+    u = ceed.Vector(sol_size)
+    v = ceed.Vector(sol_size)
+    with mesh_coords.array_read() as x_array, u.array_write() as u_array:
+        num_nodes = mesh_size // dim
+        for i in range(num_nodes):
+            u_array[i] = sum(x_array[i + j * num_nodes] for j in range(dim))
 
-u = ceed.Vector(sol_size)
-v = ceed.Vector(sol_size)
 
-x_array = mesh_coords.get_array_read()
-u_array = u.get_array_write()
-for i in range(sol_size):
-    u_array[i] = sum(x_array[i + j * sol_size] for j in range(dim))
-u.restore_array()
-mesh_coords.restore_array_read()
+    op_apply.apply(u, v)
 
-op_apply.apply(u, v)
+    with v.array_read() as v_array:
+        surface_area = np.sum(np.abs(v_array))
 
-if args.b > 0:
-    if not args.t:
-        print(f" Executing {args.b} benchmarking runs...")
-    for _ in range(args.b):
-        op_apply.apply(u, v)
+    if not args.test:
+        print(f"\nExact mesh surface area    : {exact_surface_area:.14g}")
+        print(f"Computed mesh surface area : {surface_area:.14g}")
+        print(f"Surface area error         : {surface_area - exact_surface_area:.14g}")
+    else:
+        tol = 10000 * libceed.EPSILON if dim == 1 else 1E-1
+        if abs(surface_area - exact_surface_area) > tol:
+            print(f"Surface area error         : {surface_area - exact_surface_area:.14g}")
+            sys.exit(1)
 
-v_array = v.get_array_read()
-surface_area = np.sum(np.abs(v_array))
-v.restore_array_read()
+    return 0
 
-if not args.t:
-    print(" done.")
-    print("Exact mesh surface area    : % .14g" % exact_surface_area)
-    print("Computed mesh surface area : % .14g" % surface_area)
-    print("Surface area error         : % .14g" % (surface_area - exact_surface_area))
-else:
-    tol = 10000. * np.finfo(np.float64).eps if dim == 1 else 1E-1
-    if fabs(surface_area - exact_surface_area) > tol:
-        print("Surface area error         : % .14g" % (surface_area - exact_surface_area))
+
+if __name__ == "__main__":
+    sys.exit(main())
+
