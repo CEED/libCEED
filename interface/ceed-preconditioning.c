@@ -567,7 +567,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   @ref Developer
 **/
 static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
-  bool is_composite;
+  bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
@@ -594,6 +594,10 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
       return CEED_ERROR_SUCCESS;
     }
   }
+
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  CeedCheck(!is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedOperatorLinearAssemble for AtPoints operator");
 
   // Assemble QFunction
   CeedInt             layout_qf[3];
