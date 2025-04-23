@@ -25,6 +25,7 @@ static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  if (impl->module) CeedCallHip(ceed, hipModuleUnload(impl->module));
   if (impl->points.num_per_elem) CeedCallHip(ceed, hipFree((void **)impl->points.num_per_elem));
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));

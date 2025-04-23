@@ -27,6 +27,7 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  if (impl->module) CeedCallCuda(ceed, cuModuleUnload(impl->module));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)impl->points.num_per_elem));
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));
