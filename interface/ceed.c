@@ -826,18 +826,17 @@ int CeedReference(Ceed ceed) {
 
   @ref Developer
 **/
-static int CeedViewWorkVectorMemoryUsage(Ceed ceed) {
-  CeedScalar work_len = 0.;
-
+int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb) {
+  *usage_mb = 0.0;
   if (ceed->work_vectors) {
     for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
       CeedSize vec_len;
       CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
-      work_len += vec_len;
+      *usage_mb += vec_len;
     }
-    work_len *= sizeof(CeedScalar) * 1e-6;
-    CeedDebug(ceed, "Resource {%s} Work Vectors Memory Usage: %" CeedInt_FMT " vectors, %g MB\n", ceed->resource, ceed->work_vectors->num_vecs,
-              work_len);
+    *usage_mb *= sizeof(CeedScalar) * 1e-6;
+    CeedDebug(ceed, "Resource {%s}: Work vectors memory usage: %" CeedInt_FMT " vectors, %g MB\n", ceed->resource, ceed->work_vectors->num_vecs,
+              *usage_mb);
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -888,7 +887,8 @@ int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
   @ref Backend
 **/
 int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
-  CeedInt i = 0;
+  CeedInt    i = 0;
+  CeedScalar usage_mb;
 
   if (!ceed->work_vectors) CeedCall(CeedWorkVectorsCreate(ceed));
 
@@ -915,7 +915,7 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     ceed->work_vectors->num_vecs++;
     CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
     ceed->ref_count--;  // Note: ref_count manipulation to prevent a ref-loop
-    if (ceed->is_debug) CeedViewWorkVectorMemoryUsage(ceed);
+    if (ceed->is_debug) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
   }
   // Return pointer to work vector
   ceed->work_vectors->is_in_use[i] = true;
