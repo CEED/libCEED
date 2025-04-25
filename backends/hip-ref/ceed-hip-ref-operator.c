@@ -352,6 +352,16 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
   }
+  CeedCallBackend(CeedClearWorkVectors(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len));
+  {
+    // Create two work vectors for diagonal assembly
+    CeedVector temp_1, temp_2;
+
+    CeedCallBackend(CeedGetWorkVector(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len, &temp_1));
+    CeedCallBackend(CeedGetWorkVector(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len, &temp_2));
+    CeedCallBackend(CeedRestoreWorkVector(CeedOperatorReturnCeed(op), &temp_1));
+    CeedCallBackend(CeedRestoreWorkVector(CeedOperatorReturnCeed(op), &temp_2));
+  }
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
@@ -737,6 +747,16 @@ static int CeedOperatorSetupAtPoints_Hip(CeedOperator op) {
       CeedCallBackend(CeedVectorDestroy(&vec_i));
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
+  }
+  CeedCallBackend(CeedClearWorkVectors(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len));
+  {
+    // Create two work vectors for diagonal assembly
+    CeedVector temp_1, temp_2;
+
+    CeedCallBackend(CeedGetWorkVector(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len, &temp_1));
+    CeedCallBackend(CeedGetWorkVector(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len, &temp_2));
+    CeedCallBackend(CeedRestoreWorkVector(CeedOperatorReturnCeed(op), &temp_1));
+    CeedCallBackend(CeedRestoreWorkVector(CeedOperatorReturnCeed(op), &temp_2));
   }
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
