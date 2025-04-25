@@ -353,6 +353,8 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
   }
+
+  CeedCallBackend(CeedClearWorkVectors(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len));
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
@@ -740,6 +742,9 @@ static int CeedOperatorSetupAtPoints_Cuda(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
   }
+
+  CeedCallBackend(CeedClearWorkVectors(CeedOperatorReturnCeed(op), impl->max_active_e_vec_len));
+
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
