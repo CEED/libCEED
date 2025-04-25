@@ -305,12 +305,12 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
     return exact_volume
 
 
-# ------------------------------------------------------------------------------
-# Main function
-# ------------------------------------------------------------------------------
-def main():
-    """Execute the example."""
-    # Process command line arguments
+def parse_arguments():
+    """Parse command line arguments.
+
+    Returns:
+        Parsed command line arguments
+    """
     parser = argparse.ArgumentParser(
         description="Example using libCEED with mass operator to compute volume"
     )
@@ -361,11 +361,35 @@ def main():
 
     args = parser.parse_args()
 
+    # Validate dimension
+    if args.dim not in [1, 2, 3]:
+        parser.error("Dimension must be 1, 2, or 3")
+
+    # Set default quadrature points
+    if args.num_qpts == 0:
+        args.num_qpts = args.sol_degree + 2
+
+    # Set default problem size
+    if args.prob_size == 0:
+        args.prob_size = 8 * 16 if args.test else 256 * 1024
+
+    return args
+
+
+def run_example_3(args):
+    """Run the volume computation example.
+
+    Args:
+        args: Command line arguments
+
+    Returns:
+        0 on success
+    """
     # Set defaults
     dim = args.dim
     mesh_degree = args.mesh_degree
     sol_degree = args.sol_degree
-    num_qpts = args.num_qpts if args.num_qpts > 0 else sol_degree + 2
+    num_qpts = args.num_qpts
     prob_size = args.prob_size
     test = args.test
 
@@ -510,6 +534,12 @@ def main():
     # Cleanup is handled by Python's garbage collector
 
     return 0
+
+
+def main():
+    """Main function for volume computation example"""
+    args = parse_arguments()
+    return run_example_3(args)
 
 
 if __name__ == "__main__":
