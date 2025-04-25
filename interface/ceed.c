@@ -858,7 +858,7 @@ int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
     CeedSize vec_len;
     CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
     if (vec_len < min_len) {
-      ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering again
+      ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering
       CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
       ceed->ref_count -= 1;  // Note: restore ref_count
       ceed->work_vectors->num_vecs--;
