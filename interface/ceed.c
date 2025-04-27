@@ -818,6 +818,62 @@ int CeedReference(Ceed ceed) {
 }
 
 /**
+  @brief Computes the current memory usage of the work vectors in a `Ceed` context and prints to debug.abort
+
+  @param[in] ceed `Ceed` context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb) {
+  *usage_mb = 0.0;
+  if (ceed->work_vectors) {
+    for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
+      CeedSize vec_len;
+      CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
+      *usage_mb += vec_len;
+    }
+    *usage_mb *= sizeof(CeedScalar) * 1e-6;
+    CeedDebug(ceed, "Resource {%s}: Work vectors memory usage: %" CeedInt_FMT " vectors, %g MB\n", ceed->resource, ceed->work_vectors->num_vecs,
+              *usage_mb);
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Clear inactive work vectors in a `Ceed` context below a minimum length.
+
+  @param[in,out] ceed    `Ceed` context
+  @param[in]     min_len Minimum length of work vector to keep
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
+  if (!ceed->work_vectors) return CEED_ERROR_SUCCESS;
+  for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
+    if (ceed->work_vectors->is_in_use[i]) continue;
+    CeedSize vec_len;
+    CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
+    if (vec_len < min_len) {
+      ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering
+      CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
+      ceed->ref_count -= 1;  // Note: restore ref_count
+      ceed->work_vectors->num_vecs--;
+      if (ceed->work_vectors->num_vecs > 0) {
+        ceed->work_vectors->vecs[i]                                 = ceed->work_vectors->vecs[ceed->work_vectors->num_vecs];
+        ceed->work_vectors->is_in_use[i]                            = ceed->work_vectors->is_in_use[ceed->work_vectors->num_vecs];
+        ceed->work_vectors->is_in_use[ceed->work_vectors->num_vecs] = false;
+        i--;
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get a `CeedVector` for scratch work from a `Ceed` context.
 
   Note: This vector must be restored with @ref CeedRestoreWorkVector().
@@ -831,7 +887,8 @@ int CeedReference(Ceed ceed) {
   @ref Backend
 **/
 int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
-  CeedInt i = 0;
+  CeedInt    i = 0;
+  CeedScalar usage_mb;
 
   if (!ceed->work_vectors) CeedCall(CeedWorkVectorsCreate(ceed));
 
@@ -858,6 +915,7 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     ceed->work_vectors->num_vecs++;
     CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
     ceed->ref_count--;  // Note: ref_count manipulation to prevent a ref-loop
+    if (ceed->is_debug) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
   }
   // Return pointer to work vector
   ceed->work_vectors->is_in_use[i] = true;

@@ -32,8 +32,6 @@ typedef struct {
   CeedScalar *d_collo_grad_1d;
   CeedScalar *d_q_weight_1d;
   CeedScalar *d_chebyshev_interp_1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
   CeedInt     num_elem_at_points;
   CeedInt    *h_points_per_elem;
   CeedInt    *d_points_per_elem;
