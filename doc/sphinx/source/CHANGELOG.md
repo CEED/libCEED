@@ -17,6 +17,8 @@ On this page we provide a summary of the main API changes, new features and exam
 - Require use of `Ceed*Destroy()` on Ceed objects returned from `Ceed*Get*()`.
 - Rename `CeedCompositeOperatorCreate()` to `CeedOperatorCreateComposite()` for uniformity.
 - Rename `CeedCompositeOperator*()` to `CeedOperatorComposite*()` for uniformity.
+- Rust `libceed` crate: add features `shared` and `system`.
+- Rust `libceed-sys` crate: feature `static` (default) with `shared` (not default).
 
 ### New features
 
