@@ -210,7 +210,11 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
 def main():
     """Main function for volume computation example"""
     args = parse_arguments()
+    return example_1(args)
 
+
+def example_1(args):
+    """Run the volume computation example"""
     # Initialize libCEED
     ceed = libceed.Ceed(args.ceed)
 
@@ -229,7 +233,7 @@ def main():
         print(f"  Solution degree        [-p] : {sol_degree}")
         print(f"  Num. 1D quadrature pts [-q] : {num_qpts}")
         print(f"  Approx. # unknowns     [-s] : {args.problem_size}")
-        print(f"  QFunction source       [-g] : {'gallery' if args.gallery else 'user'}")
+        print(f"  QFunction source       [-g] : {'gallery' if ~args.gallery else 'user'}")
         print()
 
     # Determine mesh size
@@ -282,12 +286,6 @@ def main():
     q_data.set_value(0.0)
     op_build.apply(mesh_coords, q_data)
 
-    # Take absolute value of quadrature data to ensure positive volume
-    # This is needed because the determinant of the Jacobian might be negative
-    # depending on the element orientation
-    with q_data.array_write() as qdata:
-        qdata[:] = np.abs(qdata[:])
-
     # Setup QFunction for applying the mass operator
     # In this example, we always use the gallery QFunction
     # If we had user-defined QFunctions, we would use a conditional here
@@ -318,7 +316,6 @@ def main():
         if not args.test and dim > 1:
             volume_abs = np.sum(np.abs(v_array))
             print(f"Raw volume: {volume:.14g}")
-            print(f"Abs volume: {volume_abs:.14g}")
 
     if not args.test:
         print()
