@@ -131,13 +131,9 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
     # Create strided restriction for quadrature data
     q_data_restriction = None
     if create_qdata:
-        # For quadrature data, we use standard strided setup with component stride = 1
-        # and element stride = elem_qpts
-        # First, let's try using basic restriction with identity indexing
-        q_indices = np.arange(num_elem * elem_qpts, dtype=np.int32)
-        q_data_restriction = ceed.ElemRestriction(
-            num_elem, elem_qpts, 1, 1, num_elem * elem_qpts,
-            q_indices, cmode=libceed.COPY_VALUES)
+        strides = np.array([1, elem_qpts, elem_qpts], dtype=np.int32)
+        q_data_restriction = ceed.StridedElemRestriction(
+            num_elem, elem_qpts, 1, num_elem * elem_qpts, strides)
 
     return elem_restriction, size, q_data_restriction, num_elem, elem_qpts
 
