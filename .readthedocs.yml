@@ -5,10 +5,10 @@
 version: 2
 
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
   tools:
-    python: "3.11"
-    nodejs: "19"
+    python: "3.13"
+    nodejs: "23"
   apt_packages:
     - librsvg2-bin
   jobs:
