@@ -125,7 +125,7 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
             elem_nodes[e * num_nodes + n] = g_node
 
     # Create element restriction
-    elem_restriction = ceed.ElemRestriction(num_elem, num_nodes, num_comp, 1, size,
+    elem_restriction = ceed.ElemRestriction(num_elem, num_nodes, num_comp, scalar_size, size,
                                             elem_nodes, cmode=libceed.COPY_VALUES)
 
     # Create strided restriction for quadrature data
