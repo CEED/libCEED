@@ -885,7 +885,23 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Automatic multigrid setup for composite operators not supported");
 
   // Coarse Grid
-  CeedCall(CeedOperatorCreate(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
+  {
+    bool is_at_points;
+
+    CeedCall(CeedOperatorIsAtPoints(op_fine, &is_at_points));
+    if (is_at_points) {
+      CeedVector          point_coords;
+      CeedElemRestriction rstr_points;
+
+      CeedCall(CeedOperatorCreateAtPoints(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
+      CeedCall(CeedOperatorAtPointsGetPoints(op_fine, &rstr_points, &point_coords));
+      CeedCall(CeedOperatorAtPointsSetPoints(*op_coarse, rstr_points, point_coords));
+      CeedCall(CeedVectorDestroy(&point_coords));
+      CeedCall(CeedElemRestrictionDestroy(&rstr_points));
+    } else {
+      CeedCall(CeedOperatorCreate(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
+    }
+  }
   CeedCall(CeedOperatorGetFields(op_fine, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   // -- Clone input fields
   for (CeedInt i = 0; i < num_input_fields; i++) {
