@@ -7,15 +7,10 @@
 # This file is part of CEED:  http://github.com/ceed
 
 """
-Example using libCEED with mass operator to compute volume.
-
-This example illustrates a simple usage of libCEED to compute the volume of a 3D body
-using matrix-free application of a mass operator. This example also demonstrates
-libCEED's ability to handle multiple basis evaluation modes for the same input and
-output vectors.
-
-The example supports arbitrary mesh and solution degrees in 1D, 2D, and 3D from the
-same code.
+Example using libCEED to compute the volume of a 3D body using matrix-free application of a mass operator.
+This example also uses a diffusion operator, which provides zero contribution to the computed volume but
+demonstrates libCEED's ability to handle multiple basis evaluation modes for the same input and output vectors.
+The example supports arbitrary mesh and solution degrees in 1D, 2D, and 3D from the same code.
 """
 
 import argparse
@@ -28,6 +23,7 @@ from libceed import MEM_HOST, COPY_VALUES, USE_POINTER
 import os
 from sysconfig import get_config_var
 import ctypes
+
 
 def load_qfs_so():
     """Load the QFunctions shared library.
@@ -46,6 +42,8 @@ def load_qfs_so():
 # ------------------------------------------------------------------------------
 # Get mesh size based on problem size
 # ------------------------------------------------------------------------------
+
+
 def get_cartesian_mesh_size(dim, degree, prob_size):
     """Determine mesh size based on approximate problem size.
 
@@ -112,7 +110,6 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
         scalar_size *= nd[d]
 
     # For mesh coordinates, we need to multiply by the dimension
-    # This ensures the mesh coordinates vector size matches what the element restriction expects
     size = scalar_size * num_comp
     elem_nodes = np.zeros(num_elem * num_nodes, dtype=np.int32)
 
@@ -140,7 +137,6 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
     # For mesh coordinates, we need to use a different stride
     if num_comp == dim:
         # This is for mesh coordinates - use stride equal to scalar_size
-        # This matches the C implementation exactly
         restriction = ceed.ElemRestriction(
             num_elem, num_nodes, num_comp, scalar_size, size, elem_nodes
         )
@@ -150,9 +146,12 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
             num_elem, num_nodes, num_comp, 1, scalar_size, elem_nodes
         )
 
-    q_data_comp = 7 if dim == 3 else (4 if dim == 2 else 2)
-
     # Create q_data restriction using strided approach
+    # Number of components depends on dimension:
+    # 1D: 2 components (1 for mass, 1 for diffusion)
+    # 2D: 4 components (1 for mass, 3 for diffusion in Voigt notation)
+    # 3D: 7 components (1 for mass, 6 for diffusion in Voigt notation)
+    q_data_comp = 7 if dim == 3 else (4 if dim == 2 else 2)
     strides = np.array([1, elem_qpts, q_data_comp * elem_qpts], dtype=np.int32)
     q_data_restriction = ceed.StridedElemRestriction(
         num_elem, elem_qpts, q_data_comp,
@@ -356,9 +355,9 @@ def run_example_3(args):
 
     # Create bases
     mesh_basis = ceed.BasisTensorH1Lagrange(dim, dim, mesh_degree + 1, num_qpts,
-                                           GAUSS)
+                                            GAUSS)
     sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree + 1, num_qpts,
-                                          GAUSS)
+                                           GAUSS)
 
     # Create QFunction context
     build_ctx = ceed.QFunctionContext()
@@ -370,18 +369,18 @@ def run_example_3(args):
     file_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Create the QFunctions
-    qf_setup = ceed.QFunction(1, qfs.build_mass_diff,
-                             os.path.join(file_dir, "ex3-volume.h:build_mass_diff"))
+    qf_setup = ceed.QFunction(1, qfs.wrap_build_mass_diff,
+                              os.path.join(file_dir, "ex3-volume.h:build_mass_diff"))
     qf_setup.add_input("dx", dim * dim, EVAL_GRAD)
     qf_setup.add_input("weights", 1, EVAL_WEIGHT)
-    qf_setup.add_output("qdata", 7 if dim == 3 else (4 if dim == 2 else 2), EVAL_NONE)
+    qf_setup.add_output("qdata", q_data_comp, EVAL_NONE)
     qf_setup.set_context(build_ctx)
 
-    qf_apply = ceed.QFunction(1, qfs.apply_mass_diff,
-                             os.path.join(file_dir, "ex3-volume.h:apply_mass_diff"))
+    qf_apply = ceed.QFunction(1, qfs.wrap_apply_mass_diff,
+                              os.path.join(file_dir, "ex3-volume.h:apply_mass_diff"))
     qf_apply.add_input("u", 1, EVAL_INTERP)
     qf_apply.add_input("ug", dim, EVAL_GRAD)
-    qf_apply.add_input("qdata", 7 if dim == 3 else (4 if dim == 2 else 2), EVAL_NONE)
+    qf_apply.add_input("qdata", q_data_comp, EVAL_NONE)
     qf_apply.add_output("v", 1, EVAL_INTERP)
     qf_apply.add_output("vg", dim, EVAL_GRAD)
     qf_apply.set_context(build_ctx)
@@ -418,8 +417,6 @@ def run_example_3(args):
         print(f"Exact volume    = {exact_volume:.14f}")
         print(f"Computed volume = {computed_volume:.14f}")
         print(f"Error          = {abs(computed_volume - exact_volume):.14e}")
-
-    # Clean up is handled by Python's garbage collector
 
 
 def main():
