@@ -25,78 +25,23 @@ import libceed
 from libceed import GAUSS, VECTOR_ACTIVE, VECTOR_NONE, ELEMRESTRICTION_NONE, BASIS_NONE
 from libceed import EVAL_INTERP, EVAL_GRAD, EVAL_WEIGHT, EVAL_NONE
 from libceed import MEM_HOST, COPY_VALUES, USE_POINTER
+import os
+from sysconfig import get_config_var
+import ctypes
 
+def load_qfs_so():
+    """Load the QFunctions shared library.
 
-# ------------------------------------------------------------------------------
-# QFunctions for mass operator
-# ------------------------------------------------------------------------------
-def build_mass_diff(dx, weights, qdata, ctx_data):
-    """Build the quadrature data for the mass operator with diffusion.
-
-    Args:
-        dx: Gradient of basis functions at quadrature points (EVAL_GRAD)
-        weights: Quadrature weights (EVAL_WEIGHT)
-        qdata: Output array for quadrature data (EVAL_NONE)
-        ctx_data: Context data with dimension information
+    Returns:
+        Loaded shared library object
     """
-    dim = ctx_data[0]
-    space_dim = ctx_data[1]
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    qfs_so = os.path.join(
+        file_dir,
+        "libceed_qfunctions" + get_config_var("EXT_SUFFIX"))
 
-    # Get number of elements and quadrature points
-    num_elem = dx.shape[0]
-    num_qpts = dx.shape[1]
-
-    # For each element and quadrature point
-    for e in range(num_elem):
-        for q in range(num_qpts):
-            # Compute the Jacobian determinant
-            # For simplicity, assuming affine elements
-            # J = [dx/dxi, dx/deta, dx/dzeta]
-            # J is represented as a dim x dim matrix
-            J = np.zeros((dim, dim))
-
-            # Fill the Jacobian matrix
-            for d1 in range(dim):
-                for d2 in range(dim):
-                    J[d1, d2] = dx[e, q, d1, d2]
-
-            # Compute determinant of Jacobian
-            detJ = np.linalg.det(J)
-
-            # Store quadrature weight * |J| for the mass operator
-            qdata[e, q, 0] = weights[q] * abs(detJ)
-
-            # For diffusion, would compute J^{-T} here
-            # But we'll leave this part out since we only need mass for volume
-
-
-def apply_mass_diff(u, du, qdata, v, dv, ctx_data):
-    """Apply the mass operator with diffusion.
-
-    Args:
-        u: Input function at quadrature points (EVAL_INTERP)
-        du: Gradient of input function at quadrature points (EVAL_GRAD)
-        qdata: Quadrature data (EVAL_NONE)
-        v: Output function at quadrature points (EVAL_INTERP)
-        dv: Gradient of output function at quadrature points (EVAL_GRAD)
-        ctx_data: Context data with dimension information
-    """
-    dim = ctx_data[0]
-
-    # Get dimensions
-    num_elem = u.shape[0]
-    num_qpts = u.shape[1]
-
-    # For each element and quadrature point
-    for e in range(num_elem):
-        for q in range(num_qpts):
-            # Mass operator: v = w*|J|*u
-            v[e, q, 0] = qdata[e, q, 0] * u[e, q, 0]
-
-            # Diffusion operator: dv = 0 (not needed for volume computation)
-            for d in range(dim):
-                dv[e, q, d] = 0.0
-
+    # Load library
+    return ctypes.cdll.LoadLibrary(qfs_so)
 
 # ------------------------------------------------------------------------------
 # Get mesh size based on problem size
@@ -135,7 +80,7 @@ def get_cartesian_mesh_size(dim, degree, prob_size):
 # ------------------------------------------------------------------------------
 # Build Cartesian restriction
 # ------------------------------------------------------------------------------
-def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts):
+def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, args=None):
     """Build CeedElemRestriction objects for a Cartesian mesh.
 
     Args:
@@ -145,6 +90,7 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts):
         degree: Polynomial degree
         num_comp: Number of components
         num_qpts: Number of quadrature points in 1D
+        args: Command line arguments
 
     Returns:
         Tuple containing:
@@ -204,13 +150,14 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts):
             num_elem, num_nodes, num_comp, 1, scalar_size, elem_nodes
         )
 
-    # Create strided restriction for quadrature data
-    q_data_comp = 1  # Changed from 1 + dim * (dim + 1) // 2 to 1 for this example
+    q_data_comp = 7 if dim == 3 else (4 if dim == 2 else 2)
 
     # Create q_data restriction using strided approach
     strides = np.array([1, elem_qpts, q_data_comp * elem_qpts], dtype=np.int32)
     q_data_restriction = ceed.StridedElemRestriction(
-        num_elem, elem_qpts, q_data_comp, q_data_comp * elem_qpts * num_elem, strides
+        num_elem, elem_qpts, q_data_comp,
+        q_data_comp * elem_qpts * num_elem,  # Total size is number of elements times quadrature points
+        strides
     )
 
     return restriction, q_data_restriction, size
@@ -315,231 +262,170 @@ def parse_arguments():
         description="Example using libCEED with mass operator to compute volume"
     )
     parser.add_argument(
-        "-c", "--ceed", type=str, default="/cpu/self", help="CEED resource specifier"
+        "-c",
+        "--ceed",
+        default="/cpu/self",
+        help="CEED resource specifier",
+        dest="ceed_spec",
     )
     parser.add_argument(
-        "-d", "--dim", type=int, default=3, help="Dimension of the mesh"
+        "-d",
+        "--dim",
+        type=int,
+        default=3,
+        help="Mesh dimension (default: 3)",
     )
     parser.add_argument(
         "-m",
         "--mesh-degree",
         type=int,
         default=4,
-        help="Polynomial degree for the mesh",
+        help="Mesh polynomial degree (default: 4)",
+        dest="mesh_degree",
     )
     parser.add_argument(
         "-p",
-        "--sol-degree",
+        "--solution-degree",
         type=int,
         default=4,
-        help="Polynomial degree for the solution",
+        help="Solution polynomial degree (default: 4)",
+        dest="sol_degree",
     )
     parser.add_argument(
         "-q",
-        "--num-qpts",
+        "--quadrature-points",
         type=int,
-        default=0,
-        help="Number of quadrature points (default: sol-degree+2)",
+        default=6,
+        help="Number of quadrature points in 1D (default: 6)",
+        dest="num_qpts",
     )
     parser.add_argument(
         "-s",
-        "--prob-size",
+        "--problem-size",
         type=int,
-        default=256 * 1024,
-        help="Approximate problem size",
+        default=1000,
+        help="Approximate problem size (default: 1000)",
+        dest="problem_size",
     )
-    parser.add_argument(
-        "-b", "--benchmark", type=int, default=0, help="Number of benchmark iterations"
-    )
-    parser.add_argument("-t", "--test", action="store_true", help="Enable test mode")
-    parser.add_argument(
-        "-g",
-        "--gallery",
-        action="store_true",
-        help="Use gallery QFunction instead of user-defined QFunction",
-    )
-
-    args = parser.parse_args()
-
-    # Validate dimension
-    if args.dim not in [1, 2, 3]:
-        parser.error("Dimension must be 1, 2, or 3")
-
-    # Set default quadrature points
-    if args.num_qpts == 0:
-        args.num_qpts = args.sol_degree + 2
-
-    # Set default problem size
-    if args.prob_size == 0:
-        args.prob_size = 8 * 16 if args.test else 256 * 1024
-
-    return args
+    return parser.parse_args()
 
 
 def run_example_3(args):
-    """Run the volume computation example.
+    """Run Example 3.
 
     Args:
-        args: Command line arguments
-
-    Returns:
-        0 on success
+        args: Parsed command line arguments
     """
-    # Set defaults
+    # Process command line arguments
     dim = args.dim
     mesh_degree = args.mesh_degree
     sol_degree = args.sol_degree
     num_qpts = args.num_qpts
-    prob_size = args.prob_size
-    test = args.test
+    prob_size = args.problem_size
+    ceed_spec = args.ceed_spec
 
-    # Print options
-    if not test:
-        print("Selected options: [command line option] : <current value>")
-        print(f"  Ceed specification     [-c] : {args.ceed}")
-        print(f"  Mesh dimension         [-d] : {dim}")
-        print(f"  Mesh degree            [-m] : {mesh_degree}")
-        print(f"  Solution degree        [-p] : {sol_degree}")
-        print(f"  Num. 1D quadrature pts [-q] : {num_qpts}")
-        print(f"  Approx. # unknowns     [-s] : {prob_size}")
-        print(
-            f"  QFunction source       [-g] : {'gallery' if args.gallery else 'user'}"
-        )
-        print("")
-
-    # Initialize libCEED
-    ceed = libceed.Ceed(args.ceed)
-
-    # Determine mesh size based on problem size
+    # Set up the mesh
     num_xyz = get_cartesian_mesh_size(dim, sol_degree, prob_size)
-    if not test:
-        print(f"Mesh size: nx = {num_xyz[0]}", end="")
-        if dim > 1:
-            print(f", ny = {num_xyz[1]}", end="")
-        if dim > 2:
-            print(f", nz = {num_xyz[2]}", end="")
-        print("")
+    mesh_degree = max(1, mesh_degree)  # Mesh degree must be at least 1
 
-    # Build element restrictions for mesh coordinates
+    # Print summary
+    print(f"Selected options: mesh degree = {mesh_degree}, solution degree = {sol_degree}, "
+          f"number of 1D quadrature points = {num_qpts}")
+    print(f"Mesh size: {' x '.join(map(str, num_xyz))} elements")
+
+    # Set up libCEED
+    ceed = libceed.Ceed(ceed_spec)
+
+    # Build CeedElemRestriction objects describing the mesh and solution fields
     mesh_restriction, _, mesh_size = build_cartesian_restriction(
-        ceed, dim, num_xyz, mesh_degree, dim, num_qpts
-    )
-
-    # Build element restrictions for solution (scalar field)
+        ceed, dim, num_xyz, mesh_degree, dim, num_qpts)
     sol_restriction, q_data_restriction, sol_size = build_cartesian_restriction(
-        ceed, dim, num_xyz, sol_degree, 1, num_qpts
-    )
+        ceed, dim, num_xyz, sol_degree, 1, num_qpts)
 
-    num_elem = 1
-    for d in range(dim):
-        num_elem *= num_xyz[d]
-
-    elem_qpts = num_qpts**dim
-    q_data = ceed.Vector(num_elem * elem_qpts)
-    q_data.set_value(0.0)
-
-    if not test:
-        print(f"Number of mesh nodes     : {mesh_size // dim}")
-        print(f"Number of solution nodes : {sol_size}")
-        print(f"Mesh size (total)        : {mesh_size}")
-        print(f"Solution size (total)    : {sol_size}")
-
-    # Create vector with mesh coordinates
-    # For mesh coordinates, we need to multiply by the dimension
+    # Create Vectors
     mesh_coords = ceed.Vector(mesh_size)
-    set_cartesian_mesh_coords(dim, num_xyz, mesh_degree, mesh_coords)
+    q_data_comp = 7 if dim == 3 else (4 if dim == 2 else 2)
+    q_data = ceed.Vector(q_data_comp * num_qpts**dim * np.prod(num_xyz))
+    x = ceed.Vector(sol_size)
+    ones = ceed.Vector(sol_size)
+    vol = ceed.Vector(1)
 
-    # Apply transformation to the mesh
+    # Set up mesh coordinates
+    set_cartesian_mesh_coords(dim, num_xyz, mesh_degree, mesh_coords)
     exact_volume = transform_mesh_coords(dim, mesh_size, mesh_coords)
 
-    # Context for QFunction
+    # Create bases
+    mesh_basis = ceed.BasisTensorH1Lagrange(dim, dim, mesh_degree + 1, num_qpts,
+                                           GAUSS)
+    sol_basis = ceed.BasisTensorH1Lagrange(dim, 1, sol_degree + 1, num_qpts,
+                                          GAUSS)
+
+    # Create QFunction context
     build_ctx = ceed.QFunctionContext()
-    build_ctx_data = {"dim": dim, "space_dim": dim}
-    build_ctx.set_data(np.array(list(build_ctx_data.values()), dtype=np.int32))
+    ctx_data = np.array([dim, dim], dtype=np.int32)
+    build_ctx.set_data(ctx_data)
 
-    # QFunction for mass operator - ALWAYS use gallery QFunction
-    qf_build = ceed.QFunctionByName(f"Mass{dim}DBuild")
-    qf_build.set_context(build_ctx)
+    # Load QFunctions
+    qfs = load_qfs_so()
+    file_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Create the mesh basis
-    mesh_basis = ceed.BasisTensorH1Lagrange(
-        dim, dim, mesh_degree + 1, num_qpts, libceed.GAUSS
-    )
+    # Create the QFunctions
+    qf_setup = ceed.QFunction(1, qfs.build_mass_diff,
+                             os.path.join(file_dir, "ex3-volume.h:build_mass_diff"))
+    qf_setup.add_input("dx", dim * dim, EVAL_GRAD)
+    qf_setup.add_input("weights", 1, EVAL_WEIGHT)
+    qf_setup.add_output("qdata", 7 if dim == 3 else (4 if dim == 2 else 2), EVAL_NONE)
+    qf_setup.set_context(build_ctx)
 
-    # Create the solution basis
-    sol_basis = ceed.BasisTensorH1Lagrange(
-        dim, 1, sol_degree + 1, num_qpts, libceed.GAUSS
-    )
+    qf_apply = ceed.QFunction(1, qfs.apply_mass_diff,
+                             os.path.join(file_dir, "ex3-volume.h:apply_mass_diff"))
+    qf_apply.add_input("u", 1, EVAL_INTERP)
+    qf_apply.add_input("ug", dim, EVAL_GRAD)
+    qf_apply.add_input("qdata", 7 if dim == 3 else (4 if dim == 2 else 2), EVAL_NONE)
+    qf_apply.add_output("v", 1, EVAL_INTERP)
+    qf_apply.add_output("vg", dim, EVAL_GRAD)
+    qf_apply.set_context(build_ctx)
 
-    # Create the operator for building the quadrature data
-    op_build = ceed.Operator(qf_build)
+    # Create the operators
+    op_setup = ceed.Operator(qf_setup)
+    op_setup.set_field("dx", mesh_restriction, mesh_basis, VECTOR_ACTIVE)
+    op_setup.set_field("weights", ELEMRESTRICTION_NONE, mesh_basis, VECTOR_NONE)
+    op_setup.set_field("qdata", q_data_restriction, BASIS_NONE, VECTOR_ACTIVE)
 
-    # Set up the fields for the operator
-    op_build.set_field("dx", mesh_restriction, mesh_basis, libceed.VECTOR_ACTIVE)
-    op_build.set_field(
-        "weights", libceed.ELEMRESTRICTION_NONE, mesh_basis, libceed.VECTOR_NONE
-    )
-    op_build.set_field(
-        "qdata", q_data_restriction, libceed.BASIS_NONE, libceed.VECTOR_ACTIVE
-    )
-
-    # Apply the operator to compute the quadrature data
-    op_build.apply(mesh_coords, q_data)
-
-    # Create the QFunction for applying mass operator
-    if args.gallery:
-        # Use gallery QFunction for mass application
-        qf_apply = ceed.QFunctionByName("MassApply")
-    else:
-        # Use gallery QFunction for mass application
-        qf_apply = ceed.QFunctionByName("MassApply")
-
-    # Create the mass operator
     op_apply = ceed.Operator(qf_apply)
     op_apply.set_field("u", sol_restriction, sol_basis, VECTOR_ACTIVE)
+    op_apply.set_field("ug", sol_restriction, sol_basis, VECTOR_ACTIVE)
     op_apply.set_field("qdata", q_data_restriction, BASIS_NONE, q_data)
     op_apply.set_field("v", sol_restriction, sol_basis, VECTOR_ACTIVE)
+    op_apply.set_field("vg", sol_restriction, sol_basis, VECTOR_ACTIVE)
 
-    # Create solution vectors
-    u = ceed.Vector(sol_size)
-    v = ceed.Vector(sol_size)
+    # Setup
+    op_setup.apply(mesh_coords, q_data)
 
-    # Initialize 'u' with ones
-    u.set_value(1.0)
+    # Apply mass operator
+    ones.set_value(1.0)
+    op_apply.apply(ones, x)
 
-    # Compute the mesh volume using the mass operator: volume = 1^T * M * 1
-    op_apply.apply(u, v)
+    # Compute the volume
+    vol.set_value(0.0)
+    with x.array_read() as x_array:
+        volume = np.sum(x_array)
+        vol.set_value(volume)
 
-    # Benchmark runs
-    if not test and args.benchmark > 0:
-        print(f" Executing {args.benchmark} benchmarking runs...", end="")
-        for _ in range(args.benchmark):
-            op_apply.apply(u, v)
+    # Print the computed and exact volumes
+    with vol.array_read() as vol_array:
+        computed_volume = vol_array[0]
+        print(f"Exact volume    = {exact_volume:.14f}")
+        print(f"Computed volume = {computed_volume:.14f}")
+        print(f"Error          = {abs(computed_volume - exact_volume):.14e}")
 
-    # Compute and print the sum of entries of 'v' giving the mesh volume
-    v_array = v.get_array_read()
-    volume = np.sum(v_array)
-    v.restore_array_read()
-
-    if not test:
-        print(" done.")
-        print(f"Exact mesh volume    : {exact_volume:.14g}")
-        print(f"Computed mesh volume : {volume:.14g}")
-        print(f"Volume error         : {volume - exact_volume:.14g}")
-    else:
-        tol = 200 * np.finfo(float).eps if dim == 1 else 1e-5
-        if abs(volume - exact_volume) > tol:
-            print(f"Volume error : {volume - exact_volume:.1e}")
-
-    # Cleanup is handled by Python's garbage collector
-
-    return 0
+    # Clean up is handled by Python's garbage collector
 
 
 def main():
-    """Main function for volume computation example"""
+    """Run the example."""
     args = parse_arguments()
-    return run_example_3(args)
+    run_example_3(args)
 
 
 if __name__ == "__main__":
