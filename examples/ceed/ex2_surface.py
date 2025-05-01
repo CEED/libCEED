@@ -39,13 +39,29 @@
 # Fully Corrected Final surface.py for your environment
 #!/usr/bin/env python3
 #!/usr/bin/env python3
+
 import sys
 import argparse
 import numpy as np
 import libceed
 
+
+# Command line options
+
 def parse_arguments():
-    """Parse command line arguments"""
+    """Parse command line arguments for surface area computation
+    
+    Returns:
+        Namespace: Parsed command line arguments with the following attributes:
+            - ceed: CEED resource specifier
+            - dim: Problem dimension (1, 2, or 3)
+            - mesh_degree: Mesh polynomial degree
+            - solution_degree: Solution polynomial degree
+            - quadrature_points: Number of quadrature points
+            - problem_size: Approximate problem size
+            - test: Boolean flag for test mode
+            - gallery: Boolean flag to use gallery QFunctions
+    """
     parser = argparse.ArgumentParser(description="Compute surface area using libCEED")
     parser.add_argument("-c", "--ceed", default="/cpu/self",
                        help="CEED resource specifier")
@@ -69,8 +85,20 @@ def parse_arguments():
         parser.error("Dimension must be 1, 2, or 3")
     return args
 
+
+# Mesh and restriction utilities
+
 def get_cartesian_mesh_size(dim, degree, prob_size):
-    """Determine mesh size based on approximate problem size"""
+    """Determine mesh size based on approximate problem size
+    
+    Args:
+        dim:      Dimension of the problem (1, 2, or 3)
+        degree:   Polynomial degree of the solution
+        prob_size: Approximate problem size (number of unknowns)
+        
+    Returns:
+        List[int]: Mesh sizes in each dimension
+    """
     num_elem = prob_size // (degree ** dim)
     s = 0
     while 2**s <= num_elem:
@@ -88,7 +116,24 @@ def get_cartesian_mesh_size(dim, degree, prob_size):
     return num_xyz
 
 def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts):
-    """Build element restrictions for the mesh and solution"""
+    """Build element restrictions for the mesh and solution
+    
+    Args:
+        ceed:      libCEED context object
+        dim:       Dimension of the problem
+        num_xyz:   List of mesh sizes in each dimension
+        degree:    Polynomial degree
+        num_comp:  Number of components
+        num_qpts:  Number of quadrature points
+        
+    Returns:
+        Tuple containing:
+            - Element restriction
+            - Size of the vector
+            - Quadrature data restriction 
+            - Number of elements
+            - Quadrature points per element
+    """
     p = degree + 1
     num_nodes = p ** dim
     elem_qpts = num_qpts ** dim
@@ -132,7 +177,15 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts):
     return elem_restriction, size, q_data_restriction, num_elem, elem_qpts
 
 def set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords):
-    """Set the initial Cartesian mesh coordinates"""
+    """Set the initial Cartesian mesh coordinates
+    
+    Args:
+        ceed:         libCEED context object
+        dim:          Dimension of the problem
+        num_xyz:      List of mesh sizes in each dimension
+        mesh_degree:  Polynomial degree for the mesh
+        mesh_coords:  libCEED Vector to store coordinates
+    """
     p = mesh_degree + 1
     nd = []
     scalar_size = 1
@@ -156,7 +209,16 @@ def set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords):
     mesh_coords.set_array(coords, cmode=libceed.COPY_VALUES)
 
 def transform_mesh_coords(dim, mesh_size, mesh_coords):
-    """Apply transformation to mesh coordinates and return exact surface area"""
+    """Apply transformation to mesh coordinates and return exact surface area
+    
+    Args:
+        dim:        Dimension of the problem
+        mesh_size:  Total size of the mesh vector
+        mesh_coords: libCEED Vector containing coordinates
+        
+    Returns:
+        float: Exact surface area for the transformed mesh
+    """
     exact_measure = {1: 2.0, 2: 4.0, 3: 6.0}[dim]
     with mesh_coords.array_write() as coords:
         for d in range(dim):
@@ -166,53 +228,83 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
                     (2.0/3.0) * np.pi * (coords[offset + i] - 0.5))
     return exact_measure
 
+# Main function
+
 def main():
+    """Main function for computing surface area using libCEED
+    
+    This function follows the structure of the original C example ex2-surface.c,
+    providing detailed comments to explain each step of the process.
+    
+    Returns:
+        int: 0 on success, 1 on failure in test mode
+    """
+    
+    # Parse command line arguments and initialize
+    
     args = parse_arguments()
     ceed = libceed.Ceed(args.ceed)
+    
+    # Problem dimensions and parameters
     dim = args.dim
     num_comp_x = dim
     mesh_degree = max(args.mesh_degree, args.solution_degree)
     sol_degree = args.solution_degree
     num_qpts = args.quadrature_points
 
-    print(f"Selected options: [command line option] : <current value>")
-    print(f"  Ceed specification     [-c] : {args.ceed}")
-    print(f"  Mesh dimension         [-d] : {dim}")
-    print(f"  Mesh degree            [-m] : {mesh_degree}")
-    print(f"  Solution degree        [-p] : {sol_degree}")
-    print(f"  Num. 1D quadrature pts [-q] : {num_qpts}")
-    print(f"  Approx. # unknowns     [-s] : {args.problem_size}")
-    print(f"  QFunction source       [-g] : {'gallery' if args.gallery else 'user'}")
+    # Print selected options
+    if not args.test:
+        print(f"Selected options: [command line option] : <current value>")
+        print(f"  Ceed specification     [-c] : {args.ceed}")
+        print(f"  Mesh dimension         [-d] : {dim}")
+        print(f"  Mesh degree            [-m] : {mesh_degree}")
+        print(f"  Solution degree        [-p] : {sol_degree}")
+        print(f"  Num. 1D quadrature pts [-q] : {num_qpts}")
+        print(f"  Approx. # unknowns     [-s] : {args.problem_size}")
+        print(f"  QFunction source       [-g] : {'gallery' if args.gallery else 'user'}")
+        print()
 
+    
+    # Mesh creation and discretization
+    
     num_xyz = get_cartesian_mesh_size(dim, sol_degree, args.problem_size)
-    print(f"Mesh size: nx = {num_xyz[0]}", end="")
-    if dim > 1:
-        print(f", ny = {num_xyz[1]}", end="")
-    if dim > 2:
-        print(f", nz = {num_xyz[2]}", end="")
-    print()
+    
+    if not args.test:
+        print(f"Mesh size: nx = {num_xyz[0]}", end="")
+        if dim > 1:
+            print(f", ny = {num_xyz[1]}", end="")
+        if dim > 2:
+            print(f", nz = {num_xyz[2]}", end="")
+        print()
 
+    # Create finite element bases
     mesh_basis = ceed.BasisTensorH1Lagrange(
         dim, num_comp_x, mesh_degree+1, num_qpts, libceed.GAUSS)
     sol_basis = ceed.BasisTensorH1Lagrange(
         dim, 1, sol_degree+1, num_qpts, libceed.GAUSS)
 
+    # Build element restrictions
     mesh_restr, mesh_size, _, _, _ = build_cartesian_restriction(
         ceed, dim, num_xyz, mesh_degree, num_comp_x, num_qpts)
     sol_restr, sol_size, q_data_restr, num_elem, elem_qpts = build_cartesian_restriction(
         ceed, dim, num_xyz, sol_degree, 1, num_qpts)
 
-    print(f"Number of mesh nodes     : {mesh_size // dim}")
-    print(f"Number of solution nodes : {sol_size}")
+    if not args.test:
+        print(f"Number of mesh nodes     : {mesh_size // dim}")
+        print(f"Number of solution nodes : {sol_size}")
 
+    
+    # Mesh geometry
+    
     mesh_coords = ceed.Vector(mesh_size)
     set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords)
     exact_measure = transform_mesh_coords(dim, mesh_size, mesh_coords)
 
-    # Always use gallery QFunction in this version
+    
+    # Operator construction
+    
+    # Create and setup the operator that builds quadrature data
     qf_build = ceed.QFunctionByName(f"Poisson{dim}DBuild")
-    qf_apply = ceed.QFunctionByName(f"Poisson{dim}DApply")
-
     op_build = ceed.Operator(qf_build)
     op_build.set_field("dx", mesh_restr, mesh_basis, libceed.VECTOR_ACTIVE)
     op_build.set_field("weights", libceed.ELEMRESTRICTION_NONE,
@@ -220,37 +312,52 @@ def main():
     op_build.set_field("qdata", q_data_restr,
                       libceed.BASIS_NONE, libceed.VECTOR_ACTIVE)
 
+    # Compute quadrature data
     qd_comp = dim * (dim + 1) // 2
     q_data = ceed.Vector(num_elem * elem_qpts * qd_comp)
+    q_data.set_value(0.0)
     op_build.apply(mesh_coords, q_data)
 
+    # Create and setup the diffusion operator
+    qf_apply = ceed.QFunctionByName(f"Poisson{dim}DApply")
     op_apply = ceed.Operator(qf_apply)
     op_apply.set_field("du", sol_restr, sol_basis, libceed.VECTOR_ACTIVE)
     op_apply.set_field("qdata", q_data_restr,
                       libceed.BASIS_NONE, q_data)
     op_apply.set_field("dv", sol_restr, sol_basis, libceed.VECTOR_ACTIVE)
 
+    
+    # Solution and computation
+    
     u = ceed.Vector(sol_size)
     v = ceed.Vector(sol_size)
+    
+    # Initialize u with sum of coordinates (x + y + z)
     with mesh_coords.array_read() as x, u.array_write() as u_arr:
         for i in range(sol_size):
             u_arr[i] = sum(x[i + j * (sol_size)] for j in range(dim))
 
+    # Apply diffusion operator: v = K * u
     op_apply.apply(u, v)
 
+    
+    # Postprocessing and output
+    
     measure = 0.0
     with v.array_read() as v_arr:
         measure = np.sum(np.abs(v_arr))
 
-    print("\nResults:")
-    label = "curve length" if dim == 1 else "surface area"
-    print(f"Exact {label}    : {exact_measure:.14g}")
-    print(f"Computed {label}: {measure:.14g}")
-    print(f"Error            : {measure - exact_measure:.3e}")
-
-    if args.test and abs(measure - exact_measure) > 1e-1:
-        print(f"Error too large: {measure - exact_measure:.1e}")
-        sys.exit(1)
+    if not args.test:
+        label = "curve length" if dim == 1 else "surface area"
+        print("\nResults:")
+        print(f"Exact {label}    : {exact_measure:.14g}")
+        print(f"Computed {label}: {measure:.14g}")
+        print(f"Error            : {measure - exact_measure:.3e}")
+    else:
+        tol = 1e-1
+        if abs(measure - exact_measure) > tol:
+            print(f"Error too large: {measure - exact_measure:.1e}")
+            return 1
 
     return 0
 
