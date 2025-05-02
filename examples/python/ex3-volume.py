@@ -385,7 +385,7 @@ def run_example_3(args):
     qf_setup.add_output("qdata", q_data_comp, EVAL_NONE)
     qf_setup.set_context(build_ctx)
 
-    qf_apply = ceed.QFunction(1, qfs.wrap_apply_mass_diff,
+    qf_apply = ceed.QFunction(1, qfs.apply_mass_diff,
                               os.path.join(file_dir, "ex3-volume.h:apply_mass_diff"))
     qf_apply.add_input("u", 1, EVAL_INTERP)
     qf_apply.add_input("ug", dim, EVAL_GRAD)
