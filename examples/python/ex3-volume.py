@@ -24,16 +24,29 @@ from sysconfig import get_config_var
 import ctypes
 
 
+def find_qfs_so(name, path):
+    """Find the QFunctions shared library.
+
+    Returns:
+        Filepath to shared library object
+    """
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+
+
 def load_qfs_so():
     """Load the QFunctions shared library.
 
     Returns:
         Loaded shared library object
     """
-    file_dir = os.path.dirname(os.path.abspath(__file__))
-    qfs_so = os.path.join(
-        file_dir,
-        "libceed_qfunctions" + get_config_var("EXT_SUFFIX"))
+    file_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "build")
+    qfs_so = find_qfs_so(
+        "libceed_qfunctions" + get_config_var("EXT_SUFFIX"),
+        file_dir)
 
     # Load library
     return ctypes.cdll.LoadLibrary(qfs_so)
