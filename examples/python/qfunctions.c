@@ -28,4 +28,4 @@ EXPORT CeedInt wrap_apply_mass_diff(void *ctx, const CeedInt Q,
                                   const CeedScalar *const *in,
                                   CeedScalar *const *out) {
   return apply_mass_diff(ctx, Q, in, out);
-} 
+}
