@@ -42,7 +42,7 @@ def example_2(options):
     mesh_degree = max(args.mesh_degree, args.solution_degree)
     sol_degree = args.solution_degree
     num_qpts = args.quadrature_points
-    problem_size = args.problem_size if args.problem_size > 0 else (8 * 16 if args.test else 256 * 1024)
+    problem_size = args.problem_size if args.problem_size > 0 else (500 * dim * dim if args.test else 256 * 1024)
     ncomp_x = dim  # Number of coordinate components
 
     # Print configuration
@@ -93,7 +93,7 @@ def example_2(options):
     # Create and transform mesh coordinates
     mesh_coords = ceed.Vector(mesh_size)
     common.set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords)
-    _, exact_surface_area = common.transform_mesh_coords(dim, mesh_size, mesh_coords)
+    _, exact_surface_area = common.transform_mesh_coords(dim, mesh_size, mesh_coords, use_sin=False)
 
     # Create the QFunction that builds the diffusion operator (i.e. computes
     # its quadrature data) and set its context data

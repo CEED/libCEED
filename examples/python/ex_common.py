@@ -217,14 +217,14 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords, use_sin=True):
         else:
             if use_sin:
                 for i in range(num_nodes):
-                    x = coords[i] - 0.5
-                    coords[i] = 0.5 + (1.0 / np.sqrt(3.0)) * np.sin((2.0 / 3.0) * np.pi * x)
-            else:
-                for i in range(num_nodes):
                     u = 1. + coords[i]
                     v = np.pi / 2. * coords[i + num_nodes]
                     coords[i] = u * np.cos(v)
                     coords[i + num_nodes] = u * np.sin(v)
+            else:
+                for i in range(num_nodes):
+                    x = coords[i] - 0.5
+                    coords[i] = 0.5 + (1.0 / np.sqrt(3.0)) * np.sin((2.0 / 3.0) * np.pi * x)
 
     return (exact_volume, exact_area)
 
