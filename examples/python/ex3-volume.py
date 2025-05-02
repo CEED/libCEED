@@ -39,9 +39,6 @@ def load_qfs_so():
     # Load library
     return ctypes.cdll.LoadLibrary(qfs_so)
 
-# ------------------------------------------------------------------------------
-# Get mesh size based on problem size
-# ------------------------------------------------------------------------------
 
 
 def get_cartesian_mesh_size(dim, degree, prob_size):
