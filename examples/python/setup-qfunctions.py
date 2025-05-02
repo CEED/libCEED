@@ -29,4 +29,4 @@ qfunctions = Extension("libceed_qfunctions",
 
 # Setup
 setup(name="libceed_qfunctions",
-      ext_modules=[qfunctions]) 
+      ext_modules=[qfunctions])
