@@ -378,7 +378,7 @@ def run_example_3(args):
     file_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Create the QFunctions
-    qf_setup = ceed.QFunction(1, qfs.wrap_build_mass_diff,
+    qf_setup = ceed.QFunction(1, qfs.build_mass_diff,
                               os.path.join(file_dir, "ex3-volume.h:build_mass_diff"))
     qf_setup.add_input("dx", dim * dim, EVAL_GRAD)
     qf_setup.add_input("weights", 1, EVAL_WEIGHT)
