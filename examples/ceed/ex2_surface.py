@@ -1,44 +1,19 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
+# Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
 # All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 #
 # SPDX-License-Identifier: BSD-2-Clause
 #
 # This file is part of CEED:  http://github.com/ceed
 #
-#                        libCEED Example 2 (Python)
-#
-# This example illustrates a simple usage of libCEED to compute the surface area of a 3D body using matrix-free application of a diffusion operator.
-# Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the same code.
-#
-# The example has no dependencies, and is designed to be self-contained.
-# For additional examples that use external discretization libraries (MFEM, PETSc, etc.) see the subdirectories in libceed/examples.
-#
-# All libCEED objects use a Ceed device object constructed based on a command line argument (-ceed).
+# libCEED example using diffusion operator to compute surface area
 #
 # Sample runs:
 #
-#     ./ex2_surface
-#     ./ex2_surface -ceed /cpu/self
-#     ./ex2_surface -ceed /gpu/cuda
-#
-# Test in 1D-3D
-# TESTARGS(name="1D User QFunction") -ceed {ceed_resource} -d 1 -t
-# TESTARGS(name="2D User QFunction") -ceed {ceed_resource} -d 2 -t
-# TESTARGS(name="3D User QFunction") -ceed {ceed_resource} -d 3 -t
-# TESTARGS(name="1D Gallery QFunction") -ceed {ceed_resource} -d 1 -t -g
-# TESTARGS(name="2D Gallery QFunction") -ceed {ceed_resource} -d 2 -t -g
-# TESTARGS(name="3D Gallery QFunction") -ceed {ceed_resource} -d 3 -t -g
-#
-# @file
-# libCEED example using diffusion operator to compute surface area
-# Correct full surface.py code, matches C ex2-surface.c exactly!
-# Final Correct surface.py
-# Final Correct surface.py (with qmode=libceed.GAUSS and 1D/2D/3D fixes)
-# Final fully working surface.py with positional arguments for Basis
-# Fully Corrected Final surface.py for your environment
-#!/usr/bin/env python3
-#!/usr/bin/env python3
+#     python ex2_surface.py
+#     python ex2_surface.py -ceed /cpu/self
+#     python ex2_surface.py -ceed /gpu/cuda
+
 import sys
 import argparse
 import numpy as np
