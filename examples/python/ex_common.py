@@ -6,10 +6,13 @@
 # This file is part of CEED:  http://github.com/ceed
 
 import sys
+import os
+from sysconfig import get_config_var
 import argparse
 import math
 import numpy as np
 import libceed
+import ctypes
 
 
 def parse_arguments():
@@ -205,16 +208,48 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords, use_sin=True):
     exact_area = {1: 2.0, 2: 4.0, 3: 6.0}[dim]
 
     # Apply transformation to coordinates
+    num_nodes = mesh_size // dim
     with mesh_coords.array_write() as coords:
-        if dim == 1 or not use_sin:
-            for i in range(mesh_size):
+        if dim == 1:
+            for i in range(num_nodes):
                 x = coords[i] - 0.5
                 coords[i] = 0.5 + (1.0 / np.sqrt(3.0)) * np.sin((2.0 / 3.0) * np.pi * x)
         else:
-            for i in range(mesh_size // dim):
-                u = 1. + coords[i]
-                v = np.pi / 2. * coords[i + mesh_size // dim]
-                coords[i] = u * np.cos(v)
-                coords[i + mesh_size // dim] = u * np.sin(v)
+            if use_sin:
+                for i in range(num_nodes):
+                    x = coords[i] - 0.5
+                    coords[i] = 0.5 + (1.0 / np.sqrt(3.0)) * np.sin((2.0 / 3.0) * np.pi * x)
+            else:
+                for i in range(num_nodes):
+                    u = 1. + coords[i]
+                    v = np.pi / 2. * coords[i + num_nodes]
+                    coords[i] = u * np.cos(v)
+                    coords[i + num_nodes] = u * np.sin(v)
 
     return (exact_volume, exact_area)
+
+
+def find_qfs_so(name, path):
+    """Find the QFunctions shared library.
+    Returns:
+        Filepath to shared library object
+    """
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+
+
+def load_qfs_so():
+    """Load the QFunctions shared library.
+    Returns:
+        Loaded shared library object
+    """
+    file_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "build")
+    qfs_so = find_qfs_so(
+        "libceed_c_qfunctions" + get_config_var("EXT_SUFFIX"),
+        file_dir)
+
+    # Load library
+    return ctypes.cdll.LoadLibrary(qfs_so)

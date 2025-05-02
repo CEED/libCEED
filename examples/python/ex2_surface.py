@@ -15,6 +15,7 @@
 #     python ex2_surface.py -c /gpu/cuda
 
 import sys
+import os
 import numpy as np
 import libceed
 import ex_common as common
@@ -96,7 +97,23 @@ def example_2(options):
 
     # Create the QFunction that builds the diffusion operator (i.e. computes
     # its quadrature data) and set its context data
-    qf_build = ceed.QFunctionByName(f"Poisson{dim}DBuild")
+    qf_build = None
+    if args.gallery:
+        qf_build = ceed.QFunctionByName(f"Poisson{dim}DBuild")
+    else:
+        build_ctx = ceed.QFunctionContext()
+        ctx_data = np.array([dim, dim], dtype=np.int32)
+        build_ctx.set_data(ctx_data)
+
+        qfs_so = common.load_qfs_so()
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+
+        qf_build = ceed.QFunction(1, qfs_so.build_diff,
+                                  os.path.join(file_dir, "ex2-surface.h:build_diff"))
+        qf_build.add_input("dx", dim * dim, libceed.EVAL_GRAD)
+        qf_build.add_input("weights", 1, libceed.EVAL_WEIGHT)
+        qf_build.add_output("qdata", num_q_comp, libceed.EVAL_NONE)
+        qf_build.set_context(build_ctx)
 
     # Operator for building quadrature data
     op_build = ceed.Operator(qf_build)
@@ -109,7 +126,23 @@ def example_2(options):
     op_build.apply(mesh_coords, q_data)
 
     # Create the QFunction that defines the action of the diffusion operator
-    qf_diff = ceed.QFunctionByName(f"Poisson{dim}DApply")
+    qf_diff = None
+    if args.gallery:
+        qf_diff = ceed.QFunctionByName(f"Poisson{dim}DApply")
+    else:
+        build_ctx = ceed.QFunctionContext()
+        ctx_data = np.array([dim, dim], dtype=np.int32)
+        build_ctx.set_data(ctx_data)
+
+        qfs_so = common.load_qfs_so()
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+
+        qf_diff = ceed.QFunction(1, qfs_so.apply_diff,
+                                 os.path.join(file_dir, "ex2-surface.h:apply_diff"))
+        qf_diff.add_input("du", dim, libceed.EVAL_GRAD)
+        qf_diff.add_input("qdata", num_q_comp, libceed.EVAL_NONE)
+        qf_diff.add_output("dv", dim, libceed.EVAL_GRAD)
+        qf_diff.set_context(build_ctx)
 
     # Diffusion operator
     op_diff = ceed.Operator(qf_diff)

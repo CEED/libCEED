@@ -15,6 +15,7 @@
 #     python ex1_volume -c /gpu/cuda
 
 import sys
+import os
 import numpy as np
 import libceed
 import ex_common as common
@@ -94,7 +95,23 @@ def example_1(args):
     exact_volume, _ = common.transform_mesh_coords(dim, mesh_size, mesh_coords)
 
     # Create the QFunction that builds the mass operator (i.e. computes its quadrature data) and set its context data
-    qf_build = ceed.QFunctionByName(f"Mass{dim}DBuild")
+    qf_build = None
+    if args.gallery:
+        qf_build = ceed.QFunctionByName(f"Mass{dim}DBuild")
+    else:
+        build_ctx = ceed.QFunctionContext()
+        ctx_data = np.array([dim, dim], dtype=np.int32)
+        build_ctx.set_data(ctx_data)
+
+        qfs_so = common.load_qfs_so()
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+
+        qf_build = ceed.QFunction(1, qfs_so.build_mass,
+                                  os.path.join(file_dir, "ex1-volume.h:build_mass"))
+        qf_build.add_input("dx", dim * dim, libceed.EVAL_GRAD)
+        qf_build.add_input("weights", 1, libceed.EVAL_WEIGHT)
+        qf_build.add_output("qdata", num_q_comp, libceed.EVAL_NONE)
+        qf_build.set_context(build_ctx)
 
     # Create the operator that builds the quadrature data for the mass operator
     op_build = ceed.Operator(qf_build)
@@ -107,7 +124,23 @@ def example_1(args):
     op_build.apply(mesh_coords, q_data)
 
     # Setup QFunction for applying the mass operator
-    qf_mass = ceed.QFunctionByName("MassApply")
+    qf_mass = None
+    if args.gallery:
+        qf_mass = ceed.QFunctionByName("MassApply")
+    else:
+        build_ctx = ceed.QFunctionContext()
+        ctx_data = np.array([dim, dim], dtype=np.int32)
+        build_ctx.set_data(ctx_data)
+
+        qfs_so = common.load_qfs_so()
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+
+        qf_mass = ceed.QFunction(1, qfs_so.apply_mass,
+                                 os.path.join(file_dir, "ex1-volume.h:apply_mass"))
+        qf_mass.add_input("u", 1, libceed.EVAL_INTERP)
+        qf_mass.add_input("qdata", num_q_comp, libceed.EVAL_NONE)
+        qf_mass.add_output("v", 1, libceed.EVAL_INTERP)
+        qf_mass.set_context(build_ctx)
 
     # Create the mass operator
     op_mass = ceed.Operator(qf_mass)
