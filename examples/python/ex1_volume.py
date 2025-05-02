@@ -10,9 +10,9 @@
 #
 # Sample runs:
 #
-#     python ex2_surface.py
-#     python ex2_surface.py -c /cpu/self
-#     python ex2_surface.py -c /gpu/cuda
+#     python ex1_volume.py
+#     python ex1_volume -c /cpu/self
+#     python ex1_volume -c /gpu/cuda
 
 import sys
 import numpy as np
@@ -21,13 +21,13 @@ import ex_common as common
 
 
 def main():
-    """Main driver for surface area example"""
+    """Main function for volume example"""
     args = common.parse_arguments()
-    return example_2(args)
+    return example_1(args)
 
 
-def example_2(options):
-    """Compute surface area using diffusion operator
+def example_1(args):
+    """Compute volume using mass operator
 
     Args:
         args: Parsed command line arguments
@@ -36,7 +36,6 @@ def example_2(options):
         int: 0 on success, error code on failure
     """
     # Process arguments
-    args = options
     dim = args.dim
     mesh_degree = max(args.mesh_degree, args.solution_degree)
     sol_degree = args.solution_degree
@@ -79,7 +78,7 @@ def example_2(options):
         print()
 
     # Create element restrictions
-    num_q_comp = dim * (dim + 1) // 2
+    num_q_comp = 1
     mesh_restriction, mesh_size, _, _, _ = common.build_cartesian_restriction(
         ceed, dim, num_xyz, mesh_degree, ncomp_x, num_q_comp, num_qpts, create_qdata=False)
     solution_restriction, sol_size, q_data_restriction, num_elem, elem_qpts = common.build_cartesian_restriction(
@@ -92,58 +91,54 @@ def example_2(options):
     # Create and transform mesh coordinates
     mesh_coords = ceed.Vector(mesh_size)
     common.set_cartesian_mesh_coords(ceed, dim, num_xyz, mesh_degree, mesh_coords)
-    _, exact_surface_area = common.transform_mesh_coords(dim, mesh_size, mesh_coords)
+    exact_volume, _ = common.transform_mesh_coords(dim, mesh_size, mesh_coords)
 
-    # Create the QFunction that builds the diffusion operator (i.e. computes
-    # its quadrature data) and set its context data
-    qf_build = ceed.QFunctionByName(f"Poisson{dim}DBuild")
+    # Create the QFunction that builds the mass operator (i.e. computes its quadrature data) and set its context data
+    qf_build = ceed.QFunctionByName(f"Mass{dim}DBuild")
 
-    # Operator for building quadrature data
+    # Create the operator that builds the quadrature data for the mass operator
     op_build = ceed.Operator(qf_build)
     op_build.set_field("dx", mesh_restriction, mesh_basis, libceed.VECTOR_ACTIVE)
     op_build.set_field("weights", libceed.ELEMRESTRICTION_NONE, mesh_basis, libceed.VECTOR_NONE)
     op_build.set_field("qdata", q_data_restriction, libceed.BASIS_NONE, libceed.VECTOR_ACTIVE)
 
-    # Compute quadrature data
+    # Compute the quadrature data for the mass operator
     q_data = ceed.Vector(num_elem * elem_qpts * num_q_comp)
     op_build.apply(mesh_coords, q_data)
 
-    # Create the QFunction that defines the action of the diffusion operator
-    qf_diff = ceed.QFunctionByName(f"Poisson{dim}DApply")
+    # Setup QFunction for applying the mass operator
+    qf_mass = ceed.QFunctionByName("MassApply")
 
-    # Diffusion operator
-    op_diff = ceed.Operator(qf_diff)
-    op_diff.set_field("du", solution_restriction, solution_basis, libceed.VECTOR_ACTIVE)
-    op_diff.set_field("qdata", q_data_restriction, libceed.BASIS_NONE, q_data)
-    op_diff.set_field("dv", solution_restriction, solution_basis, libceed.VECTOR_ACTIVE)
+    # Create the mass operator
+    op_mass = ceed.Operator(qf_mass)
+    op_mass.set_field("u", solution_restriction, solution_basis, libceed.VECTOR_ACTIVE)
+    op_mass.set_field("qdata", q_data_restriction, libceed.BASIS_NONE, q_data)
+    op_mass.set_field("v", solution_restriction, solution_basis, libceed.VECTOR_ACTIVE)
 
-    # Create vectors
-    u = ceed.Vector(sol_size)  # Input vector
-    v = ceed.Vector(sol_size)  # Output vector
+    # Create solution vectors
+    u = ceed.Vector(sol_size)
+    v = ceed.Vector(sol_size)
+    u.set_value(1.0)  # Set all entries of u to 1.0
 
-    # Initialize u with sum of coordinates (x + y + z)
-    with mesh_coords.array_read() as x_array, u.array_write() as u_array:
-        for i in range(sol_size):
-            u_array[i] = sum(x_array[i + j * (sol_size)] for j in range(dim))
+    # Apply mass operator: v = M * u
+    op_mass.apply(u, v)
 
-    # Apply operator: v = K * u
-    op_diff.apply(u, v)
-
-    # Compute surface area by summing absolute values of v
-    surface_area = 0.0
+    # Compute volume by summing all entries in v
+    volume = 0.0
     with v.array_read() as v_array:
-        surface_area = np.sum(abs(v_array))
+        # Simply sum all values to compute the volume
+        volume = np.sum(v_array)
 
     if not args.test:
         print()
-        print(f"Exact mesh surface area    : {exact_surface_area:.14g}")
-        print(f"Computed mesh surface area : {surface_area:.14g}")
-        print(f"Surface area error         : {surface_area - exact_surface_area:.14g}")
+        print(f"Exact mesh volume    : {exact_volume:.14g}")
+        print(f"Computed mesh volume : {volume:.14g}")
+        print(f"Volume error         : {volume - exact_volume:.14g}")
     else:
         # Test mode - check if error is within tolerance
-        tol = 10000 * libceed.EPSILON if dim == 1 else 1e-1
-        if abs(surface_area - exact_surface_area) > tol:
-            print(f"Surface area error : {surface_area - exact_surface_area:.14g}")
+        tol = 200 * libceed.EPSILON if dim == 1 else 1e-5
+        if abs(volume - exact_volume) > tol:
+            print(f"Volume error : {volume - exact_volume:.14g}")
             sys.exit(1)
 
     return 0
