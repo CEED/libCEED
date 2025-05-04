@@ -827,6 +827,15 @@ int CeedReference(Ceed ceed) {
   @ref Developer
 **/
 int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb) {
+  if (!ceed->VectorCreate) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement VectorCreate");
+    CeedCall(CeedGetWorkVectorMemoryUsage(delegate, usage_mb));
+    CeedCall(CeedDestroy(&delegate));
+    return CEED_ERROR_SUCCESS;
+  }
   *usage_mb = 0.0;
   if (ceed->work_vectors) {
     for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
@@ -852,6 +861,15 @@ int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb) {
   @ref Backend
 **/
 int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
+  if (!ceed->VectorCreate) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement VectorCreate");
+    CeedCall(CeedClearWorkVectors(delegate, min_len));
+    CeedCall(CeedDestroy(&delegate));
+    return CEED_ERROR_SUCCESS;
+  }
   if (!ceed->work_vectors) return CEED_ERROR_SUCCESS;
   for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
     if (ceed->work_vectors->is_in_use[i]) continue;
@@ -889,6 +907,16 @@ int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
 int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
   CeedInt    i = 0;
   CeedScalar usage_mb;
+
+  if (!ceed->VectorCreate) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement VectorCreate");
+    CeedCall(CeedGetWorkVector(delegate, len, vec));
+    CeedCall(CeedDestroy(&delegate));
+    return CEED_ERROR_SUCCESS;
+  }
 
   if (!ceed->work_vectors) CeedCall(CeedWorkVectorsCreate(ceed));
 
@@ -936,6 +964,16 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
   @ref Backend
 **/
 int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
+  if (!ceed->VectorCreate) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement VectorCreate");
+    CeedCall(CeedRestoreWorkVector(delegate, vec));
+    CeedCall(CeedDestroy(&delegate));
+    return CEED_ERROR_SUCCESS;
+  }
+
   for (CeedInt i = 0; i < ceed->work_vectors->num_vecs; i++) {
     if (*vec == ceed->work_vectors->vecs[i]) {
       CeedCheck(ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " was not checked out but is being returned");
