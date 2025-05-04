@@ -29,7 +29,10 @@ int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle) {
   Ceed_Hip *data;
 
   CeedCallBackend(CeedGetData(ceed, &data));
-  if (!data->hipblas_handle) CeedCallHipblas(ceed, hipblasCreate(&data->hipblas_handle));
+  if (!data->hipblas_handle) {
+    CeedCallHipblas(ceed, hipblasCreate(&data->hipblas_handle));
+    CeedCallHipblas(ceed, hipblasSetPointerMode(data->hipblas_handle, HIPBLAS_POINTER_MODE_HOST));
+  }
   *handle = data->hipblas_handle;
   return CEED_ERROR_SUCCESS;
 }
