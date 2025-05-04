@@ -22,9 +22,20 @@
 static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
   Ceed                  ceed;
   CeedOperator_Hip_gen *impl;
+  bool                  is_composite;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedInt num_suboperators;
+
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      if (impl->streams[i]) CeedCallHip(ceed, hipStreamDestroy(impl->streams[i]));
+      impl->streams[i] = NULL;
+    }
+  }
   if (impl->module) CeedCallHip(ceed, hipModuleUnload(impl->module));
   if (impl->points.num_per_elem) CeedCallHip(ceed, hipFree((void **)impl->points.num_per_elem));
   CeedCallBackend(CeedFree(&impl));
@@ -239,28 +250,35 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 }
 
 static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool              is_run_good[CEED_COMPOSITE_MAX] = {false};
-  CeedInt           num_suboperators;
-  const CeedScalar *input_arr  = NULL;
-  CeedScalar       *output_arr = NULL;
-  Ceed              ceed;
-  CeedOperator     *sub_operators;
+  bool                  is_run_good[CEED_COMPOSITE_MAX] = {true};
+  CeedInt               num_suboperators;
+  const CeedScalar     *input_arr = NULL;
+  CeedScalar           *output_arr;
+  Ceed                  ceed;
+  CeedOperator_Hip_gen *impl;
+  CeedOperator         *sub_operators;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+  CeedCallBackend(CeedCompositeOperatorGetSubList(op, &sub_operators));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
   for (CeedInt i = 0; i < num_suboperators; i++) {
     CeedInt num_elem = 0;
 
-    CeedCall(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
+    CeedCallBackend(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (num_elem > 0) {
-      hipStream_t stream = NULL;
+      if (!impl->streams[i]) CeedCallHip(ceed, hipStreamCreate(&impl->streams[i]));
+      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], impl->streams[i], input_arr, output_arr, &is_run_good[i], request));
+    } else {
+      is_run_good[i] = true;
+    }
+  }
 
-      CeedCallHip(ceed, hipStreamCreate(&stream));
-      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request));
-      CeedCallHip(ceed, hipStreamDestroy(stream));
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    if (impl->streams[i]) {
+      if (is_run_good[i]) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[i]));
     }
   }
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
