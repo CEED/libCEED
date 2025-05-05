@@ -5,17 +5,18 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-blocked.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
+#include "ceed-blocked.h"
+
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Blocked(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Ref_Blocked(const char *resource, Ceed ceed) {
   Ceed ceed_ref;
 
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref/blocked"), ceed, CEED_ERROR_BACKEND,
@@ -30,10 +31,5 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Blocked));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Ref_Blocked(void) { return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55); }
 
 //------------------------------------------------------------------------------
