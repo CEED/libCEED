@@ -6,13 +6,13 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-sycl-ref.hpp"
-
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-
 #include <string>
 #include <sycl/sycl.hpp>
+
+#include "../ceed-backend-init.h"
+#include "ceed-sycl-ref.hpp"
 
 //------------------------------------------------------------------------------
 // SYCL preferred MemType
@@ -25,7 +25,7 @@ static int CeedGetPreferredMemType_Sycl(CeedMemType *mem_type) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Sycl_ref(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Sycl_Ref(const char *resource, Ceed ceed) {
   Ceed_Sycl *data;
   char      *resource_root;
 
@@ -49,15 +49,6 @@ static int CeedInit_Sycl_ref(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionContextCreate", &CeedQFunctionContextCreate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", &CeedOperatorCreate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy", &CeedDestroy_Sycl));
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sycl(void) {
-  CeedCallBackend(CeedRegister("/gpu/sycl/ref", CeedInit_Sycl_ref, 40));
-  CeedCallBackend(CeedRegister("/cpu/sycl/ref", CeedInit_Sycl_ref, 50));
   return CEED_ERROR_SUCCESS;
 }
 

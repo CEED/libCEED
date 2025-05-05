@@ -5,16 +5,17 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-ref.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
+#include "ceed-ref.h"
+
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Ref(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Ref_Serial(const char *resource, Ceed ceed) {
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref") || !strcmp(resource, "/cpu/self/ref/serial"), ceed,
             CEED_ERROR_BACKEND, "Ref backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
@@ -33,16 +34,6 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreateAtPoints", CeedOperatorCreateAtPoints_Ref));
   return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Ref(void) {
-  return
-      //! [Register]
-      CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
-  //! [Register]
 }
 
 //------------------------------------------------------------------------------
