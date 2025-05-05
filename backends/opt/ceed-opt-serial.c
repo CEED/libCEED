@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-opt.h"
 
 //------------------------------------------------------------------------------
@@ -26,7 +27,7 @@ static int CeedDestroy_Opt(Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   Ceed      ceed_ref;
   Ceed_Opt *data;
 
@@ -49,10 +50,5 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetData(ceed, data));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Opt_Serial(void) { return CeedRegister("/cpu/self/opt/serial", CeedInit_Opt_Serial, 45); }
 
 //------------------------------------------------------------------------------
