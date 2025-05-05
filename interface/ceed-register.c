@@ -11,7 +11,8 @@
 
 static bool register_all_called;
 
-#define CEED_BACKEND(name, ...) CEED_INTERN int name(void);
+#undef CEED_BACKEND
+#define CEED_BACKEND(name) CEED_INTERN int CeedRegister_##name(void);
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
 
@@ -33,8 +34,8 @@ int CeedRegisterAll(void) {
   CeedPragmaCritical(CeedRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(CEED_DEBUG_COLOR_SUCCESS, "\n---------- Registering Backends ----------\n");
-#define CEED_BACKEND(name, ...) \
-  if (!ierr) ierr = name();
+#define CEED_BACKEND(name) \
+  if (!ierr) ierr = CeedRegister_##name();
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
       register_all_called = true;

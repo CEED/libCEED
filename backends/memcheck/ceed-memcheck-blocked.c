@@ -9,12 +9,13 @@
 #include <ceed/backend.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-memcheck.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Memcheck_Blocked(const char *resource, Ceed ceed) {
   Ceed ceed_ref;
 
   CeedCheck(!strcmp(resource, "/cpu/self/memcheck/blocked"), ceed, CEED_ERROR_BACKEND, "Valgrind Memcheck backend cannot use resource: %s", resource);
@@ -32,10 +33,5 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Memcheck));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Memcheck_Blocked(void) { return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110); }
 
 //------------------------------------------------------------------------------

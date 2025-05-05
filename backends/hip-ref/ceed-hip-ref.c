@@ -5,14 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-hip-ref.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../hip/ceed-hip-common.h"
+#include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
 // HIP preferred MemType
@@ -40,7 +40,7 @@ int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Hip_ref(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Hip_Ref(const char *resource, Ceed ceed) {
   Ceed_Hip *data;
   char     *resource_root;
 
@@ -68,10 +68,5 @@ static int CeedInit_Hip_ref(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip(void) { return CeedRegister("/gpu/hip/ref", CeedInit_Hip_ref, 40); }
 
 //------------------------------------------------------------------------------
