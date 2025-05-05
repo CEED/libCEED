@@ -10,6 +10,7 @@ import pytest
 from argparse import Namespace
 import ex1_volume
 import ex2_surface
+import ex3_volume
 
 # -------------------------------------------------------------------------------
 
@@ -213,5 +214,56 @@ def test_203g(ceed_resource):
         gallery=True,
     )
     ex2_surface.example_2(args)
+
+# -------------------------------------------------------------------------------
+
+
+def test_301(ceed_resource):
+    args = Namespace(
+        ceed=ceed_resource,
+        dim=1,
+        mesh_degree=4,
+        solution_degree=4,
+        quadrature_points=6,
+        problem_size=-1,
+        test=True,
+        quiet=True,
+        gallery=False,
+    )
+    ex3_volume.example_3(args)
+
+# -------------------------------------------------------------------------------
+
+
+def test_302(ceed_resource):
+    args = Namespace(
+        ceed=ceed_resource,
+        dim=2,
+        mesh_degree=4,
+        solution_degree=4,
+        quadrature_points=6,
+        problem_size=-1,
+        test=True,
+        quiet=True,
+        gallery=False,
+    )
+    ex3_volume.example_3(args)
+
+# -------------------------------------------------------------------------------
+
+
+def test_303(ceed_resource):
+    args = Namespace(
+        ceed=ceed_resource,
+        dim=3,
+        mesh_degree=4,
+        solution_degree=4,
+        quadrature_points=6,
+        problem_size=-1,
+        test=True,
+        quiet=True,
+        gallery=False,
+    )
+    ex3_volume.example_3(args)
 
 # -------------------------------------------------------------------------------

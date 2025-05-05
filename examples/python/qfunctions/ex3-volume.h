@@ -1,12 +1,13 @@
-#ifndef ex3_volume_h
-#define ex3_volume_h
+// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+#pragma once
 
 #include <ceed.h>
-
-/// A structure used to pass additional data to build_mass_diff
-struct BuildContext {
-  CeedInt dim, space_dim;
-};
+#include "ex-common.h"
 
 /// libCEED Q-function for building quadrature data for a mass + diffusion operator
 CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -165,5 +166,3 @@ CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
   }
   return CEED_ERROR_SUCCESS;
 }
-
-#endif
