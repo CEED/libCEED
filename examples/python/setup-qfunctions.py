@@ -21,12 +21,16 @@ if platform == "linux" or platform == "linux2" or platform == "darwin":
 
 # Define the extension module
 qfunctions = Extension("libceed_qfunctions",
-                      sources=sources,
-                      include_dirs=include_dirs,
-                      library_dirs=library_dirs,
-                      libraries=["ceed"],
-                      extra_compile_args=extra_compile_args)
+                       sources=sources,
+                       include_dirs=include_dirs,
+                       library_dirs=library_dirs,
+                       libraries=["ceed"],
+                       extra_compile_args=extra_compile_args)
 
 # Setup
 setup(name="libceed_qfunctions",
+      << << << < Updated upstream
       ext_modules=[qfunctions])
+== == == =
+ext_modules = [qfunctions])
+    >> >>>> > Stashed changes

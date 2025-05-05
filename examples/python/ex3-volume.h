@@ -12,7 +12,7 @@ struct BuildContext {
 CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights, size (Q)
-  const CeedScalar *w = in[1];
+  const CeedScalar *w             = in[1];
   CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   struct BuildContext *build_data = (struct BuildContext *)ctx;
 
@@ -40,7 +40,7 @@ CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
         const CeedScalar J10 = J[0][1][i];
         const CeedScalar J01 = J[1][0][i];
         const CeedScalar J11 = J[1][1][i];
-        const CeedScalar qw = w[i] / (J00 * J11 - J10 * J01);
+        const CeedScalar qw  = w[i] / (J00 * J11 - J10 * J01);
 
         // Mass
         q_data[0][i] = w[i] * (J00 * J11 - J10 * J01);
@@ -59,8 +59,8 @@ CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
         CeedScalar A[3][3];
         for (CeedInt j = 0; j < 3; j++) {
           for (CeedInt k = 0; k < 3; k++) {
-            A[k][j] = J[(k + 1) % 3][(j + 1) % 3][i] * J[(k + 2) % 3][(j + 2) % 3][i] -
-                     J[(k + 2) % 3][(j + 1) % 3][i] * J[(k + 1) % 3][(j + 2) % 3][i];
+            A[k][j] =
+                J[(k + 1) % 3][(j + 1) % 3][i] * J[(k + 2) % 3][(j + 2) % 3][i] - J[(k + 2) % 3][(j + 1) % 3][i] * J[(k + 1) % 3][(j + 2) % 3][i];
           }
         }
 
@@ -98,7 +98,7 @@ CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
   switch (build_data->dim) {
     case 1: {
       const CeedScalar *u = in[0], *ug = in[1];
-      CeedScalar *v = out[0], *vg = out[1];
+      CeedScalar       *v = out[0], *vg = out[1];
 
       CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
         // Mass
@@ -109,10 +109,10 @@ CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
       }
     } break;
     case 2: {
-      const CeedScalar *u = in[0];
+      const CeedScalar *u               = in[0];
       const CeedScalar(*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-      CeedScalar *v = out[0];
-      CeedScalar(*vg)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+      CeedScalar *v                     = out[0];
+      CeedScalar(*vg)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
       CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
         // Mass
@@ -135,10 +135,10 @@ CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
       }
     } break;
     case 3: {
-      const CeedScalar *u = in[0];
+      const CeedScalar *u               = in[0];
       const CeedScalar(*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-      CeedScalar *v = out[0];
-      CeedScalar(*vg)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+      CeedScalar *v                     = out[0];
+      CeedScalar(*vg)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
       CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
         // Mass
@@ -166,4 +166,4 @@ CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
   return CEED_ERROR_SUCCESS;
 }
 
-#endif 
+#endif

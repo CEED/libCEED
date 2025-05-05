@@ -26,7 +26,10 @@ import ctypes
 
 def find_qfs_so(name, path):
     """Find the QFunctions shared library.
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     Returns:
         Filepath to shared library object
     """
@@ -37,7 +40,10 @@ def find_qfs_so(name, path):
 
 def load_qfs_so():
     """Load the QFunctions shared library.
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     Returns:
         Loaded shared library object
     """
@@ -48,19 +54,25 @@ def load_qfs_so():
         "libceed_qfunctions" + get_config_var("EXT_SUFFIX"),
         file_dir)
 
-    # Load library
-    return ctypes.cdll.LoadLibrary(qfs_so)
 
+<< << << < Updated upstream
+
+# Load library
+return ctypes.cdll.LoadLibrary(qfs_so)
+
+== == == =
+
+# Load library
+return ctypes.cdll.LoadLibrary(qfs_so)
+>>>>>> > Stashed changes
 
 
 def get_cartesian_mesh_size(dim, degree, prob_size):
     """Determine mesh size based on approximate problem size.
-
     Args:
         dim: Dimension of the mesh
         degree: Polynomial degree for the solution
         prob_size: Approximate problem size
-
     Returns:
         List of element counts in each dimension
     """
@@ -89,7 +101,6 @@ def get_cartesian_mesh_size(dim, degree, prob_size):
 # ------------------------------------------------------------------------------
 def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, args=None):
     """Build CeedElemRestriction objects for a Cartesian mesh.
-
     Args:
         ceed: Ceed object
         dim: Dimension of the mesh
@@ -98,7 +109,10 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
         num_comp: Number of components
         num_qpts: Number of quadrature points in 1D
         args: Command line arguments
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     Returns:
         Tuple containing:
         - restriction: Element restriction
@@ -176,7 +190,6 @@ def build_cartesian_restriction(ceed, dim, num_xyz, degree, num_comp, num_qpts, 
 # ------------------------------------------------------------------------------
 def set_cartesian_mesh_coords(dim, num_xyz, mesh_degree, mesh_coords):
     """Set coordinates for a Cartesian mesh.
-
     Args:
         dim: Dimension of the mesh
         num_xyz: Number of elements in each dimension
@@ -221,12 +234,10 @@ def set_cartesian_mesh_coords(dim, num_xyz, mesh_degree, mesh_coords):
 # ------------------------------------------------------------------------------
 def transform_mesh_coords(dim, mesh_size, mesh_coords):
     """Apply a transformation to the mesh.
-
     Args:
         dim: Dimension of the mesh
         mesh_size: Size of the mesh vector
         mesh_coords: Vector with mesh coordinates
-
     Returns:
         Exact volume of the transformed domain
     """
@@ -262,7 +273,6 @@ def transform_mesh_coords(dim, mesh_size, mesh_coords):
 
 def parse_arguments():
     """Parse command line arguments.
-
     Returns:
         Parsed command line arguments
     """
@@ -320,7 +330,10 @@ def parse_arguments():
 
 def run_example_3(args):
     """Run Example 3.
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     Args:
         args: Parsed command line arguments
     """
