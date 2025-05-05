@@ -204,7 +204,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionAddOutput(qf_apply, "dv", dim, CEED_EVAL_GRAD);
   CeedQFunctionSetContext(qf_apply, build_ctx);
 
-  // Create the mass +diffusion operator.
+  // Create the mass + diffusion operator.
   CeedOperator op_apply;
 
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);

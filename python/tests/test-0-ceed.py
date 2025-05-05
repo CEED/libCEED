@@ -20,7 +20,7 @@ def test_000(ceed_resource):
     ceed = libceed.Ceed(ceed_resource)
 
 # -------------------------------------------------------------------------------
-# Test return of Ceed backend prefered memory type
+# Test return of Ceed backend preferred memory type
 # -------------------------------------------------------------------------------
 
 
