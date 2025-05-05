@@ -38,6 +38,8 @@ jobs:
         pip install .
         cd python/tests
         PYTHON=python3 make test TEST_OPTS="--ceed /cpu/self/ref/serial -vv"
+        cd ../../examples/python
+        PYTHON=python3 make test TEST_OPTS="--ceed /cpu/self/ref/serial -vv"
         cd ../..
     - name: Python style
       env:
