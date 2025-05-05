@@ -10,12 +10,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-avx.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Avx(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Avx_Serial(const char *resource, Ceed ceed) {
   Ceed ceed_ref;
 
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/avx/serial"), ceed, CEED_ERROR_BACKEND,
@@ -30,10 +31,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Avx));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Avx_Serial(void) { return CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35); }
 
 //------------------------------------------------------------------------------

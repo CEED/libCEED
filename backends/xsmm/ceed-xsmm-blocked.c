@@ -10,12 +10,13 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-xsmm.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   Ceed ceed_ref;
 
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/xsmm") || !strcmp(resource, "/cpu/self/xsmm/blocked"), ceed,
@@ -30,10 +31,5 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Xsmm));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Xsmm_Blocked(void) { return CeedRegister("/cpu/self/xsmm/blocked", CeedInit_Xsmm_Blocked, 20); }
 
 //------------------------------------------------------------------------------

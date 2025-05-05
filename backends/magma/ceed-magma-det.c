@@ -10,12 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-magma-common.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   Ceed        ceed_ref;
   Ceed_Magma *data;
   const int   nrc = 18;  // number of characters in resource
@@ -39,17 +40,6 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Magma));
   return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Magma_Det(void) {
-#ifdef CEED_MAGMA_USE_HIP
-  return CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
-#else
-  return CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
-#endif
 }
 
 //------------------------------------------------------------------------------

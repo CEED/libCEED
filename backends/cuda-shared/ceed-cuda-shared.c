@@ -5,19 +5,19 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-cuda-shared.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../cuda/ceed-cuda-common.h"
+#include "ceed-cuda-shared.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Cuda_Shared(const char *resource, Ceed ceed) {
   Ceed       ceed_ref;
   Ceed_Cuda *data;
   char      *resource_root;
@@ -40,10 +40,5 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Register backend
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda_Shared(void) { return CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 25); }
 
 //------------------------------------------------------------------------------
