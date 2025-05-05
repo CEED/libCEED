@@ -21,6 +21,8 @@
 #include "ceed-occa-types.hpp"
 #include "ceed-occa-vector.hpp"
 
+#include "../ceed-backend-init.h"
+
 namespace ceed {
 namespace occa {
 typedef std::map<std::string, std::string> StringMap;
@@ -298,7 +300,7 @@ static int registerMethods(Ceed ceed) {
   return CEED_ERROR_SUCCESS;
 }
 
-static int registerBackend(const char *resource, Ceed ceed) {
+static int initBackend(const char *resource, Ceed ceed) {
   try {
     CeedCallBackend(ceed::occa::initCeed(resource, ceed));
   } catch (const ::occa::exception &e) {
@@ -314,16 +316,4 @@ static int registerBackend(const char *resource, Ceed ceed) {
 }  // namespace occa
 }  // namespace ceed
 
-CEED_INTERN int CeedRegister_Occa(void) {
-  // General mode
-  CeedCallBackend(CeedRegister("/*/occa", ceed::occa::registerBackend, 270));
-  // CPU Modes
-  CeedCallBackend(CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 260));
-  CeedCallBackend(CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 250));
-  // GPU Modes
-  CeedCallBackend(CeedRegister("/gpu/dpcpp/occa", ceed::occa::registerBackend, 240));
-  CeedCallBackend(CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230));
-  CeedCallBackend(CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220));
-  CeedCallBackend(CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210));
-  return CEED_ERROR_SUCCESS;
-}
+CEED_INTERN int CeedInit_Occa(const char *resource, Ceed ceed) { return ceed::occa::initBackend(resource, ceed); }
