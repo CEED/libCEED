@@ -305,14 +305,13 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
   // Set value for synced device/host array
   if (impl->d_array) {
     CeedScalar *copy_array;
+    Ceed        ceed;
 
+    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_DEVICE, &copy_array));
 #if (HIP_VERSION >= 60000000)
     hipblasHandle_t handle;
     hipStream_t     stream;
-    Ceed            ceed;
-
-    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
     CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
     CeedCallHipblas(ceed, hipblasGetStream(handle, &stream));
 #if defined(CEED_SCALAR_IS_FP32)
