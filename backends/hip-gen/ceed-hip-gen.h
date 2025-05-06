@@ -17,6 +17,7 @@ typedef struct {
   CeedInt       Q, Q_1d;
   CeedInt       max_P_1d;
   CeedInt       thread_1d;
+  hipStream_t   streams[CEED_COMPOSITE_MAX];
   hipModule_t   module;
   hipFunction_t op;
   FieldsInt_Hip indices;

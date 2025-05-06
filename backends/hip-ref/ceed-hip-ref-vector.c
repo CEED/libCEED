@@ -305,19 +305,21 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
   // Set value for synced device/host array
   if (impl->d_array) {
     CeedScalar *copy_array;
+    Ceed        ceed;
 
+    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
     CeedCallBackend(CeedVectorGetArray(vec_copy, CEED_MEM_DEVICE, &copy_array));
 #if (HIP_VERSION >= 60000000)
     hipblasHandle_t handle;
-    Ceed            ceed;
-
-    CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+    hipStream_t     stream;
     CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
+    CeedCallHipblas(ceed, hipblasGetStream(handle, &stream));
 #if defined(CEED_SCALAR_IS_FP32)
     CeedCallHipblas(ceed, hipblasScopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #else  /* CEED_SCALAR */
     CeedCallHipblas(ceed, hipblasDcopy_64(handle, (int64_t)(stop - start), impl->d_array + start, (int64_t)step, copy_array + start, (int64_t)step));
 #endif /* CEED_SCALAR */
+    CeedCallHip(ceed, hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
     CeedCallBackend(CeedDeviceCopyStrided_Hip(impl->d_array, start, stop, step, copy_array));
 #endif /* HIP_VERSION */
@@ -557,6 +559,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   const CeedScalar *d_array;
   CeedVector_Hip   *impl;
   hipblasHandle_t   handle;
+  hipStream_t       stream;
   Ceed_Hip         *hip_data;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
@@ -564,7 +567,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
-
+  CeedCallHipblas(ceed, hipblasGetStream(handle, &stream));
 #if (HIP_VERSION < 60000000)
   // With ROCm 6, we can use the 64-bit integer interface. Prior to that,
   // we need to check if the vector is too long to handle with int32,
@@ -581,6 +584,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #if defined(CEED_SCALAR_IS_FP32)
 #if (HIP_VERSION >= 60000000)  // We have ROCm 6, and can use 64-bit integers
       CeedCallHipblas(ceed, hipblasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+      CeedCallHip(ceed, hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
       float  sub_norm = 0.0;
       float *d_array_start;
@@ -591,12 +595,14 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
         *norm += sub_norm;
       }
 #endif /* HIP_VERSION */
 #else  /* CEED_SCALAR */
 #if (HIP_VERSION >= 60000000)
       CeedCallHipblas(ceed, hipblasDasum_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+      CeedCallHip(ceed, hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
       double  sub_norm = 0.0;
       double *d_array_start;
@@ -607,6 +613,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
         *norm += sub_norm;
       }
 #endif /* HIP_VERSION */
@@ -617,6 +624,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #if defined(CEED_SCALAR_IS_FP32)
 #if (HIP_VERSION >= 60000000)
       CeedCallHipblas(ceed, hipblasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+      CeedCallHip(ceed, hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
       float  sub_norm = 0.0, norm_sum = 0.0;
       float *d_array_start;
@@ -627,6 +635,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
         norm_sum += sub_norm * sub_norm;
       }
       *norm = sqrt(norm_sum);
@@ -634,6 +643,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 #else  /* CEED_SCALAR */
 #if (HIP_VERSION >= 60000000)
       CeedCallHipblas(ceed, hipblasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+      CeedCallHip(ceed, hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
       double  sub_norm = 0.0, norm_sum = 0.0;
       double *d_array_start;
@@ -644,6 +654,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
         CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
 
         CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
         norm_sum += sub_norm * sub_norm;
       }
       *norm = sqrt(norm_sum);
@@ -658,7 +669,8 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
       CeedScalar norm_no_abs;
 
       CeedCallHipblas(ceed, hipblasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &index));
-      CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+      CeedCallHip(ceed, hipMemcpyAsync(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost, stream));
+      CeedCallHip(ceed, hipStreamSynchronize(stream));
       *norm = fabs(norm_no_abs);
 #else  /* HIP_VERSION */
       CeedInt index;
@@ -672,10 +684,11 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 
         CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
         if (hip_data->has_unified_addressing) {
-          CeedCallHip(ceed, hipDeviceSynchronize());
+          CeedCallHip(ceed, hipStreamSynchronize(stream));
           sub_max = fabs(d_array[index - 1]);
         } else {
-          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          CeedCallHip(ceed, hipMemcpyAsync(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost, stream));
+          CeedCallHip(ceed, hipStreamSynchronize(stream));
         }
         if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
       }
@@ -688,10 +701,11 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 
       CeedCallHipblas(ceed, hipblasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
       if (hip_data->has_unified_addressing) {
-        CeedCallHip(ceed, hipDeviceSynchronize());
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
         norm_no_abs = fabs(d_array[index - 1]);
       } else {
-        CeedCallHip(ceed, hipMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+        CeedCallHip(ceed, hipMemcpyAsync(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost, stream));
+        CeedCallHip(ceed, hipStreamSynchronize(stream));
       }
       *norm = fabs(norm_no_abs);
 #else  /* HIP_VERSION */
@@ -706,10 +720,11 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 
         CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
         if (hip_data->has_unified_addressing) {
-          CeedCallHip(ceed, hipDeviceSynchronize());
+          CeedCallHip(ceed, hipStreamSynchronize(stream));
           sub_max = fabs(d_array[index - 1]);
         } else {
-          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          CeedCallHip(ceed, hipMemcpyAsync(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost, stream));
+          CeedCallHip(ceed, hipStreamSynchronize(stream));
         }
         if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
       }
@@ -780,13 +795,16 @@ static int CeedVectorScale_Hip(CeedVector x, CeedScalar alpha) {
   if (impl->d_array) {
 #if (HIP_VERSION >= 60000000)
     hipblasHandle_t handle;
+    hipStream_t     stream;
 
     CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(x), &handle));
+    CeedCallHipblas(CeedVectorReturnCeed(x), hipblasGetStream(handle, &stream));
 #if defined(CEED_SCALAR_IS_FP32)
     CeedCallHipblas(CeedVectorReturnCeed(x), hipblasSscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
 #else  /* CEED_SCALAR */
     CeedCallHipblas(CeedVectorReturnCeed(x), hipblasDscal_64(handle, (int64_t)length, &alpha, impl->d_array, 1));
 #endif /* CEED_SCALAR */
+    CeedCallHip(CeedVectorReturnCeed(x), hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
     CeedCallBackend(CeedDeviceScale_Hip(impl->d_array, alpha, length));
 #endif /* HIP_VERSION */
@@ -827,13 +845,16 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
 #if (HIP_VERSION >= 60000000)
     hipblasHandle_t handle;
+    hipStream_t     stream;
 
-    CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(y), &handle));
+    CeedCallBackend(CeedGetHipblasHandle_Hip(CeedVectorReturnCeed(x), &handle));
+    CeedCallHipblas(CeedVectorReturnCeed(y), hipblasGetStream(handle, &stream));
 #if defined(CEED_SCALAR_IS_FP32)
     CeedCallHipblas(CeedVectorReturnCeed(y), hipblasSaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
 #else  /* CEED_SCALAR */
     CeedCallHipblas(CeedVectorReturnCeed(y), hipblasDaxpy_64(handle, (int64_t)length, &alpha, x_impl->d_array, 1, y_impl->d_array, 1));
 #endif /* CEED_SCALAR */
+    CeedCallHip(CeedVectorReturnCeed(y), hipStreamSynchronize(stream));
 #else  /* HIP_VERSION */
     CeedCallBackend(CeedDeviceAXPY_Hip(y_impl->d_array, alpha, x_impl->d_array, length));
 #endif /* HIP_VERSION */

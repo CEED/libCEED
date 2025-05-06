@@ -489,6 +489,7 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -644,6 +645,7 @@ static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
   CeedCallHip(ceed, hipFree(data->d_collo_grad_1d));
   CeedCallHip(ceed, hipFree(data->d_chebyshev_interp_1d));
   CeedCallBackend(CeedFree(&data));
+  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -737,6 +739,7 @@ int CeedBasisCreateH1_Hip_shared(CeedElemTopology topo, CeedInt dim, CeedInt num
     if (((size_t)num_nodes * (size_t)num_qpts * (size_t)dim + (size_t)CeedIntMax(num_nodes, num_qpts)) * sizeof(CeedScalar) >
         hip_data->device_prop.sharedMemPerBlock) {
       CeedCallBackend(CeedBasisCreateH1Fallback(ceed, topo, dim, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
+      CeedCallBackend(CeedDestroy(&ceed));
       return CEED_ERROR_SUCCESS;
     }
   }
