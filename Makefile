@@ -32,6 +32,9 @@ quiet ?= $($(1))
 .PRECIOUS: %/.DIR
 
 
+DARWIN := $(filter Darwin,$(shell uname -s))
+
+
 # ------------------------------------------------------------
 # Root directories for backend dependencies
 # ------------------------------------------------------------
@@ -72,7 +75,7 @@ ifeq (,$(filter-out undefined default,$(origin AR)))
   AR = ar
 endif
 ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
-  ARFLAGS = crD
+  ARFLAGS = $(if $(DARWIN),cr,crD)
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
@@ -222,7 +225,6 @@ MFLAGS := -j $(NPROCS) --warn-undefined-variables \
 PYTHON ?= python3
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
-DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
