@@ -232,7 +232,7 @@ For example:
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide cross platform performance.
 To enable the OCCA backend, the environment variable `OCCA_DIR` must point to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default, `OCCA_DIR` is set to `../occa`).
-OCCA version 1.4.0 or newer is required.
+OCCA version 1.6.0 or newer is required.
 
 Users can pass specific OCCA device properties after setting the CEED resource.
 For example:

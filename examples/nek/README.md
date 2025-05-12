@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-Nek5000 v18.0 or greater must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run these examples.
+Nek5000 v19.0 or greater must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run these examples.
 It is assumed to exist at `../../../Nek5000` (a sibling to the libCEED directory) or at a path defined in the environment variable `NEK5K_DIR`.
 For example, you could set
 ```sh

@@ -1,6 +1,6 @@
 ## libCEED + PETSc Examples
 
-PETSc v3.17 or a development version of PETSc at commit 0e95d842 or later is required.
+This page provides a description of the CEED bakeoff problem examples for the libCEED library, based on PETSc.
 
 ### CEED bakeoff problems with raw mesh management - bpsraw
 
@@ -17,7 +17,6 @@ In addition to the common arguments, the following arguments may be set:
 ### CEED bakeoff problems with DMPlex - bps
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex.
-This example requires a PETSc version later than 3.11.3.
 
 To build, run `make bps`
 
@@ -43,7 +42,6 @@ The resulting log file can be read by the Python plotting scripts in `benchmarks
 ### CEED bakeoff problems with DMPlex and PCMG - multigrid
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex with p-multigrid implemented in PCMG.
-This example requires a PETSc version later than 3.11.3.
 
 To build, run `make multigrid`
 
