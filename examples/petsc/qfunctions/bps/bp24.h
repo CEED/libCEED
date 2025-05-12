@@ -16,7 +16,7 @@
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMassDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -37,7 +37,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     true_soln[i + 2 * Q] = 3 * true_soln[i + 0 * Q];
 
     // Component 1
-    rhs[i + 0 * Q] = w[i + Q * 0] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[i + 0 * Q];
+    rhs[i + 0 * Q] = w[i + Q * 0] * (M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) + 1.0) * true_soln[i + 0 * Q];
     // Component 2
     rhs[i + 1 * Q] = 2 * rhs[i + 0 * Q];
     // Component 3
@@ -47,18 +47,20 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 }
 
 // -----------------------------------------------------------------------------
-// This QFunction applies the diffusion operator for a vector field of 3 components.
+// This QFunction applies the mass + diffusion operator for a vector field of 3 components.
 //
 // Inputs:
+//   u       - Input vector at quadrature points
 //   ug      - Input vector Jacobian at quadrature points
 //   q_data  - Geometric factors
 //
 // Output:
+//   v      - Output vector (test functions) at quadrature points
 //   vJ     - Output vector (test functions) Jacobian at quadrature points
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *ug = in[0], *q_data = in[1];
-  CeedScalar       *vg = out[0];
+CEED_QFUNCTION(MassDiff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *ug = in[1], *q_data = in[2];
+  CeedScalar       *v = out[0], *vg = out[1];
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -75,12 +77,16 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
         {q_data[i + 3 * Q], q_data[i + 5 * Q], q_data[i + 6 * Q]}
     };
 
-    for (int k = 0; k < 3; k++) {    // k = component
+    for (int k = 0; k < 3; k++) {  // k = component
+      // Mass
+      v[i + k * Q] = q_data[i + 0 * Q] * u[i + k * Q];
+      // Diff
       for (int j = 0; j < 3; j++) {  // j = direction of vg
         vg[i + (k + j * 3) * Q] = (uJ[k][0] * dXdxdXdx_T[0][j] + uJ[k][1] * dXdxdXdx_T[1][j] + uJ[k][2] * dXdxdXdx_T[2][j]);
       }
     }
   }  // End of Quadrature Point Loop
+
   return 0;
 }
 // -----------------------------------------------------------------------------

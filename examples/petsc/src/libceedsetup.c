@@ -105,18 +105,40 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
     CeedOperatorApply(op_setup_geo, x_coord, q_data, CEED_REQUEST_IMMEDIATE);
 
     // Set up PDE operator
-    CeedInt in_scale  = bp_data.in_mode == CEED_EVAL_GRAD ? topo_dim : 1;
-    CeedInt out_scale = bp_data.out_mode == CEED_EVAL_GRAD ? topo_dim : 1;
+    PetscBool is_interp = bp_data.in_mode == CEED_EVAL_INTERP;
+    CeedInt   in_scale  = bp_data.in_mode == CEED_EVAL_GRAD ? topo_dim : 1;
+    CeedInt   out_scale = bp_data.out_mode == CEED_EVAL_GRAD ? topo_dim : 1;
+
     CeedQFunctionCreateInterior(ceed, 1, bp_data.apply, bp_data.apply_loc, &qf_apply);
-    CeedQFunctionAddInput(qf_apply, "u", num_comp_u * in_scale, bp_data.in_mode);
+    if (bp_data.in_mode == CEED_EVAL_INTERP + CEED_EVAL_GRAD) {
+      CeedQFunctionAddInput(qf_apply, "u", num_comp_u, CEED_EVAL_INTERP);
+      CeedQFunctionAddInput(qf_apply, "du", num_comp_u * topo_dim, CEED_EVAL_GRAD);
+    } else {
+      CeedQFunctionAddInput(qf_apply, is_interp ? "u" : "du", num_comp_u * in_scale, bp_data.in_mode);
+    }
     CeedQFunctionAddInput(qf_apply, "qdata", q_data_size, CEED_EVAL_NONE);
-    CeedQFunctionAddOutput(qf_apply, "v", num_comp_u * out_scale, bp_data.out_mode);
+    if (bp_data.out_mode == CEED_EVAL_INTERP + CEED_EVAL_GRAD) {
+      CeedQFunctionAddOutput(qf_apply, "v", num_comp_u, CEED_EVAL_INTERP);
+      CeedQFunctionAddOutput(qf_apply, "dv", num_comp_u * topo_dim, CEED_EVAL_GRAD);
+    } else {
+      CeedQFunctionAddOutput(qf_apply, is_interp ? "v" : "dv", num_comp_u * out_scale, bp_data.out_mode);
+    }
 
     // Create the mass or diff operator
     CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
-    CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    if (bp_data.in_mode == CEED_EVAL_INTERP + CEED_EVAL_GRAD) {
+      CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_apply, "du", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    } else {
+      CeedOperatorSetField(op_apply, is_interp ? "u" : "du", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    }
     CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
-    CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    if (bp_data.out_mode == CEED_EVAL_INTERP + CEED_EVAL_GRAD) {
+      CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_apply, "dv", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    } else {
+      CeedOperatorSetField(op_apply, is_interp ? "v" : "dv", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
+    }
 
     // Cleanup
     CeedQFunctionDestroy(&qf_setup_geo);

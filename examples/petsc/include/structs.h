@@ -65,7 +65,7 @@ typedef struct {
 } BPData;
 
 // BP options
-typedef enum { CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2, CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5 } BPType;
+typedef enum { CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2, CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5, CEED_BP13 = 6, CEED_BP24 = 7 } BPType;
 
 // -----------------------------------------------------------------------------
 // Parameter structure for running problems

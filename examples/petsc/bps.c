@@ -26,6 +26,8 @@
 //
 //TESTARGS(name="BP3, tet elements") -ceed {ceed_resource} -test -problem bp3 -degree 3 -ksp_max_it_clip 50,50 -simplex
 //TESTARGS(name="BP5, hex elements") -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 18,18
+//TESTARGS(name="BP1+3, hex elements") -ceed {ceed_resource} -test -problem bp1_3 -degree 3 -ksp_max_it_clip 18,18
+//TESTARGS(name="BP2+4, hex elements") -ceed {ceed_resource} -test -problem bp2_4 -degree 3 -ksp_max_it_clip 18,18
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -183,9 +185,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   {
     PC pc;
     PetscCall(KSPGetPC(ksp, &pc));
-    if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2) {
+    if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2 || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24) {
       PetscCall(PCSetType(pc, PCJACOBI));
-      if (rp->simplex) {
+      if (rp->simplex || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24) {
         PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
       } else {
         PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
@@ -255,7 +257,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
       PetscCall(SetupErrorOperatorCtx(rp->comm, dm, ceed, ceed_data, X_loc, op_error, op_error_ctx));
       PetscScalar l2_error;
       PetscCall(ComputeL2Error(X, &l2_error, op_error_ctx));
-      PetscReal tol = 5e-2;
+      // Tighter tol for BP1, BP2
+      // Looser tol for BP3, BP4, BP5, and BP6 with extra for vector valued problems
+      // BP1+3 and BP2+4 follow the pattern for BP3 and BP4
+      PetscReal tol = rp->bp_choice < CEED_BP3 ? 5e-4 : (5e-2 + (rp->bp_choice % 2 == 1 ? 5e-3 : 0));
       if (!rp->test_mode || l2_error > tol) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm));
         PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, rp->comm));
