@@ -89,7 +89,6 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 
     rhs[i] = w[i + Q * 0] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[i];
   }  // End of Quadrature Point Loop
-
   return 0;
 }
 
