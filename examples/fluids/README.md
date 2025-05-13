@@ -1,7 +1,6 @@
 ## libCEED: Navier-Stokes Example
 
 This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
-PETSc v3.17 or a development version of PETSc at commit 0e95d842 or later is required.
 
 HONEE, a more fully featured fluid dynamics solver, can be found on [GitLab](https://gitlab.com/phypid/honee).
 
