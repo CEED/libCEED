@@ -496,7 +496,7 @@ int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedCopyMode copy
   @ref Backend
 **/
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  CeedDebugEnv("Backend Register: %s", prefix);
+  CeedDebugEnv("Backend Register: %s, %d", prefix, priority);
   CeedRegisterImpl(prefix, init, priority);
   return CEED_ERROR_SUCCESS;
 }

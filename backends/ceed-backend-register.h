@@ -9,6 +9,6 @@
 #include <ceed/backend.h>
 
 #undef CEED_BACKEND
-#define CEED_BACKEND(name, ...) CEED_INTERN int CeedInit_##name(const char *resource, Ceed ceed);
+#define CEED_BACKEND(name, suffix, ...) CEED_INTERN int CeedRegister_##name##suffix(void);
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND

@@ -655,7 +655,7 @@ endif
 # ------------------------------------------------------------
 
 FORCE:
-$(OBJDIR)/backends/ceed-backend-list.o: FORCE
+$(OBJDIR)/backends/ceed-backend-register.o: FORCE
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
