@@ -5,18 +5,18 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-cuda-gen.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../cuda/ceed-cuda-common.h"
+#include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Cuda_Gen(const char *resource, Ceed ceed) {
   char      *resource_root;
   const char fallback_resource[] = "/gpu/cuda/ref";
   Ceed       ceed_shared;
@@ -44,10 +44,5 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Register backend
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda_Gen(void) { return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20); }
 
 //------------------------------------------------------------------------------
