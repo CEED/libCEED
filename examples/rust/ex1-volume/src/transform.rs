@@ -37,7 +37,8 @@ pub(crate) fn transform_mesh_coordinates(
     // Exact volume of transformed region
     let exact_volume = match dim {
         1 => 1.0,
-        _ => 3.0 / 4.0 * std::f64::consts::PI as libceed::Scalar,
+        2 | 3 => 3.0 / 4.0 * std::f64::consts::PI as libceed::Scalar,
+        _ => unreachable!(),
     };
     Ok(exact_volume)
 }

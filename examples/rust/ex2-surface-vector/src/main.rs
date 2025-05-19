@@ -5,12 +5,13 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 //
-//                             libCEED Example 3
+//                             libCEED Example 4
 //
-// This example illustrates a simple usage of libCEED to compute the volume of a
-// 3D body using matrix-free application of a mass operator.  Arbitrary mesh and
-// solution orders in 1D, 2D and 3D are supported from the same code. This
-// calculation is executed in triplicate with a 3 component vector system.
+// This example illustrates a simple usage of libCEED to compute the surface
+// area of a 3D body using matrix-free application of a diffusion operator.
+// Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the
+// same code. This calculation is executed in triplicate with a 3 component
+// vector system.
 //
 // The example has no dependencies, and is designed to be self-contained. For
 // additional examples that use external discretization libraries (MFEM, PETSc,
@@ -27,16 +28,16 @@ mod opt;
 mod transform;
 
 // ----------------------------------------------------------------------------
-// Example 3
+// Example 4
 // ----------------------------------------------------------------------------
 fn main() -> libceed::Result<()> {
     let options = opt::Opt::parse();
-    example_3(options)
+    example_2_vector(options)
 }
 
 #[allow(clippy::erasing_op)]
 #[allow(clippy::identity_op)]
-fn example_3(options: opt::Opt) -> libceed::Result<()> {
+fn example_2_vector(options: opt::Opt) -> libceed::Result<()> {
     // Process command line arguments
     let opt::Opt {
         ceed_spec,
@@ -56,7 +57,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     let ncomp_x = dim;
     let problem_size: i64 = if problem_size_requested < 0 {
         if test {
-            8 * 16
+            16 * 16 * (dim * dim) as i64
         } else {
             256 * 1024
         }
@@ -116,8 +117,15 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     // representations
     let (rstr_mesh, _) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts)?;
-    let (_, rstr_qdata) =
-        mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts)?;
+    let (_, rstr_qdata) = mesh::build_cartesian_restriction(
+        &ceed,
+        dim,
+        num_xyz,
+        solution_degree,
+        dim * (dim + 1) / 2,
+        num_qpts,
+    )?;
+
     let (rstr_solution, _) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, ncomp_u, num_qpts)?;
     let mesh_size = rstr_mesh.lvector_size();
@@ -131,44 +139,72 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
     let mut mesh_coords = mesh::cartesian_mesh_coords(&ceed, dim, num_xyz, mesh_degree, mesh_size)?;
 
     // Apply a transformation to the mesh coordinates
-    let exact_volume = transform::transform_mesh_coordinates(dim, mesh_size, &mut mesh_coords)?;
+    let exact_area = transform::transform_mesh_coordinates(dim, &mut mesh_coords)?;
 
-    // QFunction that builds the quadrature data for the mass operator
+    // QFunction that builds the quadrature data for the diff operator
     // -- QFunction from user closure
-    let build_mass = move |[jacobian, weights, ..]: QFunctionInputs,
+    let build_diff = move |[jacobian, weights, ..]: QFunctionInputs,
                            [qdata, ..]: QFunctionOutputs| {
         // Build quadrature data
         match dim {
             1 => qdata
                 .iter_mut()
                 .zip(jacobian.iter().zip(weights.iter()))
-                .for_each(|(qdata, (j, weight))| *qdata = j * weight),
+                .for_each(|(qdata, (j, weight))| *qdata = weight / j),
             2 => {
-                let q = qdata.len();
-                qdata.iter_mut().zip(weights.iter()).enumerate().for_each(
-                    |(i, (qdata, weight))| {
-                        *qdata = (jacobian[i + q * 0] * jacobian[i + q * 3]
-                            - jacobian[i + q * 1] * jacobian[i + q * 2])
-                            * weight
-                    },
-                );
+                let q = qdata.len() / 3;
+                for i in 0..q {
+                    let j11 = jacobian[i + q * 0];
+                    let j21 = jacobian[i + q * 1];
+                    let j12 = jacobian[i + q * 2];
+                    let j22 = jacobian[i + q * 3];
+                    let qw = weights[i] / (j11 * j22 - j21 * j12);
+                    qdata[i + q * 0] = qw * (j12 * j12 + j22 * j22);
+                    qdata[i + q * 1] = qw * (j11 * j11 + j21 * j21);
+                    qdata[i + q * 2] = -qw * (j11 * j12 + j21 * j22);
+                }
             }
             3 => {
-                let q = qdata.len();
-                qdata.iter_mut().zip(weights.iter()).enumerate().for_each(
-                    |(i, (qdata, weight))| {
-                        *qdata = (jacobian[i + q * 0]
-                            * (jacobian[i + q * 4] * jacobian[i + q * 8]
-                                - jacobian[i + q * 5] * jacobian[i + q * 7])
-                            - jacobian[i + q * 1]
-                                * (jacobian[i + q * 3] * jacobian[i + q * 8]
-                                    - jacobian[i + q * 5] * jacobian[i + q * 6])
-                            + jacobian[i + q * 2]
-                                * (jacobian[i + q * 3] * jacobian[i + q * 7]
-                                    - jacobian[i + q * 4] * jacobian[i + q * 6]))
-                            * weight
-                    },
-                );
+                let q = qdata.len() / 6;
+                for i in 0..q {
+                    let mut a = [0.0; 9];
+                    for j in 0..3 {
+                        for k in 0..3 {
+                            a[k * 3 + j] = jacobian[i + q * ((j + 1) % 3 + 3 * ((k + 1) % 3))]
+                                * jacobian[i + q * ((j + 2) % 3 + 3 * ((k + 2) % 3))]
+                                - jacobian[i + q * ((j + 1) % 3 + 3 * ((k + 2) % 3))]
+                                    * jacobian[i + q * ((j + 2) % 3 + 3 * ((k + 1) % 3))];
+                        }
+                    }
+                    let qw = weights[i]
+                        / (jacobian[i + q * 0] * a[0 * 3 + 0]
+                            + jacobian[i + q * 1] * a[0 * 3 + 1]
+                            + jacobian[i + q * 2] * a[0 * 3 + 2]);
+                    qdata[i + q * 0] = qw
+                        * (a[0 * 3 + 0] * a[0 * 3 + 0]
+                            + a[0 * 3 + 1] * a[0 * 3 + 1]
+                            + a[0 * 3 + 2] * a[0 * 3 + 2]);
+                    qdata[i + q * 1] = qw
+                        * (a[1 * 3 + 0] * a[1 * 3 + 0]
+                            + a[1 * 3 + 1] * a[1 * 3 + 1]
+                            + a[1 * 3 + 2] * a[1 * 3 + 2]);
+                    qdata[i + q * 2] = qw
+                        * (a[2 * 3 + 0] * a[2 * 3 + 0]
+                            + a[2 * 3 + 1] * a[2 * 3 + 1]
+                            + a[2 * 3 + 2] * a[2 * 3 + 2]);
+                    qdata[i + q * 3] = qw
+                        * (a[1 * 3 + 0] * a[2 * 3 + 0]
+                            + a[1 * 3 + 1] * a[2 * 3 + 1]
+                            + a[1 * 3 + 2] * a[2 * 3 + 2]);
+                    qdata[i + q * 4] = qw
+                        * (a[0 * 3 + 0] * a[2 * 3 + 0]
+                            + a[0 * 3 + 1] * a[2 * 3 + 1]
+                            + a[0 * 3 + 2] * a[2 * 3 + 2]);
+                    qdata[i + q * 5] = qw
+                        * (a[0 * 3 + 0] * a[1 * 3 + 0]
+                            + a[0 * 3 + 1] * a[1 * 3 + 1]
+                            + a[0 * 3 + 2] * a[1 * 3 + 2]);
+                }
             }
             _ => unreachable!(),
         };
@@ -177,13 +213,13 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
         0
     };
     let qf_build_closure = ceed
-        .q_function_interior(1, Box::new(build_mass))?
+        .q_function_interior(1, Box::new(build_diff))?
         .input("dx", ncomp_x * dim, libceed::EvalMode::Grad)?
         .input("weights", 1, libceed::EvalMode::Weight)?
-        .output("qdata", 1, libceed::EvalMode::None)?;
+        .output("qdata", dim * (dim + 1) / 2, libceed::EvalMode::None)?;
     // -- QFunction from gallery
     let qf_build_named = {
-        let name = format!("Mass{}DBuild", dim);
+        let name = format!("Poisson{}DBuild", dim);
         ceed.q_function_interior_by_name(&name)?
     };
     // -- QFunction for use with Operator
@@ -193,7 +229,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
         QFunctionOpt::SomeQFunction(&qf_build_closure)
     };
 
-    // Operator that build the quadrature data for the mass operator
+    // Operator that build the quadrature data for the diff operator
     let op_build = ceed
         .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)?
         .name("build qdata")?
@@ -207,83 +243,138 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
         .field("qdata", &rstr_qdata, BasisOpt::None, VectorOpt::Active)?
         .check()?;
 
-    // Compute the quadrature data for the mass operator
+    // Compute the quadrature data for the diff operator
     let elem_qpts = num_qpts.pow(dim as u32);
     let num_elem: usize = num_xyz.iter().take(dim).product();
-    let mut qdata = ceed.vector(num_elem * elem_qpts)?;
+    let mut qdata = ceed.vector(num_elem * elem_qpts * dim * (dim + 1) / 2)?;
     op_build.apply(&mesh_coords, &mut qdata)?;
 
-    // QFunction that applies the mass operator
+    // QFunction that applies the diff operator
     // -- QFunction from user closure
-    let apply_mass = move |[u, qdata, ..]: QFunctionInputs, [v, ..]: QFunctionOutputs| {
-        let q = qdata.len();
-        // Apply mass operator
-        for c in 0..ncomp_u {
-            v.iter_mut()
-                .skip(c * q)
-                .zip(u.iter().skip(c * q).zip(qdata.iter()))
-                .for_each(|(v, (u, w))| *v = u * w);
-        }
+    let apply_diff = move |[ug, qdata, ..]: QFunctionInputs, [vg, ..]: QFunctionOutputs| {
+        // Apply diffusion operator
+        match dim {
+            1 => {
+                let q = qdata.len();
+                for c in 0..ncomp_u {
+                    vg.iter_mut()
+                        .skip(c * q)
+                        .zip(ug.iter().skip(c * q).zip(qdata.iter()))
+                        .for_each(|(vg, (ug, w))| *vg = ug * w)
+                }
+            }
+            2 => {
+                let q = qdata.len() / 3;
+                for i in 0..q {
+                    let dxdxdxdx_t = [
+                        [qdata[i + 0 * q], qdata[i + 2 * q]],
+                        [qdata[i + 2 * q], qdata[i + 1 * q]],
+                    ];
+                    for c in 0..ncomp_u {
+                        let du = [ug[i + (c + 0 * ncomp_u) * q], ug[i + (c + 1 * ncomp_u) * q]];
+                        for j in 0..dim {
+                            vg[i + (c + j * ncomp_u) * q] =
+                                du[0] * dxdxdxdx_t[0][j] + du[1] * dxdxdxdx_t[1][j];
+                        }
+                    }
+                }
+            }
+            3 => {
+                let q = qdata.len() / 6;
+                for i in 0..q {
+                    let dxdxdxdx_t = [
+                        [qdata[i + 0 * q], qdata[i + 5 * q], qdata[i + 4 * q]],
+                        [qdata[i + 5 * q], qdata[i + 1 * q], qdata[i + 3 * q]],
+                        [qdata[i + 4 * q], qdata[i + 3 * q], qdata[i + 2 * q]],
+                    ];
+                    for c in 0..ncomp_u {
+                        let du = [
+                            ug[i + (c + 0 * ncomp_u) * q],
+                            ug[i + (c + 1 * ncomp_u) * q],
+                            ug[i + (c + 2 * ncomp_u) * q],
+                        ];
+                        for j in 0..dim {
+                            vg[i + (c + j * ncomp_u) * q] = du[0] * dxdxdxdx_t[0][j]
+                                + du[1] * dxdxdxdx_t[1][j]
+                                + du[2] * dxdxdxdx_t[2][j];
+                        }
+                    }
+                }
+            }
+            _ => unreachable!(),
+        };
+
         // Return clean error code
         0
     };
-    let qf_mass_closure = ceed
-        .q_function_interior(1, Box::new(apply_mass))?
-        .input("u", ncomp_u, libceed::EvalMode::Interp)?
-        .input("qdata", 1, libceed::EvalMode::None)?
-        .output("v", ncomp_u, libceed::EvalMode::Interp)?;
+    let qf_diff_closure = ceed
+        .q_function_interior(1, Box::new(apply_diff))?
+        .input("du", dim * ncomp_u, libceed::EvalMode::Grad)?
+        .input("qdata", dim * (dim + 1) / 2, libceed::EvalMode::None)?
+        .output("dv", dim * ncomp_u, libceed::EvalMode::Grad)?;
     // -- QFunction from gallery
-    let qf_mass_named = ceed.q_function_interior_by_name("Vector3MassApply")?;
+    let qf_diff_named = {
+        let name = format!("Vector3Poisson{}DApply", dim);
+        ceed.q_function_interior_by_name(&name)?
+    };
     // -- QFunction for use with Operator
-    let qf_mass = if gallery {
-        QFunctionOpt::SomeQFunctionByName(&qf_mass_named)
+    let qf_diff = if gallery {
+        QFunctionOpt::SomeQFunctionByName(&qf_diff_named)
     } else {
-        QFunctionOpt::SomeQFunction(&qf_mass_closure)
+        QFunctionOpt::SomeQFunction(&qf_diff_closure)
     };
 
-    // Mass Operator
-    let op_mass = ceed
-        .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
-        .name("mass")?
-        .field("u", &rstr_solution, &basis_solution, VectorOpt::Active)?
+    // Diff Operator
+    let op_diff = ceed
+        .operator(qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
+        .name("Poisson")?
+        .field("du", &rstr_solution, &basis_solution, VectorOpt::Active)?
         .field("qdata", &rstr_qdata, BasisOpt::None, &qdata)?
-        .field("v", &rstr_solution, &basis_solution, VectorOpt::Active)?
+        .field("dv", &rstr_solution, &basis_solution, VectorOpt::Active)?
         .check()?;
 
     // Solution vectors
     let mut u = ceed.vector(solution_size)?;
     let mut v = ceed.vector(solution_size)?;
 
-    // Initialize u with component index
+    // Initialize u with sum of node coordinates
+    let coords = mesh_coords.view()?;
     u.set_value(0.0)?;
     for c in 0..ncomp_u {
         let q = solution_size / ncomp_u;
-        u.view_mut()?.iter_mut().skip(c * q).take(q).for_each(|u| {
-            *u = (c + 1) as libceed::Scalar;
-        });
+        u.view_mut()?
+            .iter_mut()
+            .skip(c * q)
+            .take(q)
+            .enumerate()
+            .for_each(|(i, u)| {
+                *u = (0..dim).map(|d| coords[i + d * q]).sum::<libceed::Scalar>()
+                    * (c + 1) as libceed::Scalar;
+            });
     }
 
-    // Apply the mass operator
-    op_mass.apply(&u, &mut v)?;
+    // Apply the diff operator
+    op_diff.apply(&u, &mut v)?;
 
-    // Compute the mesh volume
-    let volume: libceed::Scalar = v.view()?.iter().sum::<libceed::Scalar>()
+    // Compute the mesh surface area
+    let area: libceed::Scalar = v
+        .view()?
+        .iter()
+        .map(|v| (*v).abs())
+        .sum::<libceed::Scalar>()
         / ((ncomp_u * (ncomp_u + 1)) / 2) as libceed::Scalar;
 
     // Output results
     if !quiet {
-        println!("Exact mesh volume           : {:.12}", exact_volume);
-        println!("Computed mesh volume        : {:.12}", volume);
-        println!(
-            "Volume error                : {:.12e}",
-            volume - exact_volume
-        );
+        println!("Exact mesh surface area     : {:.12}", exact_area);
+        println!("Computed mesh surface_area  : {:.12}", area);
+        println!("Surface area error          : {:.12e}", area - exact_area);
     }
     let tolerance = match dim {
-        1 => 200.0 * libceed::EPSILON,
-        _ => 1E-5,
+        1 => 1E-5,
+        _ => 1E-1,
     };
-    let error = (volume - exact_volume).abs();
+    let error = (area - exact_area).abs();
     if error > tolerance {
         println!("Volume error too large: {:.12e}", error);
         return Err(libceed::Error {
@@ -304,7 +395,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn example_3_1d() {
+    fn example_2_vector_1d() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 1,
@@ -316,11 +407,11 @@ mod tests {
             quiet: true,
             gallery: false,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 
     #[test]
-    fn example_3_2d() {
+    fn example_2_vector_2d() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 2,
@@ -332,11 +423,11 @@ mod tests {
             quiet: true,
             gallery: false,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 
     #[test]
-    fn example_3_3d() {
+    fn example_2_vector_3d() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 3,
@@ -348,11 +439,11 @@ mod tests {
             quiet: false,
             gallery: false,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 
     #[test]
-    fn example_3_1d_gallery() {
+    fn example_2_vector_1d_gallery() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 1,
@@ -364,11 +455,11 @@ mod tests {
             quiet: true,
             gallery: true,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 
     #[test]
-    fn example_3_2d_gallery() {
+    fn example_2_vector_2d_gallery() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 2,
@@ -380,11 +471,11 @@ mod tests {
             quiet: true,
             gallery: true,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 
     #[test]
-    fn example_3_3d_gallery() {
+    fn example_2_vector_3d_gallery() {
         let options = opt::Opt {
             ceed_spec: "/cpu/self/ref/serial".to_string(),
             dim: 3,
@@ -396,7 +487,7 @@ mod tests {
             quiet: true,
             gallery: true,
         };
-        assert!(example_3(options).is_ok());
+        assert!(example_2_vector(options).is_ok());
     }
 }
 

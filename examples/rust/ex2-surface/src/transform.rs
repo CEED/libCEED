@@ -24,7 +24,8 @@ pub(crate) fn transform_mesh_coordinates(
     let exact_area = match dim {
         1 => 2.0,
         2 => 4.0,
-        _ => 6.0,
+        3 => 6.0,
+        _ => unreachable!(),
     };
     Ok(exact_area)
 }
