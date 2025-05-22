@@ -89,6 +89,7 @@ class MatMassCtx:
         self._xglob[lo:hi] = x.array_r
         self.u.set_array(self._xglob,cmode=libceed.USE_POINTER)
         self.v.set_value(0.0)
+
         self.op.apply(self.u, self.v)
         with self.v.array_read() as va:
             y.setValues(range(lo, hi), va[lo:hi])
