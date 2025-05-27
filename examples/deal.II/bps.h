@@ -24,6 +24,7 @@
 
 #include <deal.II/matrix_free/fe_evaluation.h>
 #include <deal.II/matrix_free/matrix_free.h>
+#include <deal.II/matrix_free/shape_info.h>
 #include <deal.II/matrix_free/tools.h>
 
 // libCEED includes
@@ -203,27 +204,30 @@ public:
     const unsigned int fe_degree  = fe.tensor_degree();
     const unsigned int n_q_points = quadrature.get_tensor_basis()[0].size();
     {
-      FE_Q<1>            fe_1d{FE_Q<1>(fe_degree)};
-      const unsigned int array_size  = (fe_degree + 1) * (n_q_points);
-      double            *q_ref_1d    = new double[n_q_points];
-      double            *q_weight_1d = new double[n_q_points];
-      double            *interp_1d   = new double[array_size];
-      double            *grad_1d     = new double[array_size];
+      dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info;
+      shape_info.reinit(quadrature, fe, 0);
+      dealii::internal::MatrixFreeFunctions::UnivariateShapeData<double> shape_data =
+        shape_info.get_shape_data();
+
+      std::vector<CeedScalar> q_ref_1d(n_q_points);
+      std::vector<CeedScalar> q_weight_1d(n_q_points);
+      const unsigned int      array_size = (fe_degree + 1) * (n_q_points);
+      std::vector<CeedScalar> interp_1d(array_size);
+      std::vector<CeedScalar> grad_1d(array_size);
       for (unsigned int i = 0; i < n_q_points; i++)
         {
           // Retrieve quadrature info
-          // Converting from [0, 1] to [-1, 1]
-          Point point    = quadrature.get_tensor_basis()[0].point(i);
-          q_ref_1d[i]    = 2.0 * (point(0) - 0.5);
+          // Convert reference element from [0, 1] to [-1, 1]
+          q_ref_1d[i]    = 2.0 * (quadrature.get_tensor_basis()[0].point(i)(0) - 0.5);
           q_weight_1d[i] = 2.0 * quadrature.get_tensor_basis()[0].weight(i);
 
           // Retrieve 1D shape function values
           for (unsigned int j = 0; j < fe_degree + 1; j++)
             {
-              // Shuffle index of DoF
-              const int k                        = j == 0 ? 0 : ((j % fe_degree) + 1);
-              interp_1d[j + i * (fe_degree + 1)] = fe_1d.shape_value_component(k, point, 0);
-              grad_1d[j + i * (fe_degree + 1)]   = 0.5 * fe_1d.shape_grad_component(k, point, 0)[0];
+              interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j + i * (fe_degree + 1)];
+              // Scale derivatives by 1/2 for new reference element length
+              grad_1d[j + i * (fe_degree + 1)] =
+                0.5 * shape_data.shape_gradients[j + i * (fe_degree + 1)];
             }
         }
 
@@ -232,10 +236,10 @@ public:
                               n_components,
                               fe_degree + 1,
                               n_q_points,
-                              interp_1d,
-                              grad_1d,
-                              q_ref_1d,
-                              q_weight_1d,
+                              interp_1d.data(),
+                              grad_1d.data(),
+                              q_ref_1d.data(),
+                              q_weight_1d.data(),
                               &sol_basis);
     }
 
