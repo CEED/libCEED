@@ -208,38 +208,19 @@ public:
       shape_info.reinit(quadrature, fe, 0);
       dealii::internal::MatrixFreeFunctions::UnivariateShapeData<double> shape_data =
         shape_info.get_shape_data();
-
-      std::vector<CeedScalar> q_ref_1d(n_q_points);
-      std::vector<CeedScalar> q_weight_1d(n_q_points);
-      const unsigned int      array_size = (fe_degree + 1) * (n_q_points);
-      std::vector<CeedScalar> interp_1d(array_size);
-      std::vector<CeedScalar> grad_1d(array_size);
-      for (unsigned int i = 0; i < n_q_points; i++)
-        {
-          // Retrieve quadrature info
-          // Convert reference element from [0, 1] to [-1, 1]
-          q_ref_1d[i]    = 2.0 * (quadrature.get_tensor_basis()[0].point(i)(0) - 0.5);
-          q_weight_1d[i] = 2.0 * quadrature.get_tensor_basis()[0].weight(i);
-
-          // Retrieve 1D shape function values
-          for (unsigned int j = 0; j < fe_degree + 1; j++)
-            {
-              interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j + i * (fe_degree + 1)];
-              // Scale derivatives by 1/2 for new reference element length
-              grad_1d[j + i * (fe_degree + 1)] =
-                0.5 * shape_data.shape_gradients[j + i * (fe_degree + 1)];
-            }
-        }
+      std::vector<CeedScalar> q_ref_1d;
+      for (const auto q : quadrature.get_tensor_basis()[0].get_points())
+        q_ref_1d.push_back(q(0));
 
       CeedBasisCreateTensorH1(ceed,
                               dim,
                               n_components,
                               fe_degree + 1,
                               n_q_points,
-                              interp_1d.data(),
-                              grad_1d.data(),
+                              shape_data.shape_values.data(),
+                              shape_data.shape_gradients.data(),
                               q_ref_1d.data(),
-                              q_weight_1d.data(),
+                              quadrature.get_tensor_basis()[0].get_weights().data(),
                               &sol_basis);
     }
 
@@ -611,8 +592,28 @@ private:
 
     const unsigned int fe_degree = mapping_q->get_degree();
 
-    CeedBasisCreateTensorH1Lagrange(
-      ceed, dim, dim, fe_degree + 1, n_q_points, CEED_GAUSS, &geo_basis);
+    FE_Q<dim> geo_fe(fe_degree);
+
+    {
+      dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info;
+      shape_info.reinit(quadrature, geo_fe, 0);
+      dealii::internal::MatrixFreeFunctions::UnivariateShapeData<double> shape_data =
+        shape_info.get_shape_data();
+      std::vector<CeedScalar> q_ref_1d;
+      for (const auto q : quadrature.get_tensor_basis()[0].get_points())
+        q_ref_1d.push_back(q(0));
+
+      CeedBasisCreateTensorH1(ceed,
+                              dim,
+                              dim,
+                              fe_degree + 1,
+                              n_q_points,
+                              shape_data.shape_values.data(),
+                              shape_data.shape_gradients.data(),
+                              q_ref_1d.data(),
+                              quadrature.get_tensor_basis()[0].get_weights().data(),
+                              &geo_basis);
+    }
 
     unsigned int n_local_active_cells = 0;
 
@@ -622,8 +623,6 @@ private:
 
     std::vector<double>  geo_support_points;
     std::vector<CeedInt> geo_indices;
-
-    FE_Q<dim> geo_fe(fe_degree);
 
     DoFHandler<dim> geo_dof_handler(tria);
     geo_dof_handler.distribute_dofs(geo_fe);
