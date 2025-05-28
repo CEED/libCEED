@@ -79,7 +79,7 @@ Using the same notation as in {ref}`theoretical-framework`, we write here the ve
 
 $$
 \sum_e \int_{\Omega_e}\left( v(x) 1 + \nabla v(x) \cdot 0 \right) \, dV
-$$ (volume-sum)
+$$ (volume-sum-mass-diff)
 
 with $v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}), e=1,\ldots,N_e \}$, the test functions.
 
