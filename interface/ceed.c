@@ -820,7 +820,8 @@ int CeedReference(Ceed ceed) {
 /**
   @brief Computes the current memory usage of the work vectors in a `Ceed` context and prints to debug.abort
 
-  @param[in] ceed `Ceed` context
+  @param[in]  ceed     `Ceed` context
+  @param[out] usage_mb Address of the variable where the MB of work vector usage will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
