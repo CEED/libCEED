@@ -9,7 +9,7 @@ For more details, please see the dedicated [documentation section](https://libce
 
 ## Bakeoff Problems
 
-% bps-inclusion-marker
+<!-- % bps-inclusion-marker-->
 
 The Center for Efficient Exascale Discretizations (CEED) uses Bakeoff Problems (BPs) to test and compare the performance of high-order finite element implementations.
 The definitions of the problems are given on the ceed [website](https://ceed.exascaleproject.org/bps/).
@@ -46,7 +46,7 @@ The BPs are parametrized by the number $P$ of Gauss-Legendre-Lobatto nodal point
 A $Q$-point Gauss-Legendre quadrature is used for all BPs except BP5 and BP6, which choose $Q = P$ and Gauss-Legendre-Lobatto quadrature to collocate with the interpolation nodes.
 This latter choice is popular in applications that use spectral element methods because it produces a diagonal mass matrix (enabling easy explicit time integration) and significantly reduces the number of floating point operations to apply the operator.
 
-% bps-exclusion-marker
+<!-- % bps-exclusion-marker-->
 
 For a more detailed description of the operators employed in the BPs, please see the dedicated [BPs documentation section](https://libceed.org/en/latest/examples/bps.html).
 
@@ -75,6 +75,6 @@ For a detailed description, please see the corresponding [problems on the cubed-
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR`, and `NEK5K_DIR` variables and, from the `examples/` directory, run
 
 ```{include} ../README.md
-:start-after: running-examples-inclusion-marker
-:end-before: benchmarks-marker
+:start-after: running-examples-inclusion-marker-->
+:end-before: benchmarks-marker-->
 ```

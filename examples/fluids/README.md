@@ -23,7 +23,7 @@ and run with:
 
 ## Runtime options
 
-% inclusion-fluids-marker
+<!-- % inclusion-fluids-marker-->
 
 The Navier-Stokes mini-app is controlled via command-line options.
 The following options are common among all problem types:

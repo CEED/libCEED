@@ -34,7 +34,7 @@ $$ (hyperelastic-cd)
 ## Running the mini-app
 
 ```{include} README.md
-:start-after: inclusion-solids-marker
+:start-after: inclusion-solids-marker-->
 ```
 
 (problem-linear-elasticity)=

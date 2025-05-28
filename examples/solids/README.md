@@ -22,7 +22,7 @@ and run with:
 
 ## Runtime options
 
-% inclusion-solids-marker
+<!-- % inclusion-solids-marker-->
 
 The elasticity mini-app is controlled via command-line options, the following of which are mandatory.
 

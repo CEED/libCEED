@@ -27,7 +27,7 @@ The CEED research is supported by the [Exascale Computing Project](https://exasc
 
 For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
 
-% gettingstarted-inclusion-marker
+<!-- % gettingstarted-inclusion-marker-->
 
 ## Building
 
@@ -254,7 +254,7 @@ To build the examples, set the `MFEM_DIR`, `PETSC_DIR` (and optionally `PETSC_AR
 $ cd examples/
 ```
 
-% running-examples-inclusion-marker
+<!-- % running-examples-inclusion-marker-->
 
 ```console
 # libCEED examples on CPU and GPU
@@ -337,7 +337,7 @@ The above code assumes a GPU-capable machine with the CUDA backends enabled.
 Depending on the available backends, other CEED resource specifiers can be provided with the `-ceed` option.
 Other command line arguments can be found in [examples/petsc](https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md).
 
-% benchmarks-marker
+<!-- % benchmarks-marker-->
 
 ## Benchmarks
 

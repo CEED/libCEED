@@ -9,7 +9,7 @@ Moreover, the Navier-Stokes example has been developed using PETSc, so that the 
 ## Running the mini-app
 
 ```{include} README.md
-:start-after: inclusion-fluids-marker
+:start-after: inclusion-fluids-marker-->
 ```
 ## The Navier-Stokes equations
 
