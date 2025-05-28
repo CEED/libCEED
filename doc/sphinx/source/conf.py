@@ -107,6 +107,7 @@ exclude_patterns = [
     "examples/nek/README.md",
     "examples/petsc/README.md",
     "examples/solid/README.md",
+    "examples/deal.II/README.md",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
