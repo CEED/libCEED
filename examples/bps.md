@@ -3,8 +3,8 @@
 # CEED Bakeoff Problems
 
 ```{include} ./README.md
-:start-after: bps-inclusion-marker
-:end-before: bps-exclusion-marker
+:start-after: <!-- bps-inclusion -->
+:end-before: <!-- bps-exclusion -->
 ```
 
 (mass-operator)=
