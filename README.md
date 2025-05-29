@@ -27,7 +27,7 @@ The CEED research is supported by the [Exascale Computing Project](https://exasc
 
 For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
 
-<!-- % gettingstarted-inclusion-marker-->
+<!-- getting-started-inclusion -->
 
 ## Building
 
@@ -243,6 +243,8 @@ Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as `atomicAdd` for increased performance.
 The backends which are capable of generating reproducible results, with the proper compilation options, are highlighted in the list above.
 
+<!-- getting-started-exclusion -->
+
 ## Examples
 
 libCEED comes with several examples of its usage, ranging from standalone C codes in the `/examples/ceed` directory to examples based on external packages, such as MFEM, PETSc, and Nek5000.
@@ -254,7 +256,7 @@ To build the examples, set the `MFEM_DIR`, `PETSC_DIR` (and optionally `PETSC_AR
 $ cd examples/
 ```
 
-<!-- % running-examples-inclusion-marker-->
+<!-- running-examples-inclusion -->
 
 ```console
 # libCEED examples on CPU and GPU
@@ -337,7 +339,7 @@ The above code assumes a GPU-capable machine with the CUDA backends enabled.
 Depending on the available backends, other CEED resource specifiers can be provided with the `-ceed` option.
 Other command line arguments can be found in [examples/petsc](https://github.com/CEED/libCEED/blob/main/examples/petsc/README.md).
 
-<!-- % benchmarks-marker-->
+<!-- running-examples-exclusion -->
 
 ## Benchmarks
 
