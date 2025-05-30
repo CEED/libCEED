@@ -57,8 +57,8 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(CeedE
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
-      CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
         CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
           vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
               uu[n * strides[0] + k * strides[1] + CeedIntMin(e + j, num_elem - 1) * (CeedSize)strides[2]];
@@ -78,7 +78,7 @@ static inline int CeedElemRestrictionApplyOffsetNoTranspose_Memcheck_Core(CeedEl
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       CeedPragmaSIMD for (CeedSize i = 0; i < elem_size * block_size; i++) {
         vv[elem_size * (k * block_size + e * num_comp) + i - v_offset] = uu[impl->offsets[i + e * elem_size] + k * comp_stride];
       }
@@ -96,7 +96,7 @@ static inline int CeedElemRestrictionApplyOrientedNoTranspose_Memcheck_Core(Ceed
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       CeedPragmaSIMD for (CeedSize i = 0; i < elem_size * block_size; i++) {
         vv[elem_size * (k * block_size + e * num_comp) + i - v_offset] =
             uu[impl->offsets[i + e * elem_size] + k * comp_stride] * (impl->orients[i + e * elem_size] ? -1.0 : 1.0);
@@ -115,7 +115,7 @@ static inline int CeedElemRestrictionApplyCurlOrientedNoTranspose_Memcheck_Core(
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       CeedSize n = 0;
 
       CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
@@ -125,7 +125,7 @@ static inline int CeedElemRestrictionApplyCurlOrientedNoTranspose_Memcheck_Core(
             uu[impl->offsets[j + (n + 1) * block_size + e * elem_size] + k * comp_stride] *
                 impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size];
       }
-      CeedPragmaSIMD for (n = 1; n < elem_size - 1; n++) {
+      for (n = 1; n < elem_size - 1; n++) {
         CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
           vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
               uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
@@ -156,7 +156,7 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Memche
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       CeedSize n = 0;
 
       CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
@@ -166,7 +166,7 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Memche
             uu[impl->offsets[j + (n + 1) * block_size + e * elem_size] + k * comp_stride] *
                 abs(impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size]);
       }
-      CeedPragmaSIMD for (n = 1; n < elem_size - 1; n++) {
+      for (n = 1; n < elem_size - 1; n++) {
         CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
           vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
               uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
@@ -203,8 +203,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(CeedEle
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
-      CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+    for (CeedSize k = 0; k < num_comp; k++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
         CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
           vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
               uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
