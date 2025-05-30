@@ -28,8 +28,8 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(CeedElemRe
     // CPU backend strides are {1, elem_size, elem_size*num_comp}
     // This if branch is left separate to allow better inlining
     for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-      for (CeedSize k = 0; k < num_comp; k++) {
-        for (CeedSize n = 0; n < elem_size; n++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
+        for (CeedSize k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
             vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
                 uu[n + k * elem_size + CeedIntMin(e + j, num_elem - 1) * elem_size * (CeedSize)num_comp];
@@ -43,8 +43,8 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(CeedElemRe
 
     CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-      for (CeedSize k = 0; k < num_comp; k++) {
-        for (CeedSize n = 0; n < elem_size; n++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
+        for (CeedSize k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
             vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
                 uu[n * strides[0] + k * strides[1] + CeedIntMin(e + j, num_elem - 1) * (CeedSize)strides[2]];
@@ -190,8 +190,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
     // CPU backend strides are {1, elem_size, elem_size*num_comp}
     // This if brach is left separate to allow better inlining
     for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-      for (CeedSize k = 0; k < num_comp; k++) {
-        for (CeedSize n = 0; n < elem_size; n++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
+        for (CeedSize k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
             vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
@@ -204,8 +204,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
 
     CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-      for (CeedSize k = 0; k < num_comp; k++) {
-        for (CeedSize n = 0; n < elem_size; n++) {
+      for (CeedSize n = 0; n < elem_size; n++) {
+        for (CeedSize k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
             vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
                 uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
@@ -226,8 +226,8 @@ static inline int CeedElemRestrictionApplyOffsetTranspose_Ref_Core(CeedElemRestr
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedSize k = 0; k < num_comp; k++) {
-      for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
+    for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
+      for (CeedSize k = 0; k < num_comp; k++) {
         // Iteration bound set to discard padding elements
         for (CeedSize j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
           CeedScalar vv_loc;
@@ -250,8 +250,8 @@ static inline int CeedElemRestrictionApplyOrientedTranspose_Ref_Core(CeedElemRes
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedSize k = 0; k < num_comp; k++) {
-      for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
+    for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
+      for (CeedSize k = 0; k < num_comp; k++) {
         // Iteration bound set to discard padding elements
         for (CeedSize j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
           CeedScalar vv_loc;
