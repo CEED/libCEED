@@ -553,6 +553,30 @@ static int CeedElemRestrictionApply_Ref_381(CeedElemRestriction rstr, const Ceed
 }
 
 // LCOV_EXCL_START
+static int CeedElemRestrictionApply_Ref_410(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size, const CeedInt comp_stride,
+                                            CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs, bool use_orients, CeedVector u,
+                                            CeedVector v, CeedRequest *request) {
+  return CeedElemRestrictionApply_Ref_Core(rstr, 4, 1, comp_stride, start, stop, t_mode, use_signs, use_orients, u, v, request);
+}
+
+static int CeedElemRestrictionApply_Ref_411(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size, const CeedInt comp_stride,
+                                            CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs, bool use_orients, CeedVector u,
+                                            CeedVector v, CeedRequest *request) {
+  return CeedElemRestrictionApply_Ref_Core(rstr, 4, 1, 1, start, stop, t_mode, use_signs, use_orients, u, v, request);
+}
+
+static int CeedElemRestrictionApply_Ref_480(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size, const CeedInt comp_stride,
+                                            CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs, bool use_orients, CeedVector u,
+                                            CeedVector v, CeedRequest *request) {
+  return CeedElemRestrictionApply_Ref_Core(rstr, 4, 8, comp_stride, start, stop, t_mode, use_signs, use_orients, u, v, request);
+}
+
+static int CeedElemRestrictionApply_Ref_481(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size, const CeedInt comp_stride,
+                                            CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs, bool use_orients, CeedVector u,
+                                            CeedVector v, CeedRequest *request) {
+  return CeedElemRestrictionApply_Ref_Core(rstr, 4, 8, 1, start, stop, t_mode, use_signs, use_orients, u, v, request);
+}
+
 static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs, bool use_orients, CeedVector u,
                                             CeedVector v, CeedRequest *request) {
@@ -836,6 +860,18 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
       impl->Apply = CeedElemRestrictionApply_Ref_381;
       break;
     // LCOV_EXCL_START
+    case 410:
+      impl->Apply = CeedElemRestrictionApply_Ref_410;
+      break;
+    case 411:
+      impl->Apply = CeedElemRestrictionApply_Ref_411;
+      break;
+    case 480:
+      impl->Apply = CeedElemRestrictionApply_Ref_480;
+      break;
+    case 481:
+      impl->Apply = CeedElemRestrictionApply_Ref_481;
+      break;
     case 510:
       impl->Apply = CeedElemRestrictionApply_Ref_510;
       break;
