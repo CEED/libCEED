@@ -24,6 +24,7 @@
 
 #include <deal.II/matrix_free/fe_evaluation.h>
 #include <deal.II/matrix_free/matrix_free.h>
+#include <deal.II/matrix_free/shape_info.h>
 #include <deal.II/matrix_free/tools.h>
 
 // libCEED includes
@@ -202,8 +203,24 @@ public:
     // 2) create shape functions -> "ShapeInfo"
     const unsigned int fe_degree  = fe.tensor_degree();
     const unsigned int n_q_points = quadrature.get_tensor_basis()[0].size();
-    CeedBasisCreateTensorH1Lagrange(
-      ceed, dim, n_components, fe_degree + 1, n_q_points, CEED_GAUSS, &sol_basis);
+    {
+      const dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info(quadrature, fe, 0);
+      const auto             &shape_data = shape_info.get_shape_data();
+      std::vector<CeedScalar> q_ref_1d;
+      for (const auto q : shape_data.quadrature.get_points())
+        q_ref_1d.push_back(q(0));
+
+      CeedBasisCreateTensorH1(ceed,
+                              dim,
+                              n_components,
+                              fe_degree + 1,
+                              n_q_points,
+                              shape_data.shape_values.data(),
+                              shape_data.shape_gradients.data(),
+                              q_ref_1d.data(),
+                              quadrature.get_tensor_basis()[0].get_weights().data(),
+                              &sol_basis);
+    }
 
     // 3) create restriction matrix -> DoFInfo
     unsigned int n_local_active_cells = 0;
@@ -573,8 +590,28 @@ private:
 
     const unsigned int fe_degree = mapping_q->get_degree();
 
-    CeedBasisCreateTensorH1Lagrange(
-      ceed, dim, dim, fe_degree + 1, n_q_points, CEED_GAUSS, &geo_basis);
+    FE_Q<dim> geo_fe(fe_degree);
+
+    {
+      const dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info(quadrature,
+                                                                                geo_fe,
+                                                                                0);
+      const auto             &shape_data = shape_info.get_shape_data();
+      std::vector<CeedScalar> q_ref_1d;
+      for (const auto q : shape_data.quadrature.get_points())
+        q_ref_1d.push_back(q(0));
+
+      CeedBasisCreateTensorH1(ceed,
+                              dim,
+                              dim,
+                              fe_degree + 1,
+                              n_q_points,
+                              shape_data.shape_values.data(),
+                              shape_data.shape_gradients.data(),
+                              q_ref_1d.data(),
+                              quadrature.get_tensor_basis()[0].get_weights().data(),
+                              &geo_basis);
+    }
 
     unsigned int n_local_active_cells = 0;
 
@@ -584,8 +621,6 @@ private:
 
     std::vector<double>  geo_support_points;
     std::vector<CeedInt> geo_indices;
-
-    FE_Q<dim> geo_fe(fe_degree);
 
     DoFHandler<dim> geo_dof_handler(tria);
     geo_dof_handler.distribute_dofs(geo_fe);
