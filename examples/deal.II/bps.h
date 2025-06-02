@@ -204,12 +204,10 @@ public:
     const unsigned int fe_degree  = fe.tensor_degree();
     const unsigned int n_q_points = quadrature.get_tensor_basis()[0].size();
     {
-      dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info;
-      shape_info.reinit(quadrature, fe, 0);
-      dealii::internal::MatrixFreeFunctions::UnivariateShapeData<double> shape_data =
-        shape_info.get_shape_data();
+      const dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info(quadrature, fe, 0);
+      const auto             &shape_data = shape_info.get_shape_data();
       std::vector<CeedScalar> q_ref_1d;
-      for (const auto q : quadrature.get_tensor_basis()[0].get_points())
+      for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
       CeedBasisCreateTensorH1(ceed,
@@ -595,12 +593,12 @@ private:
     FE_Q<dim> geo_fe(fe_degree);
 
     {
-      dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info;
-      shape_info.reinit(quadrature, geo_fe, 0);
-      dealii::internal::MatrixFreeFunctions::UnivariateShapeData<double> shape_data =
-        shape_info.get_shape_data();
+      const dealii::internal::MatrixFreeFunctions::ShapeInfo<double> shape_info(quadrature,
+                                                                                geo_fe,
+                                                                                0);
+      const auto             &shape_data = shape_info.get_shape_data();
       std::vector<CeedScalar> q_ref_1d;
-      for (const auto q : quadrature.get_tensor_basis()[0].get_points())
+      for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
       CeedBasisCreateTensorH1(ceed,
