@@ -9,11 +9,9 @@
 #include <ceed/backend.h>
 #include <stdbool.h>
 
-static bool register_all_called;
+#include "../backends/ceed-backend-register.h"
 
-#define CEED_BACKEND(name, ...) CEED_INTERN int name(void);
-#include "../backends/ceed-backend-list.h"
-#undef CEED_BACKEND
+static bool register_all_called;
 
 /**
   @brief Register all pre-configured backends.
@@ -33,8 +31,8 @@ int CeedRegisterAll(void) {
   CeedPragmaCritical(CeedRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Backends ----------\n");
-#define CEED_BACKEND(name, ...) \
-  if (!ierr) ierr = name();
+#define CEED_BACKEND(name, suffix, ...) \
+  if (!ierr) ierr = CeedRegister_##name##suffix();
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
       register_all_called = true;
