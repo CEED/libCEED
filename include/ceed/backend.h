@@ -460,6 +460,7 @@ CEED_EXTERN int CeedOperatorReference(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);
 CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent);
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
+CEED_INTERN int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,
