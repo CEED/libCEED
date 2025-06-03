@@ -566,7 +566,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
 
   @ref Developer
 **/
-static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
+int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
   bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));

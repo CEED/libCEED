@@ -12,13 +12,13 @@
 #include <cuda.h>
 
 typedef struct {
-  bool           use_fallback;
+  bool           use_fallback, use_assembly_fallback;
   CeedInt        dim;
   CeedInt        Q, Q_1d;
   CeedInt        max_P_1d;
   CeedInt        thread_1d;
-  CUmodule       module;
-  CUfunction     op;
+  CUmodule       module, module_assemble_full, module_assemble_diagonal;
+  CUfunction     op, assemble_full, assemble_diagonal;
   FieldsInt_Cuda indices;
   Fields_Cuda    fields;
   Fields_Cuda    B;
