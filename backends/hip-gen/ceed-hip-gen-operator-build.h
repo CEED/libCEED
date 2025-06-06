@@ -8,3 +8,5 @@
 
 CEED_INTERN int BlockGridCalculate_Hip_gen(CeedInt dim, CeedInt num_elem, CeedInt P_1d, CeedInt Q_1d, CeedInt *block_sizes);
 CEED_INTERN int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_build);
+CEED_INTERN int CeedOperatorBuildKernelFullAssemblyAtPoints_Hip_gen(CeedOperator op, bool *is_good_build);
+CEED_INTERN int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Hip_gen(CeedOperator op, bool *is_good_build);
