@@ -12,14 +12,14 @@
 #include <hip/hip_runtime.h>
 
 typedef struct {
-  bool          use_fallback;
+  bool          use_fallback, use_assembly_fallback;
   CeedInt       dim;
   CeedInt       Q, Q_1d;
   CeedInt       max_P_1d;
   CeedInt       thread_1d;
   hipStream_t   streams[CEED_COMPOSITE_MAX];
-  hipModule_t   module;
-  hipFunction_t op;
+  hipModule_t   module, module_assemble_full, module_assemble_diagonal;
+  hipFunction_t op, assemble_full, assemble_diagonal;
   FieldsInt_Hip indices;
   Fields_Hip    fields;
   Fields_Hip    B;
