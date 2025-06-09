@@ -146,7 +146,7 @@ template <int NUM_COMP, int P_1D>
 inline __device__ void SetEVecStandard2d_Single(SharedData_Hip &data, const CeedInt n, const CeedScalar value, CeedScalar *__restrict__ r_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = (n / (P_1D * P_1D)) / P_1D;
+  const CeedInt target_node_y = (n % (P_1D * P_1D)) / P_1D;
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
     r_v[target_comp] = value;
@@ -200,7 +200,7 @@ inline __device__ void WriteLVecStandard2d_Single(SharedData_Hip &data, const Ce
                                                   CeedScalar *__restrict__ d_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = (n / (P_1D * P_1D)) / P_1D;
+  const CeedInt target_node_y = (n % (P_1D * P_1D)) / P_1D;
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1D;
@@ -235,8 +235,8 @@ template <int NUM_COMP, int P_1D>
 inline __device__ void SetEVecStandard3d_Single(SharedData_Hip &data, const CeedInt n, const CeedScalar value, CeedScalar *__restrict__ r_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = ((n / (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
-  const CeedInt target_node_z = (n / (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
+  const CeedInt target_node_y = ((n % (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
+  const CeedInt target_node_z = (n % (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
     r_v[target_node_z + target_comp * P_1D] = value;
@@ -325,8 +325,8 @@ inline __device__ void WriteLVecStandard3d_Single(SharedData_Hip &data, const Ce
                                                   CeedScalar *__restrict__ d_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = ((n / (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
-  const CeedInt target_node_z = (n / (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
+  const CeedInt target_node_y = ((n % (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
+  const CeedInt target_node_z = (n % (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
     const CeedInt node = data.t_id_x + data.t_id_y * P_1D + target_node_z * P_1D * P_1D;
