@@ -395,10 +395,11 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
           CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
           code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-          code << "    // CompStride: " << comp_stride << "\n";
+          code << "    const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
-          code << "    ReadLVecStandard" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name
-               << ">(data, l_size" << var_suffix << ", elem, indices.inputs[" << i << "], d" << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    ReadLVecStandard" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", comp_stride" << var_suffix << ", "
+               << P_name << ">(data, l_size" << var_suffix << ", elem, indices.inputs[" << i << "], d" << var_suffix << ", r_e" << var_suffix
+               << ");\n";
           break;
         }
         case CEED_RESTRICTION_STRIDED: {
@@ -412,9 +413,10 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
           if (!has_backend_strides) {
             CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
           }
-          code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-          code << "    ReadLVecStrided" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << P_name << ", " << strides[0] << ", "
-               << strides[1] << ", " << strides[2] << ">(data, elem, d" << var_suffix << ", r_e" << var_suffix << ");\n";
+          code << "    const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
+               << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n";
+          code << "    ReadLVecStrided" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << P_name << ", strides" << var_suffix
+               << "_0, strides" << var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, d" << var_suffix << ", r_e" << var_suffix << ");\n";
           break;
         }
         case CEED_RESTRICTION_POINTS: {
@@ -441,10 +443,11 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
         CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
         code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-        code << "    // CompStride: " << comp_stride << "\n";
+        code << "    const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
-        code << "    WriteLVecStandard" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << comp_stride << ", " << P_name
-             << ">(data, l_size" << var_suffix << ", elem, indices.outputs[" << i << "], r_e" << var_suffix << ", d" << var_suffix << ");\n";
+        code << "    WriteLVecStandard" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", comp_stride" << var_suffix << ", "
+             << P_name << ">(data, l_size" << var_suffix << ", elem, indices.outputs[" << i << "], r_e" << var_suffix << ", d" << var_suffix
+             << ");\n";
         break;
       }
       case CEED_RESTRICTION_STRIDED: {
@@ -458,9 +461,10 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
         if (!has_backend_strides) {
           CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
-        code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-        code << "    WriteLVecStrided" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << P_name << ", " << strides[0] << ", "
-             << strides[1] << ", " << strides[2] << ">(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
+        code << "    const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
+             << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n";
+        code << "    WriteLVecStrided" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << P_name << ", strides" << var_suffix
+             << "_0, strides" << var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
         break;
       }
       case CEED_RESTRICTION_POINTS:
@@ -831,9 +835,10 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
             if (!has_backend_strides) {
               CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
             }
-            code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
-            code << "      ReadEVecSliceStrided3d<num_comp" << var_suffix << ", " << Q_name << ", " << strides[0] << ", " << strides[1] << ", "
-                 << strides[2] << ">(data, elem, q, d" << var_suffix << ", r_s" << var_suffix << ");\n";
+            code << "      const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
+                 << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n";
+            code << "      ReadEVecSliceStrided3d<num_comp" << var_suffix << ", " << Q_name << ", strides" << var_suffix << "_0, strides"
+                 << var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, q, d" << var_suffix << ", r_s" << var_suffix << ");\n";
           } else {
             CeedSize                  l_size = 0;
             CeedInt                   comp_stride;
@@ -842,11 +847,11 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
             CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
             code << "      const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
             CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-            code << "      // CompStride: " << comp_stride << "\n";
+            code << "      const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
             CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
             data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
-            code << "      ReadEVecSliceStandard3d<num_comp" << var_suffix << ", " << comp_stride << ", " << Q_name << ">(data, l_size" << var_suffix
-                 << ", elem, q, indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
+            code << "      ReadEVecSliceStandard3d<num_comp" << var_suffix << ", comp_stride" << var_suffix << ", " << Q_name << ">(data, l_size"
+                 << var_suffix << ", elem, q, indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
           }
           CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
           break;
@@ -1963,8 +1968,8 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
       code << "    const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
       CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-      code << "    // CompStride: " << comp_stride << "\n";
-      code << "    WriteLVecStandard" << max_dim << "d_Single<num_comp" << var_suffix << ", " << comp_stride << ", P_1d" + var_suffix
+      code << "    const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
+      code << "    WriteLVecStandard" << max_dim << "d_Single<num_comp" << var_suffix << ", comp_stride" << var_suffix << ", P_1d" + var_suffix
            << ">(data, l_size" << var_suffix << ", elem, n, indices.outputs[" << i << "], r_e" << var_suffix << ", values_array);\n";
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     }

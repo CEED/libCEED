@@ -237,7 +237,7 @@ template <int NUM_COMP, int P_1D>
 inline __device__ void SetEVecStandard3d_Single(SharedData_Cuda &data, const CeedInt n, const CeedScalar value, CeedScalar *__restrict__ r_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = ((n % (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
+  const CeedInt target_node_y = (n % (P_1D * P_1D)) / P_1D;
   const CeedInt target_node_z = (n % (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
@@ -328,7 +328,7 @@ inline __device__ void WriteLVecStandard3d_Single(SharedData_Cuda &data, const C
                                                   CeedScalar *__restrict__ d_v) {
   const CeedInt target_comp   = n / (P_1D * P_1D * P_1D);
   const CeedInt target_node_x = n % P_1D;
-  const CeedInt target_node_y = ((n % (P_1D * P_1D * P_1D)) / P_1D) % P_1D;
+  const CeedInt target_node_y = (n % (P_1D * P_1D)) / P_1D;
   const CeedInt target_node_z = (n % (P_1D * P_1D * P_1D)) / (P_1D * P_1D);
 
   if (data.t_id_x == target_node_x && data.t_id_y == target_node_y) {
