@@ -347,10 +347,17 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen(CeedOperator o
 
   // Build the assembly kernel
   if (!data->assemble_diagonal && !data->use_assembly_fallback) {
-    bool is_build_good;
+    bool                     is_build_good = false;
+    CeedInt                  num_active_bases_in, num_active_bases_out;
+    CeedOperatorAssemblyData assembly_data;
 
-    CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_build_good));
-    if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(op, &is_build_good));
+    CeedCallBackend(CeedOperatorGetOperatorAssemblyData(op, &assembly_data));
+    CeedCallBackend(
+        CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
+    if (num_active_bases_in == num_active_bases_out) {
+      CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_build_good));
+      if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(op, &is_build_good));
+    }
     if (!is_build_good) data->use_assembly_fallback = true;
   }
 
