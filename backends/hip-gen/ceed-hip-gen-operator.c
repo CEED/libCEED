@@ -412,20 +412,20 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
       CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
       CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
 
-      CeedCallBackend(
-          CeedTryRunKernelDimShared_Hip(ceed, data->op, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_run_good, opargs));
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
+                                                    sharedMem, &is_run_good, opargs));
     } else if (data->dim == 2) {
       CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
       CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
 
-      CeedCallBackend(
-          CeedTryRunKernelDimShared_Hip(ceed, data->op, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_run_good, opargs));
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
+                                                    sharedMem, &is_run_good, opargs));
     } else if (data->dim == 3) {
       CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
       CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
 
-      CeedCallBackend(
-          CeedTryRunKernelDimShared_Hip(ceed, data->op, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, &is_run_good, opargs));
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
+                                                    sharedMem, &is_run_good, opargs));
     }
 
     // Restore input arrays
