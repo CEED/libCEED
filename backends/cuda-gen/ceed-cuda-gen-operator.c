@@ -28,6 +28,8 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   if (impl->module) CeedCallCuda(ceed, cuModuleUnload(impl->module));
+  if (impl->module_assemble_full) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_full));
+  if (impl->module_assemble_diagonal) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_diagonal));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)impl->points.num_per_elem));
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));
@@ -334,10 +336,172 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
 }
 
 //------------------------------------------------------------------------------
+// AtPoints diagonal assembly
+//------------------------------------------------------------------------------
+static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen(CeedOperator op, CeedVector assembled, CeedRequest *request) {
+  Ceed                   ceed;
+  CeedOperator_Cuda_gen *data;
+
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+
+  // Build the assembly kernel
+  if (!data->assemble_diagonal && !data->use_assembly_fallback) {
+    bool                     is_build_good = false;
+    CeedInt                  num_active_bases_in, num_active_bases_out;
+    CeedOperatorAssemblyData assembly_data;
+
+    CeedCallBackend(CeedOperatorGetOperatorAssemblyData(op, &assembly_data));
+    CeedCallBackend(
+        CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
+    if (num_active_bases_in == num_active_bases_out) {
+      CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_build_good));
+      if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(op, &is_build_good));
+    }
+    if (!is_build_good) data->use_assembly_fallback = true;
+  }
+
+  // Try assembly
+  if (!data->use_assembly_fallback) {
+    bool                    is_run_good = true;
+    Ceed_Cuda              *cuda_data;
+    CeedInt                 num_elem, num_input_fields, num_output_fields;
+    CeedEvalMode            eval_mode;
+    CeedScalar             *assembled_array;
+    CeedQFunctionField     *qf_input_fields, *qf_output_fields;
+    CeedQFunction_Cuda_gen *qf_data;
+    CeedQFunction           qf;
+    CeedOperatorField      *op_input_fields, *op_output_fields;
+
+    CeedCallBackend(CeedGetData(ceed, &cuda_data));
+    CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+    CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
+    CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+    CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+    CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+
+    // Input vectors
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
+        data->fields.inputs[i] = NULL;
+      } else {
+        bool       is_active;
+        CeedVector vec;
+
+        // Get input vector
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+        is_active = vec == CEED_VECTOR_ACTIVE;
+        if (is_active) data->fields.inputs[i] = NULL;
+        else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        CeedCallBackend(CeedVectorDestroy(&vec));
+      }
+    }
+
+    // Point coordinates
+    {
+      CeedVector vec;
+
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+      CeedCallBackend(CeedVectorDestroy(&vec));
+
+      // Points per elem
+      if (num_elem != data->points.num_elem) {
+        CeedInt            *points_per_elem;
+        const CeedInt       num_bytes   = num_elem * sizeof(CeedInt);
+        CeedElemRestriction rstr_points = NULL;
+
+        data->points.num_elem = num_elem;
+        CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+        CeedCallBackend(CeedCalloc(num_elem, &points_per_elem));
+        for (CeedInt e = 0; e < num_elem; e++) {
+          CeedInt num_points_elem;
+
+          CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
+          points_per_elem[e] = num_points_elem;
+        }
+        if (data->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)data->points.num_per_elem));
+        CeedCallCuda(ceed, cudaMalloc((void **)&data->points.num_per_elem, num_bytes));
+        CeedCallCuda(ceed, cudaMemcpy((void *)data->points.num_per_elem, points_per_elem, num_bytes, cudaMemcpyHostToDevice));
+        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+        CeedCallBackend(CeedFree(&points_per_elem));
+      }
+    }
+
+    // Get context data
+    CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
+
+    // Assembly array
+    CeedCallBackend(CeedVectorGetArray(assembled, CEED_MEM_DEVICE, &assembled_array));
+
+    // Assemble diagonal
+    void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points, &assembled_array};
+    int   max_threads_per_block, min_grid_size, grid;
+
+    CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
+    int block[3] = {data->thread_1d, (data->dim == 1 ? 1 : data->thread_1d), -1};
+
+    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, 1,
+                                       cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
+    CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
+
+    CeedCallBackend(
+        CeedTryRunKernelDimShared_Cuda(ceed, data->assemble_diagonal, NULL, grid, block[0], block[1], block[2], shared_mem, &is_run_good, opargs));
+
+    // Restore input arrays
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
+      } else {
+        bool       is_active;
+        CeedVector vec;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+        is_active = vec == CEED_VECTOR_ACTIVE;
+        if (!is_active) CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]));
+        CeedCallBackend(CeedVectorDestroy(&vec));
+      }
+    }
+
+    // Restore point coordinates
+    {
+      CeedVector vec;
+
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->points.coords));
+      CeedCallBackend(CeedVectorDestroy(&vec));
+    }
+
+    // Restore context data
+    CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
+
+    // Restore assembly array
+    CeedCallBackend(CeedVectorRestoreArray(assembled, &assembled_array));
+
+    // Cleanup
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    if (!is_run_good) data->use_assembly_fallback = true;
+  }
+  CeedCallBackend(CeedDestroy(&ceed));
+
+  // Fallback, if needed
+  if (data->use_assembly_fallback) {
+    CeedOperator op_fallback;
+
+    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator");
+    CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+    CeedCallBackend(CeedOperatorLinearAssembleAddDiagonal(op_fallback, assembled, request));
+    return CEED_ERROR_SUCCESS;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
-  bool                   is_composite;
+  bool                   is_composite, is_at_points;
   Ceed                   ceed;
   CeedOperator_Cuda_gen *impl;
 
@@ -349,6 +513,11 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAddComposite", CeedOperatorApplyAddComposite_Cuda_gen));
   } else {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Cuda_gen));
+  }
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  if (is_at_points) {
+    CeedCallBackend(
+        CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda_gen));
   CeedCallBackend(CeedDestroy(&ceed));
