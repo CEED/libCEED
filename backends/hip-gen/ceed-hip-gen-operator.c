@@ -321,7 +321,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
     CeedCallBackend(
         CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
     if (num_active_bases_in == num_active_bases_out) {
-      CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_build_good));
+      CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_build_good));
       if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Hip_gen(op, &is_build_good));
     }
     if (!is_build_good) data->use_assembly_fallback = true;

@@ -493,10 +493,9 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
         code << tab << "    const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
              << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n";
         code << tab << "    WriteLVecStrided" << (is_all_tensor ? max_dim : 1) << "d<num_comp" << var_suffix << ", " << P_name << ", strides"
-             << var_suffix < < < <"_0, strides" << var_suffix << "_1, strides" << var_suffix << "_2">(data, elem, r_e " << var_suffix << ",
-                                                                                                      d " << var_suffix << ");
-        \n ";
-            break;
+             << var_suffix << "_0, strides" << var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, r_e" << var_suffix << ", d" << var_suffix
+             << ");\n";
+        break;
       }
       case CEED_RESTRICTION_POINTS:
         data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
@@ -874,9 +873,8 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
             }
             code << tab << "      const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
                  << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n";
-            code << tab << "      ReadEVecSliceStrided3d<num_comp" << var_suffix << ", " << Q_name << ", strides" << var_suffix
-                 << "_0, strides" < < < <
-                var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, q, d" << var_suffix << ", r_s" << var_suffix << ");\n";
+            code << tab << "      ReadEVecSliceStrided3d<num_comp" << var_suffix << ", " << Q_name << ", strides" << var_suffix << "_0, strides"
+                 << var_suffix << "_1, strides" << var_suffix << "_2>(data, elem, q, d" << var_suffix << ", r_s" << var_suffix << ");\n";
           } else {
             CeedSize                 l_size = 0;
             CeedInt                  comp_stride;
