@@ -64,20 +64,25 @@ These backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool and
 
 ### GPU Backends
 
-The CUDA, HIP, and SYCL backend families all follow the same basic design.
+The CUDA, HIP, and SYCL backend families all follow similar designs.
+The CUDA and HIP backends are very similar, with minor differences.
+While the SYCL backend was based upon the CUDA and HIP backends, there are more internal differences to accommodate OpenCL and Intel hardware.
 
 The `/gpu/*/ref` backends provide basic functionality.
 In these backends, the operator is applied in multiple separate kernel launches, following the libCEED operator decomposition, where first {ref}`CeedElemRestriction` kernels map from the L-vectors to E-vectors, then {ref}`CeedBasis` kernels map from the E-vectors to Q-vectors, then the {ref}`CeedQFunction` kernel provides the action of the user quadrature point function, and the transpose {ref}`CeedBasis` and {ref}`CeedElemRestriction` kernels are applied to go back to the E-vectors and finally the L-vectors.
 These kernels apply to all points across all elements in order to maximize the amount of work each kernel launch has.
+Some of these kernels are compiled at runtime via NVRTC, HIPRTC, or OpenCL RTC.
 
 The `/gpu/*/shared` backends delegate to the corresponding `/gpu/*/ref` backends.
 These backends use shared memory to improve performance for the {ref}`CeedBasis` kernels.
 All other libCEED objects are delegated to `/gpu/*/ref`.
+These kernels are compiled at runtime via NVRTC, HIPRTC, or OpenCL RTC.
 
 The `/gpu/*/gen` backends delegate to the corresponding `/gpu/*/shared` backends.
 These backends write a single comprehensive kernel to apply the action of the {ref}`CeedOperator`, significantly improving performance by eliminating intermediate data structures and reducing the total number of kernel launches required.
+This kernel is compiled at runtime via NVRTC, HIPRTC, or OpenCL RTC.
 
-The `/gpu/*/magma` backends delegate to the corresponding `/gpu/*/ref` backends.
+The `/gpu/*/magma` backends delegate to the corresponding `/gpu/cuda/ref` and `/gpu/hip/ref` backends.
 These backends provide better performance for {ref}`CeedBasis` kernels but do not have the improvements from the `/gpu/*/gen` backends for {ref}`CeedOperator`.
 
 The `/*/*/occa` backends are an experimental feature and not part of any family.
