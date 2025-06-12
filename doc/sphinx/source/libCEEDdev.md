@@ -60,6 +60,7 @@ These backends update the `CeedTensorContract` objects using AVX intrinsics and 
 
 The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
+These backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool and Valgrind headers.
 
 ### GPU Backends
 
@@ -96,7 +97,7 @@ There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vecto
 
   - If possible, backends should use {c:func}`CeedElemRestrictionSetELayout()` to use the `t2**` tests.
     If the backend uses a strided **E-vector** layout, then the data for node `i`, component `j`, element `k` in the **E-vector** is given by `i*layout[0] + j*layout[1] + k*layout[2]`.
-  - Backends may choose to use a non-strided **E-vector** layout; however, the `t2**` tests will not function correctly in this case and the tests will need to be whitelisted for the backend to pass the test suite.
+  - Backends may choose to use a non-strided **E-vector** layout; however, the `t2**` tests will not function correctly in this case and these tests  will need to be marked as allowable failures for this backend in the test suite.
 
 - **Q-vector** layouts
 
