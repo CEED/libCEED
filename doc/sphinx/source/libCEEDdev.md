@@ -24,12 +24,14 @@ Once the user facing API and the default implementation are in place and verifie
 There are three mechanisms by which a Ceed backend can inherit implementation from another Ceed backend.
 These options are set in the backend initialization routine.
 
-1. Delegation - Developers may use {c:func}`CeedSetDelegate()` to set a backend that will provide the implementation of any unimplemented Ceed objects.
-2. Object delegation  - Developers may use {c:func}`CeedSetObjectDelegate()` to set a backend that will provide the implementation of a specific unimplemented Ceed object.
+1. Delegation - Developers may use {c:func}`CeedSetDelegate` to set a general delegate {ref}`Ceed` object.
+   This delegate {ref}`Ceed` will provide the implementation of any libCeed objects that parent backend does not implement.
+2. Object delegation  - Developers may use {c:func}`CeedSetObjectDelegate` to set a delegate {ref}`Ceed` object for a specific libCEED object.
+   This delegate {ref}`Ceed` will only provide the implementation of that specific libCeed object for the parent backend.
    Object delegation has higher precedence than delegation.
-3. Operator fallback - Developers may use {c:func}`CeedSetOperatorFallbackResource()` to set a {ref}`Ceed` resource that will provide the implementation of unimplemented {ref}`CeedOperator` methods.
-   A fallback {ref}`Ceed` with this resource will only be instantiated if a method is called that is not implemented by the parent {ref}`Ceed`.
-   In order to use the fallback mechanism, the parent {ref}`Ceed` and fallback resource must use compatible **E-vector** and **Q-vector** layouts.
+3. Operator fallback - Developers may use {c:func}`CeedSetOperatorFallbackResource` to set a {ref}`Ceed` resource that will provide the implementation of any unimplemented {ref}`CeedOperator` methods.
+   A fallback {ref}`Ceed` with this resource will only be created if a method is called that is not implemented by the parent backend.
+   In order to use the fallback mechanism, the parent backend and fallback backend must use compatible **E-vector** and **Q-vector** layouts.
 
 For example, the `/cpu/self/xsmm/serial/` backend implements the `CeedTensorContract` object but delegates all other functionality to the `/cpu/self/opt/serial` backend.
 The `/cpu/self/opt/serial` backend implements the `CeedTensorContract` and `CeedOperator` objects but delegates all other functionality to the `/cpu/self/ref/serial` backend.
