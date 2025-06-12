@@ -16,8 +16,8 @@ The basic implementation of these functions should also be placed in `/interface
 
 LibCEED generally follows a "CPU first" implementation strategy when adding new functionality to the user facing API.
 If there are no performance specific considerations, it is generally recommended to include a basic CPU default implementation in `/interface/*.c`.
-Any new functions must be well documented and well tested.
-Once the user facing API and the default implementation are in place and verified correct via tests, then the developer can focus on hardware specific implementations, such as for CUDA or HIP backends.
+Any new functions must be well documented and tested.
+Once the user facing API and the default implementation are in place and verified correct via tests, then the developer can focus on hardware specific implementations (AVX, CUDA, HIP, etc.) as necessary.
 
 ## Backend Inheritance
 
@@ -56,9 +56,9 @@ The `/cpu/self/opt/*` backends update the {ref}`CeedOperator` to apply the actio
 This reduced the memory required to utilize this backend significantly.
 
 The `/cpu/self/avx/*` and `/cpu/self/xsmm/*` backends delegate to the corresponding `/cpu/self/opt/*` backends.
-These backends update the `CeedTensorContract` objects.
+These backends update the `CeedTensorContract` objects using AVX intrinsics and libXSMM functions, respectively.
 
-The `/cpu/self/memcheck/*` backends are delegate to the `/cpu/self/ref/*` backends.
+The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
 
 ### GPU Backends
@@ -82,12 +82,12 @@ The `/*/*/occa` backends are not part of any family and generally are not well m
 
 ## Internal Layouts
 
-Ceed backends are free to use any **E-vector** and **Q-vector** data layout, to include never fully forming these vectors, so long as the backend passes the `t5**` series tests and all examples.
+Ceed backends are free to use any **E-vector** and **Q-vector** data layout (including never fully forming these vectors) so long as the backend passes the `t5**` series tests and all examples.
 There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vectors**, detailed below:
 
 - **L-vector** layouts
 
-  - **L-vectors** described by a {ref}`CeedElemRestriction` have a layout described by the `offsets` array and `comp_stride` parameter.
+  - **L-vectors** described by a standard {ref}`CeedElemRestriction` have a layout described by the `offsets` array and `comp_stride` parameter.
     Data for node `i`, component `j`, element `k` can be found in the **L-vector** at index `offsets[i + k*elem_size] + j*comp_stride`.
   - **L-vectors** described by a strided {ref}`CeedElemRestriction` have a layout described by the `strides` array.
     Data for node `i`, component `j`, element `k` can be found in the **L-vector** at index `i*strides[0] + j*strides[1] + k*strides[2]`.
