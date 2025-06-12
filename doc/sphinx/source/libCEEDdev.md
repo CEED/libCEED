@@ -80,7 +80,7 @@ These backends write a single comprehensive kernel to apply the action of the {r
 The `/gpu/*/magma` backends delegate to the corresponding `/gpu/*/ref` backends.
 These backends provide better performance for {ref}`CeedBasis` kernels but do not have the improvements from the `/gpu/*/gen` backends for {ref}`CeedOperator`.
 
-The `/*/*/occa` backends are not part of any family and generally are not well maintained.
+The `/*/*/occa` backends are an experimental feature and not part of any family.
 
 ## Internal Layouts
 
