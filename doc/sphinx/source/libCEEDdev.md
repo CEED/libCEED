@@ -31,7 +31,7 @@ These options are set in the backend initialization routine.
    Object delegation has higher precedence than delegation.
 3. Operator fallback - Developers may use {c:func}`CeedSetOperatorFallbackResource` to set a {ref}`Ceed` resource that will provide the implementation of any unimplemented {ref}`CeedOperator` methods.
    A fallback {ref}`Ceed` with this resource will only be created if a method is called that is not implemented by the parent backend.
-   In order to use the fallback mechanism, the parent backend and fallback backend must use compatible **E-vector** and **Q-vector** layouts.
+   In order to use the fallback mechanism, the parent backend and fallback backend must use compatible E-vector and Q-vector layouts.
 
 For example, the `/cpu/self/xsmm/serial/` backend implements the `CeedTensorContract` object but delegates all other functionality to the `/cpu/self/opt/serial` backend.
 The `/cpu/self/opt/serial` backend implements the `CeedTensorContract` and `CeedOperator` objects but delegates all other functionality to the `/cpu/self/ref/serial` backend.
@@ -67,7 +67,7 @@ These backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool and
 The CUDA, HIP, and SYCL backend families all follow the same basic design.
 
 The `/gpu/*/ref` backends provide basic functionality.
-In these backends, the operator is applied in multiple separate kernel launches, following the libCEED operator decomposition, where first {ref}`CeedElemRestriction` kernels map from the L-vectors to E-vectors, then {ref}`CeedBasis` kernels map from the E-vectors to Q-vectors, then the {ref}`CeedQFunction` kernel provides the action of the user quadrature point function, and the transpose {ref}`CeedBasis` and {ref}`CeedElemRestriction` kernels are applied.
+In these backends, the operator is applied in multiple separate kernel launches, following the libCEED operator decomposition, where first {ref}`CeedElemRestriction` kernels map from the L-vectors to E-vectors, then {ref}`CeedBasis` kernels map from the E-vectors to Q-vectors, then the {ref}`CeedQFunction` kernel provides the action of the user quadrature point function, and the transpose {ref}`CeedBasis` and {ref}`CeedElemRestriction` kernels are applied to go back to the E-vectors and finally the L-vectors.
 These kernels apply to all points across all elements in order to maximize the amount of work each kernel launch has.
 
 The `/gpu/*/shared` backends delegate to the corresponding `/gpu/*/ref` backends.
@@ -84,28 +84,28 @@ The `/*/*/occa` backends are not part of any family and generally are not well m
 
 ## Internal Layouts
 
-Ceed backends are free to use any **E-vector** and **Q-vector** data layout (including never fully forming these vectors) so long as the backend passes the `t5**` series tests and all examples.
-There are several common layouts for **L-vectors**, **E-vectors**, and **Q-vectors**, detailed below:
+Ceed backends are free to use any E-vector and Q-vector data layout (including never fully forming these vectors) so long as the backend passes the `t5**` series tests and all examples.
+There are several common layouts for L-vectors, E-vectors, and Q-vectors, detailed below:
 
 - **L-vector** layouts
 
-  - **L-vectors** described by a standard {ref}`CeedElemRestriction` have a layout described by the `offsets` array and `comp_stride` parameter.
-    Data for node `i`, component `j`, element `k` can be found in the **L-vector** at index `offsets[i + k*elem_size] + j*comp_stride`.
-  - **L-vectors** described by a strided {ref}`CeedElemRestriction` have a layout described by the `strides` array.
-    Data for node `i`, component `j`, element `k` can be found in the **L-vector** at index `i*strides[0] + j*strides[1] + k*strides[2]`.
+  - L-vectors described by a standard {ref}`CeedElemRestriction` have a layout described by the `offsets` array and `comp_stride` parameter.
+    Data for node `i`, component `j`, element `k` can be found in the L-vector at index `offsets[i + k*elem_size] + j*comp_stride`.
+  - L-vectors described by a strided {ref}`CeedElemRestriction` have a layout described by the `strides` array.
+    Data for node `i`, component `j`, element `k` can be found in the L-vector at index `i*strides[0] + j*strides[1] + k*strides[2]`.
 
 - **E-vector** layouts
 
   - If possible, backends should use {c:func}`CeedElemRestrictionSetELayout()` to use the `t2**` tests.
-    If the backend uses a strided **E-vector** layout, then the data for node `i`, component `j`, element `k` in the **E-vector** is given by `i*layout[0] + j*layout[1] + k*layout[2]`.
-  - Backends may choose to use a non-strided **E-vector** layout; however, the `t2**` tests will not function correctly in this case and these tests  will need to be marked as allowable failures for this backend in the test suite.
+    If the backend uses a strided E-vector layout, then the data for node `i`, component `j`, element `k` in the E-vector is given by `i*layout[0] + j*layout[1] + k*layout[2]`.
+  - Backends may choose to use a non-strided E-vector layout; however, the `t2**` tests will not function correctly in this case and these tests will need to be marked as allowable failures for this backend in the test suite.
 
 - **Q-vector** layouts
 
-  - When the size of a {ref}`CeedQFunction` field is greater than `1`, data for quadrature point `i` component `j` can be found in the **Q-vector** at index `i + Q*j`.
+  - When the size of a {ref}`CeedQFunction` field is greater than `1`, data for quadrature point `i` component `j` can be found in the Q-vector at index `i + Q*j`, where `Q` is the total number of quadrature points in the Q-vector.
     Backends are free to provide the quadrature points in any order.
-  - When the {ref}`CeedQFunction` field has `emode` `CEED_EVAL_GRAD`, data for quadrature point `i`, component `j`, derivative `k` can be found in the **Q-vector** at index `i + Q*j + Q*size*k`.
-  - Note that backend developers must take special care to ensure that the data in the **Q-vectors** for a field with `emode` `CEED_EVAL_NONE` is properly ordered when the backend uses different layouts for **E-vectors** and **Q-vectors**.
+  - When the {ref}`CeedQFunction` field has `emode` `CEED_EVAL_GRAD`, data for quadrature point `i`, component `j`, derivative `k` can be found in the Q-vector at index `i + Q*j + Q*num_comp*k`.
+  - Backend developers must take special care to ensure that the data in the Q-vectors for a field with `emode` `CEED_EVAL_NONE` is properly ordered when the backend uses different layouts for E-vectors and Q-vectors.
 
 ## CeedVector Array Access
 
