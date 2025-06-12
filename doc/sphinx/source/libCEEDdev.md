@@ -71,7 +71,7 @@ In these backends, the operator is applied in multiple separate kernel launches,
 These kernels apply to all points across all elements in order to maximize the amount of work each kernel launch has.
 
 The `/gpu/*/shared` backends delegate to the corresponding `/gpu/*/ref` backends.
-These backends use shared memory to reduce the amount of memory required for the {ref}`CeedBasis` kernels and improve performance.
+These backends use shared memory to improve performance for the {ref}`CeedBasis` kernels.
 All other libCEED objects are delegated to `/gpu/*/ref`.
 
 The `/gpu/*/gen` backends delegate to the corresponding `/gpu/*/shared` backends.
