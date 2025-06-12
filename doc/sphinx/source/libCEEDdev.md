@@ -21,8 +21,8 @@ Once the user facing API and the default implementation are in place and verifie
 
 ## Backend Inheritance
 
-There are three mechanisms by which a Ceed backend can inherit implementation from another Ceed backend.
-These options are set in the backend initialization routine.
+A Ceed backend is not required to implement all libCeed objects or {ref}`CeedOperator` methods.
+There are three mechanisms by which a Ceed backend can inherit implementations from another Ceed backend.
 
 1. Delegation - Developers may use {c:func}`CeedSetDelegate` to set a general delegate {ref}`Ceed` object.
    This delegate {ref}`Ceed` will provide the implementation of any libCeed objects that parent backend does not implement.
@@ -33,11 +33,11 @@ These options are set in the backend initialization routine.
    A fallback {ref}`Ceed` with this resource will only be created if a method is called that is not implemented by the parent backend.
    In order to use the fallback mechanism, the parent backend and fallback backend must use compatible E-vector and Q-vector layouts.
 
-For example, the `/cpu/self/xsmm/serial/` backend implements the `CeedTensorContract` object but delegates all other functionality to the `/cpu/self/opt/serial` backend.
-The `/cpu/self/opt/serial` backend implements the `CeedTensorContract` and `CeedOperator` objects but delegates all other functionality to the `/cpu/self/ref/serial` backend.
+For example, the `/cpu/self/xsmm/serial/` backend implements the `CeedTensorContract` object itself but delegates all other functionality to the `/cpu/self/opt/serial` backend via {c:func}`CeedSetDelegate`.
 
-If the `/cpu/self/opt/serial` backend had missing {ref}`CeedOperator` functionality, then it could fallback to `/cpu/self/ref/serial` for missing methods.
-In this case, the fallback {ref}`Ceed` would clone the `/cpu/self/opt/serial` {ref}`CeedOperator` and use this clone to execute the missing functionality.
+As an example of operator fallback, the `/gpu/cuda/gen` backend does not implement all {ref}`CeedOperator` methods.
+It falls back to `/gpu/cuda/ref` for missing {ref}`CeedOperator` methods via {c:func}`CeedSetOperatorFallbackResource`.
+In this case, the parent `/gpu/cuda/gen` {ref}`Ceed` creates a clone of the `/gpu/cuda/gen` {ref}`CeedOperator` with the fallback `/gpu/cuda/ref` {ref}`Ceed` and uses this clone for the missing methods.
 
 ## Backend Families
 
