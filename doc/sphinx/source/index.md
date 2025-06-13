@@ -8,9 +8,9 @@ intro
 gettingstarted
 libCEEDapi
 examples/index
+api/index
 ffi
 gpu
-api/index
 precision
 libCEEDdev
 Contributing <CONTRIBUTING>
