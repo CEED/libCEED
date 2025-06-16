@@ -21,7 +21,6 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   Ceed       ceed_shared;
   Ceed_Sycl *data;
   char      *resource_root;
-  const char fallback_resource[] = "/gpu/sycl/ref";
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":device_id=", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/sycl") || !strcmp(resource_root, "/gpu/sycl/gen"), ceed, CEED_ERROR_BACKEND,
@@ -37,7 +36,7 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetStream_Sycl(ceed_shared, &(data->sycl_queue)));
   CeedCallBackend(CeedDestroy(&ceed_shared));
 
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
+  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, "/gpu/sycl/ref"));
 
   Ceed ceed_fallback = NULL;
   CeedCallBackend(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));

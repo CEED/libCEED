@@ -764,12 +764,19 @@ int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
 
   @param[in,out] qf         `CeedQFunction`
   @param[in]     field_name Name of `CeedQFunction` field
-  @param[in]     size       Size of `CeedQFunction` field, (`num_comp * 1`) for @ref CEED_EVAL_NONE, (`num_comp * 1`) for @ref CEED_EVAL_INTERP for an \f$H^1\f$ space or (`num_comp * dim`) for an \f$H(\mathrm{div})\f$ or \f$H(\mathrm{curl})\f$ space, (`num_comp * dim`) for @ref CEED_EVAL_GRAD, or (`num_comp * 1`) for @ref CEED_EVAL_DIV, and (`num_comp * curl_dim`) with `curl_dim = 1` if `dim < 3` otherwise `curl_dim = dim` for @ref CEED_EVAL_CURL.
+  @param[in]     size       Size of `CeedQFunction` field,
+                              (`num_comp * 1`) for @ref CEED_EVAL_NONE,
+                              (`num_comp * 1`) for @ref CEED_EVAL_INTERP for an \f$H^1\f$ space or (`num_comp * dim`) for an \f$H(\mathrm{div})\f$ or \f$H(\mathrm{curl})\f$ space,
+                              (`num_comp * dim`) for @ref CEED_EVAL_GRAD,
+                              (`num_comp * 1`) for @ref CEED_EVAL_DIV, and
+                              (`num_comp * curl_dim`) with `curl_dim = 1` if `dim < 3` otherwise `curl_dim = dim` for @ref CEED_EVAL_CURL.
   @param[in]     eval_mode  @ref CEED_EVAL_NONE to use values directly,
                               @ref CEED_EVAL_INTERP to use interpolated values,
                               @ref CEED_EVAL_GRAD to use gradients,
                               @ref CEED_EVAL_DIV to use divergence,
                               @ref CEED_EVAL_CURL to use curl
+
+  Note: In the user `CeedQFunctionUser`, the `in` argument list the fields in the order given by the calls to `CeedQFunctionAddInput`.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -799,12 +806,19 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
 
   @param[in,out] qf         `CeedQFunction`
   @param[in]     field_name Name of `CeedQFunction` field
-  @param[in]     size       Size of `CeedQFunction` field, (`num_comp * 1`) for @ref CEED_EVAL_NONE, (`num_comp * 1`) for @ref CEED_EVAL_INTERP for an \f$H^1\f$ space or (`num_comp * dim`) for an \f$H(\mathrm{div})\f$ or \f$H(\mathrm{curl})\f$ space, (`num_comp * dim`) for @ref CEED_EVAL_GRAD, or (`num_comp * 1`) for @ref CEED_EVAL_DIV, and (`num_comp * curl_dim`) with `curl_dim = 1` if `dim < 3` else dim for @ref CEED_EVAL_CURL.
+  @param[in]     size       Size of `CeedQFunction` field,
+                              (`num_comp * 1`) for @ref CEED_EVAL_NONE,
+                              (`num_comp * 1`) for @ref CEED_EVAL_INTERP for an \f$H^1\f$ space or (`num_comp * dim`) for an \f$H(\mathrm{div})\f$ or \f$H(\mathrm{curl})\f$ space,
+                              (`num_comp * dim`) for @ref CEED_EVAL_GRAD,
+                              (`num_comp * 1`) for @ref CEED_EVAL_DIV, and
+                              (`num_comp * curl_dim`) with `curl_dim = 1` if `dim < 3` otherwise `curl_dim = dim` for @ref CEED_EVAL_CURL.
   @param[in]     eval_mode  @ref CEED_EVAL_NONE to use values directly,
                               @ref CEED_EVAL_INTERP to use interpolated values,
                               @ref CEED_EVAL_GRAD to use gradients,
                               @ref CEED_EVAL_DIV to use divergence,
                               @ref CEED_EVAL_CURL to use curl.
+
+  Note: In the user `CeedQFunctionUser`, the `out` argument list the fields in the order given by the calls to `CeedQFunctionAddOutput`.
 
   @return An error code: 0 - success, otherwise - failure
 
