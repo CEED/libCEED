@@ -19,6 +19,7 @@
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractX2dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *U, const CeedScalar *B,
                                             CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -27,7 +28,6 @@ inline __device__ void ContractX2dFlattened(SharedData_Hip &data, const int t_id
       *V += B[i + t_id_x * P_1D] * data.slice[i + t_id_y * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -36,6 +36,7 @@ inline __device__ void ContractX2dFlattened(SharedData_Hip &data, const int t_id
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractY2dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *U, const CeedScalar *B,
                                             CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -44,7 +45,6 @@ inline __device__ void ContractY2dFlattened(SharedData_Hip &data, const int t_id
       *V += B[i + t_id_y * P_1D] * data.slice[t_id_x + i * T_1D];  // Contract y direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -53,6 +53,7 @@ inline __device__ void ContractY2dFlattened(SharedData_Hip &data, const int t_id
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeY2dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
                                                      const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -61,7 +62,6 @@ inline __device__ void ContractTransposeY2dFlattened(SharedData_Hip &data, const
       *V += B[t_id_y + i * P_1D] * data.slice[t_id_x + i * T_1D];  // Contract y direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -70,6 +70,7 @@ inline __device__ void ContractTransposeY2dFlattened(SharedData_Hip &data, const
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeX2dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
                                                      const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -78,7 +79,6 @@ inline __device__ void ContractTransposeX2dFlattened(SharedData_Hip &data, const
       *V += B[t_id_x + i * P_1D] * data.slice[i + t_id_y * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -87,6 +87,7 @@ inline __device__ void ContractTransposeX2dFlattened(SharedData_Hip &data, const
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddX2dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
                                                         const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
   if (t_id_x < P_1D && t_id_y < P_1D) {
@@ -94,7 +95,6 @@ inline __device__ void ContractTransposeAddX2dFlattened(SharedData_Hip &data, co
       *V += B[t_id_x + i * P_1D] * data.slice[i + t_id_y * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -105,10 +105,10 @@ inline __device__ void QPack2d(SharedData_Hip &data, const int t_id_x, const int
   const CeedInt new_t_id_x = data.t_id_x % Q_1D, new_t_id_y = data.t_id_x / Q_1D;
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    __syncthreads();
     if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * T_1D] = U[comp];
     __syncthreads();
     U[comp] = data.t_id_x < (Q_1D * Q_1D) ? data.slice[new_t_id_x + new_t_id_y * T_1D] : 0.0;
-    __syncthreads();
   }
 }
 
@@ -117,10 +117,10 @@ inline __device__ void QUnpack2d(SharedData_Hip &data, const int t_id_x, const i
   const CeedInt old_t_id_x = data.t_id_x % Q_1D, old_t_id_y = data.t_id_x / Q_1D;
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    __syncthreads();
     if (data.t_id_x < (Q_1D * Q_1D)) data.slice[old_t_id_x + old_t_id_y * T_1D] = U[comp];
     __syncthreads();
     U[comp] = (t_id_x < Q_1D && t_id_y < Q_1D) ? data.slice[t_id_x + t_id_y * T_1D] : 0.0;
-    __syncthreads();
   }
 }
 
@@ -218,6 +218,7 @@ inline __device__ void WeightTensor2dFlattened(SharedData_Hip &data, const CeedS
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractX3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                             const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -226,7 +227,6 @@ inline __device__ void ContractX3dFlattened(SharedData_Hip &data, const int t_id
       *V += B[i + t_id_x * P_1D] * data.slice[i + t_id_y * T_1D + t_id_z * T_1D * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -235,6 +235,7 @@ inline __device__ void ContractX3dFlattened(SharedData_Hip &data, const int t_id
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractY3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                             const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -243,7 +244,6 @@ inline __device__ void ContractY3dFlattened(SharedData_Hip &data, const int t_id
       *V += B[i + t_id_y * P_1D] * data.slice[t_id_x + i * T_1D + t_id_z * T_1D * T_1D];  // Contract y direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -252,6 +252,7 @@ inline __device__ void ContractY3dFlattened(SharedData_Hip &data, const int t_id
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractZ3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                             const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -260,7 +261,6 @@ inline __device__ void ContractZ3dFlattened(SharedData_Hip &data, const int t_id
       *V += B[i + t_id_z * P_1D] * data.slice[t_id_x + t_id_y * T_1D + i * T_1D * T_1D];  // Contract z direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -269,6 +269,7 @@ inline __device__ void ContractZ3dFlattened(SharedData_Hip &data, const int t_id
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeZ3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                                      const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -277,7 +278,6 @@ inline __device__ void ContractTransposeZ3dFlattened(SharedData_Hip &data, const
       *V += B[t_id_z + i * P_1D] * data.slice[t_id_x + t_id_y * T_1D + i * T_1D * T_1D];  // Contract z direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -286,6 +286,7 @@ inline __device__ void ContractTransposeZ3dFlattened(SharedData_Hip &data, const
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddZ3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z,
                                                         const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   if (t_id_x < Q_1D && t_id_y < Q_1D && t_id_z < P_1D) {
@@ -293,7 +294,6 @@ inline __device__ void ContractTransposeAddZ3dFlattened(SharedData_Hip &data, co
       *V += B[t_id_z + i * P_1D] * data.slice[t_id_x + t_id_y * T_1D + i * T_1D * T_1D];  // Contract z direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -302,6 +302,7 @@ inline __device__ void ContractTransposeAddZ3dFlattened(SharedData_Hip &data, co
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeY3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                                      const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -310,7 +311,6 @@ inline __device__ void ContractTransposeY3dFlattened(SharedData_Hip &data, const
       *V += B[t_id_y + i * P_1D] * data.slice[t_id_x + i * T_1D + t_id_z * T_1D * T_1D];  // Contract y direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -319,6 +319,7 @@ inline __device__ void ContractTransposeY3dFlattened(SharedData_Hip &data, const
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddY3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z,
                                                         const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   if (t_id_x < Q_1D && t_id_y < P_1D && t_id_z < P_1D) {
@@ -326,7 +327,6 @@ inline __device__ void ContractTransposeAddY3dFlattened(SharedData_Hip &data, co
       *V += B[t_id_y + i * P_1D] * data.slice[t_id_x + i * T_1D + t_id_z * T_1D * T_1D];  // Contract y direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -335,6 +335,7 @@ inline __device__ void ContractTransposeAddY3dFlattened(SharedData_Hip &data, co
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeX3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
                                                      const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   *V = 0.0;
@@ -343,7 +344,6 @@ inline __device__ void ContractTransposeX3dFlattened(SharedData_Hip &data, const
       *V += B[t_id_x + i * P_1D] * data.slice[i + t_id_y * T_1D + t_id_z * T_1D * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -352,6 +352,7 @@ inline __device__ void ContractTransposeX3dFlattened(SharedData_Hip &data, const
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddX3dFlattened(SharedData_Hip &data, const int t_id_x, const int t_id_y, const int t_id_z,
                                                         const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
   if (t_id_x < P_1D && t_id_y < P_1D && t_id_z < P_1D) {
@@ -359,7 +360,6 @@ inline __device__ void ContractTransposeAddX3dFlattened(SharedData_Hip &data, co
       *V += B[t_id_x + i * P_1D] * data.slice[i + t_id_y * T_1D + t_id_z * T_1D * T_1D];  // Contract x direction
     }
   }
-  __syncthreads();
 }
 
 //------------------------------------------------------------------------------
@@ -370,10 +370,10 @@ inline __device__ void QPack3d(SharedData_Hip &data, const int t_id_x, const int
   const CeedInt new_t_id_x = data.t_id_x % Q_1D, new_t_id_y = (data.t_id_x / Q_1D) % Q_1D, new_t_id_z = data.t_id_x / (Q_1D * Q_1D);
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    __syncthreads();
     if (t_id_x < Q_1D && t_id_y < Q_1D) data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = U[comp];
     __syncthreads();
     U[comp] = data.t_id_x < (Q_1D * Q_1D * Q_1D) ? data.slice[new_t_id_x + new_t_id_y * T_1D + new_t_id_z * T_1D * T_1D] : 0.0;
-    __syncthreads();
   }
 }
 
@@ -382,10 +382,10 @@ inline __device__ void QUnpack3d(SharedData_Hip &data, const int t_id_x, const i
   const CeedInt old_t_id_x = data.t_id_x % Q_1D, old_t_id_y = (data.t_id_x / Q_1D) % Q_1D, old_t_id_z = data.t_id_x / (Q_1D * Q_1D);
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    __syncthreads();
     if (data.t_id_x < Q_1D * Q_1D * Q_1D) data.slice[old_t_id_x + old_t_id_y * T_1D + old_t_id_z * T_1D * T_1D] = U[comp];
     __syncthreads();
     U[comp] = (t_id_x < Q_1D && t_id_y < Q_1D) ? data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] : 0.0;
-    __syncthreads();
   }
 }
 

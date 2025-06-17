@@ -49,6 +49,7 @@ inline __device__ void InterpAtPoints1d(SharedData_Hip &data, const CeedInt p, c
   ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     // Load coefficients
+    __syncthreads();
     if (data.t_id_x < Q_1D) data.slice[data.t_id_x] = r_C[comp];
     __syncthreads();
     // Contract x direction
@@ -94,6 +95,7 @@ inline __device__ void GradAtPoints1d(SharedData_Hip &data, const CeedInt p, con
   ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    __syncthreads();
     // Load coefficients
     if (data.t_id_x < Q_1D) data.slice[data.t_id_x] = r_C[comp];
     __syncthreads();
@@ -145,6 +147,7 @@ inline __device__ void InterpAtPoints2d(SharedData_Hip &data, const CeedInt p, c
     CeedScalar chebyshev_x[Q_1D];
 
     // Load coefficients
+    __syncthreads();
     if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[comp];
     __syncthreads();
     // Contract x direction
@@ -213,6 +216,7 @@ inline __device__ void GradAtPoints2d(SharedData_Hip &data, const CeedInt p, con
     CeedScalar chebyshev_x[Q_1D];
 
     // Load coefficients
+    __syncthreads();
     if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[comp];
     __syncthreads();
     for (CeedInt dim = 0; dim < 2; dim++) {
@@ -294,6 +298,7 @@ inline __device__ void InterpAtPoints3d(SharedData_Hip &data, const CeedInt p, c
       CeedScalar chebyshev_x[Q_1D];
 
       // Load coefficients
+      __syncthreads();
       if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[k + comp * Q_1D];
       __syncthreads();
       // Contract x direction
@@ -372,6 +377,7 @@ inline __device__ void GradAtPoints3d(SharedData_Hip &data, const CeedInt p, con
       CeedScalar chebyshev_x[Q_1D];
 
       // Load coefficients
+      __syncthreads();
       if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) data.slice[data.t_id_x + data.t_id_y * Q_1D] = r_C[k + comp * Q_1D];
       __syncthreads();
       for (CeedInt dim = 0; dim < 3; dim++) {
