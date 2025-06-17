@@ -566,7 +566,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
 
   @ref Developer
 **/
-static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
+int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
   bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -2051,6 +2051,11 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
     CeedCall(CeedVectorSetValue(assembled, 0.0));
     CeedCall(op->LinearAssembleAddDiagonal(op, assembled, request));
     return CEED_ERROR_SUCCESS;
+  } else if (is_composite) {
+    // Default to summing contributions of suboperators
+    CeedCall(CeedVectorSetValue(assembled, 0.0));
+    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
+    return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
     CeedOperator op_fallback;
@@ -2106,6 +2111,9 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     // Backend version
     CeedCall(op->LinearAssembleAddDiagonal(op, assembled, request));
     return CEED_ERROR_SUCCESS;
+  } else if (is_composite) {
+    // Default to summing contributions of suboperators
+    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   } else {
     // Operator fallback
     CeedOperator op_fallback;
@@ -2117,11 +2125,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     }
   }
   // Default interface implementation
-  if (is_composite) {
-    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
-  } else {
-    CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
-  }
+  CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   return CEED_ERROR_SUCCESS;
 }
 
