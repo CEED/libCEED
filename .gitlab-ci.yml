@@ -280,7 +280,7 @@ noether-cuda:
 #  script:
 #    - rm -f .SUCCESS
 #    # libCEED
-#    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
+#    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-O -march=native -ffp-contract=fast'
 #    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
 #    - echo "-------------- libCEED -------------" && make info
 #    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -342,7 +342,7 @@ noether-rocm:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure ROCM_DIR=/opt/rocm-6.1.0 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
