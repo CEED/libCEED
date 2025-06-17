@@ -129,7 +129,6 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
         InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -189,7 +188,6 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
         InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -319,7 +317,6 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
         GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -380,7 +377,6 @@ extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, cons
         GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {

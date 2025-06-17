@@ -274,6 +274,7 @@ inline __device__ void GradColloSlice3d(SharedData_Cuda &data, const CeedInt q, 
                                         CeedScalar *__restrict__ r_V) {
   if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      __syncthreads();
       data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[q + comp * Q_1D];
       __syncthreads();
       // X derivative
@@ -291,7 +292,6 @@ inline __device__ void GradColloSlice3d(SharedData_Cuda &data, const CeedInt q, 
       for (CeedInt i = 0; i < Q_1D; i++) {
         r_V[comp + 2 * NUM_COMP] += c_G[i + q * Q_1D] * r_U[i + comp * Q_1D];
       }
-      __syncthreads();
     }
   }
 }
@@ -304,20 +304,20 @@ inline __device__ void GradColloSliceTranspose3d(SharedData_Cuda &data, const Ce
                                                  CeedScalar *__restrict__ r_V) {
   if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      __syncthreads();
       data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 0 * NUM_COMP];
       __syncthreads();
       // X derivative
       for (CeedInt i = 0; i < Q_1D; i++) {
         r_V[q + comp * Q_1D] += c_G[data.t_id_x + i * Q_1D] * data.slice[i + data.t_id_y * T_1D];
       }
-      __syncthreads();
       // Y derivative
+      __syncthreads();
       data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 1 * NUM_COMP];
       __syncthreads();
       for (CeedInt i = 0; i < Q_1D; i++) {
         r_V[q + comp * Q_1D] += c_G[data.t_id_y + i * Q_1D] * data.slice[data.t_id_x + i * T_1D];
       }
-      __syncthreads();
       // Z derivative
       for (CeedInt i = 0; i < Q_1D; i++) {
         r_V[i + comp * Q_1D] += c_G[i + q * Q_1D] * r_U[comp + 2 * NUM_COMP];

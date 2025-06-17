@@ -130,7 +130,6 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
         InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -190,7 +189,6 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
         InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -321,7 +319,6 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
         GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
@@ -382,7 +379,6 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
         GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
       }
     }
-    __syncthreads();
 
     // Map from coefficients
     if (BASIS_DIM == 1) {
