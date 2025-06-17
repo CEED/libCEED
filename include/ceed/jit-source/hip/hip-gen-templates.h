@@ -122,6 +122,25 @@ inline __device__ void WriteLVecStandard1d_Single(SharedData_Hip &data, const Ce
 }
 
 //------------------------------------------------------------------------------
+// E-vector -> L-vector, full assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1D>
+inline __device__ void WriteLVecStandard1d_Assembly(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt in,
+                                                    const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  const CeedInt in_comp    = in / P_1D;
+  const CeedInt in_node    = in % P_1D;
+  const CeedInt e_vec_size = P_1D * NUM_COMP;
+
+  if (data.t_id_x < P_1D) {
+    const CeedInt out_node = data.t_id_x;
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      d_v[elem * e_vec_size * e_vec_size + (in_comp * NUM_COMP + comp) * P_1D * P_1D + out_node * P_1D + in_node] += r_v[comp];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
@@ -207,6 +226,30 @@ inline __device__ void WriteLVecStandard2d_Single(SharedData_Hip &data, const Ce
     const CeedInt ind  = indices[node + elem * P_1D * P_1D];
 
     atomicAdd(&d_v[ind + COMP_STRIDE * target_comp], r_v[target_comp]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, full assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1D>
+inline __device__ void WriteLVecStandard2d_Assembly(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt in,
+                                                    const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  const CeedInt elem_size  = P_1D * P_1D;
+  const CeedInt in_comp    = in / elem_size;
+  const CeedInt in_node_x  = in % P_1D;
+  const CeedInt in_node_y  = (in % elem_size) / P_1D;
+  const CeedInt e_vec_size = elem_size * NUM_COMP;
+
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    const CeedInt in_node  = in_node_x + in_node_y * P_1D;
+    const CeedInt out_node = data.t_id_x + data.t_id_y * P_1D;
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      const CeedInt index = (in_comp * NUM_COMP + comp) * elem_size * elem_size + out_node * elem_size + in_node;
+
+      d_v[elem * e_vec_size * e_vec_size + index] += r_v[comp];
+    }
   }
 }
 
@@ -333,6 +376,33 @@ inline __device__ void WriteLVecStandard3d_Single(SharedData_Hip &data, const Ce
     const CeedInt ind  = indices[node + elem * P_1D * P_1D * P_1D];
 
     atomicAdd(&d_v[ind + COMP_STRIDE * target_comp], r_v[target_node_z + target_comp * P_1D]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, full assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int COMP_STRIDE, int P_1D>
+inline __device__ void WriteLVecStandard3d_Assembly(SharedData_Hip &data, const CeedInt num_nodes, const CeedInt elem, const CeedInt in,
+                                                    const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  const CeedInt elem_size  = P_1D * P_1D * P_1D;
+  const CeedInt in_comp    = in / elem_size;
+  const CeedInt in_node_x  = in % P_1D;
+  const CeedInt in_node_y  = (in % (P_1D * P_1D)) / P_1D;
+  const CeedInt in_node_z  = (in % elem_size) / (P_1D * P_1D);
+  const CeedInt e_vec_size = elem_size * NUM_COMP;
+
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    const CeedInt in_node = in_node_x + in_node_y * P_1D + in_node_z * P_1D * P_1D;
+    for (CeedInt z = 0; z < P_1D; z++) {
+      const CeedInt out_node = data.t_id_x + data.t_id_y * P_1D + z * P_1D * P_1D;
+
+      for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+        const CeedInt index = (in_comp * NUM_COMP + comp) * elem_size * elem_size + out_node * elem_size + in_node;
+
+        d_v[elem * e_vec_size * e_vec_size + index] += r_v[z + comp * P_1D];
+      }
+    }
   }
 }
 
