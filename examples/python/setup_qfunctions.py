@@ -17,7 +17,7 @@ sources = ["qfunctions/qfunctions.c"]
 # Compiler arguments
 extra_compile_args = []
 if platform == "linux" or platform == "linux2" or platform == "darwin":
-    extra_compile_args = ["-O3", "-march=native", "-std=c99"]
+    extra_compile_args = ["-O3", "-march=native", "-std=c11"]
 
 # Define the extension module
 qfunctions = Extension("libceed_c_qfunctions",
