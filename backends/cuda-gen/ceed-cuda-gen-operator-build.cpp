@@ -1995,7 +1995,19 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
     // ---- Restriction
     if (is_full) {
-      // TODO: UPDATE OUTPUTS FOR FULL ASSEMBLY
+      std::string         var_suffix = "_out_" + std::to_string(i);
+      CeedInt             comp_stride;
+      CeedSize            l_size;
+      CeedElemRestriction elem_rstr;
+
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
+      CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
+      code << tab << "const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
+      CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+      code << tab << "const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
+      code << tab << "WriteLVecStandard" << max_dim << "d_Assembly<num_comp" << var_suffix << ", comp_stride" << var_suffix << ", P_1d" + var_suffix
+           << ">(data, l_size" << var_suffix << ", elem, n, r_e" << var_suffix << ", values_array);\n";
+      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     } else {
       std::string         var_suffix = "_out_" + std::to_string(i);
       CeedInt             comp_stride;
@@ -2053,6 +2065,10 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
 extern "C" int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
   return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, false, is_good_build);
+}
+
+extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
+  return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, true, is_good_build);
 }
 
 //------------------------------------------------------------------------------
