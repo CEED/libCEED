@@ -16,7 +16,7 @@ CEED_DIR = os.path.dirname(libceed.__file__)
 qf_module = Extension("libceed_qfunctions",
                       include_dirs=[os.path.join(CEED_DIR, 'include')],
                       sources=["libceed-qfunctions.c"],
-                      extra_compile_args=["-O3", "-std=c99",
+                      extra_compile_args=["-O3", "-std=c11",
                                           "-Wno-unused-variable",
                                           "-Wno-unused-function"])
 

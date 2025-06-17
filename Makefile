@@ -134,7 +134,7 @@ OPT.clang               := $(OPT.gcc)
 OPT.icc                 := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
 OPT.emcc                :=
-CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
 CFLAGS.oneAPI           := $(CFLAGS.clang)
@@ -958,7 +958,7 @@ vermin    :
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(ROCM_DIR)/include
