@@ -2451,7 +2451,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
    @ref User
 **/
 int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
-  bool          is_composite, has_linear_assemble_single;
+  bool          is_composite;
   CeedInt       num_suboperators, offset = 0;
   CeedSize      single_entries = 0;
   CeedOperator *sub_operators;
@@ -2465,34 +2465,26 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
     if (num_elem == 0) return CEED_ERROR_SUCCESS;
-    has_linear_assemble_single = op->LinearAssembleSingle != NULL;
-  } else {
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-    has_linear_assemble_single = true;
-    for (CeedInt i = 0; i < num_suboperators; i++) {
-      has_linear_assemble_single = has_linear_assemble_single && sub_operators[i]->LinearAssembleSingle != NULL;
-    }
   }
 
   if (op->LinearAssemble) {
     // Backend version
     CeedCall(op->LinearAssemble(op, values));
     return CEED_ERROR_SUCCESS;
-  } else if (has_linear_assemble_single) {
+  } else if (is_composite) {
     // Default to summing contributions of suboperators
     CeedCall(CeedVectorSetValue(values, 0.0));
-    if (is_composite && num_suboperators > 0 && sub_operators[0]) {
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-      for (CeedInt k = 0; k < num_suboperators; k++) {
-        CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
-        CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
-        offset += single_entries;
-      }
-    } else {
-      CeedCall(CeedSingleOperatorAssemble(op, offset, values));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    for (CeedInt k = 0; k < num_suboperators; k++) {
+      CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
+      CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
+      offset += single_entries;
     }
+    return CEED_ERROR_SUCCESS;
+  } else if (op->LinearAssembleSingle) {
+    CeedCall(CeedVectorSetValue(values, 0.0));
+    CeedCall(CeedSingleOperatorAssemble(op, offset, values));
     return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
@@ -2505,19 +2497,9 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
     }
   }
 
-  // Default interface implementation
+  // Default to interface version if non-composite and no fallback
   CeedCall(CeedVectorSetValue(values, 0.0));
-  if (is_composite) {
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-    for (CeedInt k = 0; k < num_suboperators; k++) {
-      CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
-      CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
-      offset += single_entries;
-    }
-  } else {
-    CeedCall(CeedSingleOperatorAssemble(op, offset, values));
-  }
+  CeedCall(CeedSingleOperatorAssemble(op, offset, values));
   return CEED_ERROR_SUCCESS;
 }
 
