@@ -32,6 +32,9 @@ quiet ?= $($(1))
 .PRECIOUS: %/.DIR
 
 
+DARWIN := $(filter Darwin,$(shell uname -s))
+
+
 # ------------------------------------------------------------
 # Root directories for backend dependencies
 # ------------------------------------------------------------
@@ -75,7 +78,7 @@ ifeq (,$(filter-out undefined default,$(origin AR)))
   AR = ar
 endif
 ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
-  ARFLAGS = crD
+  ARFLAGS = $(if $(DARWIN),cr,crD)
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
@@ -225,7 +228,6 @@ MFLAGS := -j $(NPROCS) --warn-undefined-variables \
 PYTHON ?= python3
 PROVE ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
-DARWIN := $(filter Darwin,$(shell uname -s))
 SO_EXT := $(if $(DARWIN),dylib,so)
 
 ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
@@ -487,9 +489,10 @@ MEMCHK_STATUS   = Disabled
 MEMCHK         := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
 MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
-  MEMCHK_STATUS = Enabled
-  libceed.c += $(ceedmemcheck.c)
+  MEMCHK_STATUS  = Enabled
+  libceed.c     += $(ceedmemcheck.c)
   BACKENDS_MAKE += $(MEMCHK_BACKENDS)
+  CFLAGS        += "-DCEED_USE_MEMCHECK"
 endif
 
 # AVX Backeds
@@ -498,9 +501,10 @@ AVX_FLAG    := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
 AVX         := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS:-M%=) -v -E -x c /dev/null 2>&1))
 AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
-  AVX_STATUS = Enabled
-  libceed.c += $(avx.c)
+  AVX_STATUS     = Enabled
+  libceed.c     += $(avx.c)
   BACKENDS_MAKE += $(AVX_BACKENDS)
+  CFLAGS        += "-DCEED_USE_AVX"
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config
@@ -523,10 +527,11 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     endif
     BLAS_LIB ?= $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
   endif
-  PKG_LIBS += $(BLAS_LIB)
+  PKG_LIBS  += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS_MAKE += $(XSMM_BACKENDS)
+  CFLAGS        += "-DCEED_USE_XSMM"
 endif
 
 # CUDA Backends
@@ -538,7 +543,7 @@ CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
-  PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
+  PKG_LIBS       += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
@@ -546,6 +551,7 @@ ifneq ($(CUDA_LIB_DIR),)
   libceed.cpp   += $(cuda-all.cpp)
   libceed.cu    += $(cuda-all.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
+  CFLAGS        += "-DCEED_USE_CUDA"
 endif
 
 # HIP Backends
@@ -564,6 +570,7 @@ ifneq ($(HIP_LIB_DIR),)
   libceed.cpp   += $(hip-all.cpp)
   libceed.hip   += $(hip-all.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
+  CFLAGS        += "-DCEED_USE_HIP"
 endif
 
 # SYCL Backends
@@ -577,6 +584,7 @@ ifneq ($(SYCL_LIB_DIR),)
   LIBCEED_CONTAINS_CXX = 1
   libceed.sycl  += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
   BACKENDS_MAKE += $(SYCL_BACKENDS)
+  CFLAGS        += "-DCEED_USE_SYCL"
 endif
 
 # MAGMA Backends
@@ -613,6 +621,7 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   endif
   LIBCEED_CONTAINS_CXX = 1
   BACKENDS_MAKE += $(MAGMA_BACKENDS)
+  CFLAGS        += "-DCEED_USE_MAGMA"
 endif
 
 # OCCA Backends
@@ -627,8 +636,9 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
   LIBCEED_CONTAINS_CXX = 1
-  libceed.cpp += $(occa.cpp)
+  libceed.cpp   += $(occa.cpp)
   BACKENDS_MAKE += $(OCCA_BACKENDS)
+  CFLAGS        += "-DCEED_USE_OCCA"
 endif
 
 BACKENDS ?= $(BACKENDS_MAKE)
@@ -662,17 +672,16 @@ endif
 # Building core library components
 # ------------------------------------------------------------
 
-# File names *-weak.c contain weak symbol definitions, which must be listed last
-# when creating shared or static libraries.
-weak_last = $(filter-out %-weak.o,$(1)) $(filter %-weak.o,$(1))
+FORCE:
+$(OBJDIR)/backends/ceed-backend-register.o: FORCE
 
 libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
-$(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
+$(libceed.so) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,LINK) $(LDFLAGS) $(CEED_LDFLAGS) -shared -o $@ $^ $(CEED_LDLIBS) $(LDLIBS)
 
-$(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
+$(libceed.a) : $(libceed.o) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR

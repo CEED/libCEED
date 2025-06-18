@@ -5,19 +5,19 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-hip-shared.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../hip/ceed-hip-common.h"
+#include "ceed-hip-shared.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Hip_Shared(const char *resource, Ceed ceed) {
   Ceed      ceed_ref;
   Ceed_Hip *data;
   char     *resource_root;
@@ -40,10 +40,5 @@ static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Register backend
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip_Shared(void) { return CeedRegister("/gpu/hip/shared", CeedInit_Hip_shared, 25); }
 
 //------------------------------------------------------------------------------
