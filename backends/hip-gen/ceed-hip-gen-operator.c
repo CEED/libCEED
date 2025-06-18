@@ -427,6 +427,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
       CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
                                                     sharedMem, &is_run_good, opargs));
     }
+    CeedCallHip(ceed, hipDeviceSynchronize());
 
     // Restore input arrays
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -477,6 +478,191 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
 }
 
 //------------------------------------------------------------------------------
+// AtPoints full assembly
+//------------------------------------------------------------------------------
+static int CeedSingleOperatorAssembleAtPoints_Hip_gen(CeedOperator op, CeedInt offset, CeedVector assembled) {
+  Ceed                  ceed;
+  CeedOperator_Hip_gen *data;
+
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+
+  // Build the assembly kernel
+  if (!data->assemble_full && !data->use_assembly_fallback) {
+    bool                     is_build_good = false;
+    CeedInt                  num_active_bases_in, num_active_bases_out;
+    CeedOperatorAssemblyData assembly_data;
+
+    CeedCallBackend(CeedOperatorGetOperatorAssemblyData(op, &assembly_data));
+    CeedCallBackend(
+        CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
+    if (num_active_bases_in == num_active_bases_out) {
+      CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_build_good));
+      if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelFullAssemblyAtPoints_Hip_gen(op, &is_build_good));
+    }
+    if (!is_build_good) {
+      CeedDebug(ceed, "Single Operator Assemble at Points compile failed, using fallback\n");
+      data->use_assembly_fallback = true;
+    }
+  }
+
+  // Try assembly
+  if (!data->use_assembly_fallback) {
+    bool                   is_run_good = true;
+    Ceed_Hip              *Hip_data;
+    CeedInt                num_elem, num_input_fields, num_output_fields;
+    CeedEvalMode           eval_mode;
+    CeedScalar            *assembled_array;
+    CeedQFunctionField    *qf_input_fields, *qf_output_fields;
+    CeedQFunction_Hip_gen *qf_data;
+    CeedQFunction          qf;
+    CeedOperatorField     *op_input_fields, *op_output_fields;
+
+    CeedCallBackend(CeedGetData(ceed, &Hip_data));
+    CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+    CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
+    CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+    CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+    CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+    CeedDebug(ceed, "Running single operator assemble for /gpu/hip/gen\n");
+
+    // Input vectors
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
+        data->fields.inputs[i] = NULL;
+      } else {
+        bool       is_active;
+        CeedVector vec;
+
+        // Get input vector
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+        is_active = vec == CEED_VECTOR_ACTIVE;
+        if (is_active) data->fields.inputs[i] = NULL;
+        else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        CeedCallBackend(CeedVectorDestroy(&vec));
+      }
+    }
+
+    // Point coordinates
+    {
+      CeedVector vec;
+
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+      CeedCallBackend(CeedVectorDestroy(&vec));
+
+      // Points per elem
+      if (num_elem != data->points.num_elem) {
+        CeedInt            *points_per_elem;
+        const CeedInt       num_bytes   = num_elem * sizeof(CeedInt);
+        CeedElemRestriction rstr_points = NULL;
+
+        data->points.num_elem = num_elem;
+        CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+        CeedCallBackend(CeedCalloc(num_elem, &points_per_elem));
+        for (CeedInt e = 0; e < num_elem; e++) {
+          CeedInt num_points_elem;
+
+          CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
+          points_per_elem[e] = num_points_elem;
+        }
+        if (data->points.num_per_elem) CeedCallHip(ceed, hipFree((void **)data->points.num_per_elem));
+        CeedCallHip(ceed, hipMalloc((void **)&data->points.num_per_elem, num_bytes));
+        CeedCallHip(ceed, hipMemcpy((void *)data->points.num_per_elem, points_per_elem, num_bytes, hipMemcpyHostToDevice));
+        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+        CeedCallBackend(CeedFree(&points_per_elem));
+      }
+    }
+
+    // Get context data
+    CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
+
+    // Assembly array
+    CeedCallBackend(CeedVectorGetArray(assembled, CEED_MEM_DEVICE, &assembled_array));
+    CeedScalar *assembled_offset_array = &assembled_array[offset];
+
+    // Assemble diagonal
+    void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields,          &data->B,
+                      &data->G,          &data->W,      &data->points,  &assembled_offset_array};
+
+    CeedInt block_sizes[3] = {data->thread_1d, (data->dim == 1 ? 1 : data->thread_1d), -1};
+
+    CeedCallBackend(BlockGridCalculate_Hip_gen(data->dim, num_elem, data->max_P_1d, data->Q_1d, block_sizes));
+    block_sizes[2] = 1;
+    if (data->dim == 1) {
+      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
+      CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
+
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                    &is_run_good, opargs));
+    } else if (data->dim == 2) {
+      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
+      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
+
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                    &is_run_good, opargs));
+    } else if (data->dim == 3) {
+      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
+      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
+
+      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                    &is_run_good, opargs));
+    }
+    CeedCallHip(ceed, hipDeviceSynchronize());
+
+    // Restore input arrays
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
+      } else {
+        bool       is_active;
+        CeedVector vec;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+        is_active = vec == CEED_VECTOR_ACTIVE;
+        if (!is_active) CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]));
+        CeedCallBackend(CeedVectorDestroy(&vec));
+      }
+    }
+
+    // Restore point coordinates
+    {
+      CeedVector vec;
+
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->points.coords));
+      CeedCallBackend(CeedVectorDestroy(&vec));
+    }
+
+    // Restore context data
+    CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
+
+    // Restore assembly array
+    CeedCallBackend(CeedVectorRestoreArray(assembled, &assembled_array));
+
+    // Cleanup
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    if (!is_run_good) {
+      CeedDebug(ceed, "Single Operator Assemble at Points run failed, using fallback\n");
+      data->use_assembly_fallback = true;
+    }
+  }
+  CeedCallBackend(CeedDestroy(&ceed));
+
+  // Fallback, if needed
+  if (data->use_assembly_fallback) {
+    CeedOperator op_fallback;
+
+    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+    CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+    CeedCallBackend(CeedSingleOperatorAssemble(op_fallback, offset, assembled));
+    return CEED_ERROR_SUCCESS;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Hip_gen(CeedOperator op) {
@@ -496,6 +682,7 @@ int CeedOperatorCreate_Hip_gen(CeedOperator op) {
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_at_points) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssembleAtPoints_Hip_gen));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip_gen));
   CeedCallBackend(CeedDestroy(&ceed));
