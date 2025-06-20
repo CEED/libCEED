@@ -61,7 +61,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
 // TODO: Add architecture flags, optimization flags
 //------------------------------------------------------------------------------
 static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
-  flags = {std::string("-cl-std=CL3.0"), std::string("-Dint32_t=int")};
+  flags = {std::string("-cl-std=CL3.0"), std::string("-Dint32_t=int"), std::string("-DCEED_RUNNING_JIT_PASS=1")};
   return CEED_ERROR_SUCCESS;
 }
 
