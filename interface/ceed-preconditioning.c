@@ -2114,6 +2114,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
   } else if (is_composite) {
     // Default to summing contributions of suboperators
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
+    return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
     CeedOperator op_fallback;
