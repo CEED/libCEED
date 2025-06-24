@@ -124,6 +124,16 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
+  if (CeedDebugFlag(ceed)) {
+    // LCOV_EXCL_START
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- JiT COMPILER OPTIONS ----------\n");
+    for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
+      CeedDebug(ceed, "Option %d: %s", i, opts[i]);
+    }
+    CeedDebug(ceed, "");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JiT COMPILER OPTIONS ----------\n");
+    // LCOV_EXCL_STOP
+  }
   hiprtcResult result = hiprtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
   for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
