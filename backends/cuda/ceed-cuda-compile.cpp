@@ -16,6 +16,8 @@
 #include <string.h>
 
 #include <sstream>
+#include <iostream>
+#include <fstream>
 
 #include "ceed-cuda-common.h"
 
@@ -34,6 +36,10 @@
 //------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
+using std::ifstream;
+using std::ofstream;
+using std::ostringstream;
+
 static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, CUmodule *module,
                                 const CeedInt num_defines, va_list args) {
   size_t                ptx_size;
@@ -44,6 +50,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   nvrtcProgram          prog;
   struct cudaDeviceProp prop;
   Ceed_Cuda            *ceed_data;
+
 
   cudaFree(0);  // Make sure a Context exists for nvrtc
 
@@ -63,7 +70,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   // Standard libCEED definitions for CUDA backends
   code << "#include <ceed/jit-source/cuda/cuda-jit.h>\n\n";
-
+  //code << source;
   // Non-macro options
   CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
@@ -81,6 +88,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 #endif
       + std::to_string(prop.major) + std::to_string(prop.minor);
   opts[1] = arch_arg.c_str();
+  std::cout << "opt1: " << opts[1] << std::endl;
   opts[2] = "-Dint32_t=int";
   opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
   // Additional include dirs
@@ -94,6 +102,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       include_dir_arg << "-I" << jit_source_dirs[i];
       CeedCallBackend(CeedStringAllocCopy(include_dir_arg.str().c_str(), (char **)&opts[num_opts + i]));
+      std::cout << "Opt is " << opts[num_opts + i] << std::endl;
     }
     CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
   }
@@ -108,6 +117,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       define_arg << "-D" << jit_defines[i];
       CeedCallBackend(CeedStringAllocCopy(define_arg.str().c_str(), (char **)&opts[num_opts + num_jit_source_dirs + i]));
+      std::cout << "Opt is " << opts[num_opts + num_jit_source_dirs + i] << std::endl;
     }
     CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
   }
@@ -116,15 +126,22 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   code << source;
 
   // Create Program
-  CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
+  //CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
+
+  //std::cout << "prog is " << prog << "code is {" << code.str().c_str() << "}" << std::endl;
 
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
-  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
-  for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+  //nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
+
+
+
+
+
+  /*for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
     CeedCallBackend(CeedFree(&opts[num_opts + i]));
   }
   for (CeedInt i = 0; i < num_jit_defines; i++) {
@@ -160,10 +177,50 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   CeedCallBackend(CeedMalloc(ptx_size, &ptx));
   CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
 #endif
-  CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
+  CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));*/
+/////////////////////////////
+    const char* full_filename = "temp-jit.cu";
+    FILE* file = fopen(full_filename, "w");
+    if (!file) {
+        perror("Failed to create file");
+        return 1;
+    }
+    fputs(code.str().c_str(), file);
+    fclose(file);
+    printf("Wrote CUDA code to %s\n", full_filename);
 
-  CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
-  CeedCallBackend(CeedFree(&ptx));
+    // Compile command
+    char command[512];
+    snprintf(command, sizeof(command),
+        "clang++ %s -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.ptx -S",
+        full_filename);
+
+
+    int _ = system(command);
+
+    system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
+
+    //system("ptxas kern.ll -o output.ptx");
+
+    //ofstream out("correct-output.ptx");
+    //out.write(ptx, ptx_size);
+    //out.close();
+
+
+    ifstream           ptxfile("kern.ptx");
+
+    ostringstream      sstr;
+    sstr << ptxfile.rdbuf();
+    auto ptx_data = sstr.str();
+
+    ptx_size = ptx_data.length();
+
+    //std::cout << "THING is " << sstr.str() << std::endl;
+
+    //printf("JITTED = %s, %d\n", ptx_data, ptx_size);
+    CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
+    //printf("JITTED = %s\n", ptx_data);
+  CeedCallBackend(CeedFree(&ptx_data));
   return CEED_ERROR_SUCCESS;
 }
 
