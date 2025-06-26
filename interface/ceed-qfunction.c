@@ -197,10 +197,30 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 }
 
 /**
+  @brief Get the name of the `CeedQFunction`.
+    Use the `name` if created via @ref `CeedQFunctionCreateInteriorByName`, otherwise return the kernel name via @ref `CeedQFunctionGetKernelName`.
+
+  @param[in]  qf          `CeedQFunction`
+  @param[out] kernel_name Variable to store `CeedQFunction` name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetName(CeedQFunction qf, const char **name) {
+  if (qf->is_gallery) {
+    *name = qf->gallery_name;
+  } else {
+    CeedCall(CeedQFunctionGetKernelName(qf, name));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the name of the user function for a `CeedQFunction`
 
   @param[in]  qf          `CeedQFunction`
-  @param[out] kernel_name Variable to store source path string
+  @param[out] kernel_name Variable to store string holding kernel name
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1001,10 +1021,10 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
-  const char *kernel_name;
+  const char *name;
 
-  CeedCall(CeedQFunctionGetKernelName(qf, &kernel_name));
-  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", qf->is_gallery ? qf->gallery_name : kernel_name);
+  CeedCall(CeedQFunctionGetName(qf, &name));
+  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", name);
 
   fprintf(stream, "  %" CeedInt_FMT " input field%s:\n", qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {

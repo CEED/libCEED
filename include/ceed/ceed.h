@@ -448,6 +448,7 @@ CEED_EXTERN int  CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVe
                                                     CeedOperator *op_prolong, CeedOperator *op_restrict);
 CEED_EXTERN int  CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorSetName(CeedOperator op, const char *name);
+CEED_EXTERN int  CeedOperatorGetName(CeedOperator op, const char **name);
 CEED_EXTERN int  CeedOperatorView(CeedOperator op, FILE *stream);
 CEED_EXTERN int  CeedOperatorViewTerse(CeedOperator op, FILE *stream);
 CEED_EXTERN int  CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
