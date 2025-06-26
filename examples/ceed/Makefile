@@ -9,8 +9,8 @@ OPT ?= -O -g
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c11 $(OPT)
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -lm
+CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c11  $(OPT)
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -L$(CEED_DIR)/examples/ceed -lbruhh -lm
 
 EXAMPLES.c = $(wildcard ex*.c)
 EXAMPLES = $(EXAMPLES.c:%.c=%)

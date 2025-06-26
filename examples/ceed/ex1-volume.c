@@ -43,6 +43,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+extern uint32_t add_num(uint32_t x);
+
+
+__attribute__((noinline)) int call_rust(int x){
+    return add_num(x);
+}
 
 // Auxiliary functions
 int        GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[dim]);
@@ -54,7 +62,7 @@ CeedScalar TransformMeshCoords(CeedInt dim, CeedInt mesh_size, CeedVector mesh_c
 // Main example
 int main(int argc, const char *argv[]) {
   const char *ceed_spec   = "/cpu/self";
-  CeedInt     dim         = 3;               // dimension of the mesh
+  CeedInt     dim         = call_rust(2);               // dimension of the mesh
   CeedInt     num_comp_x  = 3;               // number of x components
   CeedInt     mesh_degree = 4;               // polynomial degree for the mesh
   CeedInt     sol_degree  = 4;               // polynomial degree for the solution

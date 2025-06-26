@@ -187,13 +187,12 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
     fputs(code.str().c_str(), file);
     fclose(file);
-    printf("Wrote CUDA code to %s\n", full_filename);
 
     // Compile command
     char command[512];
     snprintf(command, sizeof(command),
-        "clang++ %s -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.ptx -S",
-        full_filename);
+        "clang++ temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.ptx -S",
+        );
 
 
     int _ = system(command);
