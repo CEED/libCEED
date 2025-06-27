@@ -1554,6 +1554,29 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
 }
 
 /**
+  @brief Get name of `CeedOperator`
+
+  @param[in]     op   `CeedOperator`
+  @param[in,out] name Address of variable to hold currently set name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetName(CeedOperator op, const char **name) {
+  if (op->name) {
+    *name = op->name;
+  } else if (!op->is_composite) {
+    CeedQFunction qf;
+
+    CeedCall(CeedOperatorGetQFunction(op, &qf));
+    if (qf) CeedCall(CeedQFunctionGetName(qf, name));
+    CeedCall(CeedQFunctionDestroy(&qf));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Core logic for viewing a `CeedOperator`
 
   @param[in] op     `CeedOperator` to view brief summary
@@ -1565,8 +1588,11 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @ref Developer
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
-  bool has_name = op->name, is_composite, is_at_points;
+  bool        has_name, is_composite, is_at_points;
+  const char *name = NULL;
 
+  CeedCall(CeedOperatorGetName(op, &name));
+  has_name = name ? strlen(name) : false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_composite) {
@@ -1575,7 +1601,7 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
 
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-    fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? op->name : "");
+    fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
 
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
@@ -1584,7 +1610,7 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
       if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
     }
   } else {
-    fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? op->name : "");
+    fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? name : "");
     if (is_full) CeedCall(CeedOperatorSingleView(op, 0, stream));
   }
   return CEED_ERROR_SUCCESS;

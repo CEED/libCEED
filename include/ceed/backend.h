@@ -366,6 +366,7 @@ CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vec_length);
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input_fields, CeedInt *num_output_fields);
 CEED_EXTERN int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name);
+CEED_EXTERN int CeedQFunctionGetName(CeedQFunction qf, const char **name);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path);
 CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f);

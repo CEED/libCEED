@@ -1838,14 +1838,16 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
     CeedCall(CeedIsDebug(ceed, &is_debug));
     if (is_debug) {
       Ceed        ceed_fallback;
-      const char *resource, *resource_fallback;
+      const char *resource, *resource_fallback, *op_name;
 
       CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
       CeedCall(CeedGetResource(ceed, &resource));
       CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
+      CeedCall(CeedOperatorGetName(op, &op_name));
 
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug(ceed, "Falling back from %s operator at address %p to %s operator at address %p\n", resource, op, resource_fallback, op->op_fallback);
+      CeedDebug(ceed, "CeedOperator \"%s\": falling back from operator at address %p with backend %s to operator at address %p with backend %s\n",
+                op_name, resource, op, resource_fallback, op->op_fallback);
       CeedCall(CeedDestroy(&ceed_fallback));
     }
     CeedCall(CeedDestroy(&ceed));
