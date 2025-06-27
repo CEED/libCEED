@@ -189,15 +189,50 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     fclose(file);
 
     // Compile command
-    char command[512];
-    snprintf(command, sizeof(command),
-        "clang++ temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.ptx -S",
-        );
+
+    int err;
+
+    //err = system("clang++ -c temp-jit.cu -DCEED_RUNNING_JIT_PASS=1 -I/home/alma4974/spur/libCEED/include --cuda-gpu-arch=sm_80  -default-device -o kern.o -flto=thin -fuse-ld=lld");
+
+    //err = system("clang++ -c temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.o -L . -lbruhh -flto=thin -fuse-ld=lld");
+
+    err = system("clang++ -flto=thin --cuda-gpu-arch=sm_80 -I/home/alma4974/spur/libCEED/include --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed");
+
+    if(err){
+        printf("Failed task 1\n");
+        abort();
+    }
+
+    //system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
+    err = system("llvm-link kern.ll --internalize --only-needed -S -o kern2.ll ");
 
 
-    int _ = system(command);
+    printf("HERE\n");
 
-    system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
+    //err = system("clang++ -S kern.o -L/usr/local/cuda/lib64 -lcudart_static -flto=thin -fuse-ld=lld -o kern.ptx");
+    //err = system("clang++ kern.o -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 -default-device -L . -lbruhh -flto=thin -fuse-ld=lld");
+    //err = system("llc kern.ll -mcpu=sm_80 -o kern.ptx");
+
+    if(err){
+        printf("Failed task 2\n");
+        abort();
+    }
+
+    err = system("opt --passes internalize,inline kern2.ll -o kern3.ll");
+
+    if(err){
+        printf("Failed task 3\n");
+        abort();
+    }
+
+    err = system("llc -O3 -mcpu=sm_80 kern3.ll -o kern.ptx");
+
+    if(err){
+        printf("Failed task 4\n");
+        abort();
+    }
+
+    //system("clang++ -x cuda kern.ptx --cuda-gpu-arch=sm_80 -L . -lbruhh -flto=thin -fuse-ld=lld --cuda-device-only -o kern.elf");
 
     //system("ptxas kern.ll -o output.ptx");
 
@@ -216,7 +251,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     //std::cout << "THING is " << sstr.str() << std::endl;
 
-    //printf("JITTED = %s, %d\n", ptx_data, ptx_size);
+    printf("JITTED = %d\n", ptx_size);
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
     //printf("JITTED = %s\n", ptx_data);
   CeedCallBackend(CeedFree(&ptx_data));
@@ -250,7 +285,8 @@ int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CU
 // Get CUDA kernel
 //------------------------------------------------------------------------------
 int CeedGetKernel_Cuda(Ceed ceed, CUmodule module, const char *name, CUfunction *kernel) {
-  CeedCallCuda(ceed, cuModuleGetFunction(kernel, module, name));
+
+    CeedCallCuda(ceed, cuModuleGetFunction(kernel, module, name));
   return CEED_ERROR_SUCCESS;
 }
 
