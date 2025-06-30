@@ -586,7 +586,7 @@ int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
     CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
       CeedCall(CeedBasisIsTensor(basis, &is_tensor));
-      *has_tensor_bases &= is_tensor;
+      *has_tensor_bases = *has_tensor_bases & is_tensor;
     }
     CeedCall(CeedBasisDestroy(&basis));
   }
@@ -597,7 +597,7 @@ int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
     CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
       CeedCall(CeedBasisIsTensor(basis, &is_tensor));
-      *has_tensor_bases &= is_tensor;
+      *has_tensor_bases = *has_tensor_bases & is_tensor;
     }
     CeedCall(CeedBasisDestroy(&basis));
   }
