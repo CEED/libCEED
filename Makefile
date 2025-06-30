@@ -854,7 +854,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%opt%:$(OPT):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
-GIT_DESCRIBE = $(shell git describe --always --dirty 2>/dev/null || printf "unknown\n")
+GIT_DESCRIBE = $(shell git -c safe.directory=$PWD describe --always --dirty 2>/dev/null || printf "unknown\n")
 
 $(OBJDIR)/interface/ceed-config.o: Makefile
 $(OBJDIR)/interface/ceed-config.o: CONFIGFLAGS += -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\""
