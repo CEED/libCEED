@@ -204,8 +204,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     //system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
-    err = system("llvm-link kern.ll --internalize --only-needed -S -o kern2.ll ");
-
+    err = system("llvm-link kern.ll libbruhh.rlib --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ");
+    // --internalize --only-needed
 
     printf("HERE\n");
 
@@ -218,14 +218,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         abort();
     }
 
-    err = system("opt --passes internalize,inline kern2.ll -o kern3.ll");
+    err = system("opt --passes internalize,inline --internalize-public-api-list=CeedKernelCudaGenOperator_build_mass kern2.ll -o kern3.bc");
 
     if(err){
         printf("Failed task 3\n");
         abort();
     }
 
-    err = system("llc -O3 -mcpu=sm_80 kern3.ll -o kern.ptx");
+    err = system("llc -O0 -mcpu=sm_80 kern3.bc -o kern.ptx");
 
     if(err){
         printf("Failed task 4\n");
