@@ -196,7 +196,20 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     //err = system("clang++ -c temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.o -L . -lbruhh -flto=thin -fuse-ld=lld");
 
-    err = system("clang++ -flto=thin --cuda-gpu-arch=sm_80 -I/home/alma4974/spur/libCEED/include --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed");
+
+    printf("asdflkjhasdflk %d\n", num_opts + num_jit_source_dirs + num_jit_defines);
+    for(int i = 0;  i < num_opts + num_jit_source_dirs + num_jit_defines; i++){
+        printf("Jit source dirs: %s\n", opts[i]);
+    }
+
+    std::string cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -L../../lib -lceed ";
+
+    cmd += opts[4];
+
+
+    err = system(cmd.c_str());
+
+    //err = system("clang++ -flto=thin --cuda-gpu-arch=sm_80 -I/home/alma4974/spur/libCEED/include --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed");
 
     if(err){
         printf("Failed task 1\n");
