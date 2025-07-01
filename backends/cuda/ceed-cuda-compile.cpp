@@ -251,7 +251,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     //std::cout << "THING is " << sstr.str() << std::endl;
 
-    printf("JITTED = %d\n", ptx_size);
+    printf("JITTED = %zu\n", ptx_size);
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
     //printf("JITTED = %s\n", ptx_data);
   CeedCallBackend(CeedFree(&ptx_data));
