@@ -25,7 +25,7 @@ CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
   struct BuildContext *build_data = (struct BuildContext *)ctx;
 
 
-  volatile int var = add_num(3);
+  volatile uint32_t var = add_num(3);
 
   switch (build_data->dim + 10 * build_data->space_dim) {
     case 11: {
