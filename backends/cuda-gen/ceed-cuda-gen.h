@@ -17,8 +17,8 @@ typedef struct {
   CeedInt        Q, Q_1d;
   CeedInt        max_P_1d;
   CeedInt        thread_1d;
-  CUmodule       module, module_assemble_full, module_assemble_diagonal;
-  CUfunction     op, assemble_full, assemble_diagonal;
+  CUmodule       module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction;
+  CUfunction     op, assemble_full, assemble_diagonal, assemble_qfunction;
   FieldsInt_Cuda indices;
   Fields_Cuda    fields;
   Fields_Cuda    B;
