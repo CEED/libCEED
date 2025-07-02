@@ -194,6 +194,7 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
       impl->d_data_borrowed = NULL;
       impl->d_data          = impl->d_data_owned;
       CeedCallHip(ceed, hipMemcpy(impl->d_data, data, ctx_size, hipMemcpyDeviceToDevice));
+      CeedCallHip(ceed, hipDeviceSynchronize());
     } break;
     case CEED_OWN_POINTER:
       impl->d_data_owned    = data;
