@@ -2077,7 +2077,7 @@ extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator
 extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool *is_good_build) {
   bool                    is_all_tensor = true, is_all_nontensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
-  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
+  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
@@ -2186,7 +2186,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   std::string qfunction_name(qf_data->qfunction_name);
   std::string operator_name;
 
-  operator_name = "CeedKernelCudaGenOperatorLinearAssembleQFunction_" + qfunction_name;
+  operator_name = "CeedKernelCudaGenQFunctionAssembly_" + qfunction_name;
 
   // Define CEED_Q_VLA
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
@@ -2239,9 +2239,12 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
-  code << tab << "const CeedInt Q_1d = " << Q_1d << ";\n";
-  code << tab << "const CeedInt max_num_points = " << max_num_points << ";\n";
-  code << tab << "const CeedInt coords_comp_stride = " << coords_comp_stride << ";\n";
+  if (!is_all_tensor) {
+    code << tab << "const CeedInt Q = " << Q << ";\n";
+  }
+  if (!is_all_nontensor) {
+    code << tab << "const CeedInt Q_1d = " << Q_1d << ";\n";
+  }
 
   // Shared data
   code << tab << "extern __shared__ CeedScalar slice[];\n";
@@ -2259,12 +2262,14 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     input_matrix_reuse[i].index = -1;
   }
   for (CeedInt i = 0; i < num_input_fields; i++) {
+    bool         is_tensor = true;
     CeedEvalMode eval_mode_i;
     CeedBasis    basis_i;
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode_i));
     if (eval_mode_i == CEED_EVAL_WEIGHT) continue;
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis_i));
+    CeedCallBackend(CeedBasisIsTensor(basis_i, &is_tensor));
     for (CeedInt j = 0; (input_matrix_reuse[i].index == -1) && (j < i); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
@@ -2273,9 +2278,18 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
       if (eval_mode_j == CEED_EVAL_WEIGHT) continue;
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[j], &basis_j));
       if (basis_i == basis_j) {
-        input_matrix_reuse[i].index     = j;
-        input_matrix_reuse[i].is_input  = true;
-        input_matrix_reuse[i].eval_mode = eval_mode_j;
+        if (is_tensor) {
+          input_matrix_reuse[i].index     = j;
+          input_matrix_reuse[i].is_input  = true;
+          input_matrix_reuse[i].eval_mode = eval_mode_j;
+        } else {
+          // For non-tensor can only re-use with the same eval mode
+          if (eval_mode_i == eval_mode_j) {
+            input_matrix_reuse[i].index     = j;
+            input_matrix_reuse[i].is_input  = true;
+            input_matrix_reuse[i].eval_mode = eval_mode_j;
+          }
+        }
       }
       CeedCallBackend(CeedBasisDestroy(&basis_j));
     }
@@ -2289,11 +2303,13 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     output_matrix_reuse[i].index = -1;
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
+    bool         is_tensor = true;
     CeedEvalMode eval_mode_i;
     CeedBasis    basis_i;
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode_i));
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis_i));
+    CeedCallBackend(CeedBasisIsTensor(basis_i, &is_tensor));
     for (CeedInt j = 0; (output_matrix_reuse[i].index == -1) && (j < num_input_fields); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
@@ -2302,9 +2318,18 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
       if (eval_mode_j == CEED_EVAL_WEIGHT) continue;
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[j], &basis_j));
       if (basis_i == basis_j) {
-        output_matrix_reuse[i].index     = j;
-        output_matrix_reuse[i].is_input  = true;
-        output_matrix_reuse[i].eval_mode = eval_mode_j;
+        if (is_tensor) {
+          output_matrix_reuse[i].index     = j;
+          output_matrix_reuse[i].is_input  = true;
+          output_matrix_reuse[i].eval_mode = eval_mode_j;
+        } else {
+          // For non-tensor can only re-use with the same eval mode
+          if (eval_mode_i == eval_mode_j) {
+            output_matrix_reuse[i].index     = j;
+            output_matrix_reuse[i].is_input  = true;
+            output_matrix_reuse[i].eval_mode = eval_mode_j;
+          }
+        }
       }
       CeedCallBackend(CeedBasisDestroy(&basis_j));
     }
@@ -2316,9 +2341,18 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
       if (eval_mode_j == CEED_EVAL_WEIGHT) continue;
       CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[j], &basis_j));
       if (basis_i == basis_j) {
-        output_matrix_reuse[i].index     = j;
-        output_matrix_reuse[i].is_input  = false;
-        output_matrix_reuse[i].eval_mode = eval_mode_j;
+        if (is_tensor) {
+          output_matrix_reuse[i].index     = j;
+          output_matrix_reuse[i].is_input  = false;
+          output_matrix_reuse[i].eval_mode = eval_mode_j;
+        } else {
+          // For non-tensor can only re-use with the same eval mode
+          if (eval_mode_i == eval_mode_j) {
+            output_matrix_reuse[i].index     = j;
+            output_matrix_reuse[i].is_input  = false;
+            output_matrix_reuse[i].eval_mode = eval_mode_j;
+          }
+        }
       }
       CeedCallBackend(CeedBasisDestroy(&basis_j));
     }
@@ -2443,12 +2477,19 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     code << tab << "// ---- Input field " << f << ": " << field_name << "\n";
 
     if (is_active) {
-      CeedInt field_size;
+      CeedEvalMode eval_mode;
+      CeedInt      field_size;
 
       active_fields_in[num_active_in] = f;
       num_active_in++;
       CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[f], &field_size));
-      code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[f], &eval_mode));
+      if (eval_mode == CEED_EVAL_GRAD) {
+        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << "dim_in_" << f << "*"
+             << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
+      } else {
+        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
+      }
       code << tab << "const CeedInt field_size_in_" << f << " = " << field_size << ";\n";
     } else {
       // ---- Restriction
@@ -2551,7 +2592,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     CeedInt field_size;
 
     code << tab << "WriteLVecStandard" << max_dim << "d_QFAssembly<total_size_out, field_size_out_" << i << ", " << (is_all_tensor ? "Q_1d" : "Q")
-         << ">(data, num_elem, elem, input_offset, " << offset << ", r_q_out_" << i << ", values_array);\n";
+         << ">(data, num_elem, elem, input_offset + s, " << offset << ", r_q_out_" << i << ", values_array);\n";
     CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
     offset += field_size;
   }

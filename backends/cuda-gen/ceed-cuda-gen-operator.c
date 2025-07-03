@@ -439,7 +439,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
 
       // Actually build objects now
       const CeedSize l_size     = (CeedSize)num_elem * Q * qf_size_in * qf_size_out;
-      CeedInt        strides[3] = {1, Q, qf_size_in * qf_size_out * Q}; /* *NOPAD* */
+      CeedInt        strides[3] = {1, num_elem * Q, Q}; /* *NOPAD* */
 
       // Create output restriction
       CeedCallBackend(CeedElemRestrictionCreateStrided(ceed, num_elem, Q, qf_size_in * qf_size_out,
