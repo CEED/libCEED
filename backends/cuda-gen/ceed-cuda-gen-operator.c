@@ -351,7 +351,8 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
   if (!data->assemble_qfunction && !data->use_assembly_fallback) {
     bool is_build_good = false;
 
-    CeedCallBackend(CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(op, &is_build_good));
+    CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, &is_build_good));
+    if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(op, &is_build_good));
     if (!is_build_good) data->use_assembly_fallback = true;
   }
 
@@ -449,7 +450,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
     }
 
     // Assembly array
-    CeedCallBackend(CeedVectorGetArray(*assembled, CEED_MEM_DEVICE, &assembled_array));
+    CeedCallBackend(CeedVectorGetArrayWrite(*assembled, CEED_MEM_DEVICE, &assembled_array));
 
     // Assemble QFunction
     void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points, &assembled_array};

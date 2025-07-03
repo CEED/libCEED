@@ -7,6 +7,6 @@
 #pragma once
 
 CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_build);
-CEED_INTERN int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool *is_good_build);
 CEED_INTERN int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build);
 CEED_INTERN int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build);
+CEED_INTERN int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool *is_good_build);

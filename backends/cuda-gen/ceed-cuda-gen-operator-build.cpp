@@ -2074,7 +2074,7 @@ extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator
 //------------------------------------------------------------------------------
 // Build QFunction assembly operator kernel
 //------------------------------------------------------------------------------
-static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool is_full, bool *is_good_build) {
+extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool *is_good_build) {
   bool                    is_all_tensor = true, is_all_nontensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
   CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
@@ -2149,14 +2149,6 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
   Q       = data->Q;
   Q_1d    = data->Q_1d;
   max_dim = data->dim;
-  {
-    CeedElemRestriction rstr_points = NULL;
-
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
-    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &coords_comp_stride));
-    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
-  }
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
@@ -2457,7 +2449,7 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
       num_active_in++;
       CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[f], &field_size));
       code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
-      code << tab << "const CeedScalar field_size_in_" << f << " = " << field_size << ";\n";
+      code << tab << "const CeedInt field_size_in_" << f << " = " << field_size << ";\n";
     } else {
       // ---- Restriction
       CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, tab, f, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f],
@@ -2470,12 +2462,12 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
   }
   code << tab << "const CeedInt field_sizes_in[" << num_active_in << "] = {";
   for (CeedInt i = 0; i < num_active_in; i++) {
-    code << "field_size_in_" << active_fields_in[i] << ", ";
+    code << "field_size_in_" << active_fields_in[i] << (i < num_active_in - 1 ? ", " : "");
   }
   code << "};\n";
-  code << tab << "const CeedScalar * r_q_in[" << num_active_in << "] = {";
+  code << tab << "CeedScalar * r_q_in[" << num_active_in << "] = {";
   for (CeedInt i = 0; i < num_active_in; i++) {
-    code << "r_q_in_" << active_fields_in[i] << ", ";
+    code << "r_q_in_" << active_fields_in[i] << (i < num_active_in - 1 ? ", " : "");
   }
   code << "};\n";
 
@@ -2499,12 +2491,12 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
       qf_assembly_size_out += field_size;
       CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
       code << tab << "// ---- Output field " << i << ": " << field_name << "\n";
-      code << tab << "const CeedScalar field_size_out_" << i << " = " << field_size << ";\n";
+      code << tab << "const CeedInt field_size_out_" << i << " = " << field_size << ";\n";
     }
   }
-  code << tab << "const field_sizes_out[" << num_active_out << "] = {";
+  code << tab << "const CeedInt field_sizes_out[" << num_active_out << "] = {";
   for (CeedInt i = 0; i < num_active_out; i++) {
-    code << "field_size_out_" << active_fields_out[i] << ", ";
+    code << "field_size_out_" << active_fields_out[i] << (i < num_active_out - 1 ? ", " : "");
   }
   code << "};\n";
   code << tab << "const CeedInt total_size_out = " << qf_assembly_size_out << ";\n";
@@ -2518,13 +2510,17 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
 
   // -- Loop over size of active field
   code << "\n" << tab << "// Loop over current active input field size\n";
-  code << tab << "const field_size_in = field_sizes_in[i];\n";
+  code << tab << "const CeedInt field_size_in = field_sizes_in[a];\n";
   code << tab << "for (CeedInt s = 0; s < field_size_in; s++) {\n";
   tab.push();
 
   // -- Set current active point and component to 1
   code << tab << "// Set current active point and component to 1.0\n";
-  code << tab << "r_q_in[a][s] = 1.0;\n";
+  if (is_all_tensor && (max_dim >= 3)) {
+    code << tab << "for (CeedInt i = 0; i < Q_1d; i++) r_q_in[a][i + s * Q_1d] = 1.0;\n";
+  } else {
+    code << tab << "r_q_in[a][s] = 1.0;\n";
+  }
 
   // -- Q function
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
@@ -2533,6 +2529,8 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";
+  CeedScalar offset = 0;
+
   for (CeedInt i = 0; i < num_output_fields; i++) {
     bool        is_active = false;
     const char *field_name;
@@ -2548,32 +2546,28 @@ static int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator 
 
     CeedCallBackend(CeedOperatorFieldGetName(op_output_fields[i], &field_name));
     code << tab << "// ---- Output field " << i << ": " << field_name << "\n";
-    code << tab << "const CeedInt b = " << i << ";\n";
 
     // ---- Restriction
-    CeedScalar offset = 0;
+    CeedInt field_size;
 
-    code << tab << "switch (b) {\n";
-    for (CeedInt i = 0; i < num_active_out; i++) {
-      CeedInt field_size;
-
-      code << tab << "  case " << i << ":\n";
-      code << tab << "    WriteLVecStandard" << max_dim << "d_QFAssembly<total_size_out, field_size_out_" << i << ", "
-           << (is_all_tensor ? "Q_1d" : "Q") << ">(data, num_elem, elem, input_offset, " << offset << ", r_q_out_" << i << ", values_array);\n";
-      code << "  break;\n";
-      CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
-      offset += field_size;
-    }
+    code << tab << "WriteLVecStandard" << max_dim << "d_QFAssembly<total_size_out, field_size_out_" << i << ", " << (is_all_tensor ? "Q_1d" : "Q")
+         << ">(data, num_elem, elem, input_offset, " << offset << ", r_q_out_" << i << ", values_array);\n";
+    CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
+    offset += field_size;
   }
 
   // -- Reset current active node and component
   code << "\n" << tab << "// Reset current active node and component to 0.0\n";
-  code << tab << "r_q_in[a][s] = 0.0;\n";
+  if (is_all_tensor && (max_dim >= 3)) {
+    code << tab << "for (CeedInt i = 0; i < Q_1d; i++) r_q_in[a][i + s * Q_1d] = 0.0;\n";
+  } else {
+    code << tab << "r_q_in[a][s] = 0.0;\n";
+  }
 
   // -- End of loop over size of active field
   tab.pop();
   code << tab << "}\n";
-  code << tab << "input_offset += field_size_in[a];\n";
+  code << tab << "input_offset += field_size_in;\n";
 
   // -- End of loop over active field
   tab.pop();

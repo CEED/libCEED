@@ -148,10 +148,10 @@ template <int NUM_COMP_OUT, int NUM_COMP_FIELD, int Q_1D>
 inline __device__ void WriteLVecStandard1d_QFAssembly(SharedData_Cuda &data, const CeedInt num_elem, const CeedInt elem, const CeedInt input_offset,
                                                       const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < Q_1D) {
-    const CeedInt ind = data.t_id_x * (Q_1D * num_elem) + elem * Q_1D;
+    const CeedInt ind = data.t_id_x + elem * Q_1D;
 
     for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
-      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * STRIDES_COMP] = r_v[comp];
+      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * num_elem)] = r_v[comp];
     }
   }
 }
@@ -277,10 +277,10 @@ template <int NUM_COMP_OUT, int NUM_COMP_FIELD, int Q_1D>
 inline __device__ void WriteLVecStandard2d_QFAssembly(SharedData_Cuda &data, const CeedInt num_elem, const CeedInt elem, const CeedInt input_offset,
                                                       const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
-    const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D) * (Q_1D * Q_1D * num_elem) + elem * Q_1D * Q_1D;
+    const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D) + elem * Q_1D * Q_1D;
 
     for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
-      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * STRIDES_COMP] = r_v[comp];
+      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * Q_1D * num_elem)] = r_v[comp];
     }
   }
 }
@@ -447,10 +447,10 @@ inline __device__ void WriteLVecStandard3d_QFAssembly(SharedData_Cuda &data, con
                                                       const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
   if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
     for (CeedInt z = 0; z < P_1D; z++) {
-      const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D + z * Q_1D * Q_1D) * (Q_1D * Q_1D * Q_1D * num_elem) + elem * Q_1D * Q_1D * Q_1D;
+      const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D + z * Q_1D * Q_1D) + elem * Q_1D * Q_1D * Q_1D;
 
       for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
-        d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * STRIDES_COMP] = r_v[z + comp * Q_1D];
+        d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * Q_1D * Q_1D * num_elem)] = r_v[z + comp * Q_1D];
       }
     }
   }
