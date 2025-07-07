@@ -14,6 +14,6 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 
 #[no_mangle]
-pub extern "C" fn add_num(x: u32) -> u32 {
+pub extern "C" fn add_num(x: i32) -> i32 {
     return x + 1;
 }
