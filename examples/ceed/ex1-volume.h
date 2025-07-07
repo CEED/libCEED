@@ -14,7 +14,8 @@ struct BuildContext {
 
 
 
-extern uint32_t add_num(uint32_t x);
+//CEED_QFUNCTION(add_num)(uint32_t x);
+extern "C" uint32_t __device__ add_num(uint32_t x);
 
 /// libCEED Q-function for building quadrature data for a mass operator
 CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -25,7 +26,7 @@ CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
   struct BuildContext *build_data = (struct BuildContext *)ctx;
 
   uint32_t num = 3;
-  volatile uint32_t var = add_num(num);
+  volatile uint32_t var = (uint32_t) add_num(num);
 
   switch (build_data->dim + 10 * build_data->space_dim) {
     case 11: {

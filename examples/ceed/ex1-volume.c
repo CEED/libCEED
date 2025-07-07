@@ -45,7 +45,7 @@
 #include <string.h>
 #include <stdint.h>
 
-extern uint32_t add_num(uint32_t x);
+//extern uint32_t add_num(uint32_t x);
 
 
 __attribute__((noinline)) uint32_t call_rust(int x){

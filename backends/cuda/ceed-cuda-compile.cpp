@@ -102,7 +102,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       include_dir_arg << "-I" << jit_source_dirs[i];
       CeedCallBackend(CeedStringAllocCopy(include_dir_arg.str().c_str(), (char **)&opts[num_opts + i]));
-      std::cout << "Opt is " << opts[num_opts + i] << std::endl;
     }
     CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
   }
@@ -117,7 +116,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       define_arg << "-D" << jit_defines[i];
       CeedCallBackend(CeedStringAllocCopy(define_arg.str().c_str(), (char **)&opts[num_opts + num_jit_source_dirs + i]));
-      std::cout << "Opt is " << opts[num_opts + num_jit_source_dirs + i] << std::endl;
     }
     CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
   }
@@ -197,13 +195,13 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     //err = system("clang++ -c temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.o -L . -lbruhh -flto=thin -fuse-ld=lld");
 
 
-    printf("asdflkjhasdflk %d\n", num_opts + num_jit_source_dirs + num_jit_defines);
+
     for(int i = 0;  i < num_opts + num_jit_source_dirs + num_jit_defines; i++){
         printf("Jit source dirs: %s\n", opts[i]);
     }
 
-    std::string cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -L../../lib -lceed ";
-
+    std::string cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
+    // -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -L../../lib -lceed
     cmd += opts[4];
 
 
@@ -217,7 +215,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     //system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
-    err = system("llvm-link kern.ll libbruhh.rlib --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ");
+    err = system("llvm-link kern.ll bruhh.ll --internalize --only-needed -S -o kern2.ll ");
     // --internalize --only-needed
 
     printf("HERE\n");

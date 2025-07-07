@@ -1,13 +1,16 @@
 #![no_std]
+#![feature(asm_experimental_arch, abi_ptx)]
+use core::arch::asm;
 use core::panic::PanicInfo;
 
-extern "C" {
-    fn abort() -> !;
+pub fn abort() -> ! {
+    unsafe { asm!("trap;") }
+    unreachable!();
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    unsafe { abort() }
+    abort()
 }
 
 #[no_mangle]
