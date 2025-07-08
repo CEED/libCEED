@@ -253,10 +253,10 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 }
 
 static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                  is_run_good[CEED_COMPOSITE_MAX] = {true};
+  bool                  is_run_good[CEED_COMPOSITE_MAX] = {false};
   CeedInt               num_suboperators;
-  const CeedScalar     *input_arr = NULL;
-  CeedScalar           *output_arr;
+  const CeedScalar     *input_arr  = NULL;
+  CeedScalar           *output_arr = NULL;
   Ceed                  ceed;
   CeedOperator_Hip_gen *impl;
   CeedOperator         *sub_operators;
