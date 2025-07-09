@@ -215,8 +215,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     //system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
-    err = system("llvm-link kern.ll libbruhh.rlib --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ");
+    err = system("llvm-link kern.ll ex1-volume-rs/target/nvptx64-nvidia-cuda/release/libex1_volume_rs.rlib --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ");
     // --internalize --only-needed
+    // ex1-volume-rs/target/nvptx64-nvidia-cuda/release/libex1_volume_rs.a
 
     printf("HERE\n");
 

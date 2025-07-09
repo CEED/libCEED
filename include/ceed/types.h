@@ -51,6 +51,18 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
   CEED_QFUNCTION_ATTR static int name
 #endif
 
+
+/**
+    @ingroup CeedQFunction
+This macro populates the correct function annotations for Rust-based User QFunction source for code generation backends or populates default values for CPU backends. It also creates a variable `name_loc` which holds the location of the .rs file
+**/
+#ifndef CEED_QFUNCTION_RUST
+#define CEED_QFUNCTION_RUST(name, filename)                         \
+  static const char              name##_loc[] = filename ":" #name; \
+  CEED_QFUNCTION_ATTR extern int name
+#endif
+
+
 /**
   @ingroup CeedQFunction
   This macro populates the correct function annotations for User QFunction helper function source for code generation backends or populates default

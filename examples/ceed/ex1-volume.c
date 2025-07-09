@@ -48,9 +48,9 @@
 //extern uint32_t add_num(uint32_t x);
 
 
-__attribute__((noinline)) uint32_t call_rust(int x){
-    return add_num(x);
-}
+// __attribute__((noinline)) uint32_t call_rust(int x){
+//     return add_num(x);
+// }
 
 // Auxiliary functions
 int        GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[dim]);
