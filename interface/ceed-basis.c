@@ -903,6 +903,15 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
       post *= Q_1d;
     }
     if (is_at_points) {
+      bool is_gpu = false;
+
+      {
+        CeedMemType mem_type;
+
+        CeedCall(CeedGetPreferredMemType(CeedBasisReturnCeed(basis), &mem_type));
+        is_gpu = mem_type == CEED_MEM_DEVICE;
+      }
+
       CeedInt chebyshev_flops = (Q_1d - 2) * 3 + 1, d_chebyshev_flops = (Q_1d - 2) * 8 + 1;
       CeedInt point_tensor_flops = 0, pre = CeedIntPow(Q_1d, dim - 1), post = 1;
 
@@ -917,16 +926,17 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
           *flops = 0;
           break;
         case CEED_EVAL_INTERP:
-          *flops = tensor_flops + num_points * (dim * chebyshev_flops + point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)) +
+                   num_points * (is_gpu ? num_comp : 1) * dim * chebyshev_flops;
           break;
         case CEED_EVAL_GRAD:
-          *flops = tensor_flops + num_points * (dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops + point_tensor_flops +
-                                                       (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)));
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)) +
+                   num_points * (is_gpu ? num_comp : 1) * dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops);
           break;
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL: {
           // LCOV_EXCL_START
-          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
+          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported at points",
                            CeedEvalModes[eval_mode]);
           break;
           // LCOV_EXCL_STOP
