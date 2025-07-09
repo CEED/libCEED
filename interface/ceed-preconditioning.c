@@ -42,7 +42,6 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
   // Check if NULL qf passed in
   if (!qf) return CEED_ERROR_SUCCESS;
 
-  CeedDebug256(CeedQFunctionReturnCeed(qf), 1, "---------- CeedOperator Fallback ----------\n");
   CeedDebug(CeedQFunctionReturnCeed(qf), "Creating fallback CeedQFunction\n");
 
   if (qf->source_path) {
@@ -117,7 +116,6 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
   CeedCall(CeedDestroy(&ceed));
   if (!ceed_fallback) return CEED_ERROR_SUCCESS;
 
-  CeedDebug256(CeedOperatorReturnCeed(op), 1, "---------- CeedOperator Fallback ----------\n");
   CeedDebug(CeedOperatorReturnCeed(op), "Creating fallback CeedOperator\n");
 
   // Clone Op

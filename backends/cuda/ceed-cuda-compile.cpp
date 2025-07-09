@@ -119,17 +119,17 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
   if (CeedDebugFlag(ceed)) {
     // LCOV_EXCL_START
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- JiT COMPILER OPTIONS ----------\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
     for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
       CeedDebug(ceed, "Option %d: %s", i, opts[i]);
     }
     CeedDebug(ceed, "");
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JiT COMPILER OPTIONS ----------\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
     // LCOV_EXCL_STOP
   }
   nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
@@ -155,7 +155,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
       CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
       CeedCallBackend(CeedFree(&log));
       CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
       return CEED_ERROR_SUCCESS;
@@ -266,7 +266,7 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- LAUNCH ERROR DETECTED ----------\n");
       CeedDebug(ceed, "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d\n",
                 max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
       // LCOV_EXCL_STOP
     }
     *is_good_run = false;
