@@ -245,7 +245,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   if (!is_run_good) {
     CeedOperator op_fallback;
 
-    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/hip/ref CeedOperator for ApplyAdd\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
   }
@@ -293,7 +293,7 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
 
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+      CeedDebug(ceed, "\nFalling back to /gpu/hip/ref CeedOperator for ApplyAdd\n");
       CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
     }
@@ -490,7 +490,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Hip_gen(CeedOperator op, bool
   if (data->use_assembly_fallback) {
     CeedOperator op_fallback;
 
-    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/hip/ref CeedOperator for LineearAssembleQFunction\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorFallbackLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
     return CEED_ERROR_SUCCESS;
@@ -674,7 +674,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
   if (data->use_assembly_fallback) {
     CeedOperator op_fallback;
 
-    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/hip/ref CeedOperator for AtPoints LinearAssembleAddDiagonal\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorLinearAssembleAddDiagonal(op_fallback, assembled, request));
     return CEED_ERROR_SUCCESS;
@@ -859,7 +859,7 @@ static int CeedSingleOperatorAssembleAtPoints_Hip_gen(CeedOperator op, CeedInt o
   if (data->use_assembly_fallback) {
     CeedOperator op_fallback;
 
-    CeedDebug256(CeedOperatorReturnCeed(op), CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/hip/ref CeedOperator");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/hip/ref CeedOperator for AtPoints SingleOperatorAssemble\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedSingleOperatorAssemble(op_fallback, offset, assembled));
     return CEED_ERROR_SUCCESS;

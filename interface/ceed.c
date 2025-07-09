@@ -650,11 +650,11 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 **/
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
   if (ceed->has_valid_op_fallback_resource) {
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-    CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource, ceed->op_fallback_resource);
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed Fallback ----------\n");
+    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s", ceed->resource, ceed, ceed->op_fallback_resource);
   }
 
-  // Create fallback Ceed if uninitalized
+  // Create fallback Ceed if uninitialized
   if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
     CeedDebug(ceed, "Creating fallback Ceed");
 
@@ -688,6 +688,7 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     }
   }
   *fallback_ceed = NULL;
+  CeedDebug(ceed, "Fallback Ceed with backend %s at address %p\n", ceed->op_fallback_resource, ceed->op_fallback_ceed);
   if (ceed->op_fallback_ceed) CeedCall(CeedReferenceCopy(ceed->op_fallback_ceed, fallback_ceed));
   return CEED_ERROR_SUCCESS;
 }

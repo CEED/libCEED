@@ -585,6 +585,7 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
   CeedCall(CeedOperatorGetFallbackParent(op, &op_fallback_parent));
   if (op_fallback_parent && use_parent && op_fallback_parent->LinearAssembleQFunctionUpdate) {
     // -- Backend version for op fallback parent is faster, if it exists
+    CeedDebug(CeedOperatorReturnCeed(op), "Using fallback parent for CeedOperatorLinearAssembleQFunctionBuildOrUpdate\n");
     LinearAssembleQFunctionUpdate = op_fallback_parent->LinearAssembleQFunctionUpdate;
     op_assemble                   = op_fallback_parent;
   } else if (op->LinearAssembleQFunctionUpdate) {
@@ -624,6 +625,7 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleQFunctionBuildOrUpdate\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
     else return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
@@ -690,6 +692,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector value
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedSingleOperatorAssemble\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedSingleOperatorAssemble(op_fallback, offset, values));
@@ -1948,8 +1951,8 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
       CeedCall(CeedOperatorGetName(op, &op_name));
 
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug(ceed, "CeedOperator \"%s\": falling back from operator at address %p with backend %s to operator at address %p with backend %s\n",
-                op_name, op, resource, op->op_fallback, resource_fallback);
+      CeedDebug(ceed, "Falling back from Operator with backend %s at address %p to Operator with backend %s at address %p for CeedOperator \"%s\"\n",
+                resource, op, resource_fallback, op->op_fallback, op_name);
       CeedCall(CeedDestroy(&ceed_fallback));
     }
     CeedCall(CeedDestroy(&ceed));
@@ -2028,6 +2031,7 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleQFunction\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
     else return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
@@ -2111,6 +2115,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleDiagonal\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssembleDiagonal(op_fallback, assembled, request));
@@ -2170,6 +2175,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleAddDiagonal\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssembleAddDiagonal(op_fallback, assembled, request));
@@ -2335,6 +2341,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssemblePointBlockDiagonal\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssemblePointBlockDiagonal(op_fallback, assembled, request));
@@ -2392,6 +2399,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleAddPointBlockDiagonal\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(op_fallback, assembled, request));
@@ -2444,6 +2452,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleSymbolic\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssembleSymbolic(op_fallback, num_entries, rows, cols));
@@ -2542,6 +2551,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssemble\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorLinearAssemble(op_fallback, values));
@@ -2839,6 +2849,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
     // Operator fallback
     CeedOperator op_fallback;
 
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorCreateFDMElementInverse\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorCreateFDMElementInverse(op_fallback, fdm_inv, request));
