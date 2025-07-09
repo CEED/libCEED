@@ -925,14 +925,25 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
         case CEED_EVAL_NONE:
           *flops = 0;
           break;
-        case CEED_EVAL_INTERP:
-          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)) +
-                   num_points * (is_gpu ? num_comp : 1) * dim * chebyshev_flops;
+        case CEED_EVAL_INTERP: {
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          if (dim == 3 && is_gpu) {
+            *flops += num_points * num_comp * Q_1d * (dim * chebyshev_flops + 2 * Q_1d * Q_1d + (t_mode == CEED_TRANSPOSE ? 2 * Q_1d + 1 : 3 * Q_1d));
+          } else {
+            *flops += num_points * (is_gpu ? num_comp : 1) * dim * chebyshev_flops;
+          }
           break;
-        case CEED_EVAL_GRAD:
-          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)) +
-                   num_points * (is_gpu ? num_comp : 1) * dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops);
+        }
+        case CEED_EVAL_GRAD: {
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          if (dim == 3 && is_gpu) {
+            CeedInt inner_flops = (dim - 1) * chebyshev_flops + d_chebyshev_flops + 2 * Q_1d * Q_1d + (t_mode == CEED_TRANSPOSE ? 2 : 3) * Q_1d;
+            *flops += num_points * num_comp * Q_1d * (dim * inner_flops + (t_mode == CEED_TRANSPOSE ? 1 : 0));
+          } else {
+            *flops += num_points * (is_gpu ? num_comp : 1) * dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops);
+          }
           break;
+        }
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL: {
           // LCOV_EXCL_START
