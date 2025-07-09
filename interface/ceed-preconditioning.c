@@ -1949,7 +1949,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
       CeedDebug(ceed, "CeedOperator \"%s\": falling back from operator at address %p with backend %s to operator at address %p with backend %s\n",
-                op_name, resource, op, resource_fallback, op->op_fallback);
+                op_name, op, resource, op->op_fallback, resource_fallback);
       CeedCall(CeedDestroy(&ceed_fallback));
     }
     CeedCall(CeedDestroy(&ceed));
