@@ -18,8 +18,8 @@ typedef struct {
   CeedInt       max_P_1d;
   CeedInt       thread_1d;
   hipStream_t   streams[CEED_COMPOSITE_MAX];
-  hipModule_t   module, module_assemble_full, module_assemble_diagonal;
-  hipFunction_t op, assemble_full, assemble_diagonal;
+  hipModule_t   module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction;
+  hipFunction_t op, assemble_full, assemble_diagonal, assemble_qfunction;
   FieldsInt_Hip indices;
   Fields_Hip    fields;
   Fields_Hip    B;

@@ -141,6 +141,21 @@ inline __device__ void WriteLVecStandard1d_Assembly(SharedData_Hip &data, const 
 }
 
 //------------------------------------------------------------------------------
+// E-vector -> L-vector, Qfunction assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP_OUT, int NUM_COMP_FIELD, int Q_1D>
+inline __device__ void WriteLVecStandard1d_QFAssembly(SharedData_Hip &data, const CeedInt num_elem, const CeedInt elem, const CeedInt input_offset,
+                                                      const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < Q_1D) {
+    const CeedInt ind = data.t_id_x + elem * Q_1D;
+
+    for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
+      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * num_elem)] = r_v[comp];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
@@ -249,6 +264,21 @@ inline __device__ void WriteLVecStandard2d_Assembly(SharedData_Hip &data, const 
       const CeedInt index = (in_comp * NUM_COMP + comp) * elem_size * elem_size + out_node * elem_size + in_node;
 
       d_v[elem * e_vec_size * e_vec_size + index] += r_v[comp];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, Qfunction assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP_OUT, int NUM_COMP_FIELD, int Q_1D>
+inline __device__ void WriteLVecStandard2d_QFAssembly(SharedData_Hip &data, const CeedInt num_elem, const CeedInt elem, const CeedInt input_offset,
+                                                      const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
+    const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D) + elem * Q_1D * Q_1D;
+
+    for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
+      d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * Q_1D * num_elem)] = r_v[comp];
     }
   }
 }
@@ -401,6 +431,23 @@ inline __device__ void WriteLVecStandard3d_Assembly(SharedData_Hip &data, const 
         const CeedInt index = (in_comp * NUM_COMP + comp) * elem_size * elem_size + out_node * elem_size + in_node;
 
         d_v[elem * e_vec_size * e_vec_size + index] += r_v[z + comp * P_1D];
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// E-vector -> L-vector, Qfunction assembly
+//------------------------------------------------------------------------------
+template <int NUM_COMP_OUT, int NUM_COMP_FIELD, int Q_1D>
+inline __device__ void WriteLVecStandard3d_QFAssembly(SharedData_Hip &data, const CeedInt num_elem, const CeedInt elem, const CeedInt input_offset,
+                                                      const CeedInt output_offset, const CeedScalar *__restrict__ r_v, CeedScalar *__restrict__ d_v) {
+  if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
+    for (CeedInt z = 0; z < Q_1D; z++) {
+      const CeedInt ind = (data.t_id_x + data.t_id_y * Q_1D + z * Q_1D * Q_1D) + elem * Q_1D * Q_1D * Q_1D;
+
+      for (CeedInt comp = 0; comp < NUM_COMP_FIELD; comp++) {
+        d_v[ind + (input_offset * NUM_COMP_OUT + output_offset + comp) * (Q_1D * Q_1D * Q_1D * num_elem)] = r_v[z + comp * Q_1D];
       }
     }
   }
