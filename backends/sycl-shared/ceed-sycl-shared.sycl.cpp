@@ -5,19 +5,19 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-sycl-shared.hpp"
-
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-
 #include <sstream>
 #include <string>
 #include <string_view>
 
+#include "../ceed-backend-init.h"
+#include "ceed-sycl-shared.hpp"
+
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Sycl_Shared(const char *resource, Ceed ceed) {
   Ceed       ceed_ref;
   Ceed_Sycl *data;
   char      *resource_root;
@@ -46,15 +46,6 @@ static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Sycl_shared));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Sycl));
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Register backend
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sycl_Shared(void) {
-  CeedCallBackend(CeedRegister("/gpu/sycl/shared", CeedInit_Sycl_shared, 25));
-  CeedCallBackend(CeedRegister("/cpu/sycl/shared", CeedInit_Sycl_shared, 35));
   return CEED_ERROR_SUCCESS;
 }
 
