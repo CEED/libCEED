@@ -635,6 +635,47 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 }
 
 /**
+  @brief Set a `CeedOperator` to use reduced precision for operator application
+
+  @param[in] op `CeedOperator`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetMixedPrecision(CeedOperator op) {
+  bool is_immutable, is_composite, supports_mixed_precision;
+  Ceed ceed;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsImmutable(op, &is_immutable));
+  CeedCheck(!is_immutable, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetMixedPrecision must be called before operator is finalized");
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetMixedPrecision should be set on single operators");
+  CeedCall(CeedGetSupportsMixedPrecision(ceed, &supports_mixed_precision));
+  CeedCheck(supports_mixed_precision, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement mixed precision operators");
+
+  op->use_mixed_precision = true;
+  CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get whether a `CeedOperator` is set to use reduced precision for operator application
+
+  @param[in]  op                  `CeedOperator`
+  @param[out] use_mixed_precision Variable to store `CeedQFunction`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetMixedPrecision(CeedOperator op, bool *use_mixed_precision) {
+  *use_mixed_precision = op->use_mixed_precision;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the `CeedQFunction` associated with a `CeedOperator`
 
   @param[in]  op `CeedOperator`

@@ -14,7 +14,16 @@
 
 /// Set base scalar type to FP64. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP64
-typedef double CeedScalar;
+#if defined(CEED_RUNNING_JIT_PASS) && defined(CEED_JIT_MIXED_PRECISION)
+typedef float  CeedScalar;
+typedef double CeedScalarCPU;
 
 /// Machine epsilon
-#define CEED_EPSILON 1e-16
+#define CEED_EPSILON 0x1p-23
+#else
+typedef double     CeedScalar;
+typedef CeedScalar CeedScalarCPU;
+
+/// Machine epsilon
+#define CEED_EPSILON 0x1p-52
+#endif  // CEED_RUNNING_JIT_PASS && CEED_JIT_MIXED_PRECISION

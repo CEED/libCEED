@@ -12,8 +12,8 @@
 //------------------------------------------------------------------------------
 // 1D tensor contraction
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void Contract1d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void Contract1d(SharedData_Cuda &data, const ScalarIn1 *U, const ScalarIn2 *B, ScalarOut *V) {
   data.slice[data.t_id_x] = *U;
   __syncthreads();
   *V = 0.0;
@@ -28,8 +28,8 @@ inline __device__ void Contract1d(SharedData_Cuda &data, const CeedScalar *U, co
 //------------------------------------------------------------------------------
 // 1D transpose tensor contraction
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void ContractTranspose1d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTranspose1d(SharedData_Cuda &data, const ScalarIn1 *U, const ScalarIn2 *B, ScalarOut *V) {
   data.slice[data.t_id_x] = *U;
   __syncthreads();
   if (data.t_id_x < P_1D) {
@@ -43,9 +43,8 @@ inline __device__ void ContractTranspose1d(SharedData_Cuda &data, const CeedScal
 //------------------------------------------------------------------------------
 // Interpolate to quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q, int T_1D>
-inline __device__ void InterpNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                       CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P, int Q, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpNonTensor(SharedData_Cuda &data, const ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, ScalarOut *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     Contract1d<NUM_COMP, P, Q>(data, &r_U[comp], c_B, &r_V[comp]);
   }
@@ -54,9 +53,9 @@ inline __device__ void InterpNonTensor(SharedData_Cuda &data, const CeedScalar *
 //------------------------------------------------------------------------------
 // Interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P, int Q, int T_1D>
-inline __device__ void InterpTransposeNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P, int Q, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpTransposeNonTensor(SharedData_Cuda &data, const ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                                ScalarOut *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     r_V[comp] = 0.0;
     ContractTranspose1d<NUM_COMP, P, Q>(data, &r_U[comp], c_B, &r_V[comp]);
@@ -66,8 +65,8 @@ inline __device__ void InterpTransposeNonTensor(SharedData_Cuda &data, const Cee
 //------------------------------------------------------------------------------
 // Derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int DIM, int P, int Q, int T_1D>
-inline __device__ void GradNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int DIM, int P, int Q, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void GradNonTensor(SharedData_Cuda &data, const ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_G, ScalarOut *__restrict__ r_V) {
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       Contract1d<NUM_COMP, P, Q>(data, &r_U[comp], &c_G[dim * P * Q], &r_V[comp + dim * NUM_COMP]);
@@ -78,9 +77,9 @@ inline __device__ void GradNonTensor(SharedData_Cuda &data, const CeedScalar *__
 //------------------------------------------------------------------------------
 // Derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int DIM, int P, int Q, int T_1D>
-inline __device__ void GradTransposeNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
-                                              CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int DIM, int P, int Q, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void GradTransposeNonTensor(SharedData_Cuda &data, const ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_G,
+                                              ScalarOut *__restrict__ r_V) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) r_V[comp] = 0.0;
   for (CeedInt dim = 0; dim < DIM; dim++) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -92,7 +91,7 @@ inline __device__ void GradTransposeNonTensor(SharedData_Cuda &data, const CeedS
 //------------------------------------------------------------------------------
 // Quadrature weights
 //------------------------------------------------------------------------------
-template <int P, int Q>
-inline __device__ void WeightNonTensor(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight, CeedScalar *w) {
+template <int P, int Q, class ScalarIn, class ScalarOut>
+inline __device__ void WeightNonTensor(SharedData_Cuda &data, const ScalarIn *__restrict__ q_weight, ScalarOut *w) {
   *w = (data.t_id_x < Q) ? q_weight[data.t_id_x] : 0.0;
 }
