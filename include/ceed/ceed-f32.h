@@ -14,7 +14,8 @@
 
 /// Set base scalar type to FP32. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP32
-typedef float CeedScalar;
+typedef float      CeedScalar;
+typedef CeedScalar CeedScalarCPU;
 
 /// Machine epsilon
-#define CEED_EPSILON 6e-08
+#define CEED_EPSILON 0x1p-23

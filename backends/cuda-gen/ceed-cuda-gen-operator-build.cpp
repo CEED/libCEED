@@ -1285,7 +1285,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalar *W, Points_Cuda "
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
           "points) {\n";
   tab.push();
 
@@ -1295,11 +1295,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalar *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -1574,9 +1574,18 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   {
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    bool          use_mixed_precision;
+
+    // Check for mixed precision
+    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
+    if (use_mixed_precision) {
+      CeedCallBackend(
+          CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "OP_T_1D", T_1d, "CEED_JIT_MIXED_PRECISION", 1));
+    } else {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
+    }
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
@@ -1689,8 +1698,8 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalar *W, Points_Cuda "
-          "points, CeedScalar *__restrict__ values_array) {\n";
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
+          "points, CeedScalarCPU *__restrict__ values_array) {\n";
   tab.push();
 
   // Scratch buffers
@@ -1699,11 +1708,11 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalar *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -2045,10 +2054,20 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   {
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    bool          use_mixed_precision;
+
+    // Check for mixed precision
+    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
-                                        is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D", T_1d));
+    if (use_mixed_precision) {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
+                                          is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 2, "OP_T_1D", T_1d,
+                                          "CEED_JIT_MIXED_PRECISION", 1));
+    } else {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
+                                          is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D", T_1d));
+    }
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, is_full ? data->module_assemble_full : data->module_assemble_diagonal, operator_name.c_str(),
@@ -2221,8 +2240,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalar *W, Points_Cuda "
-          "points, CeedScalar *__restrict__ values_array) {\n";
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
+          "points, CeedScalarCPU *__restrict__ values_array) {\n";
   tab.push();
 
   // Scratch buffers
@@ -2231,11 +2250,11 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalar *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -2485,8 +2504,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
       CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[f], &field_size));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[f], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
-        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << "dim_in_" << f << "*"
-             << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
+        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*"
+             << "dim_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
       } else {
         code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
       }
@@ -2625,9 +2644,18 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   {
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    bool          use_mixed_precision;
+
+    // Check for mixed precision
+    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
+    if (use_mixed_precision) {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 2, "OP_T_1D", T_1d,
+                                          "CEED_JIT_MIXED_PRECISION", 1));
+    } else {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
+    }
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module_assemble_qfunction, operator_name.c_str(), &data->assemble_qfunction));

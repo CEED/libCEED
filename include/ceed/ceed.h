@@ -106,6 +106,7 @@ CEED_EXTERN int CeedSetStream(Ceed ceed, void *handle);
 CEED_EXTERN int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
+CEED_EXTERN int CeedGetSupportsMixedPrecision(Ceed ceed, bool *supports_mixed_precision);
 CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedAddJitDefine(Ceed ceed, const char *jit_define);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
@@ -426,6 +427,8 @@ CEED_EXTERN int  CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int  CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
 CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs_data_update);
+CEED_EXTERN int  CeedOperatorSetMixedPrecision(CeedOperator op);
+CEED_EXTERN int  CeedOperatorGetMixedPrecision(CeedOperator op, bool *use_mixed_precision);
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                   CeedRequest *request);

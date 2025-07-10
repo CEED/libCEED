@@ -128,6 +128,7 @@ struct Ceed_private {
   bool            is_debug;
   bool            has_valid_op_fallback_resource;
   bool            is_deterministic;
+  bool            supports_mixed_precision;
   char            err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset        *f_offsets;
   CeedWorkVectors work_vectors;
@@ -380,6 +381,7 @@ struct CeedOperator_private {
   bool                      is_composite;
   bool                      is_at_points;
   bool                      has_restriction;
+  bool                      use_mixed_precision;
   CeedQFunctionAssemblyData qf_assembled;
   CeedOperatorAssemblyData  op_assembled;
   CeedOperator             *sub_operators;
