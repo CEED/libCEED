@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
 
       CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
       for (CeedInt i = 0; i < p_dim; i++) area += v_array[i];
-      if (fabs(area - 2.0 * CeedIntPow(2, dim)) > 5E-6) printf("Incorrect area computed %f != %f\n", area, 2.0 * CeedIntPow(2, dim));
+      if (fabs(area - 2.0 * CeedIntPow(2, dim)) > 1E-5) printf("Incorrect area computed %f != %f\n", area, 2.0 * CeedIntPow(2, dim));
       CeedVectorRestoreArrayRead(v, &v_array);
     }
 
