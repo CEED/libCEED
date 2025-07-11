@@ -2052,7 +2052,6 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(max_dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
-  block_sizes[2] = 1;
   {
     bool is_compile_good = false;
 
