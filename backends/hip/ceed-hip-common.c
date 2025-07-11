@@ -68,7 +68,10 @@ static inline int CeedSetDeviceGenericArray_Hip(Ceed ceed, const void *source_ar
           *(void **)target_array = *(void **)target_array_owned;
         }
       }
-      if (source_array) CeedCallHip(ceed, hipMemcpy(*(void **)target_array, source_array, size_unit * num_values, hipMemcpyDeviceToDevice));
+      if (source_array) {
+        CeedCallHip(ceed, hipMemcpy(*(void **)target_array, source_array, size_unit * num_values, hipMemcpyDeviceToDevice));
+        CeedCallHip(ceed, hipDeviceSynchronize());
+      }
       break;
     case CEED_OWN_POINTER:
       CeedCallHip(ceed, hipFree(*(void **)target_array_owned));
