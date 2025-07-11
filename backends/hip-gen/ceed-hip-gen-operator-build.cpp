@@ -1589,7 +1589,6 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(is_all_tensor ? max_dim : 1, num_elem, data->max_P_1d, is_all_tensor ? Q_1d : Q, block_sizes));
-  if (is_at_points) block_sizes[2] = 1;
   {
     bool is_compile_good = false;
 
@@ -2053,7 +2052,6 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(max_dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
-  block_sizes[2] = 1;
   {
     bool is_compile_good = false;
 
@@ -2625,7 +2623,6 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   // Compile
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(max_dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
-  block_sizes[2] = 1;
   {
     bool is_compile_good = false;
 
