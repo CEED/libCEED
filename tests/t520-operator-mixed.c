@@ -107,14 +107,14 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_tet, "_weight", CEED_ELEMRESTRICTION_NONE, basis_x_tet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restriction_x_tet, basis_x_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
-  CeedOperatorSetMixedPrecision(op_setup_tet);
+  CeedOperatorSetPrecision(op_setup_tet, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
   // ---- Mass Tet
   CeedOperatorCreate(ceed, qf_mass_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_tet);
   CeedOperatorSetField(op_mass_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_mass_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetName(op_mass_tet, "mass tet");
-  CeedOperatorSetMixedPrecision(op_mass_tet);
+  CeedOperatorSetPrecision(op_mass_tet, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   // Set up Hex Elements
   // -- Restrictions
@@ -153,14 +153,14 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_hex, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_hex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_hex, "dx", elem_restriction_x_hex, basis_x_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
-  CeedOperatorSetMixedPrecision(op_setup_hex);
+  CeedOperatorSetPrecision(op_setup_hex, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   CeedOperatorCreate(ceed, qf_mass_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_hex);
   CeedOperatorSetField(op_mass_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_mass_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetName(op_mass_hex, "mass hex");
-  CeedOperatorSetMixedPrecision(op_mass_hex);
+  CeedOperatorSetPrecision(op_mass_hex, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   // Set up Composite Operators
   // -- Create
