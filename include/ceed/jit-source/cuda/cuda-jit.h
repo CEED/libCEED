@@ -13,4 +13,11 @@
 #define CeedPragmaSIMD
 #define CEED_Q_VLA 1
 
+#ifndef DBL_EPSILON
+#define DBL_EPSILON 2.22044604925031308084726333618164062e-16
+#endif
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.19209289550781250000000000000000000e-7F
+#endif
+
 #include "cuda-types.h"
