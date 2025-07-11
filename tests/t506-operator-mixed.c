@@ -76,26 +76,29 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_small, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_small, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_small, "x", elem_restriction_x, basis_x_small, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_small, "rho", elem_restriction_q_data_small, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_setup_small);
+  CeedOperatorSetPrecision(op_setup_small, CEED_SCALAR_TYPE == CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64
+                                           : CEED_SCALAR_FP32                                       ? CEED_SCALAR_FP64
+                                           : CEED_SCALAR_TYPE == CEED_SCALAR_FP32                   ? CEED_SCALAR_FP64
+                                                                                                    : CEED_SCALAR_FP32);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_small);
   CeedOperatorSetField(op_mass_small, "rho", elem_restriction_q_data_small, CEED_BASIS_NONE, q_data_small);
   CeedOperatorSetField(op_mass_small, "u", elem_restriction_u, basis_u_small, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_small, "v", elem_restriction_u, basis_u_small, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_mass_small);
+  CeedOperatorSetPrecision(op_mass_small, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   // 'Large' operators
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_large);
   CeedOperatorSetField(op_setup_large, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_large, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_large, "x", elem_restriction_x, basis_x_large, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_large, "rho", elem_restriction_q_data_large, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_setup_large);
+  CeedOperatorSetPrecision(op_setup_large, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_large);
   CeedOperatorSetField(op_mass_large, "rho", elem_restriction_q_data_large, CEED_BASIS_NONE, q_data_large);
   CeedOperatorSetField(op_mass_large, "u", elem_restriction_u, basis_u_large, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_large, "v", elem_restriction_u, basis_u_large, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_mass_large);
+  CeedOperatorSetPrecision(op_mass_large, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
 
   // Setup
   CeedOperatorApply(op_setup_small, x, q_data_small, CEED_REQUEST_IMMEDIATE);

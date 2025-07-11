@@ -379,7 +379,7 @@ struct CeedOperator_private {
   bool                      is_composite;
   bool                      is_at_points;
   bool                      has_restriction;
-  bool                      use_mixed_precision;
+  CeedScalarType            precision;
   CeedQFunctionAssemblyData qf_assembled;
   CeedOperatorAssemblyData  op_assembled;
   CeedOperator             *sub_operators;

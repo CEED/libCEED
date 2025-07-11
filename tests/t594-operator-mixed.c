@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "x", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_setup);
+  CeedOperatorSetPrecision(op_setup, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
   CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 
   CeedOperatorApply(op_setup, x_elem, q_data, CEED_REQUEST_IMMEDIATE);
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_mass);
+  CeedOperatorSetPrecision(op_mass, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
   CeedOperatorAtPointsSetPoints(op_mass, elem_restriction_x_points, x_points);
 
   CeedOperatorIsAtPoints(op_mass, &is_at_points);

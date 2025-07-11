@@ -118,10 +118,12 @@ typedef signed char CeedInt8;
 /// @ingroup Ceed
 typedef enum {
   /// Single precision
-  CEED_SCALAR_FP32,
+  CEED_SCALAR_FP32 = 0,
   /// Double precision
-  CEED_SCALAR_FP64
+  CEED_SCALAR_FP64 = 1
 } CeedScalarType;
+#define CEED_SCALAR_FP32 0
+#define CEED_SCALAR_FP64 1
 /// Base scalar type for the library to use: change which header is included to change the precision.
 #include "ceed-f64.h"  // IWYU pragma: export
 

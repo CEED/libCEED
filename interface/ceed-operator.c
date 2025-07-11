@@ -635,27 +635,29 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 }
 
 /**
-  @brief Set a `CeedOperator` to use reduced precision for operator application
+  @brief Set the floating point precision for `CeedOperator` application
 
-  @param[in] op `CeedOperator`
+  @param[in] op        `CeedOperator`
+  @param[in] precision `CeedScalarType` to use for operator application
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorSetMixedPrecision(CeedOperator op) {
+int CeedOperatorSetPrecision(CeedOperator op, CeedScalarType scalar_type) {
   bool is_immutable, is_composite, supports_mixed_precision;
   Ceed ceed;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsImmutable(op, &is_immutable));
-  CeedCheck(!is_immutable, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetMixedPrecision must be called before operator is finalized");
+  CeedCheck(!is_immutable, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetPrecision must be called before operator is finalized");
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetMixedPrecision should be set on single operators");
+  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetPrecision should be set on single operators");
   CeedCall(CeedGetSupportsMixedPrecision(ceed, &supports_mixed_precision));
-  CeedCheck(supports_mixed_precision, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement mixed precision operators");
+  CeedCheck(scalar_type == CEED_SCALAR_TYPE || supports_mixed_precision, ceed, CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement mixed precision operators");
 
-  op->use_mixed_precision = true;
+  op->precision = scalar_type;
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -663,15 +665,15 @@ int CeedOperatorSetMixedPrecision(CeedOperator op) {
 /**
   @brief Get whether a `CeedOperator` is set to use reduced precision for operator application
 
-  @param[in]  op                  `CeedOperator`
-  @param[out] use_mixed_precision Variable to store `CeedQFunction`
+  @param[in]  op        `CeedOperator`
+  @param[out] precision Variable to store operator precision
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorGetMixedPrecision(CeedOperator op, bool *use_mixed_precision) {
-  *use_mixed_precision = op->use_mixed_precision;
+int CeedOperatorGetPrecision(CeedOperator op, CeedScalarType *precision) {
+  *precision = op->precision;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -809,6 +811,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
   (*op)->ref_count   = 1;
   (*op)->input_size  = -1;
   (*op)->output_size = -1;
+  (*op)->precision   = CEED_SCALAR_TYPE;
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
   if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));
@@ -853,6 +856,7 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
   (*op)->is_at_points = true;
   (*op)->input_size   = -1;
   (*op)->output_size  = -1;
+  (*op)->precision    = CEED_SCALAR_TYPE;
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
   if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));

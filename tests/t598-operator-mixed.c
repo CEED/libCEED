@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "x", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_setup);
+  CeedOperatorSetPrecision(op_setup, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
   CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 
   CeedOperatorApply(op_setup, x_elem, q_data, CEED_REQUEST_IMMEDIATE);
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass_fine, "u", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_fine, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass_fine, "v", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetMixedPrecision(op_mass_fine);
+  CeedOperatorSetPrecision(op_mass_fine, CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? CEED_SCALAR_FP64 : CEED_SCALAR_FP32);
   CeedOperatorAtPointsSetPoints(op_mass_fine, elem_restriction_x_points, x_points);
 
   CeedVectorCreate(ceed, num_nodes_fine, &u_fine);
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
       sum += v_array[i];
     }
     CeedVectorRestoreArrayRead(v_coarse, &v_array);
-    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: %f\n", sum, num_elem);
+    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: %f\n", sum, (float)num_elem);
   }
 
   // Prolong coarse u
@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(v_fine, &v_array);
 
-    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Fine Grid: %f != True Area: %f\n", sum, num_elem);
+    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Fine Grid: %f != True Area: %f\n", sum, (float)num_elem);
   }
   // Restrict state to coarse grid
   CeedOperatorApply(op_restrict, v_fine, v_coarse, CEED_REQUEST_IMMEDIATE);
@@ -251,7 +251,7 @@ int main(int argc, char **argv) {
       sum += v_array[i];
     }
     CeedVectorRestoreArrayRead(v_coarse, &v_array);
-    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: %f\n", sum, num_elem);
+    if (fabs(sum - num_elem) > 1000. * FLT_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: %f\n", sum, (float)num_elem);
   }
 
   CeedVectorDestroy(&x_points);

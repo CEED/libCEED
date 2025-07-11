@@ -1572,17 +1572,17 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
   // Compile
   {
-    bool          is_compile_good = false;
-    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
-    bool          use_mixed_precision;
+    bool           is_compile_good = false;
+    const CeedInt  T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    CeedScalarType precision;
 
     // Check for mixed precision
-    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
+    CeedCallBackend(CeedOperatorGetPrecision(op, &precision));
 
     data->thread_1d = T_1d;
-    if (use_mixed_precision) {
-      CeedCallBackend(
-          CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "OP_T_1D", T_1d, "CEED_JIT_MIXED_PRECISION", 1));
+    if (precision != CEED_SCALAR_TYPE) {
+      CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "OP_T_1D", T_1d, "CEED_JIT_PRECISION",
+                                          CeedScalarTypes[precision]));
     } else {
       CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
     }
@@ -2052,18 +2052,18 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
   // Compile
   {
-    bool          is_compile_good = false;
-    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
-    bool          use_mixed_precision;
+    bool           is_compile_good = false;
+    const CeedInt  T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    CeedScalarType precision;
 
     // Check for mixed precision
-    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
+    CeedCallBackend(CeedOperatorGetPrecision(op, &precision));
 
     data->thread_1d = T_1d;
-    if (use_mixed_precision) {
+    if (precision != CEED_SCALAR_TYPE) {
       CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
                                           is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 2, "OP_T_1D", T_1d,
-                                          "CEED_JIT_MIXED_PRECISION", 1));
+                                          "CEED_JIT_PRECISION", CeedScalarTypes[precision]));
     } else {
       CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
                                           is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D", T_1d));
@@ -2642,17 +2642,17 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
 
   // Compile
   {
-    bool          is_compile_good = false;
-    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
-    bool          use_mixed_precision;
+    bool           is_compile_good = false;
+    const CeedInt  T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
+    CeedScalarType precision;
 
     // Check for mixed precision
-    CeedCallBackend(CeedOperatorGetMixedPrecision(op, &use_mixed_precision));
+    CeedCallBackend(CeedOperatorGetPrecision(op, &precision));
 
     data->thread_1d = T_1d;
-    if (use_mixed_precision) {
+    if (precision != CEED_SCALAR_TYPE) {
       CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 2, "OP_T_1D", T_1d,
-                                          "CEED_JIT_MIXED_PRECISION", 1));
+                                          "CEED_JIT_PRECISION", CeedScalarTypes[precision]));
     } else {
       CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
     }
