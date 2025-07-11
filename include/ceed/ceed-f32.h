@@ -10,6 +10,10 @@
 /// Include this header in ceed.h to use float instead of double.
 #pragma once
 
+#ifndef CEED_RUNNING_JIT_PASS
+#include <float.h>
+#endif
+
 #define CEED_SCALAR_IS_FP32
 
 /// Set base scalar type to FP32. (See CeedScalarType enum in ceed.h for all options.)
@@ -18,4 +22,4 @@ typedef float      CeedScalar;
 typedef CeedScalar CeedScalarCPU;
 
 /// Machine epsilon
-#define CEED_EPSILON 0x1p-23
+static const CeedScalar CEED_EPSILON = FLT_EPSILON;
