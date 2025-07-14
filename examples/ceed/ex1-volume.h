@@ -15,12 +15,13 @@ struct BuildContext {
 
 
 //CEED_QFUNCTION(add_num)(uint32_t x);
-extern "C" uint32_t __device__ add_num(uint32_t x);
+//extern "C" uint32_t __device__ add_num(uint32_t x);
 
 // GOAL: make it so that you can CEED_QFUNCTION_RUST(build_mass, "path-to-rs.rs") to a rust-defined qfunction
 // Can't use CEED_QFUNCTION macro bc static
 // in ceed-cuda-compile.ccp, make it so that it detects if the file is a .rs
 
+//uint32_t build_mass_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out){return 0;};
 extern "C" uint32_t __device__ build_mass_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);
 
 /// libCEED Q-function for building quadrature data for a mass operator

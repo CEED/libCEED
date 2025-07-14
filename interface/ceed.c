@@ -1014,6 +1014,30 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
 }
 
 /**
+  @brief Retrieve list of additional Rust source roots from `Ceed` context.
+
+  Note: The caller is responsible for restoring `rust_source_roots` with @ref CeedRestoreRustSourceRoots().
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] num_source_roots Number of JiT source directories
+  @param[out] rust_source_roots Absolute paths to additional Rust source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetRustSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***rust_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *num_source_roots = ceed_parent->num_rust_source_roots;
+  *rust_source_roots = (const char **)ceed_parent->rust_source_roots;
+  ceed_parent->num_rust_source_roots_readers++;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Restore list of additional JiT source roots from with @ref CeedGetJitSourceRoots()
 
   @param[in]  ceed             `Ceed` context
@@ -1029,6 +1053,26 @@ int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
   CeedCall(CeedGetParent(ceed, &ceed_parent));
   *jit_source_roots = NULL;
   ceed_parent->num_jit_source_roots_readers--;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore list of additional Rust source roots from with @ref CeedGetJitSourceRoots()
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] rust_source_roots Absolute paths to additional Rust source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *rust_source_roots = NULL;
+  ceed_parent->num_rust_source_roots_readers--;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
@@ -1220,6 +1264,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Setup Ceed
   CeedCall(CeedCalloc(1, ceed));
   CeedCall(CeedCalloc(1, &(*ceed)->jit_source_roots));
+  CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler) ceed_error_handler = "abort";
   if (!strcmp(ceed_error_handler, "exit")) (*ceed)->Error = CeedErrorExit;
@@ -1472,6 +1517,37 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
   CeedCall(CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]));
   memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
   ceed_parent->num_jit_source_roots++;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set additional Rust source root for `Ceed` context for use in QFunction
+
+  @param[in,out] ceed            `Ceed` context
+  @param[in]     rust_source_root Absolute path to additional Rust source directory
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_rust_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add Rust source root, read access has not been restored");
+
+  CeedInt index       = ceed_parent->num_rust_source_roots;
+  size_t  path_length = strlen(rust_source_root);
+
+  if (ceed_parent->num_rust_source_roots == ceed_parent->max_rust_source_roots) {
+    if (ceed_parent->max_rust_source_roots == 0) ceed_parent->max_rust_source_roots = 1;
+    ceed_parent->max_rust_source_roots *= 2;
+    CeedCall(CeedRealloc(ceed_parent->max_rust_source_roots, &ceed_parent->rust_source_roots));
+  }
+  CeedCall(CeedCalloc(path_length + 1, &ceed_parent->rust_source_roots[index]));
+  memcpy(ceed_parent->rust_source_roots[index], rust_source_root, path_length);
+  ceed_parent->num_rust_source_roots++;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }

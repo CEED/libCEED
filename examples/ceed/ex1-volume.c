@@ -192,6 +192,7 @@ int main(int argc, const char *argv[]) {
     CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(qf_build, "qdata", 1, CEED_EVAL_NONE);
     CeedQFunctionSetContext(qf_build, build_ctx);
+    CeedAddRustSourceRoot(ceed, "/home/alma4974/spur/libCEED/examples/ceed/ex1-volume-rs");
   }
 
   // Create the operator that builds the quadrature data for the mass operator.

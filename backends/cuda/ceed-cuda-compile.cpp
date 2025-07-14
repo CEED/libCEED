@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <filesystem>
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -186,13 +187,41 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     fputs(code.str().c_str(), file);
     fclose(file);
 
-    // Compile command
+    // Get rust crate directories
+
+    const char **rust_source_dirs = nullptr;
+    int num_rust_source_dirs = 0;
+
+
+    CeedCallBackend(CeedGetRustSourceRoots(ceed, &num_rust_source_dirs, &rust_source_dirs));
+
+    std::string rust_dirs[10];
+
+    if(num_rust_source_dirs > 0){
+        printf("There are %d source dirs, including %s\n", num_rust_source_dirs, rust_source_dirs[0]);
+    }
+
+    for(int i = 0; i < num_rust_source_dirs; i++){
+        rust_dirs[i] = std::string(rust_source_dirs[i]);
+    }
+
+
+    CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_dirs));
+
+    // Compile with rust
 
     int err;
+    std::string cmd;
 
-    //err = system("clang++ -c temp-jit.cu -DCEED_RUNNING_JIT_PASS=1 -I/home/alma4974/spur/libCEED/include --cuda-gpu-arch=sm_80  -default-device -o kern.o -flto=thin -fuse-ld=lld");
+    for(int i = 0; i < num_rust_source_dirs; i++){
+        cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --manifest-path " + rust_dirs[i] + "/Cargo.toml";
+        err = system(cmd.c_str());
+        if(err){
+            printf("Failed gpu jit task 0 (build rust crates)\nBuilding rust crate %d with command: %s\n", i, cmd.c_str());
+            abort();
+        }
+    }
 
-    //err = system("clang++ -c temp-jit.cu -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 --cuda-device-only -default-device -o kern.o -L . -lbruhh -flto=thin -fuse-ld=lld");
 
 
 
@@ -200,7 +229,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         printf("Jit source dirs: %s\n", opts[i]);
     }
 
-    std::string cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
+    cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
     // -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -L../../lib -lceed
     cmd += opts[4];
 
@@ -210,37 +239,43 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     //err = system("clang++ -flto=thin --cuda-gpu-arch=sm_80 -I/home/alma4974/spur/libCEED/include --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed");
 
     if(err){
-        printf("Failed task 1\n");
+        printf("Failed gpu jit task 1 (compile qfunction source to llvm)\n");
         abort();
     }
 
-    //system("/usr/local/cuda/bin/ptxas -m64 --gpu-name sm_80 kern.ptx -o kern.elf");
-    err = system("llvm-link kern.ll ex1-volume-rs/target/nvptx64-nvidia-cuda/release/libex1_volume_rs.rlib --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ");
-    // --internalize --only-needed
-    // ex1-volume-rs/target/nvptx64-nvidia-cuda/release/libex1_volume_rs.a
 
-    printf("HERE\n");
+    cmd = "llvm-link kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ";
 
-    //err = system("clang++ -S kern.o -L/usr/local/cuda/lib64 -lcudart_static -flto=thin -fuse-ld=lld -o kern.ptx");
-    //err = system("clang++ kern.o -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed -DCEED_RUNNING_JIT_PASS=1 --cuda-gpu-arch=sm_80 -default-device -L . -lbruhh -flto=thin -fuse-ld=lld");
-    //err = system("llc kern.ll -mcpu=sm_80 -o kern.ptx");
+    for(int i = 0; i < num_rust_source_dirs; i++){
+        std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
+        for(auto p : std::filesystem::directory_iterator(dir)){
+            if (p.path().extension() == ".rlib")
+                std::cout << p.path().stem().string() << '\n';
+        }
+        cmd += rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release/*.rlib ";
+    }
+
+    err = system(cmd.c_str());
+
+
+
 
     if(err){
-        printf("Failed task 2\n");
+        printf("Failed gpu jit task 2 (link c and rust sources with llvm)\n");
         abort();
     }
 
     err = system("opt --passes internalize,inline --internalize-public-api-list=CeedKernelCudaGenOperator_build_mass kern2.ll -o kern3.bc");
 
     if(err){
-        printf("Failed task 3\n");
+        printf("Failed gpu jit task 3 (optimize qfunction)\n");
         abort();
     }
 
     err = system("llc -O0 -mcpu=sm_80 kern3.bc -o kern.ptx");
 
     if(err){
-        printf("Failed task 4\n");
+        printf("Failed gpu jit task 4 (compile llvm)\n");
         abort();
     }
 
