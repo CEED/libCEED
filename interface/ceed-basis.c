@@ -941,7 +941,7 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
             CeedInt inner_flops =
                 dim * (2 * Q_1d * Q_1d + (t_mode == CEED_TRANSPOSE ? 2 : 3) * Q_1d) + (dim - 1) * (2 * chebyshev_flops + d_chebyshev_flops);
 
-            *flops += num_points * Q_1d * (chebyshev_flops + d_chebyshev_flops) * num_comp * (inner_flops + (t_mode == CEED_TRANSPOSE ? 1 : 0));
+            *flops += num_points * Q_1d * (chebyshev_flops + d_chebyshev_flops + num_comp * (inner_flops + (t_mode == CEED_TRANSPOSE ? 1 : 0)));
           } else {
             *flops += num_points * (is_gpu ? num_comp : 1) * dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops);
           }
