@@ -675,6 +675,15 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
         CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
       }
       CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
+
+      const char **rust_source_roots;
+      CeedInt      num_rust_source_roots = 0;
+
+      CeedCall(CeedGetRustSourceRoots(ceed, &num_rust_source_roots, &rust_source_roots));
+      for (CeedInt i = 0; i < num_rust_source_roots; i++) {
+        CeedCall(CeedAddRustSourceRoot(fallback_ceed, rust_source_roots[i]));
+      }
+      CeedCall(CeedRestoreRustSourceRoots(ceed, &rust_source_roots));
     }
     {
       const char **jit_defines;
