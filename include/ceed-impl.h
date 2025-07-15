@@ -96,7 +96,7 @@ struct Ceed_private {
   Ceed         parent;
   ObjDelegate *obj_delegates;
   int          obj_delegate_count;
-  Ceed         op_fallback_ceed, op_fallback_parent;
+  Ceed         op_fallback_ceed;
   const char  *op_fallback_resource;
   char       **jit_source_roots;
   CeedInt      num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;

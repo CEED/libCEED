@@ -663,29 +663,9 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 
     CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
     CeedCall(CeedInit(fallback_resource, &fallback_ceed));
-    fallback_ceed->op_fallback_parent = ceed;
-    fallback_ceed->Error              = ceed->Error;
-    ceed->op_fallback_ceed            = fallback_ceed;
-    {
-      const char **jit_source_roots;
-      CeedInt      num_jit_source_roots = 0;
-
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_roots, &jit_source_roots));
-      for (CeedInt i = 0; i < num_jit_source_roots; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
-      }
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
-    }
-    {
-      const char **jit_defines;
-      CeedInt      num_jit_defines = 0;
-
-      CeedCall(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
-      for (CeedInt i = 0; i < num_jit_defines; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_defines[i]));
-      }
-      CeedCall(CeedRestoreJitDefines(ceed, &jit_defines));
-    }
+    fallback_ceed->parent  = ceed;
+    fallback_ceed->Error   = ceed->Error;
+    ceed->op_fallback_ceed = fallback_ceed;
   }
   *fallback_ceed = NULL;
   CeedDebug(ceed, "Fallback Ceed with backend %s at address %p\n", ceed->op_fallback_resource, ceed->op_fallback_ceed);
@@ -1584,7 +1564,6 @@ int CeedDestroy(Ceed *ceed) {
 // LCOV_EXCL_START
 const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorFormat(ceed->parent, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorFormat(ceed->op_fallback_parent, format, args);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
   vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args);  // NOLINT
   return ceed->err_msg;
@@ -1648,7 +1627,6 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *fu
 // LCOV_EXCL_START
 int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorStore(ceed->parent, filename, line_no, func, err_code, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorStore(ceed->op_fallback_parent, filename, line_no, func, err_code, format, args);
 
   // Build message
   int len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
@@ -1728,7 +1706,6 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
 **/
 int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedGetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedGetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = ceed->err_msg;
   return CEED_ERROR_SUCCESS;
 }
@@ -1747,7 +1724,6 @@ int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
 **/
 int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedResetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedResetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = NULL;
   memcpy(ceed->err_msg, "No error message stored", 24);
   return CEED_ERROR_SUCCESS;
