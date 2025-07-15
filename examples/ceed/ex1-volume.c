@@ -180,6 +180,8 @@ int main(int argc, const char *argv[]) {
   // Create the QFunction that builds the mass operator (i.e. computes its quadrature data) and set its context data.
   CeedQFunction qf_build;
 
+  CeedAddRustSourceRoot(ceed, "/home/alma4974/spur/libCEED/examples/ceed/ex1-volume-rs");
+
   if (gallery) {
     // This creates the QFunction via the gallery.
     char name[13] = "";
@@ -192,7 +194,7 @@ int main(int argc, const char *argv[]) {
     CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(qf_build, "qdata", 1, CEED_EVAL_NONE);
     CeedQFunctionSetContext(qf_build, build_ctx);
-    CeedAddRustSourceRoot(ceed, "/home/alma4974/spur/libCEED/examples/ceed/ex1-volume-rs");
+
   }
 
   // Create the operator that builds the quadrature data for the mass operator.
@@ -210,6 +212,7 @@ int main(int argc, const char *argv[]) {
 
   for (CeedInt d = 0; d < dim; d++) num_elem *= num_xyz[d];
   CeedVectorCreate(ceed, num_elem * elem_qpts, &q_data);
+  CeedAddRustSourceRoot(ceed, "/home/alma4974/spur/libCEED/examples/ceed/ex1-volume-rs");
   CeedOperatorApply(op_build, mesh_coords, q_data, CEED_REQUEST_IMMEDIATE);
 
   // Create the QFunction that defines the action of the mass operator.

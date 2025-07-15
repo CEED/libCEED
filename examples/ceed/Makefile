@@ -10,7 +10,7 @@ OPT ?= -O -g
 # Ceed directory
 CEED_DIR ?= ../..
 CEED_FLAGS ?= -I$(CEED_DIR)/include -std=c11  $(OPT)
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -L$(CEED_DIR)/examples/ceed -lbruhh -lm
+CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed -L$(CEED_DIR)/examples/ceed -L$(CEED_DIR)/examples/ceed/ex1-volume-rs/target/release -lex1_volume_rs -lm
 
 EXAMPLES.c = $(wildcard ex*.c)
 EXAMPLES = $(EXAMPLES.c:%.c=%)

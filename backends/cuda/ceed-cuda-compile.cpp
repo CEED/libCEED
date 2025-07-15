@@ -249,15 +249,18 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     for(int i = 0; i < num_rust_source_dirs; i++){
         std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
         for(auto p : std::filesystem::directory_iterator(dir)){
-            if (p.path().extension() == ".rlib")
+            std::cout << "Looking at " << p.path() << std::endl;
+            if (p.path().extension() == ".rlib"){
                 std::cout << p.path().stem().string() << '\n';
+                cmd += p.path().string() + " ";
+            }
         }
-        cmd += rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release/*.rlib ";
+
     }
 
     err = system(cmd.c_str());
 
-
+    std::cout << "Rust command was " << cmd << std::endl;
 
 
     if(err){

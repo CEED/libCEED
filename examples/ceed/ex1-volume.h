@@ -21,11 +21,16 @@ struct BuildContext {
 // Can't use CEED_QFUNCTION macro bc static
 // in ceed-cuda-compile.ccp, make it so that it detects if the file is a .rs
 
-//uint32_t build_mass_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out){return 0;};
-extern "C" uint32_t __device__ build_mass_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);
+//CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out){return 0;};
+/*extern "C" uint32_t __device__ build_mass_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);*/
+/*CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+    return build_mass_rs(ctx, Q, in, out);
+}*/
+CEED_QFUNCTION_RUST(build_mass)
+
 
 /// libCEED Q-function for building quadrature data for a mass operator
-CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+//CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights with shape [1, Q]
 
@@ -33,7 +38,7 @@ CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
   //volatile uint32_t var = (uint32_t) add_num(num);
   //return 0;
 
-  return build_mass_rs(ctx, Q, in, out);
+  //return build_mass_rs(ctx, Q, in, out);
   /*const CeedScalar    *w          = in[1];
   CeedScalar          *q_data     = out[0];
   struct BuildContext *build_data = (struct BuildContext *)ctx;
@@ -68,7 +73,7 @@ CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
     } break;
   }
   return CEED_ERROR_SUCCESS;*/
-}
+//}
 
 /// libCEED Q-function for applying a mass operator
 CEED_QFUNCTION(apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
