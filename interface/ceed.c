@@ -684,6 +684,7 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
         CeedCall(CeedAddRustSourceRoot(fallback_ceed, rust_source_roots[i]));
       }
       CeedCall(CeedRestoreRustSourceRoots(ceed, &rust_source_roots));
+      fallback_ceed->cuda_compile_with_clang = ceed->cuda_compile_with_clang;
     }
     {
       const char **jit_defines;
@@ -1390,6 +1391,16 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Note: there will always be the default root for every Ceed but all additional paths are added to the top-most parent
   CeedCall(CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault));
 
+  // By default, make cuda compile without clang, use nvrtc instead
+  // Note that this is overridden if a rust file is included (rust requires clang)
+    const char *env = getenv("CUDA_CLANG");
+    if (env && strcmp(env, "1") == 0) {
+        (*ceed)->cuda_compile_with_clang = true;
+    } else {
+        (*ceed)->cuda_compile_with_clang = false;
+    }
+
+
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
   return CEED_ERROR_SUCCESS;
@@ -1557,6 +1568,8 @@ int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root) {
   CeedCall(CeedCalloc(path_length + 1, &ceed_parent->rust_source_roots[index]));
   memcpy(ceed_parent->rust_source_roots[index], rust_source_root, path_length);
   ceed_parent->num_rust_source_roots++;
+  ceed_parent->cuda_compile_with_clang = true;
+  ceed->cuda_compile_with_clang = true;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }

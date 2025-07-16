@@ -6,6 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
+#include "ceed/types.h"
 
 const char *CeedGitVersion         = CEED_GIT_VERSION;
 const char *CeedBuildConfiguration = CEED_BUILD_CONFIGURATION;
@@ -34,6 +35,17 @@ int CeedGetGitVersion(const char **git_version) {
   *git_version = CeedGitVersion;
   return CEED_ERROR_SUCCESS;
 }
+
+int CeedSetIsClang(Ceed ceed, bool isClang){
+    ceed->cuda_compile_with_clang = isClang;
+    return CEED_ERROR_SUCCESS;
+}
+
+int CeedGetIsClang(Ceed ceed, bool* isClang){
+    *isClang = ceed->cuda_compile_with_clang;
+    return CEED_ERROR_SUCCESS;
+}
+
 
 /**
   @brief Get build variables as a multi-line string.
