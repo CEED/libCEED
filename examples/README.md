@@ -13,7 +13,7 @@ For more details, please see the dedicated [documentation section](https://libce
 
 The Center for Efficient Exascale Discretizations (CEED) uses Bakeoff Problems (BPs) to test and compare the performance of high-order finite element implementations.
 The definitions of the problems are given on the ceed [website](https://ceed.exascaleproject.org/bps/).
-Each of the following bakeoff problems that use external discretization libraries (such as MFEM, PETSc, and Nek5000) are located in the subdirectories `mfem/`, `petsc/`, and `nek5000/`, respectively.
+Each of the following bakeoff problems that use external discretization libraries (such as deal.II, MFEM, PETSc, and Nek5000) are located in the subdirectories `deal.II/`, `mfem/`, `petsc/`, and `nek5000/`, respectively.
 
 Here we provide a short summary:
 
@@ -22,6 +22,13 @@ Here we provide a short summary:
 :widths: auto
 * - User code
   - Supported BPs
+* - `deal.II`
+  - * BP1 (scalar mass operator) with $Q=P+1$
+    * BP2 (vector mass operator) with $Q=P+1$
+    * BP3 (scalar Laplace operator) with $Q=P+1$
+    * BP4 (vector Laplace operator) with $Q=P+1$
+    * BP5 (collocated scalar Laplace operator) with $Q=P$
+    * BP6 (collocated vector Laplace operator) with $Q=P$
 * - `mfem`
   - * BP1 (scalar mass operator) with $Q=P+1$
     * BP3 (scalar Laplace operator) with $Q=P+1$
@@ -50,12 +57,12 @@ This latter choice is popular in applications that use spectral element methods 
 
 For a more detailed description of the operators employed in the BPs, please see the dedicated [BPs documentation section](https://libceed.org/en/latest/examples/bps.html).
 
-## PETSc+libCEED Navier-Stokes Solver
+## PETSc+libCEED Fluid Dynamics Navier-Stokes Mini-App
 
 The Navier-Stokes problem solves the compressible Navier-Stokes equations using an explicit or implicit time integration.
 A more detailed description of the problem formulation can be found in the [fluids/](./fluids) folder and the corresponding [fluids documentation page](https://libceed.org/en/latest/examples/fluids/index.html).
 
-## PETSc+libCEED Solid mechanics elasticity mini-app
+## PETSc+libCEED Solid Mechanics Elasticity Mini-App
 
 This example solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 A more detailed description of the problem formulation can be found in the [solids/](./solids) folder and the corresponding [solids documentation page](https://libceed.org/en/latest/examples/solids/index.html).
@@ -70,9 +77,18 @@ For a detailed description, please see the corresponding [area documentation pag
 These examples, located in the [petsc/](./petsc) folder, reproduce the Bakeoff Problems 1-6 on a discrete cubed-sphere, using PETSc.
 For a detailed description, please see the corresponding [problems on the cubed-sphere documentation page](https://libceed.org/en/latest/examples/petsc/index.html#bakeoff-problems-on-the-cubed-sphere).
 
+## libCEED Python Examples
+
+These Jupyter notebooks explore the concepts of the libCEED API, including how to install the Python interface and the usage of each API object, with interactive examples.
+The basic libCEED C examples in `/ceed` folder are also available as Python examples.
+
+## libCEED Rust Examples
+
+The basic libCEED C examples in `/ceed` folder are also available as Rust examples.
+
 ## Running Examples
 
-To build the examples, set the `MFEM_DIR`, `PETSC_DIR`, and `NEK5K_DIR` variables and, from the `examples/` directory, run
+To build the examples, set the `DEAL_II_DIR`, `MFEM_DIR`, `PETSC_DIR`, and `NEK5K_DIR` variables and, from the `examples/` directory, run
 
 ```{include} ../README.md
 :start-after: <!-- running-examples-inclusion -->

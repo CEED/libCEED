@@ -1,4 +1,4 @@
-## libCEED: Basic Examples
+## libCEED Basic Examples
 
 Two examples are provided that rely only upon libCEED without any external libraries.
 
