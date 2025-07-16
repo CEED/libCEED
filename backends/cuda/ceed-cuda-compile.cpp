@@ -60,7 +60,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   bool usingClang;
   CeedCallBackend(CeedGetIsClang(ceed, &usingClang));
 
-  printf("Using clang: %b", usingClang);
+  if(CeedDebugFlag(ceed)){
+      if(usingClang){
+          CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Compiling cuda with Clang backend (for Rust Qfunction support)");
+      } else {
+          CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Compiling cuda with NVRTC backend (Does not support Rust Qfunctions). To use Clang, set the environmental variable CUDA_CLANG to 1");
+      }
+  }
+
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -131,9 +138,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   // Create Program
 
-
-  //std::cout << "prog is " << prog << "code is {" << code.str().c_str() << "}" << std::endl;
-
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
@@ -154,9 +158,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       }
 
     nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
-
-
-
 
 
     for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
@@ -197,19 +198,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     #endif
     CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
 
-    printf("PTX is %s\n", ptx);
-
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
     CeedCallBackend(CeedFree(&ptx));
     return CEED_ERROR_SUCCESS;
-
 } else{
-
-
         const char* full_filename = "temp-jit.cu";
         FILE* file = fopen(full_filename, "w");
         if (!file) {
-            perror("Failed to create file");
+            CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "Failed to create file. Write access is required for cuda-clang\n");
             return 1;
         }
         fputs(code.str().c_str(), file);
@@ -226,7 +222,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         std::string rust_dirs[10];
 
         if(num_rust_source_dirs > 0){
-            printf("There are %d source dirs, including %s\n", num_rust_source_dirs, rust_source_dirs[0]);
+            CeedDebug(ceed, "There are %d source dirs, including %s\n", num_rust_source_dirs, rust_source_dirs[0]);
         }
 
         for(int i = 0; i < num_rust_source_dirs; i++){
@@ -245,41 +241,28 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --manifest-path " + rust_dirs[i] + "/Cargo.toml";
             err = system(cmd.c_str());
             if(err){
-                printf("Failed gpu jit task 0 (build rust crates)\nBuilding rust crate %d with command: %s\n", i, cmd.c_str());
+                CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "Failed gpu jit task 0 (build rust crates)\nBuilding rust crate %d with command: %s\n", i, cmd.c_str());
                 abort();
             }
         }
 
-
-
-
-        for(int i = 0;  i < num_opts + num_jit_source_dirs + num_jit_defines; i++){
-            printf("Jit source dirs: %s\n", opts[i]);
-        }
-
         cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
-        // -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -L../../lib -lceed
         cmd += opts[4];
-
-
         err = system(cmd.c_str());
 
-        //err = system("clang++ -flto=thin --cuda-gpu-arch=sm_80 -I/home/alma4974/spur/libCEED/include --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll -L/usr/local/cuda/lib64 -lcudart_static -ldl -lrt -pthread -Wl,-rpath,/home/alma4974/spur/libCEED/lib -I/home/alma4974/spur/libCEED/include -L../../lib -lceed");
-
         if(err){
-            printf("Failed gpu jit task 1 (compile qfunction source to llvm)\n");
+            perror("Failed gpu jit task 1 (compile qfunction source to llvm)\n");
             abort();
         }
 
-
         cmd = "llvm-link kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ";
 
+        // Searches for .rlib files in rust directoy
+        // Note: this is necessity because rust crate names may not match the folder they are in
         for(int i = 0; i < num_rust_source_dirs; i++){
             std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
             for(auto p : std::filesystem::directory_iterator(dir)){
-                std::cout << "Looking at " << p.path() << std::endl;
                 if (p.path().extension() == ".rlib"){
-                    std::cout << p.path().stem().string() << '\n';
                     cmd += p.path().string() + " ";
                 }
             }
@@ -288,7 +271,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
         err = system(cmd.c_str());
 
-        std::cout << "Rust command was " << cmd << std::endl;
+        CeedDebug(ceed, "Rust command was &s\n", cmd.c_str());
 
 
         if(err){
@@ -310,15 +293,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             abort();
         }
 
-        //system("clang++ -x cuda kern.ptx --cuda-gpu-arch=sm_80 -L . -lbruhh -flto=thin -fuse-ld=lld --cuda-device-only -o kern.elf");
-
-        //system("ptxas kern.ll -o output.ptx");
-
-        //ofstream out("correct-output.ptx");
-        //out.write(ptx, ptx_size);
-        //out.close();
-
-
         ifstream           ptxfile("kern.ptx");
 
         ostringstream      sstr;
@@ -327,11 +301,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
         ptx_size = ptx_data.length();
 
-        //std::cout << "THING is " << sstr.str() << std::endl;
-
-        printf("JITTED = %zu\n", ptx_size);
         CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
-        //printf("JITTED = %s\n", ptx_data);
     CeedCallBackend(CeedFree(&ptx_data));
     }
     return CEED_ERROR_SUCCESS;
