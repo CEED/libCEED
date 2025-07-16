@@ -2159,60 +2159,19 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
   CeedCall(CeedOperatorCheckReady(op));
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  if (is_composite) {
+  if (is_composite && op->ApplyComposite) {
     // Composite Operator
-    if (op->ApplyComposite) {
-      CeedCall(op->ApplyComposite(op, in, out, request));
-    } else {
-      CeedInt       num_suboperators;
-      CeedOperator *sub_operators;
-
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-
-      // Zero all output vectors
-      if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        CeedInt            num_output_fields;
-        CeedOperatorField *output_fields;
-
-        CeedCall(CeedOperatorGetFields(sub_operators[i], NULL, NULL, &num_output_fields, &output_fields));
-        for (CeedInt j = 0; j < num_output_fields; j++) {
-          CeedVector vec;
-
-          CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
-          if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
-            CeedCall(CeedVectorSetValue(vec, 0.0));
-          }
-          CeedCall(CeedVectorDestroy(&vec));
-        }
-      }
-      // ApplyAdd
-      CeedCall(CeedOperatorApplyAdd(op, in, out, request));
-    }
-  } else {
+    CeedCall(op->ApplyComposite(op, in, out, request));
+  } else if (!is_composite && op->Apply) {
     // Standard Operator
-    if (op->Apply) {
-      CeedCall(op->Apply(op, in, out, request));
-    } else {
-      CeedInt            num_output_fields;
-      CeedOperatorField *output_fields;
+    CeedCall(op->Apply(op, in, out, request));
+  } else {
+    // Standard or composite, default to zeroing out and calling ApplyAddActive
+    // Zero active output
+    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
 
-      CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
-      // Zero all output vectors
-      for (CeedInt i = 0; i < num_output_fields; i++) {
-        bool       is_active;
-        CeedVector vec;
-
-        CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
-        is_active = vec == CEED_VECTOR_ACTIVE;
-        if (is_active) vec = out;
-        if (vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
-        if (!is_active) CeedCall(CeedVectorDestroy(&vec));
-      }
-      // Apply
-      if (op->num_elem > 0) CeedCall(op->ApplyAdd(op, in, out, request));
-    }
+    // ApplyAddActive
+    CeedCall(CeedOperatorApplyAddActive(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }
