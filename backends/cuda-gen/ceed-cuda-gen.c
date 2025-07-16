@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   char      *resource_root;
-  Ceed       ceed_shared;
+  Ceed       ceed_shared, ceed_ref;
   Ceed_Cuda *data;
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
@@ -34,7 +34,9 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
   CeedCallBackend(CeedDestroy(&ceed_shared));
 
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, "/gpu/cuda/ref"));
+  CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
+  CeedCallBackend(CeedSetOperatorFallbackCeed(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Cuda_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Cuda_gen));

@@ -624,21 +624,6 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 }
 
 /**
-  @brief Get the fallback resource for `CeedOperator`
-
-  @param[in]  ceed     `Ceed` context
-  @param[out] resource Variable to store fallback resource
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
-  *resource = (const char *)ceed->op_fallback_resource;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the fallback `Ceed` for `CeedOperator`
 
   @param[in]  ceed          `Ceed` context
@@ -649,26 +634,13 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   @ref Backend
 **/
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
-  if (ceed->has_valid_op_fallback_resource) {
+  if (ceed->op_fallback_ceed) {
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed Fallback ----------\n");
-    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s", ceed->resource, ceed, ceed->op_fallback_resource);
+    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s at address %p", ceed->resource, ceed,
+              ceed->op_fallback_ceed->resource, ceed->op_fallback_ceed);
   }
 
-  // Create fallback Ceed if uninitialized
-  if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
-    CeedDebug(ceed, "Creating fallback Ceed");
-
-    Ceed        fallback_ceed;
-    const char *fallback_resource;
-
-    CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
-    CeedCall(CeedInit(fallback_resource, &fallback_ceed));
-    fallback_ceed->parent  = ceed;
-    fallback_ceed->Error   = ceed->Error;
-    ceed->op_fallback_ceed = fallback_ceed;
-  }
   *fallback_ceed = NULL;
-  CeedDebug(ceed, "Fallback Ceed with backend %s at address %p\n", ceed->op_fallback_resource, ceed->op_fallback_ceed);
   if (ceed->op_fallback_ceed) CeedCall(CeedReferenceCopy(ceed->op_fallback_ceed, fallback_ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -676,25 +648,18 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 /**
   @brief Set the fallback resource for `CeedOperator`.
 
-  The current resource, if any, is freed by calling this function.
-  This string is freed upon the destruction of the `Ceed` context.
+  The current fallback, if any, is freed by calling this function.
 
-  @param[in,out] ceed     `Ceed` context
-  @param[in]     resource Fallback resource to set
+  @param[in,out] ceed          `Ceed` context
+  @param[in]     fallback_ceed `Ceed` context to create fallback operators
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
-  // Free old
-  CeedCall(CeedFree(&ceed->op_fallback_resource));
-
-  // Set new
-  CeedCall(CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource));
-
-  // Check validity
-  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource && ceed->resource && strcmp(ceed->op_fallback_resource, ceed->resource);
+int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed) {
+  CeedCall(CeedReferenceCopy(fallback_ceed, &ceed->op_fallback_ceed));
+  fallback_ceed->parent = ceed;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1303,10 +1268,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedCalloc(sizeof(f_offsets), &(*ceed)->f_offsets));
   memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
-  // Set fallback for advanced CeedOperator functions
-  const char fallback_resource[] = "";
-  CeedCall(CeedSetOperatorFallbackResource(*ceed, fallback_resource));
-
   // Record env variables CEED_DEBUG or DBG
   (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
 
@@ -1555,7 +1516,6 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
-  CeedCall(CeedFree(&(*ceed)->op_fallback_resource));
   CeedCall(CeedWorkVectorsDestroy(*ceed));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
