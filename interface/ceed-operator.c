@@ -1076,10 +1076,10 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
 
 /**
   @brief Get a boolean value indicating if the `CeedOperator` was created with `CeedOperatorCreateAtPoints`
-    
+
   @param[in]  op           `CeedOperator`
   @param[out] is_at_points Variable to store at points status
-  
+
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
@@ -2142,7 +2142,7 @@ int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
 
-  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
@@ -2223,6 +2223,10 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
 
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+  @warning This function adds into ALL outputs, including passive outputs. To only add into the active output, use `CeedOperatorApplyAddActive()`.
+  @see `CeedOperatorApplyAddActive()`
+
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
   @param[out] out     `CeedVector` to sum in result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
@@ -2255,6 +2259,73 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
   } else if (op->num_elem > 0) {
     // Standard Operator
     CeedCall(op->ApplyAdd(op, in, out, request));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Apply `CeedOperator` to a `CeedVector` and add result to output `CeedVector`. Only sums into active outputs, overwrites passive outputs.
+
+  This computes the action of the operator on the specified (active) input, yielding its (active) output.
+  All inputs and outputs must be specified using @ref CeedOperatorSetField().
+
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+
+  @param[in]  op      `CeedOperator` to apply
+  @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
+  @param[out] out     `CeedVector` to sum in result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorApplyAddActive(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorCheckReady(op));
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    // Composite Operator
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+
+    // Zero all output vectors
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedInt            num_output_fields;
+      CeedOperatorField *output_fields;
+
+      CeedCall(CeedOperatorGetFields(sub_operators[i], NULL, NULL, &num_output_fields, &output_fields));
+      for (CeedInt j = 0; j < num_output_fields; j++) {
+        CeedVector vec;
+
+        CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
+        if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+        CeedCall(CeedVectorDestroy(&vec));
+      }
+    }
+    // ApplyAdd
+    CeedCall(CeedOperatorApplyAdd(op, in, out, request));
+  } else {
+    // Standard Operator
+    CeedInt            num_output_fields;
+    CeedOperatorField *output_fields;
+
+    CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+    // Zero all output vectors
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedVector vec;
+
+      CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
+      if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+      CeedCall(CeedVectorDestroy(&vec));
+    }
+    // ApplyAdd
+    CeedCall(CeedOperatorApplyAdd(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }
