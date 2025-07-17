@@ -190,10 +190,10 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const Cee
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
     for (CeedInt i = 0; i < Q_1D; i++) {
       // Note: shifting to avoid atomic adds
-      const CeedInt ii = (i + data.t_id_x) % Q_1D;
+      const CeedInt ii = (i + data.t_id_y) % Q_1D;
 
       for (CeedInt j = 0; j < Q_1D; j++) {
-        const CeedInt jj = (j + data.t_id_y) % Q_1D;
+        const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
         atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
       }
@@ -266,10 +266,10 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedI
       else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
       for (CeedInt i = 0; i < Q_1D; i++) {
         // Note: shifting to avoid atomic adds
-        const CeedInt ii = (i + data.t_id_x) % Q_1D;
+        const CeedInt ii = (i + data.t_id_y) % Q_1D;
 
         for (CeedInt j = 0; j < Q_1D; j++) {
-          const CeedInt jj = (j + data.t_id_y) % Q_1D;
+          const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
           atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
@@ -351,10 +351,10 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Hip &data, const Cee
       ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
       for (CeedInt i = 0; i < Q_1D; i++) {
         // Note: shifting to avoid atomic adds
-        const CeedInt ii = (i + data.t_id_x) % Q_1D;
+        const CeedInt ii = (i + data.t_id_y) % Q_1D;
 
         for (CeedInt j = 0; j < Q_1D; j++) {
-          const CeedInt jj = (j + data.t_id_y) % Q_1D;
+          const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
           atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
@@ -450,10 +450,10 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Hip &data, const CeedI
         else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
         for (CeedInt i = 0; i < Q_1D; i++) {
           // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + data.t_id_x) % Q_1D;
+          const CeedInt ii = (i + data.t_id_y) % Q_1D;
 
           for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = (j + data.t_id_y) % Q_1D;
+            const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
             atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
