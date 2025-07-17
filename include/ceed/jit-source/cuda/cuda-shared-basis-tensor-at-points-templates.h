@@ -180,21 +180,21 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const Ce
     __syncthreads();
     // Contract y direction
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+    const CeedScalar r_u = p < NUM_POINTS ? r_U[comp] : 0.0;
+
     for (CeedInt i = 0; i < Q_1D; i++) {
-      buffer[i] = chebyshev_x[i] * r_U[comp];
+      buffer[i] = chebyshev_x[i] * r_u;
     }
     // Contract x direction
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
-    if (p < NUM_POINTS) {
-      for (CeedInt i = 0; i < Q_1D; i++) {
-        // Note: shifting to avoid atomic adds
-        const CeedInt ii = (i + data.t_id_x) % Q_1D;
+    for (CeedInt i = 0; i < Q_1D; i++) {
+      // Note: shifting to avoid atomic adds
+      const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
-        for (CeedInt j = 0; j < Q_1D; j++) {
-          const CeedInt jj = (j + data.t_id_y) % Q_1D;
+      for (CeedInt j = 0; j < Q_1D; j++) {
+        const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
-          atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
-        }
+        atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
       }
     }
     // Pull from shared to register
@@ -255,22 +255,22 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const Ceed
       // Contract y direction
       if (dim == 1) ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
       else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+      const CeedScalar r_u = p < NUM_POINTS ? r_U[comp + dim * NUM_COMP] : 0.0;
+
       for (CeedInt i = 0; i < Q_1D; i++) {
-        buffer[i] = chebyshev_x[i] * r_U[comp + dim * NUM_COMP];
+        buffer[i] = chebyshev_x[i] * r_u;
       }
       // Contract x direction
       if (dim == 0) ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
       else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
-      if (p < NUM_POINTS) {
-        for (CeedInt i = 0; i < Q_1D; i++) {
-          // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + data.t_id_x) % Q_1D;
+      for (CeedInt i = 0; i < Q_1D; i++) {
+        // Note: shifting to avoid atomic adds
+        const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
-          for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = (j + data.t_id_y) % Q_1D;
+        for (CeedInt j = 0; j < Q_1D; j++) {
+          const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
-            atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
-          }
+          atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
       }
     }
@@ -341,21 +341,21 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const Ce
       __syncthreads();
       // Contract y and z direction
       ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+      const CeedScalar r_u = p < NUM_POINTS ? r_U[comp] : 0.0;
+
       for (CeedInt i = 0; i < Q_1D; i++) {
-        buffer[i] = chebyshev_x[i] * r_U[comp] * z;
+        buffer[i] = chebyshev_x[i] * r_u * z;
       }
       // Contract x direction
       ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
-      if (p < NUM_POINTS) {
-        for (CeedInt i = 0; i < Q_1D; i++) {
-          // Note: shifting to avoid atomic adds
-          const CeedInt ii = (i + data.t_id_x) % Q_1D;
+      for (CeedInt i = 0; i < Q_1D; i++) {
+        // Note: shifting to avoid atomic adds
+        const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
-          for (CeedInt j = 0; j < Q_1D; j++) {
-            const CeedInt jj = (j + data.t_id_y) % Q_1D;
+        for (CeedInt j = 0; j < Q_1D; j++) {
+          const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
-            atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
-          }
+          atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
       }
       // Pull from shared to register
@@ -438,24 +438,23 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const Ceed
         // Contract y and z direction
         if (dim == 1) ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
         else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
-        const CeedScalar zz = dim == 2 ? dz : z;
+        const CeedScalar zz  = dim == 2 ? dz : z;
+        const CeedScalar r_u = p < NUM_POINTS ? r_U[comp + dim * NUM_COMP] : 0.0;
 
         for (CeedInt i = 0; i < Q_1D; i++) {
-          buffer[i] = chebyshev_x[i] * r_U[comp + dim * NUM_COMP] * zz;
+          buffer[i] = chebyshev_x[i] * r_u * zz;
         }
         // Contract x direction
         if (dim == 0) ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
         else ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
-        if (p < NUM_POINTS) {
-          for (CeedInt i = 0; i < Q_1D; i++) {
-            // Note: shifting to avoid atomic adds
-            const CeedInt ii = (i + data.t_id_x) % Q_1D;
+        for (CeedInt i = 0; i < Q_1D; i++) {
+          // Note: shifting to avoid atomic adds
+          const CeedInt ii = (i + data.t_id_x) % Q_1D;
 
-            for (CeedInt j = 0; j < Q_1D; j++) {
-              const CeedInt jj = (j + data.t_id_y) % Q_1D;
+          for (CeedInt j = 0; j < Q_1D; j++) {
+            const CeedInt jj = (j + data.t_id_y) % Q_1D;
 
-              atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
-            }
+            atomicAdd_block(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
         }
       }
