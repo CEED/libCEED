@@ -783,8 +783,8 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 /**
   @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
 
-  @param[in]  basis     `CeedBasis`
-  @param[out] is_tensor Variable to store collocated status
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
 
   @return An error code: 0 - success, otherwise - failure
 
