@@ -353,20 +353,19 @@ public:
     // communicate: update ghost values
     src.update_ghost_values();
 
-    {
-      // pass memory buffers to libCEED
-      VectorTypeCeed x(src_ceed);
-      VectorTypeCeed y(dst_ceed);
-      x.import_array(src, CEED_MEM_HOST);
-      y.import_array(dst, CEED_MEM_HOST);
+    // pass memory buffers to libCEED
+    VectorTypeCeed x(src_ceed);
+    VectorTypeCeed y(dst_ceed);
+    x.import_array(src, CEED_MEM_HOST);
+    y.import_array(dst, CEED_MEM_HOST);
 
-      // apply operator
-      CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
+    // apply operator
+    CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
 
-      // pull arrays back to deal.II
-      x.sync_array();
-      y.sync_array();
-    }
+    // pull arrays back to deal.II
+    x.take_array();
+    y.take_array();
+
     // communicate: compress
     src.zero_out_ghost_values();
     dst.compress(VectorOperation::add);
@@ -392,16 +391,14 @@ public:
   {
     this->initialize_dof_vector(diagonal);
 
-    {
-      // pass memory buffer to libCEED
-      VectorTypeCeed y(dst_ceed);
-      y.import_array(diagonal, CEED_MEM_HOST);
+    // pass memory buffer to libCEED
+    VectorTypeCeed y(dst_ceed);
+    y.import_array(diagonal, CEED_MEM_HOST);
 
-      CeedOperatorLinearAssembleDiagonal(op_apply, y(), CEED_REQUEST_IMMEDIATE);
+    CeedOperatorLinearAssembleDiagonal(op_apply, y(), CEED_REQUEST_IMMEDIATE);
 
-      // pull array back to deal.II
-      y.sync_array();
-    }
+    // pull array back to deal.II
+    y.take_array();
 
     diagonal.compress(VectorOperation::add);
 
@@ -451,6 +448,16 @@ private:
     sync_array()
     {
       CeedVectorSyncArray(vec_ceed, mem_space);
+    }
+
+    /**
+     * Take previously set deal.II array from libCEED vector
+     */
+    void
+    take_array()
+    {
+      CeedScalar *ptr;
+      CeedVectorTakeArray(vec_ceed, mem_space, &ptr);
     }
 
     /**
