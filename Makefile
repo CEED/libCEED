@@ -797,7 +797,7 @@ NPROC_POOL ?= 1
 export NPROC_POOL
 
 run-% : $(OBJDIR)/%
-	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) $(<:$(OBJDIR)/%=%)
+	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --search '$(subsearch)' $(<:$(OBJDIR)/%=%)
 
 # The test and prove targets can be controlled via pattern searches.  The
 # default is to run tests and those examples that have no external dependencies.
@@ -809,6 +809,7 @@ run-% : $(OBJDIR)/%
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
+subsearch ?= .*
 JUNIT_BATCH ?= ''
 
 # Test core libCEED
@@ -823,7 +824,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 # https://testanything.org/tap-specification.html
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py' $(matched:$(OBJDIR)/%=%) :: --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --search '$(subsearch)'
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
@@ -831,7 +832,7 @@ prove-all :
 	+$(MAKE) prove realsearch=%
 
 junit-% : $(OBJDIR)/%
-	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --search '$(subsearch)' --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
 
 junit : $(matched:$(OBJDIR)/%=junit-%)
 
