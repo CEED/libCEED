@@ -124,7 +124,7 @@ noether-cpu:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -238,7 +238,7 @@ noether-cuda:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -305,7 +305,7 @@ noether-cuda:
 #  after_script:
 #    - |
 #      if [ -f .SUCCESS ]; then
-#        lcov --directory . --capture --output-file coverage.info;
+#        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -408,7 +408,7 @@ noether-float:
   after_script:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
-        lcov --directory . --capture --output-file coverage.info;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
