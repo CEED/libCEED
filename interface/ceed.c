@@ -679,6 +679,21 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
 }
 
 /**
+  @brief Flag `Ceed` context as being able to create mixed precision operators
+
+  @param[in]  ceed                     `Ceed` to flag as deterministic
+  @param[out] supports_mixed_precision Mixed precision status to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetSupportsMixedPrecision(Ceed ceed, bool supports_mixed_precision) {
+  ceed->supports_mixed_precision = supports_mixed_precision;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set a backend function.
 
   This function is used for a backend to set the function associated with the Ceed objects.
@@ -1384,6 +1399,21 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *mem_type) {
 **/
 int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
   *is_deterministic = ceed->is_deterministic;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get deterministic status of `Ceed` context
+
+  @param[in]  ceed                     `Ceed` context
+  @param[out] supports_mixed_precision Variable to store deterministic status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedGetSupportsMixedPrecision(Ceed ceed, bool *supports_mixed_precision) {
+  *supports_mixed_precision = ceed->supports_mixed_precision;
   return CEED_ERROR_SUCCESS;
 }
 

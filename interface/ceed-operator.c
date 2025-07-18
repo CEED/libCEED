@@ -635,6 +635,49 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 }
 
 /**
+  @brief Set a `CeedOperator` to use reduced precision for operator application
+
+  @param[in] op        `CeedOperator`
+  @param[in] precision `CeedScalarType` to use for operator application
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetPrecision(CeedOperator op, CeedScalarType scalar_type) {
+  bool is_immutable, is_composite, supports_mixed_precision;
+  Ceed ceed;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsImmutable(op, &is_immutable));
+  CeedCheck(!is_immutable, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetPrecision must be called before operator is finalized");
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "CeedOperatorSetPrecision should be set on single operators");
+  CeedCall(CeedGetSupportsMixedPrecision(ceed, &supports_mixed_precision));
+  CeedCheck(scalar_type == CEED_SCALAR_TYPE || supports_mixed_precision, ceed, CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement mixed precision operators");
+
+  op->precision = true;
+  CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get whether a `CeedOperator` is set to use reduced precision for operator application
+
+  @param[in]  op        `CeedOperator`
+  @param[out] precision Variable to store operator precision
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetPrecision(CeedOperator op, CeedScalarType *precision) {
+  *precision = op->precision;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the `CeedQFunction` associated with a `CeedOperator`
 
   @param[in]  op `CeedOperator`

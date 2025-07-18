@@ -2481,8 +2481,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
       CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[f], &field_size));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[f], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
-        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << "dim_in_" << f << "*"
-             << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
+        code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*"
+             << "dim_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
       } else {
         code << tab << "CeedScalar r_q_in_" << f << "[num_comp_in_" << f << "*" << (is_all_tensor && (max_dim >= 3) ? "Q_1d" : "1") << "] = {0.};\n";
       }

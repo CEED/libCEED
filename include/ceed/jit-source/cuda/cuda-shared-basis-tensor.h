@@ -15,7 +15,8 @@
 //------------------------------------------------------------------------------
 // Interp kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *__restrict__ d_U,
+                                  CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -53,8 +54,8 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *c_B,
   }
 }
 
-extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
-                                           CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *__restrict__ d_U,
+                                           CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -92,8 +93,8 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedSca
   }
 }
 
-extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
-                                              CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *__restrict__ d_U,
+                                              CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -134,8 +135,8 @@ extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const Ceed
 //------------------------------------------------------------------------------
 // Grad kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U,
-                                CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *c_G, const CeedScalarCPU *__restrict__ d_U,
+                                CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -177,8 +178,8 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_B, c
   }
 }
 
-extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U,
-                                         CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *c_G,
+                                         const CeedScalarCPU *__restrict__ d_U, CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -220,8 +221,8 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScala
   }
 }
 
-extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedScalar *c_B, const CeedScalar *c_G, const CeedScalar *__restrict__ d_U,
-                                            CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedScalarCPU *c_B, const CeedScalarCPU *c_G,
+                                            const CeedScalarCPU *__restrict__ d_U, CeedScalarCPU *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -266,7 +267,7 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
 //------------------------------------------------------------------------------
 // Weight kernels by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *__restrict__ d_W) {
+extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalarCPU *__restrict__ q_weight_1d, CeedScalarCPU *__restrict__ d_W) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;

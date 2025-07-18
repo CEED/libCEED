@@ -16,9 +16,9 @@
 //------------------------------------------------------------------------------
 // 2D tensor contraction x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const CeedScalar *U, const CeedScalar *B,
-                                            CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const ScalarIn1 *U, const ScalarIn2 *B,
+                                            ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
@@ -33,9 +33,9 @@ inline __device__ void ContractX2dFlattened(SharedData_Cuda &data, const int t_i
 //------------------------------------------------------------------------------
 // 2D tensor contract y
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractY2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const CeedScalar *U, const CeedScalar *B,
-                                            CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractY2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const ScalarIn1 *U, const ScalarIn2 *B,
+                                            ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
@@ -50,9 +50,9 @@ inline __device__ void ContractY2dFlattened(SharedData_Cuda &data, const int t_i
 //------------------------------------------------------------------------------
 // 2D transpose tensor contract y
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeY2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
-                                                     const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeY2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const ScalarIn1 *U,
+                                                     const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
@@ -67,9 +67,9 @@ inline __device__ void ContractTransposeY2dFlattened(SharedData_Cuda &data, cons
 //------------------------------------------------------------------------------
 // 2D transpose tensor contract x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
-                                                     const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const ScalarIn1 *U,
+                                                     const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
@@ -84,9 +84,9 @@ inline __device__ void ContractTransposeX2dFlattened(SharedData_Cuda &data, cons
 //------------------------------------------------------------------------------
 // 2D transpose tensor contract and add x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeAddX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const CeedScalar *U,
-                                                        const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeAddX2dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const ScalarIn1 *U,
+                                                        const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D] = *U;
   __syncthreads();
@@ -100,8 +100,8 @@ inline __device__ void ContractTransposeAddX2dFlattened(SharedData_Cuda &data, c
 //------------------------------------------------------------------------------
 // 2D pack/unpack quadrature values
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int Q_1D, int T_1D>
-inline __device__ void QPack2d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, CeedScalar *U) {
+template <int NUM_COMP, int Q_1D, int T_1D, class ScalarOut>
+inline __device__ void QPack2d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, ScalarOut *U) {
   const CeedInt new_t_id_x = data.t_id_x % Q_1D, new_t_id_y = data.t_id_x / Q_1D;
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -112,8 +112,8 @@ inline __device__ void QPack2d(SharedData_Cuda &data, const int t_id_x, const in
   }
 }
 
-template <int NUM_COMP, int Q_1D, int T_1D>
-inline __device__ void QUnpack2d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, CeedScalar *U) {
+template <int NUM_COMP, int Q_1D, int T_1D, class ScalarOut>
+inline __device__ void QUnpack2d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, ScalarOut *U) {
   const CeedInt old_t_id_x = data.t_id_x % Q_1D, old_t_id_y = data.t_id_x / Q_1D;
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -127,9 +127,9 @@ inline __device__ void QUnpack2d(SharedData_Cuda &data, const int t_id_x, const 
 //------------------------------------------------------------------------------
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                               CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                               ScalarOut *__restrict__ r_V) {
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
@@ -146,9 +146,9 @@ inline __device__ void InterpTensor2dFlattened(SharedData_Cuda &data, CeedScalar
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                        CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                                        ScalarOut *__restrict__ r_V) {
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
@@ -164,9 +164,9 @@ inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Cuda &data, C
 //------------------------------------------------------------------------------
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
-                                             CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, const ScalarIn3 *c_G,
+                                             ScalarOut *__restrict__ r_V) {
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
@@ -185,9 +185,9 @@ inline __device__ void GradTensor2dFlattened(SharedData_Cuda &data, CeedScalar *
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                      const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, const ScalarIn3 *c_G,
+                                                      ScalarOut *__restrict__ r_V) {
   const int  t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
   CeedScalar r_t[1];
 
@@ -205,8 +205,8 @@ inline __device__ void GradTransposeTensor2dFlattened(SharedData_Cuda &data, Cee
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
-template <int P_1D, int Q_1D>
-inline __device__ void WeightTensor2dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+template <int P_1D, int Q_1D, class ScalarIn, class ScalarOut>
+inline __device__ void WeightTensor2dFlattened(SharedData_Cuda &data, const ScalarIn *__restrict__ q_weight_1d, ScalarOut *w) {
   const int t_id_x = data.t_id_x % Q_1D, t_id_y = data.t_id_x / Q_1D;
 
   *w = (t_id_x < Q_1D && t_id_y < Q_1D) ? q_weight_1d[t_id_x] * q_weight_1d[t_id_y] : 0.0;
@@ -219,9 +219,9 @@ inline __device__ void WeightTensor2dFlattened(SharedData_Cuda &data, const Ceed
 //------------------------------------------------------------------------------
 // 3D tensor contract x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractX3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                            const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractX3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                            const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -236,9 +236,9 @@ inline __device__ void ContractX3dFlattened(SharedData_Cuda &data, const int t_i
 //------------------------------------------------------------------------------
 // 3D tensor contract y
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractY3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                            const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractY3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                            const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -253,9 +253,9 @@ inline __device__ void ContractY3dFlattened(SharedData_Cuda &data, const int t_i
 //------------------------------------------------------------------------------
 // 3D tensor contract z
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractZ3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                            const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractZ3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                            const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -270,9 +270,9 @@ inline __device__ void ContractZ3dFlattened(SharedData_Cuda &data, const int t_i
 //------------------------------------------------------------------------------
 // 3D tensor contract z
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeZ3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                                     const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeZ3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                                     const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -287,9 +287,9 @@ inline __device__ void ContractTransposeZ3dFlattened(SharedData_Cuda &data, cons
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract z
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
 inline __device__ void ContractTransposeAddZ3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z,
-                                                        const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                                        const ScalarIn1 *U, const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -303,9 +303,9 @@ inline __device__ void ContractTransposeAddZ3dFlattened(SharedData_Cuda &data, c
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract y
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeY3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                                     const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeY3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                                     const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -320,9 +320,9 @@ inline __device__ void ContractTransposeY3dFlattened(SharedData_Cuda &data, cons
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract y
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
 inline __device__ void ContractTransposeAddY3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z,
-                                                        const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                                        const ScalarIn1 *U, const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -336,9 +336,9 @@ inline __device__ void ContractTransposeAddY3dFlattened(SharedData_Cuda &data, c
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void ContractTransposeX3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const CeedScalar *U,
-                                                     const CeedScalar *B, CeedScalar *V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void ContractTransposeX3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, const ScalarIn1 *U,
+                                                     const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -353,9 +353,9 @@ inline __device__ void ContractTransposeX3dFlattened(SharedData_Cuda &data, cons
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract add x
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
 inline __device__ void ContractTransposeAddX3dFlattened(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z,
-                                                        const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+                                                        const ScalarIn1 *U, const ScalarIn2 *B, ScalarOut *V) {
   __syncthreads();
   data.slice[t_id_x + t_id_y * T_1D + t_id_z * T_1D * T_1D] = *U;
   __syncthreads();
@@ -369,8 +369,8 @@ inline __device__ void ContractTransposeAddX3dFlattened(SharedData_Cuda &data, c
 //------------------------------------------------------------------------------
 // 3D pack/unpack quadrature values
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int Q_1D, int T_1D>
-inline __device__ void QPack3d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, CeedScalar *U) {
+template <int NUM_COMP, int Q_1D, int T_1D, class ScalarOut>
+inline __device__ void QPack3d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, ScalarOut *U) {
   const CeedInt new_t_id_x = data.t_id_x % Q_1D, new_t_id_y = (data.t_id_x / Q_1D) % Q_1D, new_t_id_z = data.t_id_x / (Q_1D * Q_1D);
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -381,8 +381,8 @@ inline __device__ void QPack3d(SharedData_Cuda &data, const int t_id_x, const in
   }
 }
 
-template <int NUM_COMP, int Q_1D, int T_1D>
-inline __device__ void QUnpack3d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, CeedScalar *U) {
+template <int NUM_COMP, int Q_1D, int T_1D, class ScalarOut>
+inline __device__ void QUnpack3d(SharedData_Cuda &data, const int t_id_x, const int t_id_y, const int t_id_z, ScalarOut *U) {
   const CeedInt old_t_id_x = data.t_id_x % Q_1D, old_t_id_y = (data.t_id_x / Q_1D) % Q_1D, old_t_id_z = data.t_id_x / (Q_1D * Q_1D);
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -396,9 +396,9 @@ inline __device__ void QUnpack3d(SharedData_Cuda &data, const int t_id_x, const 
 //------------------------------------------------------------------------------
 // 3D interpolate to quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTensor3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                               CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpTensor3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                               ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -416,9 +416,9 @@ inline __device__ void InterpTensor3dFlattened(SharedData_Cuda &data, CeedScalar
 //------------------------------------------------------------------------------
 // 3D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void InterpTransposeTensor3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                        CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarOut>
+inline __device__ void InterpTransposeTensor3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                                        ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -435,9 +435,9 @@ inline __device__ void InterpTransposeTensor3dFlattened(SharedData_Cuda &data, C
 //------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTensor3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G,
-                                             CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTensor3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, const ScalarIn3 *c_G,
+                                             ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -461,9 +461,9 @@ inline __device__ void GradTensor3dFlattened(SharedData_Cuda &data, CeedScalar *
 //------------------------------------------------------------------------------
 // 3D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTransposeTensor3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                      const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTransposeTensor3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, const ScalarIn3 *c_G,
+                                                      ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -486,9 +486,9 @@ inline __device__ void GradTransposeTensor3dFlattened(SharedData_Cuda &data, Cee
 //------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTensorCollocated3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                       const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTensorCollocated3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B, const ScalarIn3 *c_G,
+                                                       ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -509,9 +509,9 @@ inline __device__ void GradTensorCollocated3dFlattened(SharedData_Cuda &data, Ce
 //------------------------------------------------------------------------------
 // 3D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
-inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Cuda &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
-                                                                const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D, class ScalarIn1, class ScalarIn2, class ScalarIn3, class ScalarOut>
+inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Cuda &data, ScalarIn1 *__restrict__ r_U, const ScalarIn2 *c_B,
+                                                                const ScalarIn3 *c_G, ScalarOut *__restrict__ r_V) {
   const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
   CeedScalar    r_t1[1], r_t2[1];
 
@@ -531,8 +531,8 @@ inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Cuda 
 //------------------------------------------------------------------------------
 // 3D quadrature weights
 //------------------------------------------------------------------------------
-template <int P_1D, int Q_1D>
-inline __device__ void WeightTensor3dFlattened(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+template <int P_1D, int Q_1D, class ScalarIn, class ScalarOut>
+inline __device__ void WeightTensor3dFlattened(SharedData_Cuda &data, const ScalarIn *__restrict__ q_weight_1d, ScalarOut *w) {
   const CeedInt t_id_x = data.t_id_x % Q_1D, t_id_y = (data.t_id_x / Q_1D) % Q_1D, t_id_z = data.t_id_x / (Q_1D * Q_1D);
 
   *w = (t_id_x < Q_1D && t_id_y < Q_1D && t_id_z < Q_1D) ? q_weight_1d[t_id_x] * q_weight_1d[t_id_y] * q_weight_1d[t_id_z] : 0.0;
