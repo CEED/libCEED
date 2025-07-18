@@ -18,7 +18,7 @@
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
-  Ceed       ceed_shared;
+  Ceed       ceed_shared, ceed_ref;
   Ceed_Sycl *data;
   char      *resource_root;
 
@@ -36,12 +36,10 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetStream_Sycl(ceed_shared, &(data->sycl_queue)));
   CeedCallBackend(CeedDestroy(&ceed_shared));
 
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, "/gpu/sycl/ref"));
-
-  Ceed ceed_fallback = NULL;
-  CeedCallBackend(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
-  CeedCallBackend(CeedSetStream_Sycl(ceed_fallback, &(data->sycl_queue)));
-  CeedCallBackend(CeedDestroy(&ceed_fallback));
+  CeedCallBackend(CeedInit("/gpu/sycl/ref", &ceed_ref));
+  CeedCallBackend(CeedSetOperatorFallbackCeed(ceed, ceed_ref));
+  CeedCallBackend(CeedSetStream_Sycl(ceed_ref, &(data->sycl_queue)));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));

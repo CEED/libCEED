@@ -96,8 +96,7 @@ struct Ceed_private {
   Ceed         parent;
   ObjDelegate *obj_delegates;
   int          obj_delegate_count;
-  Ceed         op_fallback_ceed, op_fallback_parent;
-  const char  *op_fallback_resource;
+  Ceed         op_fallback_ceed;
   char       **jit_source_roots;
   CeedInt      num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
   char       **jit_defines;
@@ -126,7 +125,6 @@ struct Ceed_private {
   int             ref_count;
   void           *data;
   bool            is_debug;
-  bool            has_valid_op_fallback_resource;
   bool            is_deterministic;
   char            err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset        *f_offsets;
