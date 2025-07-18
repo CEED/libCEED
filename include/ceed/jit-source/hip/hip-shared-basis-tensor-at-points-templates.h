@@ -195,7 +195,7 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Hip &data, const Cee
       for (CeedInt j = 0; j < Q_1D; j++) {
         const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
-        atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
+        if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
       }
     }
     // Pull from shared to register
@@ -271,7 +271,7 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Hip &data, const CeedI
         for (CeedInt j = 0; j < Q_1D; j++) {
           const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
-          atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
+          if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
       }
     }
@@ -356,7 +356,7 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Hip &data, const Cee
         for (CeedInt j = 0; j < Q_1D; j++) {
           const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
-          atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
+          if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
         }
       }
       // Pull from shared to register
@@ -455,7 +455,7 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Hip &data, const CeedI
           for (CeedInt j = 0; j < Q_1D; j++) {
             const CeedInt jj = (j + data.t_id_x) % Q_1D;
 
-            atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
+            if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) atomicAdd(&data.slice[jj + ii * Q_1D], chebyshev_x[jj] * buffer[ii]);
           }
         }
       }
