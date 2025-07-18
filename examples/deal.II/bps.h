@@ -210,13 +210,23 @@ public:
       for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
+      // transpose bases for compatibility with restriction
+      std::vector<CeedScalar> interp_1d(shape_data.shape_values.size());
+      std::vector<CeedScalar> grad_1d(shape_data.shape_gradients.size());
+      for (unsigned int i = 0; i < n_q_points; ++i)
+        for (unsigned int j = 0; j < fe_degree + 1; ++j)
+          {
+            interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j * n_q_points + i];
+            grad_1d[j + i * (fe_degree + 1)]   = shape_data.shape_gradients[j * n_q_points + i];
+          }
+
       CeedBasisCreateTensorH1(ceed,
                               dim,
                               n_components,
                               fe_degree + 1,
                               n_q_points,
-                              shape_data.shape_values.data(),
-                              shape_data.shape_gradients.data(),
+                              interp_1d.data(),
+                              grad_1d.data(),
                               q_ref_1d.data(),
                               quadrature.get_tensor_basis()[0].get_weights().data(),
                               &sol_basis);
@@ -534,13 +544,23 @@ private:
       for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
+      // transpose bases for compatibility with restriction
+      std::vector<CeedScalar> interp_1d(shape_data.shape_values.size());
+      std::vector<CeedScalar> grad_1d(shape_data.shape_gradients.size());
+      for (unsigned int i = 0; i < n_q_points; ++i)
+        for (unsigned int j = 0; j < fe_degree + 1; ++j)
+          {
+            interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j * n_q_points + i];
+            grad_1d[j + i * (fe_degree + 1)]   = shape_data.shape_gradients[j * n_q_points + i];
+          }
+
       CeedBasisCreateTensorH1(ceed,
                               dim,
                               dim,
                               fe_degree + 1,
                               n_q_points,
-                              shape_data.shape_values.data(),
-                              shape_data.shape_gradients.data(),
+                              interp_1d.data(),
+                              grad_1d.data(),
                               q_ref_1d.data(),
                               quadrature.get_tensor_basis()[0].get_weights().data(),
                               &geo_basis);
