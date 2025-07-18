@@ -950,7 +950,7 @@ format    : format-c format-py format-ot
 
 # Vermin - python version requirements
 VERMIN            ?= vermin
-VERMIN_OPTS       += -t=3.7- --violations
+VERMIN_OPTS       += -t=3.8- --violations
 
 vermin    :
 	$(VERMIN) $(VERMIN_OPTS) $(format.py)
