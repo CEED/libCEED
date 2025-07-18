@@ -55,7 +55,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
     switch (eval_mode) {
       // Interpolate to/from quadrature points
       case CEED_EVAL_INTERP: {
-        if (impl->has_collo_interp) {
+        if (impl->is_collocated) {
           memcpy(v, u, num_elem * num_comp * num_nodes * sizeof(u[0]));
         } else {
           CeedInt P = P_1d, Q = Q_1d;
@@ -124,7 +124,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
             pre /= P;
             post *= Q;
           }
-        } else if (impl->has_collo_interp) {  // Qpts collocated with nodes
+        } else if (impl->is_collocated) {  // Qpts collocated with nodes
           const CeedScalar *grad_1d;
 
           CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
@@ -285,10 +285,9 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
   CeedCallBackend(CeedCalloc(1, &impl));
-  // Check for collocated interp
-  CeedCallBackend(CeedBasisIsCollocated(basis, &impl->has_collo_interp));
   // Calculate collocated grad
-  if (Q_1d >= P_1d && !impl->has_collo_interp) {
+  CeedCallBackend(CeedBasisIsCollocated(basis, &impl->is_collocated));
+  if (Q_1d >= P_1d && !impl->is_collocated) {
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
     CeedCallBackend(CeedBasisGetCollocatedGrad(basis, impl->collo_grad_1d));
   }
