@@ -286,17 +286,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   CeedCallBackend(CeedCalloc(1, &impl));
   // Check for collocated interp
-  if (Q_1d == P_1d) {
-    bool has_collocated = true;
-
-    for (CeedInt i = 0; i < P_1d; i++) {
-      has_collocated = has_collocated && (fabs(interp_1d[i + P_1d * i] - 1.0) < 1e-14);
-      for (CeedInt j = 0; j < P_1d; j++) {
-        if (j != i) has_collocated = has_collocated && (fabs(interp_1d[j + P_1d * i]) < 1e-14);
-      }
-    }
-    impl->has_collo_interp = has_collocated;
-  }
+  CeedCallBackend(CeedBasisIsCollocated(basis, &impl->has_collo_interp));
   // Calculate collocated grad
   if (Q_1d >= P_1d && !impl->has_collo_interp) {
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
