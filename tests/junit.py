@@ -27,6 +27,10 @@ def create_argparser() -> argparse.ArgumentParser:
     parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
+    parser.add_argument('-s', '--search', type=str, default='.*',
+                        help='Search string to filter tests, using `re` package format')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='print details for all runs, not just failures')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -201,7 +205,9 @@ if __name__ == '__main__':
         args.mode,
         args.nproc,
         CeedSuiteSpec(),
-        args.pool_size)
+        args.pool_size,
+        search=args.search,
+        verbose=args.verbose)
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:
