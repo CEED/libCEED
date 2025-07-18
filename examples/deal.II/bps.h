@@ -210,13 +210,23 @@ public:
       for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
+      // transpose bases for compatibility with restriction
+      std::vector<CeedScalar> interp_1d(shape_data.shape_values.size());
+      std::vector<CeedScalar> grad_1d(shape_data.shape_gradients.size());
+      for (unsigned int i = 0; i < n_q_points; ++i)
+        for (unsigned int j = 0; j < fe_degree + 1; ++j)
+          {
+            interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j * n_q_points + i];
+            grad_1d[j + i * (fe_degree + 1)]   = shape_data.shape_gradients[j * n_q_points + i];
+          }
+
       CeedBasisCreateTensorH1(ceed,
                               dim,
                               n_components,
                               fe_degree + 1,
                               n_q_points,
-                              shape_data.shape_values.data(),
-                              shape_data.shape_gradients.data(),
+                              interp_1d.data(),
+                              grad_1d.data(),
                               q_ref_1d.data(),
                               quadrature.get_tensor_basis()[0].get_weights().data(),
                               &sol_basis);
@@ -249,15 +259,14 @@ public:
 
           for (const auto i : dof_mapping)
             indices.emplace_back(
-              partitioner->global_to_local(local_indices[fe.component_to_system_index(0, i)]) /
-              n_components);
+              partitioner->global_to_local(local_indices[fe.component_to_system_index(0, i)]));
         }
 
     CeedElemRestrictionCreate(ceed,
                               n_local_active_cells,
                               fe.n_dofs_per_cell() / n_components,
                               n_components,
-                              std::max<unsigned int>(this->extended_local_size() / n_components, 1),
+                              1,
                               this->extended_local_size(),
                               CEED_MEM_HOST,
                               CEED_COPY_VALUES,
@@ -344,46 +353,18 @@ public:
     // communicate: update ghost values
     src.update_ghost_values();
 
-    if (dof_handler.get_fe().n_components() == 1)
-      {
-        // pass memory buffers to libCEED
-        VectorTypeCeed x(src_ceed);
-        VectorTypeCeed y(dst_ceed);
-        x.import_array(src, CEED_MEM_HOST);
-        y.import_array(dst, CEED_MEM_HOST);
+    // pass memory buffers to libCEED
+    VectorTypeCeed x(src_ceed);
+    VectorTypeCeed y(dst_ceed);
+    x.import_array(src, CEED_MEM_HOST);
+    y.import_array(dst, CEED_MEM_HOST);
 
-        // apply operator
-        CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
+    // apply operator
+    CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
 
-        // pull arrays back to deal.II
-        x.sync_array();
-        y.sync_array();
-      }
-    else // TODO: needed for multiple components
-      {
-        // allocate space for block vectors
-        src_tmp.reinit(this->extended_local_size(), true);
-        dst_tmp.reinit(this->extended_local_size(), true);
-
-        // copy to block vector
-        copy_to_block_vector(src_tmp, src);
-
-        // pass memory buffers to libCEED
-        VectorTypeCeed x(src_ceed);
-        VectorTypeCeed y(dst_ceed);
-        x.import_array(src_tmp, CEED_MEM_HOST);
-        y.import_array(dst_tmp, CEED_MEM_HOST);
-
-        // apply operator
-        CeedOperatorApply(op_apply, x(), y(), CEED_REQUEST_IMMEDIATE);
-
-        // pull arrays back to deal.II
-        x.sync_array();
-        y.sync_array();
-
-        // copy from block vector
-        copy_from_block_vector(dst, dst_tmp);
-      }
+    // pull arrays back to deal.II
+    x.take_array();
+    y.take_array();
 
     // communicate: compress
     src.zero_out_ghost_values();
@@ -417,18 +398,7 @@ public:
     CeedOperatorLinearAssembleDiagonal(op_apply, y(), CEED_REQUEST_IMMEDIATE);
 
     // pull array back to deal.II
-    y.sync_array();
-
-    const unsigned int n_components = dof_handler.get_fe().n_components();
-
-    if (n_components > 1) // TODO: needed for multiple components
-      {
-        VectorType tmp(diagonal);
-
-        copy_from_block_vector(tmp, diagonal);
-
-        std::swap(tmp, diagonal);
-      }
+    y.take_array();
 
     diagonal.compress(VectorOperation::add);
 
@@ -481,6 +451,16 @@ private:
     }
 
     /**
+     * Take previously set deal.II array from libCEED vector
+     */
+    void
+    take_array()
+    {
+      CeedScalar *ptr;
+      CeedVectorTakeArray(vec_ceed, mem_space, &ptr);
+    }
+
+    /**
      * Destructor: destroy vector view.
      */
     ~VectorTypeCeed()
@@ -502,36 +482,6 @@ private:
     CeedMemType mem_space;
     CeedVector  vec_ceed;
   };
-
-  /**
-   * Copy from block vector.
-   *
-   * @note Only needed for multiple components.
-   */
-  void
-  copy_from_block_vector(VectorType &dst, const VectorType &src) const
-  {
-    const unsigned int scalar_size = this->extended_local_size() / dim;
-
-    for (unsigned int i = 0; i < scalar_size; ++i)
-      for (unsigned int j = 0; j < dim; ++j)
-        dst.get_values()[j + i * dim] = src.get_values()[j * scalar_size + i];
-  }
-
-  /**
-   * Copy to block vector.
-   *
-   * @note Only needed for multiple components.
-   */
-  void
-  copy_to_block_vector(VectorType &dst, const VectorType &src) const
-  {
-    const unsigned int scalar_size = this->extended_local_size() / dim;
-
-    for (unsigned int i = 0; i < scalar_size; ++i)
-      for (unsigned int j = 0; j < dim; ++j)
-        dst.get_values()[j * scalar_size + i] = src.get_values()[j + i * dim];
-  }
 
   /**
    * Number of locally active DoFs.
@@ -601,13 +551,23 @@ private:
       for (const auto q : shape_data.quadrature.get_points())
         q_ref_1d.push_back(q(0));
 
+      // transpose bases for compatibility with restriction
+      std::vector<CeedScalar> interp_1d(shape_data.shape_values.size());
+      std::vector<CeedScalar> grad_1d(shape_data.shape_gradients.size());
+      for (unsigned int i = 0; i < n_q_points; ++i)
+        for (unsigned int j = 0; j < fe_degree + 1; ++j)
+          {
+            interp_1d[j + i * (fe_degree + 1)] = shape_data.shape_values[j * n_q_points + i];
+            grad_1d[j + i * (fe_degree + 1)]   = shape_data.shape_gradients[j * n_q_points + i];
+          }
+
       CeedBasisCreateTensorH1(ceed,
                               dim,
                               dim,
                               fe_degree + 1,
                               n_q_points,
-                              shape_data.shape_values.data(),
-                              shape_data.shape_gradients.data(),
+                              interp_1d.data(),
+                              grad_1d.data(),
                               q_ref_1d.data(),
                               quadrature.get_tensor_basis()[0].get_weights().data(),
                               &geo_basis);
@@ -656,12 +616,12 @@ private:
           for (const auto i : dof_mapping)
             {
               const auto index = geo_partitioner->global_to_local(local_indices[i]);
-              geo_indices.emplace_back(index);
+              geo_indices.emplace_back(index * dim);
 
               const auto point = fe_values.quadrature_point(i);
 
               for (unsigned int d = 0; d < dim; ++d)
-                geo_support_points[index + d * n_points] = point[d];
+                geo_support_points[index * dim + d] = point[d];
             }
         }
 
@@ -688,7 +648,7 @@ private:
                               n_local_active_cells,
                               geo_fe.n_dofs_per_cell(),
                               dim,
-                              std::max<unsigned int>(geo_support_points.size() / dim, 1),
+                              1,
                               geo_support_points.size(),
                               CEED_MEM_HOST,
                               CEED_COPY_VALUES,
