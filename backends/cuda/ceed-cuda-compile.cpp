@@ -246,7 +246,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             }
         }
 
-        cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_80 --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
+        cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
         cmd += opts[4];
         err = system(cmd.c_str());
 
@@ -279,14 +279,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             abort();
         }
 
-        err = system("opt --passes internalize,inline --internalize-public-api-list=CeedKernelCudaGenOperator_build_mass kern2.ll -o kern3.bc");
+        err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
 
         if(err){
             printf("Failed gpu jit task 3 (optimize qfunction)\n");
             abort();
         }
 
-        err = system("llc -O0 -mcpu=sm_80 kern3.bc -o kern.ptx");
+        err = system(("llc -O0 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
 
         if(err){
             printf("Failed gpu jit task 4 (compile llvm)\n");
