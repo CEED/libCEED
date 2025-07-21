@@ -640,49 +640,6 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
               ceed->op_fallback_ceed->resource, ceed->op_fallback_ceed);
   }
 
-  // Create fallback Ceed if uninitalized
-  if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
-    CeedDebug(ceed, "Creating fallback Ceed");
-
-    Ceed        fallback_ceed;
-    const char *fallback_resource;
-
-    CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
-    CeedCall(CeedInit(fallback_resource, &fallback_ceed));
-    fallback_ceed->op_fallback_parent = ceed;
-    fallback_ceed->Error              = ceed->Error;
-    ceed->op_fallback_ceed            = fallback_ceed;
-    {
-      const char **jit_source_roots;
-      CeedInt      num_jit_source_roots = 0;
-
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_roots, &jit_source_roots));
-      for (CeedInt i = 0; i < num_jit_source_roots; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
-      }
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
-
-      const char **rust_source_roots;
-      CeedInt      num_rust_source_roots = 0;
-
-      CeedCall(CeedGetRustSourceRoots(ceed, &num_rust_source_roots, &rust_source_roots));
-      for (CeedInt i = 0; i < num_rust_source_roots; i++) {
-        CeedCall(CeedAddRustSourceRoot(fallback_ceed, rust_source_roots[i]));
-      }
-      CeedCall(CeedRestoreRustSourceRoots(ceed, &rust_source_roots));
-      fallback_ceed->cuda_compile_with_clang = ceed->cuda_compile_with_clang;
-    }
-    {
-      const char **jit_defines;
-      CeedInt      num_jit_defines = 0;
-
-      CeedCall(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
-      for (CeedInt i = 0; i < num_jit_defines; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_defines[i]));
-      }
-      CeedCall(CeedRestoreJitDefines(ceed, &jit_defines));
-    }
-  }
   *fallback_ceed = NULL;
   if (ceed->op_fallback_ceed) CeedCall(CeedReferenceCopy(ceed->op_fallback_ceed, fallback_ceed));
   return CEED_ERROR_SUCCESS;
