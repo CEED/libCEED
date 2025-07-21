@@ -138,7 +138,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   // Create Program
 
   // Compile kernel
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
 
@@ -177,12 +177,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         if (throw_error) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
         } else {
+        // LCOV_EXCL_START
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
         CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
         CeedCallBackend(CeedFree(&log));
         CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
         return CEED_ERROR_SUCCESS;
+        // LCOV_EXCL_STOP
         }
     }
 
@@ -382,17 +384,24 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
   CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, stream, args, NULL);
 
   if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
-    *is_good_run = false;
-    if (throw_error) {
-      int max_threads_per_block, shared_size_bytes, num_regs;
+    int max_threads_per_block, shared_size_bytes, num_regs;
 
-      cuFuncGetAttribute(&max_threads_per_block, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
-      cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, kernel);
-      cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
+    cuFuncGetAttribute(&max_threads_per_block, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
+    cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, kernel);
+    cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
+    if (throw_error) {
       return CeedError(ceed, CEED_ERROR_BACKEND,
                        "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
                        max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
+    } else {
+      // LCOV_EXCL_START
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- LAUNCH ERROR DETECTED ----------\n");
+      CeedDebug(ceed, "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d\n",
+                max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
+      // LCOV_EXCL_STOP
     }
+    *is_good_run = false;
   } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
 }

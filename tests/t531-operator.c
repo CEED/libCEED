@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     for (CeedInt i = 0; i < num_dofs; i++) {
       if (fabs(v_array[i] - v_assembled_array[i]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("Error: Linearized operator computed v[i] = %f != %f\n", v_assembled_array[i], v_array[i]);
+        printf("Error: Linearized operator computed v[%d] = %f != %f\n", i, v_assembled_array[i], v_array[i]);
         // LCOV_EXCL_STOP
       }
     }

@@ -781,6 +781,32 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 }
 
 /**
+  @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+  if (basis->is_tensor_basis && (basis->Q_1d == basis->P_1d)) {
+    *is_collocated = true;
+
+    for (CeedInt i = 0; i < basis->P_1d; i++) {
+      *is_collocated = *is_collocated && (fabs(basis->interp_1d[i + basis->P_1d * i] - 1.0) < 10 * CEED_EPSILON);
+      for (CeedInt j = 0; j < basis->Q_1d; j++) {
+        if (j != i) *is_collocated = *is_collocated && (fabs(basis->interp_1d[j + basis->P_1d * i]) < 10 * CEED_EPSILON);
+      }
+    }
+  } else {
+    *is_collocated = false;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get backend data of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
@@ -903,6 +929,15 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
       post *= Q_1d;
     }
     if (is_at_points) {
+      bool is_gpu = false;
+
+      {
+        CeedMemType mem_type;
+
+        CeedCall(CeedGetPreferredMemType(CeedBasisReturnCeed(basis), &mem_type));
+        is_gpu = mem_type == CEED_MEM_DEVICE;
+      }
+
       CeedInt chebyshev_flops = (Q_1d - 2) * 3 + 1, d_chebyshev_flops = (Q_1d - 2) * 8 + 1;
       CeedInt point_tensor_flops = 0, pre = CeedIntPow(Q_1d, dim - 1), post = 1;
 
@@ -916,17 +951,32 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
         case CEED_EVAL_NONE:
           *flops = 0;
           break;
-        case CEED_EVAL_INTERP:
-          *flops = tensor_flops + num_points * (dim * chebyshev_flops + point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+        case CEED_EVAL_INTERP: {
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          if (dim == 3 && is_gpu) {
+            *flops += num_points * Q_1d *
+                      (chebyshev_flops + num_comp * (2 * chebyshev_flops + 2 * Q_1d * Q_1d + (t_mode == CEED_TRANSPOSE ? 2 * Q_1d + 1 : 3 * Q_1d)));
+          } else {
+            *flops += num_points * (is_gpu ? num_comp : 1) * dim * chebyshev_flops;
+          }
           break;
-        case CEED_EVAL_GRAD:
-          *flops = tensor_flops + num_points * (dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops + point_tensor_flops +
-                                                       (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0)));
+        }
+        case CEED_EVAL_GRAD: {
+          *flops = tensor_flops + num_points * num_comp * (point_tensor_flops + (t_mode == CEED_TRANSPOSE ? CeedIntPow(Q_1d, dim) : 0));
+          if (dim == 3 && is_gpu) {
+            CeedInt inner_flops =
+                dim * (2 * Q_1d * Q_1d + (t_mode == CEED_TRANSPOSE ? 2 : 3) * Q_1d) + (dim - 1) * (2 * chebyshev_flops + d_chebyshev_flops);
+
+            *flops += num_points * Q_1d * (chebyshev_flops + d_chebyshev_flops + num_comp * (inner_flops + (t_mode == CEED_TRANSPOSE ? 1 : 0)));
+          } else {
+            *flops += num_points * (is_gpu ? num_comp : 1) * dim * (d_chebyshev_flops + (dim - 1) * chebyshev_flops);
+          }
           break;
+        }
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL: {
           // LCOV_EXCL_START
-          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
+          return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported at points",
                            CeedEvalModes[eval_mode]);
           break;
           // LCOV_EXCL_STOP

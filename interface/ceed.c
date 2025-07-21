@@ -624,21 +624,6 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 }
 
 /**
-  @brief Get the fallback resource for `CeedOperator`
-
-  @param[in]  ceed     `Ceed` context
-  @param[out] resource Variable to store fallback resource
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
-  *resource = (const char *)ceed->op_fallback_resource;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the fallback `Ceed` for `CeedOperator`
 
   @param[in]  ceed          `Ceed` context
@@ -649,9 +634,10 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   @ref Backend
 **/
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
-  if (ceed->has_valid_op_fallback_resource) {
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-    CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource, ceed->op_fallback_resource);
+  if (ceed->op_fallback_ceed) {
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed Fallback ----------\n");
+    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s at address %p", ceed->resource, ceed,
+              ceed->op_fallback_ceed->resource, ceed->op_fallback_ceed);
   }
 
   // Create fallback Ceed if uninitalized
@@ -705,25 +691,18 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 /**
   @brief Set the fallback resource for `CeedOperator`.
 
-  The current resource, if any, is freed by calling this function.
-  This string is freed upon the destruction of the `Ceed` context.
+  The current fallback, if any, is freed by calling this function.
 
-  @param[in,out] ceed     `Ceed` context
-  @param[in]     resource Fallback resource to set
+  @param[in,out] ceed          `Ceed` context
+  @param[in]     fallback_ceed `Ceed` context to create fallback operators
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
-  // Free old
-  CeedCall(CeedFree(&ceed->op_fallback_resource));
-
-  // Set new
-  CeedCall(CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource));
-
-  // Check validity
-  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource && ceed->resource && strcmp(ceed->op_fallback_resource, ceed->resource);
+int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed) {
+  CeedCall(CeedReferenceCopy(fallback_ceed, &ceed->op_fallback_ceed));
+  fallback_ceed->parent = ceed;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1377,10 +1356,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedCalloc(sizeof(f_offsets), &(*ceed)->f_offsets));
   memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
-  // Set fallback for advanced CeedOperator functions
-  const char fallback_resource[] = "";
-  CeedCall(CeedSetOperatorFallbackResource(*ceed, fallback_resource));
-
   // Record env variables CEED_DEBUG or DBG
   (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
 
@@ -1672,7 +1647,6 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
-  CeedCall(CeedFree(&(*ceed)->op_fallback_resource));
   CeedCall(CeedWorkVectorsDestroy(*ceed));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
@@ -1681,7 +1655,6 @@ int CeedDestroy(Ceed *ceed) {
 // LCOV_EXCL_START
 const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorFormat(ceed->parent, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorFormat(ceed->op_fallback_parent, format, args);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
   vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args);  // NOLINT
   return ceed->err_msg;
@@ -1745,7 +1718,6 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *fu
 // LCOV_EXCL_START
 int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorStore(ceed->parent, filename, line_no, func, err_code, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorStore(ceed->op_fallback_parent, filename, line_no, func, err_code, format, args);
 
   // Build message
   int len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
@@ -1825,7 +1797,6 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
 **/
 int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedGetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedGetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = ceed->err_msg;
   return CEED_ERROR_SUCCESS;
 }
@@ -1844,7 +1815,6 @@ int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
 **/
 int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedResetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedResetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = NULL;
   memcpy(ceed->err_msg, "No error message stored", 24);
   return CEED_ERROR_SUCCESS;

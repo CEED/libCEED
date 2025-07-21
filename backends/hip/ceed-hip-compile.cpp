@@ -121,9 +121,19 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
+  if (CeedDebugFlag(ceed)) {
+    // LCOV_EXCL_START
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
+    for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
+      CeedDebug(ceed, "Option %d: %s", i, opts[i]);
+    }
+    CeedDebug(ceed, "");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
+    // LCOV_EXCL_STOP
+  }
   hiprtcResult result = hiprtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
   for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
@@ -144,12 +154,14 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
     if (throw_error) {
       return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
     } else {
+      // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
       CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", hiprtcGetErrorString(result), log);
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
       CeedCallBackend(CeedFree(&log));
       CeedCallHiprtc(ceed, hiprtcDestroyProgram(&prog));
       return CEED_ERROR_SUCCESS;
+      // LCOV_EXCL_STOP
     }
   }
 
@@ -219,8 +231,22 @@ static int CeedRunKernelDimSharedCore_Hip(Ceed ceed, hipFunction_t kernel, hipSt
                                           bool *is_good_run, void **args) {
   hipError_t result = hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, stream, args, NULL);
 
-  *is_good_run = result == hipSuccess;
-  if (throw_error) CeedCallHip(ceed, result);
+  if (result == hipSuccess) {
+    *is_good_run = true;
+  } else {
+    if (throw_error) {
+      CeedCallHip(ceed, result);
+    } else {
+      // LCOV_EXCL_START
+      const char *message = hipGetErrorName(result);
+
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- LAUNCH ERROR DETECTED ----------\n");
+      CeedDebug(ceed, "%s\n", message);
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
+      // LCOV_EXCL_STOP
+    }
+    *is_good_run = false;
+  }
   return CEED_ERROR_SUCCESS;
 }
 

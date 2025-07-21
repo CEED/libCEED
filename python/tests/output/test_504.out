@@ -1,4 +1,4 @@
-CeedOperator
+CeedOperator - setup_mass
   15 elements with 8 quadrature points each
   3 fields
   2 input fields:
@@ -20,7 +20,7 @@ CeedOperator
       No basis
       Active vector
 
-CeedOperator
+CeedOperator - apply_mass
   15 elements with 8 quadrature points each
   3 fields
   2 input fields:
