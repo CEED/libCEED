@@ -290,7 +290,7 @@ def find_matching(line: str, open: str = '(', close: str = ')') -> Tuple[int, in
     return start, -1
 
 
-def parse_test_line(line: str) -> TestSpec:
+def parse_test_line(line: str, fallback_name: str = '') -> TestSpec:
     """Parse a single line of TESTARGS and CLI arguments into a `TestSpec` object
 
     Args:
@@ -341,6 +341,9 @@ def parse_test_line(line: str) -> TestSpec:
 
         line = line[end + 1:]
 
+    if not 'name' in known.keys():
+        known['name'] = fallback_name
+
     args_pattern = re.compile(r'''
         \s+(            # remove leading space
             (?:"[^"]+") # match quoted CLI option
@@ -377,9 +380,9 @@ def get_test_args(source_file: Path) -> List[TestSpec]:
     else:
         raise RuntimeError(f'Unrecognized extension for file: {source_file}')
 
-    return [parse_test_line(line.strip(comment_str).removeprefix("TESTARGS"))
+    return [parse_test_line(line.strip(comment_str).removeprefix("TESTARGS"), source_file.stem)
             for line in source_file.read_text().splitlines()
-            if line.startswith(f'{comment_str}TESTARGS')] or [TestSpec('', args=['{ceed_resource}'])]
+            if line.startswith(f'{comment_str}TESTARGS')] or [TestSpec(source_file.stem, args=['{ceed_resource}'])]
 
 
 def diff_csv(test_csv: Path, true_csv: Path, zero_tol: float, rel_tol: float,
