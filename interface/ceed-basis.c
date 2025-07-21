@@ -781,6 +781,32 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 }
 
 /**
+  @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+  if (basis->is_tensor_basis && (basis->Q_1d == basis->P_1d)) {
+    *is_collocated = true;
+
+    for (CeedInt i = 0; i < basis->P_1d; i++) {
+      *is_collocated = *is_collocated && (fabs(basis->interp_1d[i + basis->P_1d * i] - 1.0) < 10 * CEED_EPSILON);
+      for (CeedInt j = 0; j < basis->Q_1d; j++) {
+        if (j != i) *is_collocated = *is_collocated && (fabs(basis->interp_1d[j + basis->P_1d * i]) < 10 * CEED_EPSILON);
+      }
+    }
+  } else {
+    *is_collocated = false;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get backend data of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`

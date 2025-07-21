@@ -33,7 +33,7 @@ typedef struct {
 
 typedef struct {
   CeedScalar *collo_grad_1d;
-  bool        has_collo_interp;
+  bool        is_collocated;
 } CeedBasis_Ref;
 
 typedef struct {
