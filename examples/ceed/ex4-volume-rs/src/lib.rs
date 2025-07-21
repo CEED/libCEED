@@ -1,6 +1,5 @@
 #![no_std]
 #![feature(asm_experimental_arch, abi_ptx, core_intrinsics)]
-use core::arch::asm;
 use core::ffi::c_void;
 use core::intrinsics::abort;
 use core::panic::PanicInfo;
@@ -28,17 +27,70 @@ fn panic(_info: &PanicInfo) -> ! {
 #[no_mangle]
 pub unsafe extern "C" fn build_mass_rs(
     ctx: *mut c_void,
-    Q: i32,
+    q: i32,
     in_: *const *const f64,
     out: *mut *mut f64,
 ) -> i8 {
     let ctx: *mut BuildContext = unsafe { core::mem::transmute(ctx) };
     let ctx: &mut BuildContext = &mut *ctx;
 
-    let in_arr = unsafe { core::slice::from_raw_parts(in_.wrapping_add(1), ctx.dim as usize) };
-    let out_arr = unsafe { core::slice::from_raw_parts_mut(*out, ctx.dim as usize) };
+    //in_arr needs to be a pointer to a (2d) array
+    // todo: figure out how to get 2d indexing into a 1d array or convert 1d array to 2d array
+    // maybe find a crate
 
-    // Reinterpret in_arr[0] as a flat slice
+    /*let j = unsafe { core::slice::from_raw_parts(in_, q as usize) };
+
+    for (i, _) in j.iter().enumerate() {
+        let a = (j.get_unchecked(i));
+        q_data[i] = (j.get_unchecked(i)) * (w.get_unchecked(i));
+    }*/
+
+    let in_slice = core::slice::from_raw_parts(in_, 2); // assuming 2 inputs: J and w
+
+    let j_ptr = in_slice[0];
+    let w_ptr = in_slice[1];
+
+    let j = core::slice::from_raw_parts(j_ptr, (q * ctx.dim) as usize); // J is 1D now
+    let w = core::slice::from_raw_parts(w_ptr, q as usize);
+
+    let out_slice = core::slice::from_raw_parts_mut(out, 1);
+    let q_data = core::slice::from_raw_parts_mut(out_slice[0], q as usize);
+
+    // Compute q_data[i] = J[0][0][i] * w[i], now with J as 1D: J[i]
+    match ctx.dim * 10 + ctx.space_dim {
+        11 => {
+            for i in 0..q as usize {
+                q_data[i] = j.get_unchecked(i) * w.get_unchecked(i);
+            }
+        }
+        22 => {
+            //q_data[i] = (J[i + Q * 0] * J[i + Q * 3] - J[i + Q * 1] * J[i + Q * 2]) * w[i];
+            let q = q as usize;
+            for i in 0..q {
+                q_data[i] = (j.get_unchecked(i) * j.get_unchecked(i + q * 3)
+                    - j.get_unchecked(i + q) * j.get_unchecked(i + q * 2))
+                    * w.get_unchecked(i);
+            }
+        }
+        33 => {
+            let q = q as usize;
+            for i in 0..q {
+                q_data[i] = (j.get_unchecked(i)
+                    * (j.get_unchecked(i + q * 4) * j.get_unchecked(i + q * 8)
+                        - j.get_unchecked(i + q * 5) * j.get_unchecked(i + q * 7))
+                    - j.get_unchecked(i + q * 1)
+                        * (j.get_unchecked(i + q * 3) * j.get_unchecked(i + q * 8)
+                            - j.get_unchecked(i + q * 5) * j.get_unchecked(i + q * 6))
+                    + j.get_unchecked(i + q * 2)
+                        * (j.get_unchecked(i + q * 3) * j.get_unchecked(i + q * 7)
+                            - j.get_unchecked(i + q * 4) * j.get_unchecked(i + q * 6)))
+                    * w[i];
+            }
+        }
+        _ => {
+            abort();
+        }
+    }
 
     0
 }

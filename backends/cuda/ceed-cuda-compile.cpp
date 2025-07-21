@@ -101,7 +101,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 #endif
       + std::to_string(prop.major) + std::to_string(prop.minor);
   opts[1] = arch_arg.c_str();
-  std::cout << "opt1: " << opts[1] << std::endl;
   opts[2] = "-Dint32_t=int";
   opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
   // Additional include dirs
@@ -261,6 +260,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         // Note: this is necessity because rust crate names may not match the folder they are in
         for(int i = 0; i < num_rust_source_dirs; i++){
             std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
+
             for(auto p : std::filesystem::directory_iterator(dir)){
                 if (p.path().extension() == ".rlib"){
                     cmd += p.path().string() + " ";
@@ -271,7 +271,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
         err = system(cmd.c_str());
 
-        CeedDebug(ceed, "Rust command was &s\n", cmd.c_str());
+        CeedDebug(ceed, "llvm-link command was %s\n", cmd.c_str());
 
 
         if(err){
