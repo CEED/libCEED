@@ -1,12 +1,13 @@
 [workspace]
 members = [
-        "rust/libceed",
-        "rust/libceed-sys",
-        "examples/rust/ex1-volume",
-        "examples/rust/ex1-volume-vector",
-        "examples/rust/ex2-surface",
-        "examples/rust/ex2-surface-vector",
-        "examples/rust/ex3-volume",
-        "examples/rust/ex3-volume-vector",
-        "examples/rust/mesh",
+    "rust/libceed",
+    "rust/libceed-sys",
+    "examples/rust/ex1-volume",
+    "examples/rust/ex1-volume-vector",
+    "examples/rust/ex2-surface",
+    "examples/rust/ex2-surface-vector",
+    "examples/rust/ex3-volume",
+    "examples/rust/ex3-volume-vector",
+    "examples/rust/mesh",
 ]
+exclude = ["examples/ceed/ex4-volume-rs"]

@@ -1,0 +1,10 @@
+#[build]
+#target = "nvptx64-nvidia-cuda"  # default compilation target
+
+
+[target.nvptx64-nvidia-cuda]
+rustflags = [
+  "-C", "embed-bitcode=yes",
+  "-C", "target-cpu=sm_80",
+  "-Z", "dylib-lto",
+]

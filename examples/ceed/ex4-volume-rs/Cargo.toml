@@ -1,0 +1,16 @@
+[package]
+name = "ex4-volume-rs"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+# Compiles the crate as a lib (for GPU) and staticlib (for CPU)
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
