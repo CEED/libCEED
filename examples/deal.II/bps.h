@@ -174,10 +174,10 @@ public:
   void
   reinit() override
   {
-    CeedVector           q_data;
+    CeedVector           metric_data;
     CeedBasis            sol_basis;
     CeedElemRestriction  sol_restriction;
-    CeedElemRestriction  q_data_restriction;
+    CeedElemRestriction  metric_data_restriction;
     BuildContext         build_ctx_data;
     CeedQFunctionContext build_ctx;
     CeedQFunction        qf_apply;
@@ -276,20 +276,20 @@ public:
     // 4) create mapping -> MappingInfo
     const unsigned int n_components_metric = (bp <= BPType::BP2) ? 1 : (dim * (dim + 1) / 2);
 
-    this->weights = compute_metric_data(ceed, mapping, tria, quadrature, bp);
+    metric_data_raw = compute_metric_data(ceed, mapping, tria, quadrature, bp);
 
     strides = {{1,
                 static_cast<int>(quadrature.size()),
                 static_cast<int>(quadrature.size() * n_components_metric)}};
-    CeedVectorCreate(ceed, weights.size(), &q_data);
-    CeedVectorSetArray(q_data, CEED_MEM_HOST, CEED_USE_POINTER, weights.data());
+    CeedVectorCreate(ceed, metric_data_raw.size(), &metric_data);
+    CeedVectorSetArray(metric_data, CEED_MEM_HOST, CEED_USE_POINTER, metric_data_raw.data());
     CeedElemRestrictionCreateStrided(ceed,
                                      n_local_active_cells,
                                      quadrature.size(),
                                      n_components_metric,
-                                     weights.size(),
+                                     metric_data_raw.size(),
                                      strides.data(),
-                                     &q_data_restriction);
+                                     &metric_data_restriction);
 
     build_ctx_data.dim       = dim;
     build_ctx_data.space_dim = dim;
@@ -315,7 +315,7 @@ public:
     else
       CeedQFunctionAddInput(qf_apply, "u", dim * n_components, CEED_EVAL_GRAD);
 
-    CeedQFunctionAddInput(qf_apply, "qdata", n_components_metric, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_apply, "metric data", n_components_metric, CEED_EVAL_NONE);
 
     if (bp <= BPType::BP2)
       CeedQFunctionAddOutput(qf_apply, "v", n_components, CEED_EVAL_INTERP);
@@ -328,7 +328,8 @@ public:
     CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
 
     CeedOperatorSetField(op_apply, "u", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
+    CeedOperatorSetField(
+      op_apply, "metric data", metric_data_restriction, CEED_BASIS_NONE, metric_data);
     CeedOperatorSetField(op_apply, "v", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
 
     // 7) libCEED vectors
@@ -336,8 +337,8 @@ public:
     CeedElemRestrictionCreateVector(sol_restriction, &dst_ceed, NULL);
 
     // 8) cleanup
-    CeedVectorDestroy(&q_data);
-    CeedElemRestrictionDestroy(&q_data_restriction);
+    CeedVectorDestroy(&metric_data);
+    CeedElemRestrictionDestroy(&metric_data_restriction);
     CeedElemRestrictionDestroy(&sol_restriction);
     CeedBasisDestroy(&sol_basis);
     CeedQFunctionContextDestroy(&build_ctx);
@@ -401,6 +402,9 @@ public:
     y.take_array();
 
     diagonal.compress(VectorOperation::add);
+
+    // apply constraints: we assume homogeneous DBC
+    constraints.set_zero(diagonal);
 
     for (auto &i : diagonal)
       i = (std::abs(i) > 1.0e-10) ? (1.0 / i) : 1.0;
@@ -502,28 +506,11 @@ private:
                       const Quadrature<dim>    &quadrature,
                       const BPType              bp)
   {
-    std::vector<double> weights;
-
-    if (false)
-      {
-        FE_Nothing<dim> dummy_fe;
-        FEValues<dim>   fe_values(mapping, dummy_fe, quadrature, update_JxW_values);
-
-        for (const auto &cell : tria.active_cell_iterators())
-          if (cell->is_locally_owned())
-            {
-              fe_values.reinit(cell);
-
-              for (const auto q : fe_values.quadrature_point_indices())
-                weights.emplace_back(fe_values.JxW(q));
-            }
-
-        return weights;
-      }
+    std::vector<double> metric_data_raw;
 
     CeedBasis            geo_basis;
-    CeedVector           q_data;
-    CeedElemRestriction  q_data_restriction;
+    CeedVector           metric_data;
+    CeedElemRestriction  metric_data_restriction;
     CeedVector           node_coords;
     CeedElemRestriction  geo_restriction;
     CeedQFunctionContext build_ctx;
@@ -532,7 +519,7 @@ private:
 
     const unsigned int n_q_points = quadrature.get_tensor_basis()[0].size();
 
-    const unsigned int n_components = (bp <= BPType::BP2) ? 1 : (dim * (dim + 1) / 2);
+    const unsigned int n_components_metric = (bp <= BPType::BP2) ? 1 : (dim * (dim + 1) / 2);
 
     const auto mapping_q = dynamic_cast<const MappingQ<dim> *>(&mapping);
 
@@ -625,21 +612,21 @@ private:
             }
         }
 
-    weights.resize(n_local_active_cells * quadrature.size() * n_components);
+    metric_data_raw.resize(n_local_active_cells * quadrature.size() * n_components_metric);
 
     CeedInt strides[3] = {1,
                           static_cast<int>(quadrature.size()),
-                          static_cast<int>(quadrature.size() * n_components)};
+                          static_cast<int>(quadrature.size() * n_components_metric)};
 
-    CeedVectorCreate(ceed, weights.size(), &q_data);
-    CeedVectorSetArray(q_data, CEED_MEM_HOST, CEED_USE_POINTER, weights.data());
+    CeedVectorCreate(ceed, metric_data_raw.size(), &metric_data);
+    CeedVectorSetArray(metric_data, CEED_MEM_HOST, CEED_USE_POINTER, metric_data_raw.data());
     CeedElemRestrictionCreateStrided(ceed,
                                      n_local_active_cells,
                                      quadrature.size(),
-                                     n_components,
-                                     weights.size(),
+                                     n_components_metric,
+                                     metric_data_raw.size(),
                                      strides,
-                                     &q_data_restriction);
+                                     &metric_data_restriction);
 
     CeedVectorCreate(ceed, geo_support_points.size(), &node_coords);
     CeedVectorSetArray(node_coords, CEED_MEM_HOST, CEED_USE_POINTER, geo_support_points.data());
@@ -670,31 +657,31 @@ private:
       CeedQFunctionCreateInterior(ceed, 1, f_build_poisson, f_build_poisson_loc, &qf_build);
 
     CeedQFunctionAddInput(qf_build, "geo", dim * dim, CEED_EVAL_GRAD);
-    CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
-    CeedQFunctionAddOutput(qf_build, "qdata", n_components, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_build, "weight", 1, CEED_EVAL_WEIGHT);
+    CeedQFunctionAddOutput(qf_build, "metric data", n_components_metric, CEED_EVAL_NONE);
     CeedQFunctionSetContext(qf_build, build_ctx);
 
     // 6) put everything together
     CeedOperatorCreate(ceed, qf_build, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_build);
     CeedOperatorSetField(op_build, "geo", geo_restriction, geo_basis, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(
-      op_build, "weights", CEED_ELEMRESTRICTION_NONE, geo_basis, CEED_VECTOR_NONE);
+      op_build, "weight", CEED_ELEMRESTRICTION_NONE, geo_basis, CEED_VECTOR_NONE);
     CeedOperatorSetField(
-      op_build, "qdata", q_data_restriction, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+      op_build, "metric data", metric_data_restriction, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
-    CeedOperatorApply(op_build, node_coords, q_data, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(op_build, node_coords, metric_data, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorDestroy(&node_coords);
-    CeedVectorSyncArray(q_data, CEED_MEM_HOST);
-    CeedVectorDestroy(&q_data);
+    CeedVectorSyncArray(metric_data, CEED_MEM_HOST);
+    CeedVectorDestroy(&metric_data);
     CeedElemRestrictionDestroy(&geo_restriction);
-    CeedElemRestrictionDestroy(&q_data_restriction);
+    CeedElemRestrictionDestroy(&metric_data_restriction);
     CeedBasisDestroy(&geo_basis);
     CeedQFunctionContextDestroy(&build_ctx);
     CeedQFunctionDestroy(&qf_build);
     CeedOperatorDestroy(&op_build);
 
-    return weights;
+    return metric_data_raw;
   }
 
   /**
@@ -736,19 +723,11 @@ private:
    * libCEED data structures.
    */
   Ceed                   ceed;
-  std::vector<double>    weights;
+  std::vector<double>    metric_data_raw;
   std::array<CeedInt, 3> strides;
   CeedVector             src_ceed;
   CeedVector             dst_ceed;
   CeedOperator           op_apply;
-
-  /**
-   * Temporal (tempral) vectors.
-   *
-   * @note Only needed for multiple components.
-   */
-  mutable VectorType src_tmp;
-  mutable VectorType dst_tmp;
 };
 
 
