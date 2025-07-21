@@ -153,6 +153,22 @@ class SuiteSpec(ABC):
     def csv_rtol(self, val):
         self._csv_rtol = val
 
+    @property
+    def csv_comment_diff_fn(self):  # -> Any | Callable[..., None]:
+        return getattr(self, '_csv_comment_diff_fn', None)
+
+    @csv_comment_diff_fn.setter
+    def csv_comment_diff_fn(self, test_fn):
+        self._csv_comment_diff_fn = test_fn
+
+    @property
+    def csv_comment_str(self):
+        return getattr(self, '_csv_comment_str', '#')
+
+    @csv_comment_str.setter
+    def csv_comment_str(self, comment_str):
+        self._csv_comment_str = comment_str
+
     def post_test_hook(self, test: str, spec: TestSpec, backend: str) -> None:
         """Function callback ran after each test case
 
@@ -624,16 +640,16 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                              category=spec.name,)
         ref_csvs: List[Path] = []
         ref_ascii: List[Path] = []
-        output_files: List[str] = [arg for arg in run_args if 'ascii:' in arg]
+        output_files: List[str] = [arg.split(':')[1] for arg in run_args if arg.startswith('ascii:')]
         if output_files:
-            ref_csvs = [suite_spec.get_output_path(test, file.split(':')[1])
+            ref_csvs = [suite_spec.get_output_path(test, file)
                         for file in output_files if file.endswith('.csv')]
-            ref_ascii = [suite_spec.get_output_path(test, file.split(':')[1])
+            ref_ascii = [suite_spec.get_output_path(test, file)
                          for file in output_files if not file.endswith('.csv')]
         ref_cgns: List[Path] = []
-        output_files = [arg for arg in run_args if 'cgns:' in arg]
+        output_files = [arg.split(':')[1] for arg in run_args if arg.startswith('cgns:')]
         if output_files:
-            ref_cgns = [suite_spec.get_output_path(test, file.split('cgns:')[-1]) for file in output_files]
+            ref_cgns = [suite_spec.get_output_path(test, file) for file in output_files]
         ref_stdout: Path = suite_spec.get_output_path(test, test + '.out')
         suite_spec.post_test_hook(test, spec, backend)
 
@@ -681,7 +697,13 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
             else:
                 csv_ztol: float = spec.csv_ztol if spec.csv_ztol > 0 else suite_spec.csv_ztol
                 csv_rtol: float = spec.csv_rtol if spec.csv_rtol > 0 else suite_spec.csv_rtol
-                diff = diff_csv(out_file, ref_csv, zero_tol=csv_ztol, rel_tol=csv_rtol)
+                diff = diff_csv(
+                    out_file,
+                    ref_csv,
+                    csv_ztol,
+                    csv_rtol,
+                    suite_spec.csv_comment_str,
+                    suite_spec.csv_comment_diff_fn)
                 if diff:
                     save_path: Path = suite_spec.test_failure_artifacts_path / csv_name
                     shutil.move(out_file, save_path)
