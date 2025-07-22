@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(internal_features)]
 #![feature(asm_experimental_arch, abi_ptx, core_intrinsics)]
 use core::ffi::c_void;
 use core::intrinsics::abort;
@@ -50,8 +51,10 @@ pub unsafe extern "C" fn build_mass_rs(
     let ctx: *mut BuildContext = unsafe { core::mem::transmute(ctx) };
     let ctx: &mut BuildContext = &mut *ctx;
 
-    let in_slice = core::slice::from_raw_parts(in_, 2); // assuming 2 inputs: J and w
+    let in_slice = core::slice::from_raw_parts(in_, 2);
 
+    // in_slice[0] is Jacobians with shape [dim, dim, Q]
+    // in_slice[1] is quadrature weights with shape [1, Q]
     let j_ptr = in_slice[0];
     let w_ptr = in_slice[1];
 
@@ -64,19 +67,20 @@ pub unsafe extern "C" fn build_mass_rs(
 
     match ctx.dim * 10 + ctx.space_dim {
         11 => {
+            // Quadrature Point Loop
             for i in 0..q as usize {
                 q_data[i] = j[[0, 0, i]] * w[i];
             }
         }
         22 => {
-            let q = q as usize;
-            for i in 0..q {
+            // Quadrature Point Loop
+            for i in 0..q as usize {
                 q_data[i] = (j[[0, 0, i]] * j[[1, 1, i]] - j[[0, 1, i]] * j[[1, 0, i]]) * w[i];
             }
         }
         33 => {
-            let q = q as usize;
-            for i in 0..q {
+            // Quadrature Point Loop
+            for i in 0..q as usize {
                 q_data[i] = (j[[0, 0, i]]
                     * (j[[1, 1, i]] * j[[2, 2, i]] - j[[1, 2, i]] * j[[2, 1, i]])
                     - j[[0, 1, i]] * (j[[1, 0, i]] * j[[2, 2, i]] - j[[1, 2, i]] * j[[2, 0, i]])

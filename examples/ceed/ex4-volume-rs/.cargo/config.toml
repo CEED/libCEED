@@ -1,6 +1,3 @@
-#[build]
-#target = "nvptx64-nvidia-cuda"  # default compilation target
-
 [target.nvptx64-nvidia-cuda]
 rustflags = [
   "-C", "linker-plugin-lto",

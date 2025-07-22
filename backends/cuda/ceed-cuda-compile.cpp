@@ -83,6 +83,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   // Standard libCEED definitions for CUDA backends
   code << "#include <ceed/jit-source/cuda/cuda-jit.h>\n\n";
+
   // Non-macro options
   CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
