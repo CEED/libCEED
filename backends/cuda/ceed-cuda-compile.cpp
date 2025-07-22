@@ -83,7 +83,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   // Standard libCEED definitions for CUDA backends
   code << "#include <ceed/jit-source/cuda/cuda-jit.h>\n\n";
-  //code << source;
   // Non-macro options
   CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
@@ -259,7 +258,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         cmd = "llvm-link kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ";
 
         // Searches for .rlib files in rust directoy
-        // Note: this is necessity because rust crate names may not match the folder they are in
+        // Note: this is necessary because rust crate names may not match the folder they are in
         for(int i = 0; i < num_rust_source_dirs; i++){
             std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
 
