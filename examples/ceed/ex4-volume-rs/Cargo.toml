@@ -11,6 +11,7 @@ panic = "abort"
 
 # Compiles the crate as a lib (for GPU) and staticlib (for CPU)
 [lib]
-crate-type = ["lib", "staticlib"]
+crate-type = ["staticlib"]
 
 [dependencies]
+ndarray = {version = "0.16.1", default-features = false}

@@ -238,7 +238,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         std::string cmd;
 
         for(int i = 0; i < num_rust_source_dirs; i++){
-            cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --manifest-path " + rust_dirs[i] + "/Cargo.toml";
+            cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " + rust_dirs[i] + "/Cargo.toml";
             err = system(cmd.c_str());
             if(err){
                 CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "Failed gpu jit task 0 (build rust crates)\nBuilding rust crate %d with command: %s\n", i, cmd.c_str());
@@ -255,7 +255,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             abort();
         }
 
-        cmd = "llvm-link kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll ";
+        cmd = "llvm-link-20 kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll  ";
 
         // Searches for .rlib files in rust directoy
         // Note: this is necessary because rust crate names may not match the folder they are in
@@ -263,7 +263,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
             std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
 
             for(auto p : std::filesystem::directory_iterator(dir)){
-                if (p.path().extension() == ".rlib"){
+                if (p.path().extension() == ".a"){
                     cmd += p.path().string() + " ";
                 }
             }
@@ -277,6 +277,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
         if(err){
             printf("Failed gpu jit task 2 (link c and rust sources with llvm)\n");
+            printf("llvm-link command was %s\n", cmd.c_str());
             abort();
         }
 
