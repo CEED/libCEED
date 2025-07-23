@@ -976,7 +976,7 @@ int CeedGetRustSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***r
   Ceed ceed_parent;
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
-  *num_source_roots = ceed_parent->num_rust_source_roots;
+  *num_source_roots  = ceed_parent->num_rust_source_roots;
   *rust_source_roots = (const char **)ceed_parent->rust_source_roots;
   ceed_parent->num_rust_source_roots_readers++;
   CeedCall(CeedDestroy(&ceed_parent));
@@ -1325,13 +1325,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // By default, make cuda compile without clang, use nvrtc instead
   // Note that this is overridden if a rust file is included (rust requires clang)
-    const char *env = getenv("CUDA_CLANG");
-    if (env && strcmp(env, "1") == 0) {
-        (*ceed)->cuda_compile_with_clang = true;
-    } else {
-        (*ceed)->cuda_compile_with_clang = false;
-    }
-
+  const char *env = getenv("GPU_CLANG");
+  if (env && strcmp(env, "1") == 0) {
+    (*ceed)->cuda_compile_with_clang = true;
+  } else {
+    (*ceed)->cuda_compile_with_clang = false;
+  }
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
@@ -1501,7 +1500,7 @@ int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root) {
   memcpy(ceed_parent->rust_source_roots[index], rust_source_root, path_length);
   ceed_parent->num_rust_source_roots++;
   ceed_parent->cuda_compile_with_clang = true;
-  ceed->cuda_compile_with_clang = true;
+  ceed->cuda_compile_with_clang        = true;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }

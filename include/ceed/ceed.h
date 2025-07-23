@@ -168,7 +168,7 @@ CEED_EXTERN int CeedGetGitVersion(const char **git_version);
 CEED_EXTERN int CeedGetBuildConfiguration(const char **build_config);
 
 CEED_EXTERN int CeedSetIsClang(Ceed ceed, bool isClang);
-CEED_EXTERN int CeedGetIsClang(Ceed ceed, bool* isClang);
+CEED_EXTERN int CeedGetIsClang(Ceed ceed, bool *isClang);
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
@@ -373,10 +373,10 @@ CEED_EXTERN int  CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN Ceed CeedQFunctionReturnCeed(CeedQFunction qf);
 CEED_EXTERN int  CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v);
 CEED_EXTERN int  CeedQFunctionDestroy(CeedQFunction *qf);
-CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name);
-CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
-CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
-CEED_EXTERN int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode);
+CEED_EXTERN int  CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name);
+CEED_EXTERN int  CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
+CEED_EXTERN int  CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
+CEED_EXTERN int  CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode);
 
 /** Handle for the user provided @ref CeedQFunctionContextDestroy() callback function
 
@@ -417,7 +417,6 @@ CEED_EXTERN int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction rstr, CeedBasis basis, CeedVector vec);
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
-
 
 CEED_EXTERN int  CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
 CEED_EXTERN int  CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);

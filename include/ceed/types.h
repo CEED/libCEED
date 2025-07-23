@@ -51,7 +51,6 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
   CEED_QFUNCTION_ATTR static int name
 #endif
 
-
 /**
     @ingroup CeedQFunction
 This macro populates the correct function for Rust-based User QFunction source for code generation backends or populates default values for CPU backends. It also creates a variable `name_loc` populated with the correct source path for creating the respective User QFunction. Note that the function, as named in rust, must be called `name_rs`. When referencing it in C, use just `name` (no `_rs`)
@@ -70,14 +69,13 @@ pub unsafe extern "C" fn build_mass_rs(
 ) -> i8
 **/
 #ifndef CEED_QFUNCTION_RUST
-#define CEED_QFUNCTION_RUST(name)                         \
-  static const char              name##_loc[] = __FILE__ ":" #name; \
-  CEED_QFUNCTION_ATTR int name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);                                                     \
-  CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {                                                            \
-      return name##_rs(ctx, Q, in, out);                         \
+#define CEED_QFUNCTION_RUST(name)                                                                                            \
+  static const char              name##_loc[] = __FILE__ ":" #name;                                                          \
+  CEED_QFUNCTION_ATTR int        name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
+  CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
+    return name##_rs(ctx, Q, in, out);                                                                                       \
   }
 #endif
-
 
 /**
   @ingroup CeedQFunction

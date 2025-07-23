@@ -36,16 +36,37 @@ int CeedGetGitVersion(const char **git_version) {
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedSetIsClang(Ceed ceed, bool isClang){
-    ceed->cuda_compile_with_clang = isClang;
-    return CEED_ERROR_SUCCESS;
+/**
+  @brief Set whether or not to use clang when compiling for GPU (instead of nvrtc)
+
+  @param[in] is_clang Whether or not to use clang on GPU
+
+  @ref Developer
+
+  @sa CeedGetIsClang()
+
+  @return An error code: 0 - success, otherwise - failure
+ */
+int CeedSetIsClang(Ceed ceed, bool is_clang) {
+  ceed->cuda_compile_with_clang = is_clang;
+  return CEED_ERROR_SUCCESS;
 }
 
-int CeedGetIsClang(Ceed ceed, bool* isClang){
-    *isClang = ceed->cuda_compile_with_clang;
-    return CEED_ERROR_SUCCESS;
-}
+/**
+  @brief Determine if the current ceed is set to compile with clang when on GPU
 
+  @param[out] is_clang The location to write the current GPU clang status to
+
+  @ref Developer
+
+  @sa CeedSetIsClang()
+
+  @return An error code: 0 - success, otherwise - failure
+ */
+int CeedGetIsClang(Ceed ceed, bool *is_clang) {
+  *is_clang = ceed->cuda_compile_with_clang;
+  return CEED_ERROR_SUCCESS;
+}
 
 /**
   @brief Get build variables as a multi-line string.
