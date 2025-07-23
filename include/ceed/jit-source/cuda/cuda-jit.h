@@ -14,9 +14,8 @@
 #define CEED_Q_VLA 1
 
 #define CEED_QFUNCTION_RUST(name)                                                                                                           \
-  static const char                             name##_loc[] = __FILE__ ":" #name;                                                          \
-  extern "C" CEED_QFUNCTION_ATTR __device__ int name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
-  CEED_QFUNCTION_ATTR static __device__ int     name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
+  extern "C" __device__ int name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
+  static __device__ int     name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
     return name##_rs(ctx, Q, in, out);                                                                                                  \
   }
 
