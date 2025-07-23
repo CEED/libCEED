@@ -278,8 +278,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
                 printf("Could not open directory: %s", dir.c_str());
                 abort();
             }
-
-
             // This code is the equivalent in c++17. When libceed upgrades to c++17, replace the code above with this
             /*for(auto p : std::filesystem::directory_iterator(dir)){
                 if (p.path().extension() == ".a"){
