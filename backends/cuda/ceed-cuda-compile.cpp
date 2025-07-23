@@ -14,8 +14,9 @@
 #include <nvrtc.h>
 #include <stdarg.h>
 #include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
 
-#include <filesystem>
 #include <sstream>
 #include <iostream>
 #include <fstream>
@@ -263,11 +264,28 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         for(int i = 0; i < num_rust_source_dirs; i++){
             std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
 
-            for(auto p : std::filesystem::directory_iterator(dir)){
+            DIR* dp = opendir(dir.c_str());
+            if (dp != nullptr) {
+                struct dirent* entry;
+                while ((entry = readdir(dp)) != nullptr) {
+                    std::string filename(entry->d_name);
+                    if (filename.size() >= 2 && filename.substr(filename.size() - 2) == ".a") {
+                        cmd += dir + "/" + filename + " ";
+                    }
+                }
+                closedir(dp);
+            } else {
+                printf("Could not open directory: %s", dir.c_str());
+                abort();
+            }
+
+
+            // This code is the equivalent in c++17. When libceed upgrades to c++17, replace the code above with this
+            /*for(auto p : std::filesystem::directory_iterator(dir)){
                 if (p.path().extension() == ".a"){
                     cmd += p.path().string() + " ";
                 }
-            }
+            }*/
 
         }
 

@@ -134,17 +134,17 @@ OPT.clang               := $(OPT.gcc)
 OPT.icc                 := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
 OPT.emcc                :=
-CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c17 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
 CFLAGS.oneAPI           := $(CFLAGS.clang)
 CFLAGS.XL               := $(if $(STATIC),,-qpic) -MMD
 CFLAGS.emcc             := $(CFLAGS.clang)
-CXXFLAGS.gcc            := $(if $(STATIC),,-fPIC) -std=c++17 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CXXFLAGS.gcc            := $(if $(STATIC),,-fPIC) -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
 CXXFLAGS.oneAPI         := $(CXXFLAGS.clang)
-CXXFLAGS.XL             := $(if $(STATIC),,-qpic) -std=c++17 -MMD
+CXXFLAGS.XL             := $(if $(STATIC),,-qpic) -std=c++11 -MMD
 CXXFLAGS.emcc           := $(CXXFLAGS.clang)
 FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
 FFLAGS.ifort            := $(if $(STATIC),,-fPIC) -cpp
