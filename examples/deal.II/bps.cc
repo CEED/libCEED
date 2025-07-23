@@ -61,7 +61,7 @@ struct Parameters
   unsigned int n_global_refinements = 1;
   unsigned int fe_degree            = 2;
   bool         print_timings        = true;
-  std::string  libCEED_resource      = "/cpu/self/avx/blocked";
+  std::string  libCEED_resource      = "/cpu/self";
 
   bool
   parse(int argc, char *argv[])
