@@ -56,12 +56,12 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   cudaFree(0);  // Make sure a Context exists for nvrtc
 
   std::ostringstream code;
+  bool using_clang;
 
-  bool usingClang;
-  CeedCallBackend(CeedGetIsClang(ceed, &usingClang));
+  CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
 
   if(CeedDebugFlag(ceed)){
-      if(usingClang){
+      if(using_clang){
           CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Compiling cuda with Clang backend (for Rust Qfunction support)");
       } else {
           CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Compiling cuda with NVRTC backend (Does not support Rust Qfunctions). To use Clang, set the environmental variable CUDA_CLANG to 1");
@@ -142,7 +142,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- END OF JIT SOURCE ----------\n");
 
-  if(!usingClang){
+  if(!using_clang){
     CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
     if (CeedDebugFlag(ceed)) {
@@ -338,9 +338,8 @@ int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CU
 // Get CUDA kernel
 //------------------------------------------------------------------------------
 int CeedGetKernel_Cuda(Ceed ceed, CUmodule module, const char *name, CUfunction *kernel) {
-
     CeedCallCuda(ceed, cuModuleGetFunction(kernel, module, name));
-  return CEED_ERROR_SUCCESS;
+    return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
