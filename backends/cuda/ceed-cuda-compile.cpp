@@ -53,7 +53,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   struct cudaDeviceProp prop;
   Ceed_Cuda            *ceed_data;
 
-
   cudaFree(0);  // Make sure a Context exists for nvrtc
 
   std::ostringstream code;

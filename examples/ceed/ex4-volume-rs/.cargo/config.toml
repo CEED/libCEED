@@ -1,7 +1,6 @@
 [target.nvptx64-nvidia-cuda]
 rustflags = [
   "-C", "linker-plugin-lto",
-  "-C", "target-cpu=sm_80",
 ]
 [unstable]
 build-std = ["panic_abort","core", "alloc"]
