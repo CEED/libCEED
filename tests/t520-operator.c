@@ -159,25 +159,25 @@ int main(int argc, char **argv) {
 
   // Set up Composite Operators
   // -- Create
-  CeedCompositeOperatorCreate(ceed, &op_setup);
+  CeedOperatorCreateComposite(ceed, &op_setup);
   // -- Add SubOperators
-  CeedCompositeOperatorAddSub(op_setup, op_setup_tet);
-  CeedCompositeOperatorAddSub(op_setup, op_setup_hex);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_tet);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_hex);
 
   // -- Create
-  CeedCompositeOperatorCreate(ceed, &op_mass);
+  CeedOperatorCreateComposite(ceed, &op_mass);
   // -- Add SubOperators
-  CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
-  CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_tet);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_hex);
 
-  {  // Test CeedCompositeOperatorGetSubByName
+  {  // Test CeedOperatorCompositeGetSubByName
     CeedOperator op_byname;
 
-    CeedCompositeOperatorGetSubByName(op_mass, "mass hex", &op_byname);
-    if (op_byname != op_mass_hex) printf("CeedCompositeOperatorGetSubByName returned incorrect Sub Operator");
+    CeedOperatorCompositeGetSubByName(op_mass, "mass hex", &op_byname);
+    if (op_byname != op_mass_hex) printf("CeedOperatorCompositeGetSubByName returned incorrect Sub Operator");
 
-    CeedCompositeOperatorGetSubByName(op_mass, "asdf", &op_byname);
-    if (op_byname != NULL) printf("CeedCompositeOperatorGetSubByName returned non-NULL for non-existent Sub Operator");
+    CeedOperatorCompositeGetSubByName(op_mass, "asdf", &op_byname);
+    if (op_byname != NULL) printf("CeedOperatorCompositeGetSubByName returned non-NULL for non-existent Sub Operator");
   }
 
   // Apply Setup Operator

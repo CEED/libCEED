@@ -409,7 +409,7 @@ CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op);
 CEED_EXTERN int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op);
-CEED_EXTERN int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op);
+CEED_EXTERN int CeedOperatorCreateComposite(Ceed ceed, CeedOperator *op);
 CEED_EXTERN int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy);
 CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction rstr, CeedBasis basis, CeedVector vec);
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
@@ -418,10 +418,10 @@ CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields
 CEED_EXTERN int  CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
 CEED_EXTERN int  CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);
 CEED_EXTERN int  CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points);
-CEED_EXTERN int  CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
-CEED_EXTERN int  CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
-CEED_EXTERN int  CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
-CEED_EXTERN int  CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op);
+CEED_EXTERN int  CeedOperatorCompositeAddSub(CeedOperator composite_op, CeedOperator sub_op);
+CEED_EXTERN int  CeedOperatorCompositeGetNumSub(CeedOperator op, CeedInt *num_suboperators);
+CEED_EXTERN int  CeedOperatorCompositeGetSubList(CeedOperator op, CeedOperator **sub_operators);
+CEED_EXTERN int  CeedOperatorCompositeGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op);
 CEED_EXTERN int  CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int  CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
@@ -436,7 +436,7 @@ CEED_EXTERN int  CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op
 CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
-CEED_EXTERN int  CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
+CEED_EXTERN int  CeedOperatorCompositeGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
 CEED_EXTERN int  CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
                                                   CeedBasis basis_coarse, CeedOperator *op_coarse, CeedOperator *op_prolong,
                                                   CeedOperator *op_restrict);
@@ -472,6 +472,14 @@ CEED_EXTERN int  CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector
 CEED_EXTERN int  CeedOperatorApplyAddActive(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorAssemblyDataStrip(CeedOperator op);
 CEED_EXTERN int  CeedOperatorDestroy(CeedOperator *op);
+
+// Compatibility with previous composite CeedOperator naming
+#define CeedCompositeOperatorCreate(a, b) CeedOperatorCreateComposite(a, b)
+#define CeedCompositeOperatorAddSub(a, b) CeedOperatorCompositeAddSub(a, b)
+#define CeedCompositeOperatorGetNumSub(a, b) CeedOperatorCompositeGetNumSub(a, b)
+#define CeedCompositeOperatorGetSubList(a, b) CeedOperatorCompositeGetSubList(a, b)
+#define CeedCompositeOperatorGetSubByName(a, b) CeedOperatorCompositeGetSubByName(a, b, c)
+#define CeedCompositeOperatorGetMultiplicity(a, b, c, d) CeedOperatorCompositeGetMultiplicity(a, b, c, d)
 
 CEED_EXTERN int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field);
 CEED_EXTERN int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name);

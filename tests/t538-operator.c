@@ -104,9 +104,9 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_diff, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Composite operator
-  CeedCompositeOperatorCreate(ceed, &op_apply);
-  CeedCompositeOperatorAddSub(op_apply, op_mass);
-  CeedCompositeOperatorAddSub(op_apply, op_diff);
+  CeedOperatorCreateComposite(ceed, &op_apply);
+  CeedOperatorCompositeAddSub(op_apply, op_mass);
+  CeedOperatorCompositeAddSub(op_apply, op_diff);
 
   // Assemble diagonal
   CeedVectorCreate(ceed, num_dofs, &assembled);

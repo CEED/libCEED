@@ -150,18 +150,18 @@ int main(int argc, char **argv) {
 
   // Set up Composite Operators
   // -- Create
-  CeedCompositeOperatorCreate(ceed, &op_setup);
+  CeedOperatorCreateComposite(ceed, &op_setup);
   CeedOperatorSetName(op_setup, "setup");
   // -- Add SubOperators
-  CeedCompositeOperatorAddSub(op_setup, op_setup_tet);
-  CeedCompositeOperatorAddSub(op_setup, op_setup_hex);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_tet);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_hex);
 
   // -- Create
-  CeedCompositeOperatorCreate(ceed, &op_mass);
+  CeedOperatorCreateComposite(ceed, &op_mass);
   CeedOperatorSetName(op_mass, "mass");
   // -- Add SubOperators
-  CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
-  CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_tet);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_hex);
 
   // View
   CeedOperatorViewTerse(op_setup, stdout);
