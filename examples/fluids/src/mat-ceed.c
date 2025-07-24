@@ -406,8 +406,8 @@ PetscErrorCode MatCreateCeed(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
           CeedInt       num_sub_operators;
           CeedOperator *sub_operators;
 
-          PetscCallCeed(ctx->ceed, CeedCompositeOperatorGetNumSub(op_mult, &num_sub_operators));
-          PetscCallCeed(ctx->ceed, CeedCompositeOperatorGetSubList(op_mult, &sub_operators));
+          PetscCallCeed(ctx->ceed, CeedOperatorCompositeGetNumSub(op_mult, &num_sub_operators));
+          PetscCallCeed(ctx->ceed, CeedOperatorCompositeGetSubList(op_mult, &sub_operators));
           for (CeedInt i = 0; i < num_sub_operators; i++) {
             CeedInt                  num_bases, num_comp;
             CeedBasis               *active_bases;

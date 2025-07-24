@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, num_comp * num_dofs_u_fine, &v_fine);
 
   // Composite operators
-  CeedCompositeOperatorCreate(ceed, &op_mass_coarse);
-  CeedCompositeOperatorCreate(ceed, &op_mass_fine);
-  CeedCompositeOperatorCreate(ceed, &op_prolong);
-  CeedCompositeOperatorCreate(ceed, &op_restrict);
+  CeedOperatorCreateComposite(ceed, &op_mass_coarse);
+  CeedOperatorCreateComposite(ceed, &op_mass_fine);
+  CeedOperatorCreateComposite(ceed, &op_prolong);
+  CeedOperatorCreateComposite(ceed, &op_restrict);
 
   // Setup fine suboperators
   for (CeedInt i = 0; i < num_sub_ops; i++) {
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
     CeedOperatorApply(sub_op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
     // -- Composite operators
-    CeedCompositeOperatorAddSub(op_mass_fine, sub_op_mass_fine);
+    CeedOperatorCompositeAddSub(op_mass_fine, sub_op_mass_fine);
 
     // -- Cleanup
     CeedVectorDestroy(&q_data);
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   // Scale for suboperator multiplicity
   CeedVectorCreate(ceed, num_comp * num_dofs_u_fine, &p_mult_fine);
-  CeedCompositeOperatorGetMultiplicity(op_mass_fine, 0, NULL, p_mult_fine);
+  CeedOperatorCompositeGetMultiplicity(op_mass_fine, 0, NULL, p_mult_fine);
 
   // Setup coarse and prolong/restriction suboperators
   for (CeedInt i = 0; i < num_sub_ops; i++) {
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     CeedOperator       *sub_ops_mass_fine, sub_op_mass_coarse, sub_op_prolong, sub_op_restrict;
 
     // -- Fine grid operator
-    CeedCompositeOperatorGetSubList(op_mass_fine, &sub_ops_mass_fine);
+    CeedOperatorCompositeGetSubList(op_mass_fine, &sub_ops_mass_fine);
 
     // -- Restrictions
     CeedInt offset = num_elem_sub * i * (p_coarse - 1);
@@ -145,9 +145,9 @@ int main(int argc, char **argv) {
                                      &sub_op_prolong, &sub_op_restrict);
 
     // -- Composite operators
-    CeedCompositeOperatorAddSub(op_mass_coarse, sub_op_mass_coarse);
-    CeedCompositeOperatorAddSub(op_prolong, sub_op_prolong);
-    CeedCompositeOperatorAddSub(op_restrict, sub_op_restrict);
+    CeedOperatorCompositeAddSub(op_mass_coarse, sub_op_mass_coarse);
+    CeedOperatorCompositeAddSub(op_prolong, sub_op_prolong);
+    CeedOperatorCompositeAddSub(op_restrict, sub_op_restrict);
 
     // -- Cleanup
     CeedElemRestrictionDestroy(&elem_restriction_u_coarse);

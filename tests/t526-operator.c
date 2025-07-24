@@ -114,10 +114,10 @@ int main(int argc, char **argv) {
 
   // Set up Composite Operator
   // -- Create
-  CeedCompositeOperatorCreate(ceed, &op_mass);
+  CeedOperatorCreateComposite(ceed, &op_mass);
   // -- Add SubOperators
-  CeedCompositeOperatorAddSub(op_mass, op_mass_tet);
-  CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_tet);
+  CeedOperatorCompositeAddSub(op_mass, op_mass_hex);
 
   // Estimate FLOPs
   CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
