@@ -1285,7 +1285,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarBase *W, Points_Cuda "
           "points) {\n";
   tab.push();
 
@@ -1295,11 +1295,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarBase *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarBase *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -1698,8 +1698,8 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
-          "points, CeedScalarCPU *__restrict__ values_array) {\n";
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarBase *W, Points_Cuda "
+          "points, CeedScalarBase *__restrict__ values_array) {\n";
   tab.push();
 
   // Scratch buffers
@@ -1708,11 +1708,11 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarBase *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarBase *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -2240,8 +2240,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
   code << tab << "extern \"C\" __global__ void " << operator_name
-       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarCPU *W, Points_Cuda "
-          "points, CeedScalarCPU *__restrict__ values_array) {\n";
+       << "(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalarBase *W, Points_Cuda "
+          "points, CeedScalarBase *__restrict__ values_array) {\n";
   tab.push();
 
   // Scratch buffers
@@ -2250,11 +2250,11 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << tab << "const CeedScalarCPU *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
+      code << tab << "const CeedScalarBase *__restrict__ d_in_" << i << " = fields.inputs[" << i << "];\n";
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalarCPU *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    code << tab << "CeedScalarBase *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";

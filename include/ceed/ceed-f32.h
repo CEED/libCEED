@@ -21,14 +21,14 @@
 #if defined(CEED_RUNNING_JIT_PASS) && defined(CEED_JIT_PRECISION) && (CEED_JIT_PRECISION != CEED_SCALAR_TYPE)
 #ifdef CEED_JIT_PRECISION == CEED_SCALAR_FP64
 typedef double CeedScalar;
-typedef float  CeedScalarCPU;
+typedef float  CeedScalarBase;
 
 /// Machine epsilon
 static const CeedScalar CEED_EPSILON = DBL_EPSILON;
 #endif  // CEED_JIT_PRECISION
 #else
 typedef float      CeedScalar;
-typedef CeedScalar CeedScalarCPU;
+typedef CeedScalar CeedScalarBase;
 
 /// Machine epsilon
 static const CeedScalar CEED_EPSILON = FLT_EPSILON;
