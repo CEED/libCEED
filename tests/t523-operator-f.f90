@@ -205,15 +205,15 @@
      & buhex,ceed_vector_active,err)
 
 ! Composite Operators
-      call ceedcompositeoperatorcreate(ceed,op_setup,err)
+      call ceedoperatorcreatecomposite(ceed,op_setup,err)
       call ceedoperatorsetname(op_setup,'setup',err)
-      call ceedcompositeoperatoraddsub(op_setup,op_setuptet,err)
-      call ceedcompositeoperatoraddsub(op_setup,op_setuphex,err)
+      call ceedoperatorcompositeaddsub(op_setup,op_setuptet,err)
+      call ceedoperatorcompositeaddsub(op_setup,op_setuphex,err)
 
-      call ceedcompositeoperatorcreate(ceed,op_mass,err)
+      call ceedoperatorcreatecomposite(ceed,op_mass,err)
       call ceedoperatorsetname(op_mass,'mass',err)
-      call ceedcompositeoperatoraddsub(op_mass,op_masstet,err)
-      call ceedcompositeoperatoraddsub(op_mass,op_masshex,err)
+      call ceedoperatorcompositeaddsub(op_mass,op_masstet,err)
+      call ceedoperatorcompositeaddsub(op_mass,op_masshex,err)
 
 ! View
       call ceedoperatorview(op_setup,err)
