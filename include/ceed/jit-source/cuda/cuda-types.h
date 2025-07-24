@@ -14,8 +14,8 @@
 #define CEED_CUDA_NUMBER_FIELDS 16
 
 typedef struct {
-  const CeedScalar *inputs[CEED_CUDA_NUMBER_FIELDS];
-  CeedScalar       *outputs[CEED_CUDA_NUMBER_FIELDS];
+  const CeedScalarBase *inputs[CEED_CUDA_NUMBER_FIELDS];
+  CeedScalarBase       *outputs[CEED_CUDA_NUMBER_FIELDS];
 } Fields_Cuda;
 
 typedef struct {
@@ -24,10 +24,10 @@ typedef struct {
 } FieldsInt_Cuda;
 
 typedef struct {
-  CeedInt           num_elem;
-  const CeedInt    *num_per_elem;
-  const CeedInt    *indices;
-  const CeedScalar *coords;
+  CeedInt               num_elem;
+  const CeedInt        *num_per_elem;
+  const CeedInt        *indices;
+  const CeedScalarBase *coords;
 } Points_Cuda;
 
 typedef struct {

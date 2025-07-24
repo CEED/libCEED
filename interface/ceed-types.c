@@ -64,3 +64,8 @@ const char *const CeedFESpaces[] = {
     [CEED_FE_SPACE_HDIV]  = "H(div) space",
     [CEED_FE_SPACE_HCURL] = "H(curl) space",
 };
+
+const char *const CeedScalarTypes[] = {
+    [CEED_SCALAR_FP32] = "CEED_SCALAR_FP32",
+    [CEED_SCALAR_FP64] = "CEED_SCALAR_FP32",
+};

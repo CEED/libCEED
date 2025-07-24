@@ -10,11 +10,26 @@
 /// This is the default header included in ceed.h.
 #pragma once
 
+#ifndef CEED_RUNNING_JIT_PASS
+#include <float.h>
+#endif
+
 #define CEED_SCALAR_IS_FP64
 
 /// Set base scalar type to FP64. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP64
-typedef double CeedScalar;
+#if defined(CEED_RUNNING_JIT_PASS) && defined(CEED_JIT_PRECISION) && (CEED_JIT_PRECISION != CEED_SCALAR_TYPE)
+#if CEED_JIT_PRECISION == CEED_SCALAR_FP32
+typedef float  CeedScalar;
+typedef double CeedScalarBase;
 
 /// Machine epsilon
-#define CEED_EPSILON 1e-16
+static const CeedScalar CEED_EPSILON = FLT_EPSILON;
+#endif  // CEED_JIT_PRECISION
+#else
+typedef double     CeedScalar;
+typedef CeedScalar CeedScalarBase;
+
+/// Machine epsilon
+static const CeedScalar CEED_EPSILON = DBL_EPSILON;
+#endif  // CEED_RUNNING_JIT_PASS && CEED_JIT_MIXED_PRECISION

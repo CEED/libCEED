@@ -249,6 +249,7 @@ CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
+CEED_INTERN int CeedSetSupportsMixedPrecision(Ceed ceed, bool supports_mixed_precision);
 CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void));
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);

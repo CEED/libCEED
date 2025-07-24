@@ -1,12 +1,17 @@
 /// @file
 /// Test creation, action, and destruction for mass matrix operator AtPoints
 /// \test Test creation, action, and destruction for mass matrix operator AtPoints
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include "t591-operator.h"
 
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;
@@ -19,8 +24,21 @@ int main(int argc, char **argv) {
   CeedBasis           basis_x, basis_u_coarse, basis_u_fine;
   CeedQFunction       qf_setup, qf_mass;
   CeedOperator        op_setup, op_mass_coarse, op_mass_fine, op_prolong, op_restrict;
+  CeedScalarType      precision = CEED_SCALAR_TYPE;
+  CeedScalar          epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   // Point reference coordinates
   CeedVectorCreate(ceed, dim * num_points, &x_points);
@@ -173,6 +191,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "x", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup, precision);
   CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 
   CeedOperatorApply(op_setup, x_elem, q_data, CEED_REQUEST_IMMEDIATE);
@@ -187,6 +206,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass_fine, "u", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_fine, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass_fine, "v", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass_fine, precision);
   CeedOperatorAtPointsSetPoints(op_mass_fine, elem_restriction_x_points, x_points);
 
   CeedVectorCreate(ceed, num_nodes_fine, &u_fine);
@@ -213,7 +233,7 @@ int main(int argc, char **argv) {
       sum += v_array[i];
     }
     CeedVectorRestoreArrayRead(v_coarse, &v_array);
-    if (fabs(sum - num_elem) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
+    if (fabs(sum - num_elem) > 1000. * epsilon) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
   }
 
   // Prolong coarse u
@@ -233,7 +253,7 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(v_fine, &v_array);
 
-    if (fabs(sum - num_elem) > 1000. * CEED_EPSILON) printf("Computed Area Fine Grid: %f != True Area: 2.0\n", sum);
+    if (fabs(sum - num_elem) > 1000. * epsilon) printf("Computed Area Fine Grid: %f != True Area: 2.0\n", sum);
   }
   // Restrict state to coarse grid
   CeedOperatorApply(op_restrict, v_fine, v_coarse, CEED_REQUEST_IMMEDIATE);
@@ -248,7 +268,7 @@ int main(int argc, char **argv) {
       sum += v_array[i];
     }
     CeedVectorRestoreArrayRead(v_coarse, &v_array);
-    if (fabs(sum - num_elem) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
+    if (fabs(sum - num_elem) > 1000. * epsilon) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
   }
 
   CeedVectorDestroy(&x_points);

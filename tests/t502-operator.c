@@ -1,12 +1,17 @@
 /// @file
 /// Test creation, action, and destruction for mass matrix operator with multiple components
 /// \test Test creation, action, and destruction for mass matrix operator with multiple components
-#include "t502-operator.h"
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
 
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "t502-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;
@@ -18,8 +23,21 @@ int main(int argc, char **argv) {
   CeedInt             num_elem = 15, p = 5, q = 8;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_u = num_elem * (p - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_u[num_elem * p];
+  CeedScalarType      precision = CEED_SCALAR_TYPE;
+  CeedScalar          epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   CeedVectorCreate(ceed, num_nodes_x, &x);
   {
@@ -69,11 +87,13 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup, precision);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass);
   CeedOperatorSetField(op_mass, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass, precision);
 
   CeedOperatorApply(op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
@@ -100,8 +120,8 @@ int main(int argc, char **argv) {
       sum_2 += v_array[2 * i + 1];
     }
     CeedVectorRestoreArrayRead(v, &v_array);
-    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 1.0\n", sum_1);
-    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 2.0\n", sum_2);
+    if (fabs(sum_1 - 1.) > 1000. * epsilon) printf("Computed Area: %f != True Area: 1.0\n", sum_1);
+    if (fabs(sum_2 - 2.) > 1000. * epsilon) printf("Computed Area: %f != True Area: 2.0\n", sum_2);
   }
 
   CeedVectorDestroy(&x);

@@ -20,8 +20,9 @@
 //------------------------------------------------------------------------------
 // Interp
 //------------------------------------------------------------------------------
-extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
-                                          const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
+                                          const CeedScalarBase *__restrict__ d_X, const CeedScalarBase *__restrict__ d_U,
+                                          CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -75,9 +76,9 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
   }
 }
 
-extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
-                                                   const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
-                                                   const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B,
+                                                   const CeedInt *__restrict__ points_per_elem, const CeedScalarBase *__restrict__ d_X,
+                                                   const CeedScalarBase *__restrict__ d_U, CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -145,9 +146,9 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
   }
 }
 
-extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
-                                                      const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
-                                                      const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B,
+                                                      const CeedInt *__restrict__ points_per_elem, const CeedScalarBase *__restrict__ d_X,
+                                                      const CeedScalarBase *__restrict__ d_U, CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -207,8 +208,9 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
 //------------------------------------------------------------------------------
 // Grad
 //------------------------------------------------------------------------------
-extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
-                                        const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
+                                        const CeedScalarBase *__restrict__ d_X, const CeedScalarBase *__restrict__ d_U,
+                                        CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -262,9 +264,9 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
   }
 }
 
-extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
-                                                 const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
-                                                 const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B,
+                                                 const CeedInt *__restrict__ points_per_elem, const CeedScalarBase *__restrict__ d_X,
+                                                 const CeedScalarBase *__restrict__ d_U, CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -333,9 +335,9 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
   }
 }
 
-extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
-                                                    const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
-                                                    const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, const CeedScalarBase *__restrict__ c_B,
+                                                    const CeedInt *__restrict__ points_per_elem, const CeedScalarBase *__restrict__ d_X,
+                                                    const CeedScalarBase *__restrict__ d_U, CeedScalarBase *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;

@@ -10,11 +10,26 @@
 /// Include this header in ceed.h to use float instead of double.
 #pragma once
 
+#ifndef CEED_RUNNING_JIT_PASS
+#include <float.h>
+#endif
+
 #define CEED_SCALAR_IS_FP32
 
 /// Set base scalar type to FP32. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP32
-typedef float CeedScalar;
+#if defined(CEED_RUNNING_JIT_PASS) && defined(CEED_JIT_PRECISION) && (CEED_JIT_PRECISION != CEED_SCALAR_TYPE)
+#ifdef CEED_JIT_PRECISION == CEED_SCALAR_FP64
+typedef double CeedScalar;
+typedef float  CeedScalarBase;
 
 /// Machine epsilon
-#define CEED_EPSILON 6e-08
+static const CeedScalar CEED_EPSILON = DBL_EPSILON;
+#endif  // CEED_JIT_PRECISION
+#else
+typedef float      CeedScalar;
+typedef CeedScalar CeedScalarBase;
+
+/// Machine epsilon
+static const CeedScalar CEED_EPSILON = FLT_EPSILON;
+#endif

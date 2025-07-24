@@ -1,12 +1,17 @@
 /// @file
 /// Test creation, action, and destruction for diffusion matrix operator
 /// \test Test creation, action, and destruction for diffusion matrix operator
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include "t522-operator.h"
 
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "t320-basis.h"
 
@@ -23,19 +28,32 @@ int main(int argc, char **argv) {
   Ceed                ceed;
   CeedElemRestriction elem_restriction_x_tet, elem_restriction_u_tet, elem_restriction_q_data_tet, elem_restriction_x_hex, elem_restriction_u_hex,
       elem_restriction_q_data_hex;
-  CeedBasis     basis_x_tet, basis_u_tet, basis_x_hex, basis_u_hex;
-  CeedQFunction qf_setup_tet, qf_diff_tet, qf_setup_hex, qf_diff_hex;
-  CeedOperator  op_setup_tet, op_diff_tet, op_setup_hex, op_diff_hex, op_setup, op_diff;
-  CeedVector    q_data_tet, q_data_hex, x, u, v;
-  CeedInt       num_elem_tet = 6, p_tet = 6, q_tet = 4, num_elem_hex = 6, p_hex = 3, q_hex = 4, dim = 2;
-  CeedInt       n_x = 3, n_y = 3, n_x_tet = 3, n_y_tet = 1, n_x_hex = 3;
-  CeedInt       row, col, offset;
-  CeedInt       num_dofs = (n_x * 2 + 1) * (n_y * 2 + 1), num_qpts_tet = num_elem_tet * q_tet, num_qpts_hex = num_elem_hex * q_hex * q_hex;
-  CeedInt       ind_x_tet[num_elem_tet * p_tet], ind_x_hex[num_elem_hex * p_hex * p_hex];
-  CeedScalar    q_ref[dim * q_tet], q_weight[q_tet];
-  CeedScalar    interp[p_tet * q_tet], grad[dim * p_tet * q_tet];
+  CeedBasis      basis_x_tet, basis_u_tet, basis_x_hex, basis_u_hex;
+  CeedQFunction  qf_setup_tet, qf_diff_tet, qf_setup_hex, qf_diff_hex;
+  CeedOperator   op_setup_tet, op_diff_tet, op_setup_hex, op_diff_hex, op_setup, op_diff;
+  CeedVector     q_data_tet, q_data_hex, x, u, v;
+  CeedInt        num_elem_tet = 6, p_tet = 6, q_tet = 4, num_elem_hex = 6, p_hex = 3, q_hex = 4, dim = 2;
+  CeedInt        n_x = 3, n_y = 3, n_x_tet = 3, n_y_tet = 1, n_x_hex = 3;
+  CeedInt        row, col, offset;
+  CeedInt        num_dofs = (n_x * 2 + 1) * (n_y * 2 + 1), num_qpts_tet = num_elem_tet * q_tet, num_qpts_hex = num_elem_hex * q_hex * q_hex;
+  CeedInt        ind_x_tet[num_elem_tet * p_tet], ind_x_hex[num_elem_hex * p_hex * p_hex];
+  CeedScalar     q_ref[dim * q_tet], q_weight[q_tet];
+  CeedScalar     interp[p_tet * q_tet], grad[dim * p_tet * q_tet];
+  CeedScalarType precision = CEED_SCALAR_TYPE;
+  CeedScalar     epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   // Vectors
   CeedVectorCreate(ceed, dim * num_dofs, &x);
@@ -108,11 +126,13 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_tet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restriction_x_tet, basis_x_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
+  CeedOperatorSetPrecision(op_setup_tet, precision);
   // ---- Diff Tet
   CeedOperatorCreate(ceed, qf_diff_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff_tet);
   CeedOperatorSetField(op_diff_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_diff_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_diff_tet, precision);
 
   // Hex Elements
   // -- Restrictions
@@ -152,11 +172,13 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_hex, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_hex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_hex, "dx", elem_restriction_x_hex, basis_x_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
+  CeedOperatorSetPrecision(op_setup_hex, precision);
 
   CeedOperatorCreate(ceed, qf_diff_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff_hex);
   CeedOperatorSetField(op_diff_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_diff_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_diff_hex, precision);
 
   // Composite Operators
   CeedCompositeOperatorCreate(ceed, &op_setup);
@@ -180,7 +202,7 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < num_dofs; i++) {
-      if (fabs(v_array[i]) > 100. * CEED_EPSILON) printf("Computed: %f != True: 0.0\n", v_array[i]);
+      if (fabs(v_array[i]) > 100. * epsilon) printf("Computed: %f != True: 0.0\n", v_array[i]);
     }
     CeedVectorRestoreArrayRead(v, &v_array);
   }

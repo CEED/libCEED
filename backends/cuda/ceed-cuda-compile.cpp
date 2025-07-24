@@ -52,12 +52,20 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
     char *name;
-    int   val;
 
     for (int i = 0; i < num_defines; i++) {
       name = va_arg(args, char *);
-      val  = va_arg(args, int);
-      code << "#define " << name << " " << val << "\n";
+      if (!strcmp(name, "CEED_JIT_PRECISION")) {
+        char *val;
+
+        val = va_arg(args, char *);
+        code << "#define " << name << " " << val << "\n";
+      } else {
+        int val;
+
+        val = va_arg(args, int);
+        code << "#define " << name << " " << val << "\n";
+      }
     }
   }
 
