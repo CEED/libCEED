@@ -1,10 +1,15 @@
 /// @file
 /// Test creation reuse of the same QFunction for multiple operators
 /// \test Test creation reuse of the same QFunction for multiple operators
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "t502-operator.h"
 
@@ -18,8 +23,21 @@ int main(int argc, char **argv) {
   CeedInt             num_elem = 15, p = 5, q = 8, scale = 3, num_comp = 2;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_u = num_elem * (p - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_u[num_elem * p];
+  CeedScalarType      precision = CEED_SCALAR_TYPE;
+  CeedScalar          epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   CeedVectorCreate(ceed, num_nodes_x, &x);
   {
@@ -75,22 +93,26 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_small, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_small, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_small, "x", elem_restriction_x, basis_x_small, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_small, "rho", elem_restriction_q_data_small, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup_small, precision);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_small);
   CeedOperatorSetField(op_mass_small, "rho", elem_restriction_q_data_small, CEED_BASIS_NONE, q_data_small);
   CeedOperatorSetField(op_mass_small, "u", elem_restriction_u, basis_u_small, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_small, "v", elem_restriction_u, basis_u_small, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass_small, precision);
 
   // 'Large' operators
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_large);
   CeedOperatorSetField(op_setup_large, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_large, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_large, "x", elem_restriction_x, basis_x_large, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_large, "rho", elem_restriction_q_data_large, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup_large, precision);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_large);
   CeedOperatorSetField(op_mass_large, "rho", elem_restriction_q_data_large, CEED_BASIS_NONE, q_data_large);
   CeedOperatorSetField(op_mass_large, "u", elem_restriction_u, basis_u_large, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_large, "v", elem_restriction_u, basis_u_large, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass_large, precision);
 
   // Setup
   CeedOperatorApply(op_setup_small, x, q_data_small, CEED_REQUEST_IMMEDIATE);
@@ -121,8 +143,8 @@ int main(int argc, char **argv) {
       sum_2 += v_array[num_comp * i + 1];
     }
     CeedVectorRestoreArrayRead(v, &v_array);
-    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Small Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
-    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Small Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
+    if (fabs(sum_1 - 1.) > 1000. * epsilon) printf("Small Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
+    if (fabs(sum_2 - 2.) > 1000. * epsilon) printf("Small Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
   }
 
   // 'Large' operator
@@ -140,8 +162,8 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(v, &v_array);
 
-    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Large Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
-    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Large Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
+    if (fabs(sum_1 - 1.) > 1000. * epsilon) printf("Large Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
+    if (fabs(sum_2 - 2.) > 1000. * epsilon) printf("Large Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
   }
 
   CeedVectorDestroy(&x);

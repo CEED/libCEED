@@ -1,10 +1,15 @@
 /// @file
 /// Test diagonal assembly of mass matrix operator at points
 /// \test Test diagonal assembly of mass matrix operator at points
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "t500-operator.h"
 
@@ -20,8 +25,21 @@ int main(int argc, char **argv) {
   CeedQFunction       qf_setup, qf_mass;
   CeedOperator        op_setup, op_mass;
   bool                is_at_points;
+  CeedScalarType      precision = CEED_SCALAR_TYPE;
+  CeedScalar          epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   // Mesh coordinates
   for (CeedInt i = 0; i < num_nodes_x; i++) x_array_mesh[i] = (CeedScalar)i / (num_nodes_x - 1);
@@ -93,6 +111,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "x", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup, precision);
   CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 
   CeedOperatorApply(op_setup, x_elem, q_data, CEED_REQUEST_IMMEDIATE);
@@ -107,6 +126,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass, precision);
   CeedOperatorAtPointsSetPoints(op_mass, elem_restriction_x_points, x_points);
 
   CeedOperatorIsAtPoints(op_mass, &is_at_points);
@@ -147,7 +167,7 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
     for (CeedInt i = 0; i < num_nodes_u; i++) {
-      if (fabs(assembled_array[i] - assembled_true[i]) > 100. * CEED_EPSILON) {
+      if (fabs(assembled_array[i] - assembled_true[i]) > 100. * epsilon) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] Error in assembly: %f != %f\n", i, assembled_array[i], assembled_true[i]);
         // LCOV_EXCL_STOP

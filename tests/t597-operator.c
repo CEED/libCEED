@@ -1,17 +1,35 @@
 /// @file
 /// Test full assembly of Poisson operator AtPoints
 /// \test Test full assembly of Poisson operator AtPoints
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "t597-operator.h"
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed           ceed;
+  CeedScalarType precision = CEED_SCALAR_TYPE;
+  CeedScalar     epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   for (CeedInt num_comp = 1; num_comp <= 3; num_comp++) {
     CeedElemRestriction elem_restriction_x, elem_restriction_x_points, elem_restriction_u, elem_restriction_q_data;
@@ -99,6 +117,7 @@ int main(int argc, char **argv) {
     CeedOperatorSetField(op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
     CeedOperatorSetField(op_setup, "q data", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetPrecision(op_setup, precision);
     CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 
     // Apply Setup Operator
@@ -123,6 +142,7 @@ int main(int argc, char **argv) {
     CeedOperatorSetField(op_diff, "du", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_diff, "q data", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
     CeedOperatorSetField(op_diff, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetPrecision(op_diff, precision);
     CeedOperatorAtPointsSetPoints(op_diff, elem_restriction_x_points, x_points);
 
     // Fully assemble operator
@@ -169,7 +189,7 @@ int main(int argc, char **argv) {
     // Check output
     for (CeedInt i = 0; i < num_comp * num_dofs; i++) {
       for (CeedInt j = 0; j < num_comp * num_dofs; j++) {
-        if (fabs(assembled_values[i * num_comp * num_dofs + j] - assembled_true[i * num_comp * num_dofs + j]) > 100. * CEED_EPSILON) {
+        if (fabs(assembled_values[i * num_comp * num_dofs + j] - assembled_true[i * num_comp * num_dofs + j]) > 100. * epsilon) {
           // LCOV_EXCL_START
           printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[i * num_comp * num_dofs + j],
                  assembled_true[i * num_comp * num_dofs + j]);

@@ -1,12 +1,17 @@
 /// @file
 /// Test creation, action, and destruction for mass matrix operator
 /// \test Test creation, action, and destruction for mass matrix operator
+
+//TESTARGS {ceed_resource} fp32
+//TESTARGS {ceed_resource} fp64
+
 #include "t510-operator.h"
 
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "t320-basis.h"
 
@@ -24,8 +29,21 @@ int main(int argc, char **argv) {
   CeedInt             ind_x[num_elem * p];
   CeedScalar          q_ref[dim * q], q_weight[q];
   CeedScalar          interp[p * q], grad[dim * p * q];
+  CeedScalarType      precision = CEED_SCALAR_TYPE;
+  CeedScalar          epsilon   = CEED_EPSILON;
 
   CeedInit(argv[1], &ceed);
+  if (argc == 3) {
+    if (!strcmp(argv[2], "fp32")) {
+      precision = CEED_SCALAR_FP32;
+      epsilon   = FLT_EPSILON;
+    } else if (!strcmp(argv[2], "fp64")) {
+      precision = CEED_SCALAR_FP64;
+    } else {
+      printf("Unknown scalar type: %s\n", argv[2]);
+      exit(1);
+    }
+  }
 
   CeedVectorCreate(ceed, dim * num_dofs, &x);
   {
@@ -90,11 +108,13 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_setup, precision);
 
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass);
   CeedOperatorSetField(op_mass, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetPrecision(op_mass, precision);
 
   CeedOperatorApply(op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
@@ -107,7 +127,7 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < num_dofs; i++) {
-      if (fabs(v_array[i]) > 1e-14) printf("[%" CeedInt_FMT "] v %g != 0.0\n", i, v_array[i]);
+      if (fabs(v_array[i]) > 200 * epsilon) printf("[%" CeedInt_FMT "] v %g != 0.0\n", i, v_array[i]);
     }
     CeedVectorRestoreArrayRead(v, &v_array);
   }
