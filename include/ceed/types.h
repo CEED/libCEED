@@ -75,9 +75,9 @@ pub unsafe extern "C" fn build_mass_rs(
   CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
     return name##_rs(ctx, Q, in, out);                                                                                       \
   }                                                                                                                          \
-
+  __NOP()
 #endif
-// Note: the empty line at the end of the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros
+// Note: __NOP() at the end of the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros
 
 /**
   @ingroup CeedQFunction

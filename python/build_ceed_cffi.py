@@ -35,6 +35,7 @@ def is_valid_line(line):
         return False
     return True
 
+
 def get_ceed_dirs():
     here = os.path.dirname(os.path.abspath(__file__))
     prefix = os.path.dirname(here)
@@ -55,8 +56,7 @@ for header_path in ["include/ceed/types.h", "include/ceed/ceed.h"]:
     with open(os.path.abspath(header_path)) as f:
         lines += [line.strip() for line in f if is_valid_line(line)]
 lines = [line.replace("CEED_EXTERN", "extern") for line in lines]
-print(lines)
-#breakpoint()
+
 # Find scalar type inclusion line and insert definitions
 for line in lines:
     if re.search("ceed-f32.h", line) is not None:
