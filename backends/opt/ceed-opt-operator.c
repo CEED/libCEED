@@ -491,20 +491,24 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector in_vec, CeedVect
   }
 
   // Loop through elements
+  CeedInt ierr = CEED_ERROR_SUCCESS;
+
+  CeedPragmaOMP(parallel for)
   for (CeedInt e = 0; e < num_blocks * block_size; e += block_size) {
     // Input basis apply
-    CeedCallBackend(
-        CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, in_vec, false, e_data, impl, request));
-
+    ierr = CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, in_vec, false, e_data, impl, request) &&
+           ierr;
     // Q function
     if (!impl->is_identity_qf) {
-      CeedCallBackend(CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out));
+      ierr = CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out) && ierr;
     }
 
     // Output basis apply and restriction
-    CeedCallBackend(CeedOperatorOutputBasis_Opt(e, Q, qf_output_fields, op_output_fields, block_size, num_input_fields, num_output_fields,
-                                                impl->apply_add_basis_out, impl->skip_rstr_out, op, out_vec, impl, request));
+    ierr = CeedOperatorOutputBasis_Opt(e, Q, qf_output_fields, op_output_fields, block_size, num_input_fields, num_output_fields,
+                                       impl->apply_add_basis_out, impl->skip_rstr_out, op, out_vec, impl, request) &&
+           ierr;
   }
+  CeedCallBackend(ierr);
 
   // Restore input arrays
   CeedCallBackend(CeedOperatorRestoreInputs_Opt(num_input_fields, qf_input_fields, op_input_fields, e_data, impl));
