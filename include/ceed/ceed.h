@@ -107,6 +107,7 @@ CEED_EXTERN int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
 CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
 CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
+CEED_EXTERN int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root);
 CEED_EXTERN int CeedAddJitDefine(Ceed ceed, const char *jit_define);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
@@ -165,6 +166,9 @@ CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, cons
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release);
 CEED_EXTERN int CeedGetGitVersion(const char **git_version);
 CEED_EXTERN int CeedGetBuildConfiguration(const char **build_config);
+
+CEED_EXTERN int CeedSetIsClang(Ceed ceed, bool isClang);
+CEED_EXTERN int CeedGetIsClang(Ceed ceed, bool *isClang);
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
@@ -369,11 +373,10 @@ CEED_EXTERN int  CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN Ceed CeedQFunctionReturnCeed(CeedQFunction qf);
 CEED_EXTERN int  CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v);
 CEED_EXTERN int  CeedQFunctionDestroy(CeedQFunction *qf);
-
-CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name);
-CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
-CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
-CEED_EXTERN int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode);
+CEED_EXTERN int  CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name);
+CEED_EXTERN int  CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
+CEED_EXTERN int  CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
+CEED_EXTERN int  CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode);
 
 /** Handle for the user provided @ref CeedQFunctionContextDestroy() callback function
 
