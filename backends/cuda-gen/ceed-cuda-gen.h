@@ -10,6 +10,7 @@
 #include <ceed/backend.h>
 #include <ceed/jit-source/cuda/cuda-types.h>
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 typedef struct {
   bool           use_fallback, use_assembly_fallback;
