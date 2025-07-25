@@ -77,7 +77,7 @@ pub unsafe extern "C" fn build_mass_rs(
   }                                                                                                                          \
   __NOP()
 #endif
-// Note: __NOP() at the end of the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros
+// Note: __NOP() at the end of the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros. See /python/build_ceed_cffi.py for more details
 
 /**
   @ingroup CeedQFunction
