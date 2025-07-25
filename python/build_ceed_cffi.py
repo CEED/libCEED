@@ -25,6 +25,8 @@ def is_valid_line(line):
         return False
     if (line.endswith('\\\n')):
         return False
+    if (line.startswith('  __NOP')):
+        return False
     if ("CeedErrorImpl" in line):
         return False
     if (r'const char *, ...);' in line):
