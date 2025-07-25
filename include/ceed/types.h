@@ -73,8 +73,11 @@ pub unsafe extern "C" fn build_mass_rs(
   static const char              name##_loc[] = __FILE__ ":" #name;                                                          \
   CEED_QFUNCTION_ATTR int        name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
   CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
-    return name##_rs(ctx, Q, in, out);}
+    return name##_rs(ctx, Q, in, out);                                                                                       \
+  }                                                                                                                          \
+
 #endif
+// Note: the empty line at the end of the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros
 
 /**
   @ingroup CeedQFunction
