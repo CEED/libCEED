@@ -73,8 +73,7 @@ pub unsafe extern "C" fn build_mass_rs(
   static const char              name##_loc[] = __FILE__ ":" #name;                                                          \
   CEED_QFUNCTION_ATTR int        name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
   CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
-    return name##_rs(ctx, Q, in, out);                                                                                       \
-  }
+    return name##_rs(ctx, Q, in, out);}
 #endif
 
 /**
