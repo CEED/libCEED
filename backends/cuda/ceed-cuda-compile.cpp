@@ -60,9 +60,10 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
 
-   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, using_clang ?
-                "Compiling CUDA with Clang backend (with Rust QFunction support)" :
-                "Compiling CUDA with NVRTC backend (without Rust QFunction support). To use Clang, set the environmental variable GPU_CLANG=1");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS,
+               using_clang
+                   ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
+                   : "Compiling CUDA with NVRTC backend (without Rust QFunction support). To use Clang, set the environmental variable GPU_CLANG=1");
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -234,8 +235,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " +
             rust_dirs[i] + "/Cargo.toml";
       err = system(cmd.c_str());
-     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to build Rust crates for GPU JiT.\nFailed to build Rust crate %d with command: %s", i,
-               cmd.c_str());
+      CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to build Rust crates for GPU JiT.\nFailed to build Rust crate %d with command: %s", i,
+                cmd.c_str());
     }
 
     cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
@@ -243,11 +244,11 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     cmd += opts[4];
     err = system(cmd.c_str());
 
-     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction source to LLVM IR");
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction source to LLVM IR");
 
     cmd = "llvm-link-20 kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll  ";
 
-    // Searches for .rlib files in rust directoy
+    // Searches for .a files in rust directoy
     // Note: this is necessary because rust crate names may not match the folder they are in
     for (int i = 0; i < num_rust_source_dirs; i++) {
       std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
@@ -256,6 +257,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       CeedCheck(dp != nullptr, ceed, CEED_ERROR_BACKEND, "Could not open directory: %s", dir.c_str());
       struct dirent *entry;
 
+      // finds files ending in .a
       while ((entry = readdir(dp)) != nullptr) {
         std::string filename(entry->d_name);
 
@@ -264,37 +266,21 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         }
       }
       closedir(dp);
-      // This code is the equivalent in c++17. When libceed upgrades to c++17, replace the code above with this
-      /*for(auto p : std::filesystem::directory_iterator(dir)){
-                if (p.path().extension() == ".a"){
-                    cmd += p.path().string() + " ";
-                }
-            }*/
+      // Todo: when libceed switches to c++17, switch to std::filesystem for the loop above
     }
 
     err = system(cmd.c_str());
 
     CeedDebug(ceed, "llvm-link command was %s\n", cmd.c_str());
-
-    if (err) {
-      printf("Failed gpu jit task 2 (link c and rust sources with llvm)\n");
-      printf("llvm-link command was %s\n", cmd.c_str());
-      abort();
-    }
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 2 (link c and rust sources with llvm)\nllvm-link command was %s\n", cmd.c_str());
 
     err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
 
-    if (err) {
-      printf("Failed gpu jit task 3 (optimize qfunction)\n");
-      abort();
-    }
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 3 (optimize qfunction)\n");
 
     err = system(("llc -O0 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
 
-    if (err) {
-      printf("Failed gpu jit task 4 (compile llvm)\n");
-      abort();
-    }
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 4 (compile llvm)\n");
 
     ifstream ptxfile("kern.ptx");
 
