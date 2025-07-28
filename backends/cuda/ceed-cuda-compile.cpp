@@ -243,7 +243,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
           " --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
     cmd += opts[4];
     err = system(cmd.c_str());
-
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction source to LLVM IR");
 
     cmd = "llvm-link-20 kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll  ";
