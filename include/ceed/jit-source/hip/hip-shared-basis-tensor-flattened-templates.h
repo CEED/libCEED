@@ -162,6 +162,39 @@ inline __device__ void InterpTransposeTensor2dFlattened(SharedData_Hip &data, Ce
 }
 
 //------------------------------------------------------------------------------
+// 2D interpolate to quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTensorCollocatedNodes2dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                              CeedScalar *__restrict__ r_V) {
+  const int t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
+
+  if (P_1D != T_1D) QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QPack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 2D interpolate transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTransposeTensorCollocatedNodes2dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                                       CeedScalar *__restrict__ r_V) {
+  const int t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
+
+  if (Q_1D != T_1D) QUnpack2d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+}
+
+//------------------------------------------------------------------------------
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -197,6 +230,41 @@ inline __device__ void GradTransposeTensor2dFlattened(SharedData_Hip &data, Ceed
     ContractTransposeX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_G, &r_V[comp]);
     ContractTransposeY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp + 1 * NUM_COMP], c_G, r_t);
     ContractTransposeAddX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, r_t, c_B, &r_V[comp]);
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 2D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes2dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                            const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const int t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
+
+  if (P_1D != T_1D) QUnpack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_G, &r_V[comp + 0 * NUM_COMP]);
+    ContractY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp], c_G, &r_V[comp + 1 * NUM_COMP]);
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  if (Q_1D != T_1D) QPack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 2D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes2dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                                     const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const int t_id_x = data.t_id_x % T_1D, t_id_y = data.t_id_x / T_1D;
+
+  if (Q_1D != T_1D) QUnpack2d<NUM_COMP * 2, Q_1D, T_1D>(data, t_id_x, t_id_y, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeY2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp + 1 * NUM_COMP], c_G, &r_V[comp]);
+    ContractTransposeAddX2dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, &r_U[comp + 0 * NUM_COMP], c_G, &r_V[comp]);
   }
   __syncthreads();
   if (P_1D != T_1D) QPack2d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, r_V);
@@ -433,6 +501,39 @@ inline __device__ void InterpTransposeTensor3dFlattened(SharedData_Hip &data, Ce
 }
 
 //------------------------------------------------------------------------------
+// 3D interpolate to quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTensorCollocatedNodes3dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                              CeedScalar *__restrict__ r_V) {
+  const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
+
+  if (P_1D != T_1D) QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QPack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 3D interpolate transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTransposeTensorCollocatedNodes3dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                                       CeedScalar *__restrict__ r_V) {
+  const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
+
+  if (Q_1D != T_1D) QUnpack3d<NUM_COMP, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+}
+
+//------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -523,6 +624,43 @@ inline __device__ void GradTransposeTensorCollocated3dFlattened(SharedData_Hip &
     ContractTransposeZ3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_B, r_t1);
     ContractTransposeY3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t1, c_B, r_t2);
     ContractTransposeX3dFlattened<NUM_COMP, P_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_t2, c_B, &r_V[comp]);
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes3dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                            const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
+
+  if (P_1D != T_1D) QUnpack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U[comp], c_G, &r_V[comp + 0 * NUM_COMP]);
+    ContractY3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U[comp], c_G, &r_V[comp + 1 * NUM_COMP]);
+    ContractZ3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U[comp], c_G, &r_V[comp + 2 * NUM_COMP]);
+  }
+  __syncthreads();
+  if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  if (Q_1D != T_1D) QPack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes3dFlattened(SharedData_Hip &data, CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                                     const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  const CeedInt t_id_x = data.t_id_x % T_1D, t_id_y = (data.t_id_x / T_1D) % T_1D, t_id_z = data.t_id_x / (T_1D * T_1D);
+
+  if (Q_1D != T_1D) QUnpack3d<NUM_COMP * 3, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_U);
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeZ3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp + 2 * NUM_COMP], c_G, &r_V[comp]);
+    ContractTransposeAddY3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp + 1 * NUM_COMP], c_G, &r_V[comp]);
+    ContractTransposeAddX3dFlattened<NUM_COMP, Q_1D, Q_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, &r_U[comp + 0 * NUM_COMP], c_G, &r_V[comp]);
   }
   __syncthreads();
   if (P_1D != T_1D) QPack3d<NUM_COMP, P_1D, T_1D>(data, t_id_x, t_id_y, t_id_z, r_V);
