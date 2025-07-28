@@ -277,7 +277,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed  to Optimize QFunction LLVM IR");
 
-    err = system(("llc -O0 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
+    err = system(("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction LLVM IR)\n");
 
     ifstream ptxfile("kern.ptx");
