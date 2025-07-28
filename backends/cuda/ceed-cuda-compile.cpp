@@ -220,7 +220,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       CeedDebug(ceed, "There are %d source dirs, including %s\n", num_rust_source_dirs, rust_source_dirs[0]);
     }
 
-    for (int i = 0; i < num_rust_source_dirs; i++) {
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       rust_dirs[i] = std::string(rust_source_dirs[i]);
     }
 
@@ -231,7 +231,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     int         err;
     std::string cmd;
 
-    for (int i = 0; i < num_rust_source_dirs; i++) {
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " +
             rust_dirs[i] + "/Cargo.toml";
       err = system(cmd.c_str());
@@ -250,7 +250,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     // Searches for .a files in rust directoy
     // Note: this is necessary because rust crate names may not match the folder they are in
-    for (int i = 0; i < num_rust_source_dirs; i++) {
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
 
       DIR *dp = opendir(dir.c_str());
@@ -272,15 +272,13 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     err = system(cmd.c_str());
 
     CeedDebug(ceed, "llvm-link command was %s\n", cmd.c_str());
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 2 (link c and rust sources with llvm)\nllvm-link command was %s\n", cmd.c_str());
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to link C and Rust sources with LLVM\nllvm-link command: %s", cmd.c_str());
 
     err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
-
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 3 (optimize qfunction)\n");
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed  to Optimize QFunction LLVM IR");
 
     err = system(("llc -O0 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
-
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed gpu jit task 4 (compile llvm)\n");
+    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction LLVM IR)\n");
 
     ifstream ptxfile("kern.ptx");
 
