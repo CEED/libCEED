@@ -235,6 +235,30 @@ inline __device__ void GradTransposeTensor2d(SharedData_Hip &data, const CeedSca
 }
 
 //------------------------------------------------------------------------------
+// 2D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes2d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                                   CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp], c_G, &r_V[comp + 0 * NUM_COMP]);
+    ContractY2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp], c_G, &r_V[comp + 1 * NUM_COMP]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 2D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes2d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                                            CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeY2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp + 1 * NUM_COMP], c_G, &r_V[comp]);
+    ContractTransposeAddX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp + 0 * NUM_COMP], c_G, &r_V[comp]);
+  }
+}
+
+//------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
 template <int P_1D, int Q_1D>
@@ -516,6 +540,32 @@ inline __device__ void GradTransposeTensorCollocated3d(SharedData_Hip &data, con
     ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t2, c_B, r_t1);
     ContractTransposeY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t1, c_B, r_t2);
     ContractTransposeX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t2, c_B, &r_V[comp * P_1D]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes3d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                                   CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 0 * NUM_COMP * Q_1D]);
+    ContractY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 1 * NUM_COMP * Q_1D]);
+    ContractZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 2 * NUM_COMP * Q_1D]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes3d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_G,
+                                                            CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 2 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
+    ContractTransposeAddY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 1 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
+    ContractTransposeAddX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 0 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
   }
 }
 
