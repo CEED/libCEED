@@ -876,6 +876,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	  "$(includedir)/ceed/jit-source/gallery/" "$(includedir)/ceed/jit-source/magma/"\
 	  "$(includedir)/ceed/jit-source/sycl/" "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/deprecated.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/types.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"

@@ -474,12 +474,7 @@ CEED_EXTERN int  CeedOperatorAssemblyDataStrip(CeedOperator op);
 CEED_EXTERN int  CeedOperatorDestroy(CeedOperator *op);
 
 // Compatibility with previous composite CeedOperator naming
-#define CeedCompositeOperatorCreate(a, b) CeedOperatorCreateComposite(a, b)
-#define CeedCompositeOperatorAddSub(a, b) CeedOperatorCompositeAddSub(a, b)
-#define CeedCompositeOperatorGetNumSub(a, b) CeedOperatorCompositeGetNumSub(a, b)
-#define CeedCompositeOperatorGetSubList(a, b) CeedOperatorCompositeGetSubList(a, b)
-#define CeedCompositeOperatorGetSubByName(a, b) CeedOperatorCompositeGetSubByName(a, b, c)
-#define CeedCompositeOperatorGetMultiplicity(a, b, c, d) CeedOperatorCompositeGetMultiplicity(a, b, c, d)
+#include "deprecated.h"
 
 CEED_EXTERN int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field);
 CEED_EXTERN int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name);
