@@ -6,7 +6,6 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
-#include "ceed/types.h"
 
 const char *CeedGitVersion         = CEED_GIT_VERSION;
 const char *CeedBuildConfiguration = CEED_BUILD_CONFIGURATION;

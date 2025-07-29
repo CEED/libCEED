@@ -1326,6 +1326,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // By default, make cuda compile without clang, use nvrtc instead
   // Note that this is overridden if a rust file is included (rust requires clang)
   const char *env = getenv("GPU_CLANG");
+  
   if (env && strcmp(env, "1") == 0) {
     (*ceed)->cuda_compile_with_clang = true;
   } else {
