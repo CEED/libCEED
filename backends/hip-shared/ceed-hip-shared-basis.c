@@ -692,6 +692,7 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(ComputeBasisThreadBlockSizes(dim, P_1d, Q_1d, num_comp, data->block_sizes));
 
   // Compile basis kernels
+  bool       is_collocated         = false;
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/hip/hip-shared-basis-tensor.h>\n";
 
   CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 11, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
@@ -699,12 +700,14 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
                                   "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_INTERP_BLOCK_SIZE", data->block_sizes[0], "BASIS_GRAD_BLOCK_SIZE",
                                   data->block_sizes[1], "BASIS_WEIGHT_BLOCK_SIZE", data->block_sizes[2], "BASIS_HAS_COLLOCATED_GRAD",
                                   has_collocated_grad));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTranspose", &data->GradTranspose));
-  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
+  CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(
+      CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd", &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocated" : "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocatedTranspose" : "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocatedTransposeAdd" : "GradTransposeAdd", &data->GradTransposeAdd));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
 
   CeedCallBackend(CeedBasisSetData(basis, data));

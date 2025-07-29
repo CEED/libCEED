@@ -67,6 +67,28 @@ inline __device__ void InterpTranspose1d(SharedData_Cuda &data, const CeedScalar
 }
 
 //------------------------------------------------------------------------------
+// 1D interpolate to quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpCollocatedNodes1d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                               CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+}
+
+//------------------------------------------------------------------------------
+// 1D interpolate transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTransposeCollocatedNodes1d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                        CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+}
+
+//------------------------------------------------------------------------------
 // 1D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -206,6 +228,28 @@ inline __device__ void InterpTransposeTensor2d(SharedData_Cuda &data, const Ceed
 }
 
 //------------------------------------------------------------------------------
+// 2D interpolate to quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTensorCollocatedNodes2d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                     CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+}
+
+//------------------------------------------------------------------------------
+// 2D interpolate transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTransposeTensorCollocatedNodes2d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                              CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    r_V[comp] = r_U[comp];
+  }
+}
+
+//------------------------------------------------------------------------------
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -232,6 +276,30 @@ inline __device__ void GradTransposeTensor2d(SharedData_Cuda &data, const CeedSc
     ContractTransposeX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t, c_G, &r_V[comp]);
     ContractTransposeY2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp + 1 * NUM_COMP], c_G, r_t);
     ContractTransposeAddX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t, c_B, &r_V[comp]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 2D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes2d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                   const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp], c_G, &r_V[comp + 0 * NUM_COMP]);
+    ContractY2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp], c_G, &r_V[comp + 1 * NUM_COMP]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 2D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes2d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                            const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeY2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp + 1 * NUM_COMP], c_G, &r_V[comp]);
+    ContractTransposeAddX2d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp + 0 * NUM_COMP], c_G, &r_V[comp]);
   }
 }
 
@@ -444,6 +512,32 @@ inline __device__ void InterpTransposeTensor3d(SharedData_Cuda &data, const Ceed
 }
 
 //------------------------------------------------------------------------------
+// 3D interpolate to quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTensorCollocatedNodes3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                     CeedScalar *__restrict__ r_V) {
+  for (CeedInt i = 0; i < Q_1D; i++) {
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      r_V[i + comp * Q_1D] = r_U[i + comp * P_1D];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D interpolate transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void InterpTransposeTensorCollocatedNodes3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                              CeedScalar *__restrict__ r_V) {
+  for (CeedInt i = 0; i < Q_1D; i++) {
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      r_V[i + comp * P_1D] = r_U[i + comp * Q_1D];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
@@ -518,6 +612,32 @@ inline __device__ void GradTransposeTensorCollocated3d(SharedData_Cuda &data, co
     ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t2, c_B, r_t1);
     ContractTransposeY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t1, c_B, r_t2);
     ContractTransposeX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, r_t2, c_B, &r_V[comp * P_1D]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives at quadrature points, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTensorCollocatedNodes3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                   const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 0 * NUM_COMP * Q_1D]);
+    ContractY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 1 * NUM_COMP * Q_1D]);
+    ContractZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * P_1D], c_G, &r_V[comp * Q_1D + 2 * NUM_COMP * Q_1D]);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives transpose, nodes and quadrature points collocated
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
+inline __device__ void GradTransposeTensorCollocatedNodes3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B,
+                                                            const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 2 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
+    ContractTransposeAddY3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 1 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
+    ContractTransposeAddX3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, &r_U[comp * Q_1D + 0 * NUM_COMP * Q_1D], c_G, &r_V[comp * P_1D]);
   }
 }
 

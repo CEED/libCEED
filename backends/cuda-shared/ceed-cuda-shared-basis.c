@@ -627,18 +627,21 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   }
 
   // Compile basis kernels
+  bool       is_collocated         = false;
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
   CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
                                    CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
                                    "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTranspose", &data->GradTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
+  CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(
+      CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd", &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocated" : "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTranspose" : "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTransposeAdd" : "GradTransposeAdd", &data->GradTransposeAdd));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Weight", &data->Weight));
 
   CeedCallBackend(CeedBasisSetData(basis, data));

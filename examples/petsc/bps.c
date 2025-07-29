@@ -114,6 +114,15 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
 
+    bool is_combined_bp = rp->bp_choice > CEED_BP6;
+    char bp_name[6]     = "";
+
+    if (is_combined_bp) {
+      PetscCall(PetscSNPrintf(bp_name, 6, "%d + %d", rp->bp_choice % 2 ? 2 : 1, rp->bp_choice - CEED_BP4));
+    } else {
+      PetscCall(PetscSNPrintf(bp_name, 6, "%d", rp->bp_choice + 1));
+    }
+
     VecType vec_type;
     PetscCall(VecGetType(X, &vec_type));
 
@@ -125,7 +134,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
     PetscMPIInt      comm_size;
     PetscCall(MPI_Comm_size(rp->comm, &comm_size));
     PetscCall(PetscPrintf(rp->comm,
-                          "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
+                          "\n-- CEED Benchmark Problem %s -- libCEED + PETSc --\n"
                           "  MPI:\n"
                           "    Hostname                                : %s\n"
                           "    Total ranks                             : %d\n"
@@ -144,8 +153,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
                           "    Element topology                        : %s\n"
                           "    Owned nodes                             : %" PetscInt_FMT "\n"
                           "    DoF per node                            : %" PetscInt_FMT "\n",
-                          rp->bp_choice + 1, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P,
-                          Q, rp->q_extra, g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u,
+                          bp_name, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q,
+                          rp->q_extra, g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u,
                           rp->num_comp_u));
   }
 
@@ -185,9 +194,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   {
     PC pc;
     PetscCall(KSPGetPC(ksp, &pc));
-    if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2 || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24) {
+    if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2 || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24 ||
+        rp->bp_choice == CEED_BP15 || rp->bp_choice == CEED_BP26) {
       PetscCall(PCSetType(pc, PCJACOBI));
-      if (rp->simplex || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24) {
+      if (rp->simplex || rp->bp_choice == CEED_BP13 || rp->bp_choice == CEED_BP24 || rp->bp_choice == CEED_BP15 || rp->bp_choice == CEED_BP26) {
         PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
       } else {
         PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
@@ -260,6 +270,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
       // Tighter tol for BP1, BP2
       // Looser tol for BP3, BP4, BP5, and BP6 with extra for vector valued problems
       // BP1+3 and BP2+4 follow the pattern for BP3 and BP4
+      // BP1+5 and BP2+6 follow the pattern for BP5 and BP6
       PetscReal tol = rp->bp_choice < CEED_BP3 ? 5e-4 : (5e-2 + (rp->bp_choice % 2 == 1 ? 5e-3 : 0));
       if (!rp->test_mode || l2_error > tol) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm));
