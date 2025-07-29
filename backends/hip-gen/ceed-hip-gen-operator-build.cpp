@@ -207,11 +207,19 @@ static int CeedOperatorBuildKernelData_Hip_gen(Ceed ceed, CeedInt num_input_fiel
 static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, CeedOperator_Hip_gen *data, Tab &tab, CeedInt i,
                                                     CeedOperatorField op_field, CeedQFunctionField qf_field, FieldReuse_Hip field_reuse,
                                                     CeedInt max_dim, CeedInt Q, CeedInt Q_1d, bool is_input, bool is_all_tensor, bool is_at_points,
-                                                    bool use_3d_slices) {
-  bool      is_tensor = true;
+                                                    bool use_3d_slices, bool skip_active_load) {
+  bool      is_tensor = true, is_active = true;
   CeedBasis basis;
+
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
   if (basis != CEED_BASIS_NONE) CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+  {
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorFieldGetVector(op_field, &vec));
+    is_active = vec == CEED_VECTOR_ACTIVE;
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
 
   const char           *field_name;
   std::string           var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
@@ -283,7 +291,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
         if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
         else data->B.outputs[i] = basis_data->d_interp_1d;
       }
-      if (use_previous_field) {
+      if (use_previous_field && !skip_active_load) {
         std::string reuse_var = "s_B" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
         code << tab << "CeedScalar *s_B" << var_suffix << " = " << reuse_var << ";\n";
@@ -291,7 +299,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
         bool is_collocated = false;
 
         CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
-        if (is_collocated && !is_at_points) {
+        if ((is_active && skip_active_load) || (is_collocated && !is_at_points)) {
           code << tab << "CeedScalar *s_B" << var_suffix << " = NULL;\n";
         } else {
           code << tab << "__shared__ CeedScalar s_B" << var_suffix << "[" << P_name << "*" << Q_name << "];\n";
@@ -322,7 +330,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
         else data->B.outputs[i] = basis_data->d_interp_1d;
       }
       if (is_tensor) {
-        if (use_previous_field) {
+        if (use_previous_field && !skip_active_load) {
           std::string reuse_var = "s_B" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
           code << tab << "CeedScalar *s_B" << var_suffix << " = " << reuse_var << ";\n";
@@ -330,7 +338,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
           bool is_collocated = false;
 
           CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
-          if (is_collocated && !is_at_points) {
+          if ((is_active && skip_active_load) || (is_collocated && !is_at_points)) {
             code << tab << "CeedScalar *s_B" << var_suffix << " = NULL;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_B" << var_suffix << "[" << P_name << "*" << Q_name << "];\n";
@@ -342,10 +350,12 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
       if (use_3d_slices) {
         if (is_input) data->G.inputs[i] = basis_data->d_collo_grad_1d;
         else data->G.outputs[i] = basis_data->d_collo_grad_1d;
-        if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+        if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD && !skip_active_load) {
           std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
           code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
+        } else if (is_active && skip_active_load) {
+          code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
         } else {
           code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << Q_name << "*" << Q_name << "];\n";
           code << tab << "LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
@@ -356,19 +366,23 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
         if (is_input) data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         else data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         if (has_collo_grad) {
-          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD && !skip_active_load) {
             std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
             code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
+          } else if (is_active && skip_active_load) {
+            code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << Q_name << "*" << Q_name << "];\n";
             code << tab << "LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
           }
         } else {
-          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD) {
+          if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD && !skip_active_load) {
             std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
             code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
+          } else if (is_active && skip_active_load) {
+            code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << P_name << "*" << Q_name << (is_tensor ? "" : "*dim")
                  << (is_tensor ? "" : var_suffix) << "];\n";
@@ -1465,12 +1479,12 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   code << "\n" << tab << "// Input field constants and basis data\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_input_fields[i], qf_input_fields[i], input_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices, false));
   }
   code << "\n" << tab << "// Output field constants and basis data\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_output_fields[i], qf_output_fields[i], output_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices, false));
   }
 
   // Loop over all elements
@@ -1823,12 +1837,12 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   code << "\n" << tab << "// Input field constants and basis data\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_input_fields[i], qf_input_fields[i], input_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices, false));
   }
   code << "\n" << tab << "// Output field constants and basis data\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_output_fields[i], qf_output_fields[i], output_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices, false));
   }
 
   // Loop over all elements
@@ -2380,12 +2394,12 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   code << "\n" << tab << "// Input field constants and basis data\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_input_fields[i], qf_input_fields[i], input_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices, true));
   }
   code << "\n" << tab << "// Output field constants and basis data\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, tab, i, op_output_fields[i], qf_output_fields[i], output_matrix_reuse[i],
-                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices));
+                                                             max_dim, Q, Q_1d, false, is_all_tensor, is_at_points, use_3d_slices, true));
   }
 
   // Loop over all elements
