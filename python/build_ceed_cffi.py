@@ -17,15 +17,9 @@ ceed_version_ge = re.compile(r'\s+\(!?CEED_VERSION.*')
 def is_valid_line(line):
     if (line.startswith("#") and not line.startswith("#include")):
         return False
-    if (line.startswith("  static")):
-        return False
     if (line.startswith("  CEED_QFUNCTION_ATTR")):
         return False
-    if (line.startswith("    return name##_rs")):
-        return False
     if (line.endswith('\\\n')):
-        return False
-    if (line.startswith('  __NOP')):
         return False
     if ("CeedErrorImpl" in line):
         return False
