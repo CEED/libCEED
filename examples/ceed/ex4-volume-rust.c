@@ -40,10 +40,10 @@
 
 #include <ceed.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 // Auxiliary functions
 int        GetCartesianMeshSize(CeedInt dim, CeedInt degree, CeedInt prob_size, CeedInt num_xyz[dim]);
@@ -176,8 +176,6 @@ int main(int argc, const char *argv[]) {
   // Create the QFunction that builds the mass operator (i.e. computes its quadrature data) and set its context data.
   CeedQFunction qf_build;
 
-
-
   if (gallery) {
     // This creates the QFunction via the gallery.
     char name[13] = "";
@@ -190,7 +188,6 @@ int main(int argc, const char *argv[]) {
     CeedQFunctionAddInput(qf_build, "weights", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddOutput(qf_build, "qdata", 1, CEED_EVAL_NONE);
     CeedQFunctionSetContext(qf_build, build_ctx);
-
   }
 
   // Create the operator that builds the quadrature data for the mass operator.

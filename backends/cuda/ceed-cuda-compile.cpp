@@ -250,7 +250,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     // Note: this is necessary because rust crate names may not match the folder they are in
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
-      DIR *dp = opendir(dir.c_str());
+      DIR        *dp  = opendir(dir.c_str());
 
       CeedCheck(dp != nullptr, ceed, CEED_ERROR_BACKEND, "Could not open directory: %s", dir.c_str());
       struct dirent *entry;
@@ -277,13 +277,13 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     err = system(("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction LLVM IR)\n");
 
-    ifstream ptxfile("kern.ptx");
+    ifstream      ptxfile("kern.ptx");
     ostringstream sstr;
-    
+
     sstr << ptxfile.rdbuf();
-    
+
     auto ptx_data = sstr.str();
-    ptx_size = ptx_data.length();
+    ptx_size      = ptx_data.length();
 
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
     CeedCallBackend(CeedFree(&ptx_data));
