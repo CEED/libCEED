@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-//                             libCEED Example 4
+//                             libCEED Example 1
 //
 // This example illustrates a simple usage of libCEED to compute the volume of a 3D body using matrix-free application of a mass operator.
 // Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the same code.
@@ -17,13 +17,13 @@
 //
 // Build with:
 //
-//     make 4-volume [CEED_DIR=</path/to/libceed>]
+//     make ex1-volume-rust [CEED_DIR=</path/to/libceed>]
 //
 // Sample runs:
 //
-//     ./ex4-volume
-//     ./ex4-volume -ceed /cpu/self
-//     ./ex4-volume -ceed /gpu/cuda
+//     ./ex1-volume
+//     ./ex1-volume -ceed /cpu/self
+//     ./ex1-volume -ceed /gpu/cuda
 //
 // Test in 1D-3D
 //TESTARGS(name="1D User QFunction") -ceed {ceed_resource} -d 1 -t
@@ -36,7 +36,7 @@
 /// @file
 /// libCEED example using mass operator to compute volume
 
-#include "ex4-volume-rust.h"
+#include "ex1-volume-rust.h"
 
 #include <ceed.h>
 #include <math.h>
@@ -122,7 +122,7 @@ int main(int argc, const char *argv[]) {
   CeedInit(ceed_spec, &ceed);
 
   // This is the only difference from example 1 - it adds the path the the rust crate to the ceed object
-  CeedAddRustSourceRoot(ceed, "ex4-volume-rs");
+  CeedAddRustSourceRoot(ceed, "ex1-volume-rs");
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;

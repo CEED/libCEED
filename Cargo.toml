@@ -10,4 +10,4 @@ members = [
     "examples/rust/ex3-volume-vector",
     "examples/rust/mesh",
 ]
-exclude = ["examples/ceed/ex4-volume-rs"]
+exclude = ["examples/rust-qfunctions/ex1-volume-rs"]

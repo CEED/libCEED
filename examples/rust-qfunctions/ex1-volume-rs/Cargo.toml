@@ -1,5 +1,5 @@
 [package]
-name = "ex4-volume-rs"
+name = "ex1-volume-rs"
 version = "0.1.0"
 edition = "2021"
 
