@@ -19,7 +19,7 @@ def is_valid_line(line):
         return False
     if (line.startswith("  CEED_QFUNCTION_ATTR")):
         return False
-    if (line.startswith("  static")):
+    if (line.startswith("  static const char")):
         return False
     if (line.endswith('\\\n')):
         return False
