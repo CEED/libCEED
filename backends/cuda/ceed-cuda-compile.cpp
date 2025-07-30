@@ -239,12 +239,12 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-          " --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
+          " --cuda-device-only -emit-llvm -S temp-jit.cu -o kernel.ll ";
     cmd += opts[4];
     err = system(cmd.c_str());
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction source to LLVM IR");
 
-    cmd = "llvm-link-20 kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll  ";
+    cmd = "llvm-link-20 kernel.ll --ignore-non-bitcode --internalize --only-needed -S -o kernel2.ll  ";
 
     // Searches for .a files in rust directoy
     // Note: this is necessary because rust crate names may not match the folder they are in
@@ -271,13 +271,13 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     err = system(cmd.c_str());
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to link C and Rust sources with LLVM\nllvm-link command: %s", cmd.c_str());
 
-    err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
+    err = system("opt --passes internalize,inline kernel2.ll -o kernel3.bc");
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed  to Optimize QFunction LLVM IR");
 
-    err = system(("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
+    err = system(("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kernel3.bc -o kernel.ptx").c_str());
     CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction LLVM IR)\n");
 
-    ifstream      ptxfile("kern.ptx");
+    ifstream      ptxfile("kernel.ptx");
     ostringstream sstr;
 
     sstr << ptxfile.rdbuf();
