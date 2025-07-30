@@ -36,6 +36,25 @@
   } while (0)
 
 //------------------------------------------------------------------------------
+// Call system command and capture stdout + stderr
+//------------------------------------------------------------------------------
+static int CeedCallSystem(Ceed ceed, const char *command, const char *message) {
+  CeedDebug(ceed, "Running command:\n$ %s\n", command);
+  FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
+
+  CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to %s with command: %s", message, command);
+
+  char output[4 * CEED_MAX_RESOURCE_LEN];
+
+  while (fgets(output, sizeof(output), output_stream) != nullptr) {
+  }
+  CeedDebug(ceed, "Command output:\n%s\n", output);
+
+  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s with error: %s", message, output);
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
 using std::ifstream;
@@ -61,9 +80,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
 
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS,
-               using_clang
-                   ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
-                   : "Compiling CUDA with NVRTC backend (without Rust QFunction support). To use Clang, set the environmental variable GPU_CLANG=1");
+               using_clang ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
+                           : "Compiling CUDA with NVRTC backend (without Rust QFunction support).\nTo use the Clang backend, set the environment "
+                             "variable GPU_CLANG=1");
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -198,12 +217,10 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     CeedCallBackend(CeedFree(&ptx));
     return CEED_ERROR_SUCCESS;
   } else {
-    const char *full_filename = "temp-jit.cu";
+    const char *full_filename = "temp_kernel_source.cu";
     FILE       *file          = fopen(full_filename, "w");
-    if (!file) {
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "Failed to create file. Write access is required for cuda-clang\n");
-      return 1;
-    }
+
+    CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cuda-clang\n");
     fputs(code.str().c_str(), file);
     fclose(file);
 
@@ -226,26 +243,22 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_dirs));
 
-    // Compile with rust
-    int         err;
-    std::string cmd;
+    // Compile Rust crate(s) needed
+    std::string command;
 
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
-      cmd = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " +
-            rust_dirs[i] + "/Cargo.toml";
-      err = system(cmd.c_str());
-      CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to build Rust crates for GPU JiT.\nFailed to build Rust crate %d with command: %s", i,
-                cmd.c_str());
+      command = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " +
+                rust_dirs[i] + "/Cargo.toml";
+      CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "build Rust crate"));
     }
 
-    cmd = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-          " --cuda-device-only -emit-llvm -S temp-jit.cu -o kern.ll ";
-    cmd += opts[4];
-    err = system(cmd.c_str());
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction source to LLVM IR");
+    // Compile wrapper kernel
+    command = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
+              " --cuda-device-only -emit-llvm -S temp_kernel_source.cu -o temp_kernel.ll ";
+    command += opts[4];
+    CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "JiT kernel source"));
 
-    cmd = "llvm-link-20 kern.ll --ignore-non-bitcode --internalize --only-needed -S -o kern2.ll  ";
-
+    command = "llvm-link-20 temp_kernel.ll --ignore-non-bitcode --internalize --only-needed -S -o temp_kernel_linked.ll  ";
     // Searches for .a files in rust directoy
     // Note: this is necessary because rust crate names may not match the folder they are in
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
@@ -260,24 +273,23 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         std::string filename(entry->d_name);
 
         if (filename.size() >= 2 && filename.substr(filename.size() - 2) == ".a") {
-          cmd += dir + "/" + filename + " ";
+          command += dir + "/" + filename + " ";
         }
       }
       closedir(dp);
-      // Todo: when libceed switches to c++17, switch to std::filesystem for the loop above
+      // TODO: when libCEED switches to c++17, switch to std::filesystem for the loop above
     }
 
-    CeedDebug(ceed, "Running llvm-link: %s\n", cmd.c_str());
-    err = system(cmd.c_str());
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to link C and Rust sources with LLVM\nllvm-link command: %s", cmd.c_str());
+    // Link, optimize, and compile final CUDA kernel
+    CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "link C and Rust source"));
+    CeedCallBackend(
+        CeedCallSystem(ceed, "opt --passes internalize,inline temp_kernel_linked.ll -o temp_kernel_opt.bc", "optimize linked C and Rust source"));
+    CeedCallBackend(CeedCallSystem(
+        ceed,
+        ("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " temp_kernel_opt.bc -o temp_kernel_final.ptx").c_str(),
+        "compile final CUDA kernel"));
 
-    err = system("opt --passes internalize,inline kern2.ll -o kern3.bc");
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed  to Optimize QFunction LLVM IR");
-
-    err = system(("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " kern3.bc -o kern.ptx").c_str());
-    CeedCheck(!err, ceed, CEED_ERROR_BACKEND, "Failed to compile QFunction LLVM IR)\n");
-
-    ifstream      ptxfile("kern.ptx");
+    ifstream      ptxfile("temp_kernel_final.ptx");
     ostringstream sstr;
 
     sstr << ptxfile.rdbuf();
@@ -285,8 +297,21 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     auto ptx_data = sstr.str();
     ptx_size      = ptx_data.length();
 
-    CeedCallCuda(ceed, cuModuleLoadData(module, ptx_data.c_str()));
-    CeedCallBackend(CeedFree(&ptx_data));
+    int result = cuModuleLoadData(module, ptx_data.c_str());
+
+    *is_compile_good = result == 0;
+    if (!*is_compile_good) {
+      if (throw_error) {
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
+      } else {
+        // LCOV_EXCL_START
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+        CeedDebug(ceed, "Error: Failed to load module data");
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+        return CEED_ERROR_SUCCESS;
+        // LCOV_EXCL_STOP
+      }
+    }
   }
   return CEED_ERROR_SUCCESS;
 }
