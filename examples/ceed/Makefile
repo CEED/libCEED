@@ -24,6 +24,11 @@ all: $(EXAMPLES)
 # Remove built-in rules
 %: %.c
 
+# Special build rule for example 4 (rust)
+ex4-volume-rust: ex4-volume-rust.c
+	cargo +nightly build --release --manifest-path ex4-volume-rs/Cargo.toml --config ex4-volume-rs/.cargo/config.toml
+	$(LINK.c) $(CEED_FLAGS) $(CEED_LDFLAGS) $< -o $@ $(CEED_LIBS) -L$(CEED_DIR)/examples/ceed/ex4-volume-rs/target/release -lex4_volume_rs
+
 # Rules for building the examples
 %: %.c
 	$(LINK.c) $(CEED_FLAGS) $(CEED_LDFLAGS) $< -o $@ $(CEED_LIBS)
