@@ -35,10 +35,12 @@
     CeedChk_Nvrtc(ceed, ierr_q_); \
   } while (0)
 
+#define CeedCallSystem(ceed, command, message) CeedCallBackend(CeedCallSystem_Core(ceed, command, message))
+
 //------------------------------------------------------------------------------
 // Call system command and capture stdout + stderr
 //------------------------------------------------------------------------------
-static int CeedCallSystem(Ceed ceed, const char *command, const char *message) {
+static int CeedCallSystem_Core(Ceed ceed, const char *command, const char *message) {
   CeedDebug(ceed, "Running command:\n$ %s\n", command);
   FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
 
@@ -249,14 +251,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       command = "cargo +nightly build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] + "/.cargo/config.toml --manifest-path " +
                 rust_dirs[i] + "/Cargo.toml";
-      CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "build Rust crate"));
+      CeedCallSystem(ceed, command.c_str(), "build Rust crate");
     }
 
     // Compile wrapper kernel
     command = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
               " --cuda-device-only -emit-llvm -S temp_kernel_source.cu -o temp_kernel.ll ";
     command += opts[4];
-    CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "JiT kernel source"));
+    CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
 
     command = "llvm-link-20 temp_kernel.ll --ignore-non-bitcode --internalize --only-needed -S -o temp_kernel_linked.ll  ";
     // Searches for .a files in rust directoy
@@ -281,13 +283,12 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     // Link, optimize, and compile final CUDA kernel
-    CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "link C and Rust source"));
-    CeedCallBackend(
-        CeedCallSystem(ceed, "opt --passes internalize,inline temp_kernel_linked.ll -o temp_kernel_opt.bc", "optimize linked C and Rust source"));
-    CeedCallBackend(CeedCallSystem(
+    CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
+    CeedCallSystem(ceed, "opt --passes internalize,inline temp_kernel_linked.ll -o temp_kernel_opt.bc", "optimize linked C and Rust source");
+    CeedCallSystem(
         ceed,
         ("llc -O3 -mcpu=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) + " temp_kernel_opt.bc -o temp_kernel_final.ptx").c_str(),
-        "compile final CUDA kernel"));
+        "compile final CUDA kernel");
 
     ifstream      ptxfile("temp_kernel_final.ptx");
     ostringstream sstr;
