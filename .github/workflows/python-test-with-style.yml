@@ -23,10 +23,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Python dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
     - name: Python test
       env:
         CC: ${{ matrix.compiler }}
@@ -35,7 +31,7 @@ jobs:
         make info
         make -j2
         export CEED_DIR=$PWD
-        pip install .
+        pip install '.[test]'
         cd python/tests
         PYTHON=python3 make test TEST_OPTS="--ceed /cpu/self/ref/serial -vv"
         cd ../../examples/python
