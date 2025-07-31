@@ -125,6 +125,7 @@ int main(int argc, const char *argv[]) {
   {
     char  root[2048] = __FILE__;
     char *last_slash = strrchr(root, '/');
+
     strncpy(last_slash + 1, "ex1-volume-rs", 14);
     CeedAddRustSourceRoot(ceed, root);
   }
