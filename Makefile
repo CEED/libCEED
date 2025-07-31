@@ -915,6 +915,7 @@ cln clean :
 	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(call quiet,MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
+	$(RM) -f temp_*
 
 distclean : clean
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)

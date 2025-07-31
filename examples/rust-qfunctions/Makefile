@@ -31,4 +31,5 @@ ex1-volume: ex1-volume.c
 
 clean:
 	rm -f *~ $(EXAMPLES)
+	rm -f temp_*
 	rm -rf *.dSYM *.TVD.*breakpoints
