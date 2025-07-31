@@ -1,0 +1,17 @@
+[package]
+name = "ex1-volume-rs"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+# Compiles the crate as a lib (for GPU) and staticlib (for CPU)
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+ndarray = {version = "0.16.1", default-features = false}

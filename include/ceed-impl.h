@@ -98,7 +98,10 @@ struct Ceed_private {
   int          obj_delegate_count;
   Ceed         op_fallback_ceed;
   char       **jit_source_roots;
+  char       **rust_source_roots;
+  CeedInt      num_rust_source_roots, max_rust_source_roots, num_rust_source_roots_readers;
   CeedInt      num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
+  bool         cuda_compile_with_clang;
   char       **jit_defines;
   CeedInt      num_jit_defines, max_jit_defines, num_jit_defines_readers;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);

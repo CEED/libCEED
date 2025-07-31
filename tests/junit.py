@@ -51,6 +51,8 @@ class CeedSuiteSpec(SuiteSpec):
             Path: Path to source file
         """
         prefix, rest = test.split('-', 1)
+        if prefix == 'rustqfunctions':
+            return (Path('examples') / 'rust-qfunctions' / rest).with_suffix('.c')
         if prefix == 'petsc':
             return (Path('examples') / 'petsc' / rest).with_suffix('.c')
         elif prefix == 'mfem':
