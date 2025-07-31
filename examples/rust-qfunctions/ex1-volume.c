@@ -122,12 +122,12 @@ int main(int argc, const char *argv[]) {
   CeedInit(ceed_spec, &ceed);
 
   // Add the path to the Rust crate to the ceed object.
-    {
-      char  root[2048] = __FILE__;
-      char *last_slash = strrchr(root, '/');
-      strncpy(last_slash + 1, "ex1-volume-rs", 14);
-      CeedAddRustSourceRoot(ceed, root);
-    }
+  {
+    char  root[2048] = __FILE__;
+    char *last_slash = strrchr(root, '/');
+    strncpy(last_slash + 1, "ex1-volume-rs", 14);
+    CeedAddRustSourceRoot(ceed, root);
+  }
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;
