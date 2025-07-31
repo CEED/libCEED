@@ -267,7 +267,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     command += opts[4];
     CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "JiT kernel source"));
 
-    // the $(find $(rustc --print sysroot) -name llvm-link) finds the rust-installed llvm-link tool and runs it
+    // the find command finds the rust-installed llvm-link tool and runs it
     command =
         "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp_kernel.ll --ignore-non-bitcode --internalize --only-needed -S -o "
         "temp_kernel_linked.ll  ";
@@ -294,7 +294,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     // Link, optimize, and compile final CUDA kernel
-    // note that $(find $(rustc --print sysroot) -name [llvm tool]) is used to find the rust-installed llvm tool
+    // note that the find command is used to find the rust-installed llvm tool
     CeedCallBackend(CeedCallSystem(ceed, command.c_str(), "link C and Rust source"));
     CeedCallBackend(CeedCallSystem(
         ceed, ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline temp_kernel_linked.ll -o temp_kernel_opt.bc").c_str(),
