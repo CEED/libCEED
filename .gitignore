@@ -52,7 +52,7 @@ doc/sphinx/build/
 doc/sphinx/source/examples/
 
 # Clang GPU temp files
-temp_*
+temp/*
 
 # Output files, videos, and compressed archives should not be added accidentally
 *.avi

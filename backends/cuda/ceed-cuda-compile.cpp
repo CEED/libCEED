@@ -15,6 +15,7 @@
 #include <nvrtc.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cstdlib>
@@ -54,7 +55,7 @@ static int CeedCallSystem_Core(Ceed ceed, const char *command, const char *messa
   }
   CeedDebug(ceed, "Command output:\n%s\n", output);
 
-  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s with error: %s", message, output);
+  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s with command: %s\nand error: %s", message, command, output);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -154,8 +155,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   // Add string source argument provided in call
   code << source;
 
-  // Create Program
-
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
@@ -221,15 +220,31 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     CeedCallBackend(CeedFree(&ptx));
     return CEED_ERROR_SUCCESS;
   } else {
-    const char *full_filename = "temp_kernel_source.cu";
-    FILE       *file          = fopen(full_filename, "w");
+    srand(time(NULL));
+    const int build_id = rand();
 
-    CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cuda-clang\n");
-    fputs(code.str().c_str(), file);
-    fclose(file);
+    // Create temp dir if needed
+    {
+      DIR *dir = opendir("temp");
+
+      if (dir) {
+        closedir(dir);
+      } else {
+        mkdir("temp", 0777);
+        chmod("temp", 0777);
+      }
+    }
+    // Write code to temp file
+    {
+      std::string filename = std::string("temp/kernel_") + std::to_string(build_id) + std::string("_0_source.cu");
+      FILE       *file     = fopen(filename.c_str(), "w");
+
+      CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cuda-clang");
+      fputs(code.str().c_str(), file);
+      fclose(file);
+    }
 
     // Get rust crate directories
-
     const char **rust_source_dirs     = nullptr;
     int          num_rust_source_dirs = 0;
 
@@ -265,14 +280,17 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     // Compile wrapper kernel
     command = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-              " --cuda-device-only -emit-llvm -S temp_kernel_source.cu -o temp_kernel.ll ";
+              " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) + "_0_source.cu -o temp/kernel_" +
+              std::to_string(build_id) + "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
 
     // the find command finds the rust-installed llvm-link tool and runs it
-    command = "$(find $(rustup run " + std::string(rust_toolchain) +
-              " rustc --print sysroot) -name llvm-link) temp_kernel.ll --ignore-non-bitcode --internalize --only-needed -S -o "
-              "temp_kernel_linked.ll  ";
+    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
+              std::to_string(build_id) +
+              "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o "
+              "temp/kernel_" +
+              std::to_string(build_id) + "_2_linked.ll ";
 
     // Searches for .a files in rust directoy
     // Note: this is necessary because rust crate names may not match the folder they are in
@@ -298,18 +316,20 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     // Link, optimize, and compile final CUDA kernel
     // note that the find command is used to find the rust-installed llvm tool
     CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
-    CeedCallSystem(ceed,
-                   ("$(find $(rustup run " + std::string(rust_toolchain) +
-                    " rustc --print sysroot) -name opt) --passes internalize,inline temp_kernel_linked.ll -o temp_kernel_opt.bc")
-                       .c_str(),
-                   "optimize linked C and Rust source");
+    CeedCallSystem(
+        ceed,
+        ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline temp/kernel_" +
+         std::to_string(build_id) + "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
+            .c_str(),
+        "optimize linked C and Rust source");
     CeedCallSystem(ceed,
                    ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
-                    std::to_string(prop.major) + std::to_string(prop.minor) + " temp_kernel_opt.bc -o temp_kernel_final.ptx")
+                    std::to_string(prop.major) + std::to_string(prop.minor) + " temp/kernel_" + std::to_string(build_id) +
+                    "_3_opt.bc -o temp/kernel_" + std::to_string(build_id) + "_4_final.ptx")
                        .c_str(),
                    "compile final CUDA kernel");
 
-    ifstream      ptxfile("temp_kernel_final.ptx");
+    ifstream      ptxfile("temp/kernel_" + std::to_string(build_id) + "_4_final.ptx");
     ostringstream sstr;
 
     sstr << ptxfile.rdbuf();
