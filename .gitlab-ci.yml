@@ -193,6 +193,8 @@ noether-rust-qfunctions:
     - echo "-------------- GCOV ----------------" && gcov --version
   script:
     - rm -f .SUCCESS
+    # Rustup
+    - rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
     # libCEED
     - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
     - echo "-------------- libCEED -------------" && make info
