@@ -201,10 +201,10 @@ noether-rust-qfunctions:
     - make clean
     - make -k -j$NPROC_CPU -l$NPROC_CPU
     # -- libCEED only tests
-    - echo "-------------- Rust QFunction tests -"
+    - echo "-------------- Rust QFunction tests -----"
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit realsearch=rust-qfunction
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     # Report status
     - touch .SUCCESS
   after_script:
