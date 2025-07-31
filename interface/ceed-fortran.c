@@ -951,8 +951,8 @@ CEED_EXTERN void fCeedOperatorCreate(int *ceed, int *qf, int *dqf, int *dqfT, in
   CeedOperator_n++;
 }
 
-#define fCeedCompositeOperatorCreate FORTRAN_NAME(ceedcompositeoperatorcreate, CEEDCOMPOSITEOPERATORCREATE)
-CEED_EXTERN void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
+#define fCeedOperatorCreateComposite FORTRAN_NAME(ceedoperatorcreatecomposite, CEEDOPERATORCREATECOMPOSITE)
+CEED_EXTERN void fCeedOperatorCreateComposite(int *ceed, int *op, int *err) {
   if (CeedOperator_count == CeedOperator_count_max) {
     CeedOperator_count_max += CeedOperator_count_max / 2 + 1;
     CeedRealloc(CeedOperator_count_max, &CeedOperator_dict);
@@ -960,7 +960,7 @@ CEED_EXTERN void fCeedCompositeOperatorCreate(int *ceed, int *op, int *err) {
 
   CeedOperator *op_ = &CeedOperator_dict[CeedOperator_count];
 
-  *err = CeedCompositeOperatorCreate(Ceed_dict[*ceed], op_);
+  *err = CeedOperatorCreateComposite(Ceed_dict[*ceed], op_);
   if (*err) return;
   *op = CeedOperator_count++;
   CeedOperator_n++;
@@ -1003,12 +1003,12 @@ CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *r, 
   *err = CeedOperatorSetField(op_, field_name_c, r_, b_, v_);
 }
 
-#define fCeedCompositeOperatorAddSub FORTRAN_NAME(ceedcompositeoperatoraddsub, CEEDCOMPOSITEOPERATORADDSUB)
-CEED_EXTERN void fCeedCompositeOperatorAddSub(int *compositeop, int *subop, int *err) {
+#define fCeedOperatorCompositeAddSub FORTRAN_NAME(ceedoperatorcompositeaddsub, CEEDOPERATORCOMPOSITEADDSUB)
+CEED_EXTERN void fCeedOperatorCompositeAddSub(int *compositeop, int *subop, int *err) {
   CeedOperator compositeop_ = CeedOperator_dict[*compositeop];
   CeedOperator subop_       = CeedOperator_dict[*subop];
 
-  *err = CeedCompositeOperatorAddSub(compositeop_, subop_);
+  *err = CeedOperatorCompositeAddSub(compositeop_, subop_);
 }
 
 #define fCeedOperatorSetName FORTRAN_NAME(ceedoperatorsetname, CEEDOPERATORSETNAME)

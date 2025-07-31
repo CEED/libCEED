@@ -15,6 +15,8 @@ On this page we provide a summary of the main API changes, new features and exam
     - Add `CEED_RUNNING_JIT_PASS` compiler definition for wrapping header files that device JiT compilers cannot read
     - Users should now prefer `#include <ceed/types.h>` rather than `#include <ceed.h>` in QFunction source files
 - Require use of `Ceed*Destroy()` on Ceed objects returned from `Ceed*Get*()`.
+- Rename `CeedCompositeOperatorCreate()` to `CeedOperatorCreateComposite()` for uniformity.
+- Rename `CeedCompositeOperator*()` to `CeedOperatorComposite*()` for uniformity.
 
 ### New features
 

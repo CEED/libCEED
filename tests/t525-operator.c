@@ -73,9 +73,9 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_sub_2, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_sub_2);
 
   // Composite operator
-  CeedCompositeOperatorCreate(ceed, &op_composite);
-  CeedCompositeOperatorAddSub(op_composite, op_sub_1);
-  CeedCompositeOperatorAddSub(op_composite, op_sub_2);
+  CeedOperatorCreateComposite(ceed, &op_composite);
+  CeedOperatorCompositeAddSub(op_composite, op_sub_1);
+  CeedOperatorCompositeAddSub(op_composite, op_sub_2);
 
   // Check setting field in context of single sub-operator for composite operator
   CeedOperatorGetContextFieldLabel(op_composite, "time", &time_label);
