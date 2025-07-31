@@ -97,3 +97,5 @@ libCEED.includes
 *.txt
 *.proto
 *.csv
+
+.venv
