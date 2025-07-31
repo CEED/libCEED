@@ -787,7 +787,7 @@ external_examples := \
 	$(if $(DEAL_II_DIR),$(dealiiexamples)) \
 	$(if $(PETSC_DIR),$(fluidsexamples)) \
 	$(if $(PETSC_DIR),$(solidsexamples)) \
-	$(rustqfunctionsexamples)
+	$(if $(or $(RUST_QF),$(GPU_CLANG)),$(rustqfunctionsexamples))
 
 allexamples = $(examples) $(external_examples)
 
