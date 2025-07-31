@@ -1601,6 +1601,11 @@ int CeedDestroy(Ceed *ceed) {
   }
   CeedCall(CeedFree(&(*ceed)->jit_defines));
 
+  for (CeedInt i = 0; i < (*ceed)->num_rust_source_roots; i++) {
+    CeedCall(CeedFree(&(*ceed)->rust_source_roots[i]));
+  }
+  CeedCall(CeedFree(&(*ceed)->rust_source_roots));
+
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
