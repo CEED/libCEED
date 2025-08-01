@@ -182,7 +182,7 @@ noether-rust-qfunctions:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc GPU_CLANG=1
-    - export NPROC_POOL=4
+    - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
