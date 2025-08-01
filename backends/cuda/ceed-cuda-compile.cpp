@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <nvrtc.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -44,18 +45,19 @@
 // Call system command and capture stdout + stderr
 //------------------------------------------------------------------------------
 static int CeedCallSystem_Core(Ceed ceed, const char *command, const char *message) {
-  CeedDebug(ceed, "Running command:\n$ %s\n", command);
+  CeedDebug(ceed, "Running command:\n$ %s", command);
   FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
 
-  CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to %s with command: %s", message, command);
+  CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to %s\ncommand:\n$ %s", message, command);
 
-  char output[4 * CEED_MAX_RESOURCE_LEN];
+  char        line[CEED_MAX_RESOURCE_LEN] = "";
+  std::string output                      = "";
 
-  while (fgets(output, sizeof(output), output_stream) != nullptr) {
+  while (fgets(line, sizeof(line), output_stream) != nullptr) {
+    output += line;
   }
-  CeedDebug(ceed, "Command output:\n%s\n", output);
-
-  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s with command: %s\nand error: %s", message, command, output);
+  CeedDebug(ceed, "output:\n%s\n", output.c_str());
+  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s\ncommand:\n$ %s\nerror:\n%s", message, command, output.c_str());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -280,15 +282,51 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       CeedCallSystem(ceed, command.c_str(), "build Rust crate");
     }
 
+    // Get Clang version
+    bool use_llvm_version = ceed_data->use_llvm_version;
+    int  llvm_version     = ceed_data->llvm_version;
+
+    if (llvm_version == 0) {
+      command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
+      CeedDebug(ceed, "Attempting to detect Rust LLVM version.\ncommand:\n$ %s", command.c_str());
+      FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
+
+      CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to detect Rust LLVM version");
+
+      char        line[CEED_MAX_RESOURCE_LEN] = "";
+      std::string output                      = "";
+
+      while (fgets(line, sizeof(line), output_stream) != nullptr) {
+        output += line;
+      }
+      CeedDebug(ceed, "output:\n%s", output.c_str());
+      CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to detect Rust LLVM version\ncommand:\n$ %s\nerror:\n%s",
+                command.c_str(), output.c_str());
+
+      const char *version_substring = strstr(output.c_str(), "LLVM version ");
+
+      version_substring += 13;
+
+      char *next_dot = strchr((char *)version_substring, '.');
+
+      next_dot[0]             = '\0';
+      ceed_data->llvm_version = llvm_version = std::stoi(version_substring);
+      CeedDebug(ceed, "Rust LLVM version number: %d\n", llvm_version);
+
+      command                     = std::string("clang++-") + std::to_string(llvm_version);
+      output_stream               = popen((command + std::string(" 2>&1")).c_str(), "r");
+      ceed_data->use_llvm_version = use_llvm_version = pclose(output_stream) == 0;
+    }
+
     // Compile wrapper kernel
-    command = "clang++ -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-              " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) + "_0_source.cu -o temp/kernel_" +
-              std::to_string(build_id) + "_1_wrapped.ll ";
+    command = "clang++" + (use_llvm_version ? (std::string("-") + std::to_string(llvm_version)) : "") + " -flto=thin --cuda-gpu-arch=sm_" +
+              std::to_string(prop.major) + std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) +
+              "_0_source.cu -o temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
     CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");
 
-    // the find command finds the rust-installed llvm-link tool and runs it
+    // Find Rust's llvm-link tool and runs it
     command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
               std::to_string(build_id) +
               "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o "
@@ -296,7 +334,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
               std::to_string(build_id) + "_2_linked.ll ";
 
     // Searches for .a files in rust directoy
-    // Note: this is necessary because rust crate names may not match the folder they are in
+    // Note: this is necessary because Rust crate names may not match the folder they are in
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
       DIR        *dp  = opendir(dir.c_str());
@@ -304,7 +342,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       CeedCheck(dp != nullptr, ceed, CEED_ERROR_BACKEND, "Could not open directory: %s", dir.c_str());
       struct dirent *entry;
 
-      // finds files ending in .a
+      // Find files ending in .a
       while ((entry = readdir(dp)) != nullptr) {
         std::string filename(entry->d_name);
 
@@ -317,7 +355,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     // Link, optimize, and compile final CUDA kernel
-    // note that the find command is used to find the rust-installed llvm tool
     CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
     CeedCallSystem(
         ceed,
