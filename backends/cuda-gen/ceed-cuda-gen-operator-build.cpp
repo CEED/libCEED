@@ -590,9 +590,8 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
         } else if (is_tensor) {
           bool        is_collocated_grad = dim == 3 && Q_1d >= P_1d;
           std::string function_name =
-              (dim == 1 ? "Grad"
-                        : ("GradTensor" + std::string(is_collocated ? "CollocatedNodes" : (is_collocated_grad ? "Collocated" : ""))) +
-                              std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"));
+              (dim == 1 ? "Grad" : ("GradTensor" + std::string(is_collocated ? "CollocatedNodes" : (is_collocated_grad ? "Collocated" : "")))) +
+              std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened");
           std::string op_t_1d_name = is_all_tensor ? "OP_T_1D" : (P_1d > Q_1d ? P_name : Q_name);
 
           code << tab << "CeedScalar r_q" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "*"
