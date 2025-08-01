@@ -230,6 +230,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       if (dir) {
         closedir(dir);
       } else {
+        // In parallel multiple processes may attempt
+        // Only one process needs to succeed
         mkdir("temp", 0777);
         chmod("temp", 0777);
       }
@@ -284,6 +286,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
               std::to_string(build_id) + "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");
 
     // the find command finds the rust-installed llvm-link tool and runs it
     command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
@@ -322,12 +325,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
          std::to_string(build_id) + "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
             .c_str(),
         "optimize linked C and Rust source");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_2_linked.ll").c_str(), "update JiT file permissions");
     CeedCallSystem(ceed,
                    ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
                     std::to_string(prop.major) + std::to_string(prop.minor) + " temp/kernel_" + std::to_string(build_id) +
                     "_3_opt.bc -o temp/kernel_" + std::to_string(build_id) + "_4_final.ptx")
                        .c_str(),
                    "compile final CUDA kernel");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_4_final.ptx").c_str(), "update JiT file permissions");
 
     ifstream      ptxfile("temp/kernel_" + std::to_string(build_id) + "_4_final.ptx");
     ostringstream sstr;
