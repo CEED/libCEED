@@ -53,10 +53,12 @@ fluids:
 
 solids:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C solids all
+
 clean:
 	+make -C ceed clean
 	+make -C mfem clean
 	+make -C nek clean
+	+make -C rust-qfunctions clean
 	+make -C petsc clean
 	+make -C fluids clean
 	+make -C solids clean

@@ -172,6 +172,61 @@ noether-cpu:
 
 
 # ----------------------------------------------------------------------------------------
+# Rust + CUDA
+# ----------------------------------------------------------------------------------------
+noether-rust-qfunctions:
+  stage: test:gpu-and-float
+  tags:
+    - cuda
+  interruptible: true
+  before_script:
+    # Environment
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc GPU_CLANG=1
+    - export NPROC_POOL=1
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- NVCC ----------------" && $NVCC --version
+    - echo "-------------- Rustc ---------------" && rustc --version
+    - echo "-------------- Clang++ -------------" && clang++ --version
+    - echo "-------------- GCOV ----------------" && gcov --version
+  script:
+    - rm -f .SUCCESS
+    # Rustup
+    - rustup update nightly
+    - rustup component add rust-src --toolchain nightly
+    - rustup component add llvm-tools --toolchain nightly
+    # libCEED
+    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
+    - echo "-------------- libCEED -------------" && make info
+    - make clean
+    - make -k -j$NPROC_CPU -l$NPROC_CPU
+    # -- libCEED only tests
+    - echo "-------------- Rust QFunction tests -----"
+    #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
+    # Report status
+    - touch .SUCCESS
+  after_script:
+    - |
+      if [ -f .SUCCESS ]; then
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+
+
+# ----------------------------------------------------------------------------------------
 # CUDA backends
 # ----------------------------------------------------------------------------------------
 noether-cuda:

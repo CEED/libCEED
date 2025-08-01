@@ -52,6 +52,33 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
 #endif
 
 /**
+    @ingroup CeedQFunction
+This macro populates the correct function for Rust-based User QFunction source for code generation backends or populates default values for CPU backends. It also creates a variable `name_loc` populated with the correct source path for creating the respective User QFunction. Note that the function, as named in rust, must be called `name_rs`. When referencing it in C, use just `name` (no `_rs`)
+Example:
+//ex1-volume.h
+CEED_QFUNCTION_RUST(build_mass)
+//ex1-volume.c
+CeedAddRustSourceRoot(ceed, "examples/ceed/ex1-volume-rs");
+// ex1-volume-rs/src/lib.rs
+#[no_mangle]
+pub unsafe extern "C" fn build_mass_rs(
+    ctx: *mut c_void,
+    Q: i32,
+    in: *const *const f64,
+    out: *mut *mut f64,
+) -> i8
+**/
+#ifndef CEED_QFUNCTION_RUST
+#define CEED_QFUNCTION_RUST(name)                                                                                            \
+  CEED_QFUNCTION_ATTR int        name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
+  CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
+    return name##_rs(ctx, Q, in, out);                                                                                       \
+  }                                                                                                                          \
+  static const char name##_loc[] = __FILE__ ":" #name;
+#endif
+// Note: placing the _loc of the function below the function in the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros. See /python/build_ceed_cffi.py for more details
+
+/**
   @ingroup CeedQFunction
   This macro populates the correct function annotations for User QFunction helper function source for code generation backends or populates default
 values for CPU backends.
