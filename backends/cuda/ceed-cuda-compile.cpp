@@ -309,13 +309,18 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       char *next_dot = strchr((char *)version_substring, '.');
 
-      next_dot[0]             = '\0';
-      ceed_data->llvm_version = llvm_version = std::stoi(version_substring);
-      CeedDebug(ceed, "Rust LLVM version number: %d\n", llvm_version);
+      if (next_dot) {
+        next_dot[0]             = '\0';
+        ceed_data->llvm_version = llvm_version = std::stoi(version_substring);
+        CeedDebug(ceed, "Rust LLVM version number: %d\n", llvm_version);
 
-      command                     = std::string("clang++-") + std::to_string(llvm_version);
-      output_stream               = popen((command + std::string(" 2>&1")).c_str(), "r");
-      ceed_data->use_llvm_version = use_llvm_version = pclose(output_stream) == 0;
+        command                     = std::string("clang++-") + std::to_string(llvm_version);
+        output_stream               = popen((command + std::string(" 2>&1")).c_str(), "r");
+        ceed_data->use_llvm_version = use_llvm_version = pclose(output_stream) == 0;
+      } else {
+        ceed_data->llvm_version     = -1;
+        ceed_data->use_llvm_version = use_llvm_version = false;
+      }
     }
 
     // Compile wrapper kernel
@@ -326,15 +331,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
     CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");
 
-    // Find Rust's llvm-link tool and runs it
+    // Find Rust's llvm-link tool and run it
     command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
               std::to_string(build_id) +
               "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o "
               "temp/kernel_" +
               std::to_string(build_id) + "_2_linked.ll ";
 
-    // Searches for .a files in rust directoy
-    // Note: this is necessary because Rust crate names may not match the folder they are in
+    // Searches for .a files in Rust directory
+    // Note: Rust crate names may not match the folder they are in
+    // TODO: If libCEED switches to c++17, use std::filesystem here
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
       DIR        *dp  = opendir(dir.c_str());
@@ -351,7 +357,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         }
       }
       closedir(dp);
-      // TODO: when libCEED switches to c++17, switch to std::filesystem for the loop above
     }
 
     // Link, optimize, and compile final CUDA kernel
@@ -371,6 +376,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
                    "compile final CUDA kernel");
     CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_4_final.ptx").c_str(), "update JiT file permissions");
 
+    // Load module from final PTX
     ifstream      ptxfile("temp/kernel_" + std::to_string(build_id) + "_4_final.ptx");
     ostringstream sstr;
 
