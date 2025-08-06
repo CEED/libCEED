@@ -387,19 +387,14 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   Ceed                ceed;
   CeedOperator       *sub_operators;
   CeedInt             num_suboperators;
-  const CeedScalar   *input_arr  = NULL;
-  CeedScalar         *output_arr = NULL;
   cudaStream_t        stream     = NULL;
-  bool                use_cuda_graph = false;
+  
+  // Static variables for CUDA graph management
   static bool         graph_created = false;
   static cudaGraph_t  graph;
   static cudaGraphExec_t graph_instance;
   static int          graph_launches = 0;
   static int          fallbacks = 0;
-  static int          pointer_change_count = 0;
-  static int          graph_usage_count = 0;
-  static const CeedScalar *captured_input_ptr = NULL;
-  static CeedScalar *captured_output_ptr = NULL;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
@@ -408,298 +403,110 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   // Create a CUDA stream for graph operations
   CeedCallCuda(ceed, cudaStreamCreate(&stream));
 
-  printf("DEBUG: *** ACTUAL ApplyComposite function called! ***\n");
-  fflush(stdout);
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "CUDA-gen ApplyComposite function called!\n");
-  
   // Check for environment variable to force baseline
-  static int force_baseline_checked = 0;
   static bool force_baseline = false;
+  static bool force_baseline_checked = false;
   if (!force_baseline_checked) {
     char *env_val = getenv("CEED_FORCE_BASELINE");
     force_baseline = (env_val != NULL && strcmp(env_val, "1") == 0);
-    
-    // CUDA graphs are enabled by default, but can be disabled via environment variable
-    // for problems where they don't work well (nonlinear time-dependent problems)
-    // TEMPORARY: Enable CUDA graphs to demonstrate numerical failure
-    // The issue is that CUDA graphs capture memory addresses, not data content
-    // When PETSc updates vectors between SNES iterations, graphs use stale data
-    // force_baseline = true;  // Uncomment to force baseline
-    
-    if (force_baseline) {
-      printf("DEBUG: *** FORCING BASELINE EXECUTION (CEED_FORCE_BASELINE=1) ***\n");
-      fflush(stdout);
-    }
-    force_baseline_checked = 1;
+    force_baseline_checked = true;
   }
 
-  // --- Graph Creation (only once) ---
-  if (!graph_created && !force_baseline) {
-    printf("DEBUG: *** ENTERING GRAPH CREATION PATH ***\n");
-    fflush(stdout);
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "Warming up sub-operators before graph capture\n");
-    
-    // Warm-up phase with high-level API
-    for (CeedInt warmup = 0; warmup < 2; warmup++) {
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        CeedCallBackend(CeedOperatorApply(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
-      }
-      CeedCallCuda(ceed, cudaDeviceSynchronize());
-    }
-    
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "Warm-up completed, getting arrays for capture\n");
-    
-    // Get arrays ONLY for capture (will be restored after capture)
-    if (input_vec != CEED_VECTOR_NONE)
-      CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
-    if (output_vec != CEED_VECTOR_NONE)
-      CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-
-    // Start CUDA Graph capture
-    cudaError_t err;
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Starting CUDA Graph capture...\n");
-    err = cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
-    if (err != cudaSuccess) {
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "cudaStreamBeginCapture failed: %s\n", cudaGetErrorString(err));
-      // Restore arrays before fallback
-      if (input_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-      if (output_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-      goto fallback;
-    }
-
-    // Use low-level core functions during capture
-    bool is_run_good[16] = {false}; // Assume max 16 sub-operators
-    for (CeedInt i = 0; i < num_suboperators; i++) {
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "Capturing sub-operator %d using core function\n", (int)i);
-      
-      int capture_result = CeedOperatorApplyAddCoreCapture_Cuda_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request);
-      
-      if (capture_result != CEED_ERROR_SUCCESS || !is_run_good[i]) {
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "Core capture failed for sub-operator %d\n", (int)i);
-        cudaStreamEndCapture(stream, &graph); // Clean up capture
-        // Restore arrays before fallback
-        if (input_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-        if (output_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-        goto fallback;
-      }
-    }
-
-    err = cudaStreamEndCapture(stream, &graph);
-    if (err != cudaSuccess || graph == NULL) {
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "cudaStreamEndCapture failed: %s\n", cudaGetErrorString(err));
-      // Restore arrays before fallback
-      if (input_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-      if (output_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-      goto fallback;
-    }
-
-    err = cudaGraphInstantiate(&graph_instance, graph, 0);
-    if (err != cudaSuccess) {
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "cudaGraphInstantiate failed: %s\n", cudaGetErrorString(err));
-      // Restore arrays before fallback
-      if (input_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-      if (output_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-      goto fallback;
-    }
-
-    graph_created = true;
-    // Store the pointers used during capture
-    captured_input_ptr = input_arr;
-    captured_output_ptr = output_arr;
-    // Reset usage counter after successful capture
-    graph_usage_count = 0;
-    printf("DEBUG: *** CUDA GRAPH SUCCESSFULLY CREATED! ***\n");
-    printf("DEBUG: Captured input_ptr=%p, output_ptr=%p\n", captured_input_ptr, captured_output_ptr);
-    fflush(stdout);
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "CUDA Graph successfully captured and instantiated!\n");
-    
-    // Restore arrays after successful capture
-    if (input_vec != CEED_VECTOR_NONE)
-      CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-    if (output_vec != CEED_VECTOR_NONE)
-      CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-  }
-
-  // --- Graph Execution (check if pointers changed) ---
-  if (graph_created && !force_baseline) {
-    // For graph execution, we don't need to get arrays - the graph already knows the addresses
-    // Only get arrays if we need to check for pointer changes
-    const CeedScalar *current_input_ptr = NULL;
-    CeedScalar *current_output_ptr = NULL;
-    
-    // Only get arrays if we need to check for critical changes (NULL->real data)
-    bool need_pointer_check = (captured_input_ptr == NULL || captured_output_ptr == NULL);
-    
-    if (need_pointer_check) {
-      if (input_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &current_input_ptr));
-      if (output_vec != CEED_VECTOR_NONE)
-        CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &current_output_ptr));
-    }
-    
-    // Check if pointers have changed (only if we got the arrays)
-    bool pointers_changed = false;
-    if (need_pointer_check) {
-      pointers_changed = (current_input_ptr != captured_input_ptr) || 
-                         (current_output_ptr != captured_output_ptr);
-    }
-    
-    // Add tolerance: only re-capture if pointers changed significantly
-    // This reduces overhead from frequent re-captures
-    if (pointers_changed) {
-      pointer_change_count++;
-      printf("DEBUG: *** POINTERS CHANGED (Count: %d) ***\n", pointer_change_count);
-      printf("DEBUG: Old input_ptr=%p, new input_ptr=%p\n", captured_input_ptr, current_input_ptr);
-      printf("DEBUG: Old output_ptr=%p, new output_ptr=%p\n", captured_output_ptr, current_output_ptr);
-      fflush(stdout);
-      
-      // Re-capture if input pointer changed from NULL to real address (critical case)
-      bool critical_change = (captured_input_ptr == NULL && current_input_ptr != NULL) ||
-                           (captured_output_ptr == NULL && current_output_ptr != NULL);
-      
-      // Force re-capture when we have real data (not NULL pointers)
-      // This ensures the graph is captured with actual physics data, not zeros
-      if (current_input_ptr != NULL && current_output_ptr != NULL && 
-          (captured_input_ptr == NULL || captured_output_ptr == NULL)) {
-        critical_change = true;
-        printf("DEBUG: *** REAL DATA DETECTED - FORCING RE-CAPTURE ***\n");
-      }
-      
-      // Re-capture on critical changes OR when pointers change AND we've used the graph enough
-      graph_usage_count++;
-      
-      // Only re-capture on critical changes (NULL->real data)
-      // For regular pointer changes, just use the existing graph
-      // This is because CUDA graphs work best when reused many times
-      bool should_recapture = critical_change;
-      
-      if (should_recapture) {
-        printf("DEBUG: *** RECAPTURING GRAPH (CRITICAL CHANGE) ***\n");
-        fflush(stdout);
-        
-        // Clean up old graph
-        if (graph_instance) {
-          cudaGraphExecDestroy(graph_instance);
-          graph_instance = NULL;
-        }
-        if (graph) {
-          cudaGraphDestroy(graph);
-          graph = NULL;
-        }
-        graph_created = false;
-        
-        // Re-capture the graph with new pointers instead of falling back
-        printf("DEBUG: *** RE-CAPTURING GRAPH WITH NEW POINTERS ***\n");
-        fflush(stdout);
-        
-        // Restore arrays before re-capture (only if we got them)
-        if (need_pointer_check) {
-          if (input_vec != CEED_VECTOR_NONE)
-            CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &current_input_ptr));
-          if (output_vec != CEED_VECTOR_NONE)
-            CeedCallBackend(CeedVectorRestoreArray(output_vec, &current_output_ptr));
-        }
-        
-        // Force re-capture by setting graph_created to false
-        graph_created = false;
-        
-        // Continue to the graph creation path on next call
-      } else {
-        // Just use existing graph even with different pointers
-        printf("DEBUG: *** USING EXISTING GRAPH (ignoring pointer change #%d) ***\n", pointer_change_count);
-        fflush(stdout);
-        use_cuda_graph = true;
-        
-        // Restore arrays (only if we got them)
-        if (need_pointer_check) {
-          if (input_vec != CEED_VECTOR_NONE)
-            CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &current_input_ptr));
-          if (output_vec != CEED_VECTOR_NONE)
-            CeedCallBackend(CeedVectorRestoreArray(output_vec, &current_output_ptr));
-        }
-             }
-     } else {
-       printf("DEBUG: *** USING EXISTING CUDA GRAPH (pointers unchanged) ***\n");
-      fflush(stdout);
-      use_cuda_graph = true;
-      
-      // Restore arrays (only if we got them)
-      if (need_pointer_check) {
-        if (input_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &current_input_ptr));
-        if (output_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorRestoreArray(output_vec, &current_output_ptr));
-      }
-    }
-  }
-
-  // --- Execute Graph or Fallback ---
-  if (use_cuda_graph) {
-    printf("DEBUG: *** LAUNCHING CUDA GRAPH! ***\n");
-    fflush(stdout);
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Launching CUDA Graph...\n");
-    cudaError_t err = cudaGraphLaunch(graph_instance, stream);
-    if (err != cudaSuccess) {
-      printf("DEBUG: *** CUDA GRAPH LAUNCH FAILED: %s ***\n", cudaGetErrorString(err));
-      fflush(stdout);
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "cudaGraphLaunch failed: %s\n", cudaGetErrorString(err));
-      goto fallback;
-    }
-    graph_launches++;
-    printf("DEBUG: *** CUDA GRAPH LAUNCH SUCCESSFUL! (Launch #%d) ***\n", graph_launches);
-    fflush(stdout);
-    cudaStreamSynchronize(stream);
-    printf("DEBUG: *** CUDA GRAPH EXECUTION COMPLETED! (Launch #%d) ***\n", graph_launches);
-    fflush(stdout);
-  } else {
-    // Fallback execution
-    fallbacks++;
-    printf("DEBUG: *** FALLING BACK TO BASELINE (Fallback #%d) ***\n", fallbacks);
-    fflush(stdout);
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "CUDA graphs failed, falling back to baseline\n");
-    
-    // Use the fallback operator directly (no array access needed)
+  // If forcing baseline, use fallback directly
+  if (force_baseline) {
     CeedOperator op_fallback;
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+    if (stream) CeedCallCuda(ceed, cudaStreamDestroy(stream));
+    return CEED_ERROR_SUCCESS;
   }
 
-fallback:
-  // Clean up the stream
-  if (stream) CeedCallCuda(ceed, cudaStreamDestroy(stream));
-  
-  // Print final statistics periodically
-  static int call_count = 0;
-  call_count++;
-  if (call_count % 50 == 0) {
-    printf("DEBUG: *** STATISTICS: %d graph launches, %d fallbacks, %d total calls ***\n", 
-           graph_launches, fallbacks, call_count);
+  // Create CUDA graph if not already created
+  if (!graph_created) {
+    printf("DEBUG: *** CREATING CUDA GRAPH ***\n");
     fflush(stdout);
     
-    // ADDITIONAL VERIFICATION: Check if graph objects are valid
-    if (graph_created && graph_instance) {
-      printf("DEBUG: *** GRAPH VALIDATION: Graph instance exists at %p ***\n", (void*)graph_instance);
-      
-      // Try to get graph properties to prove it's a real graph
-      size_t num_nodes = 0;
-      cudaError_t query_result = cudaGraphGetNodes(graph, NULL, &num_nodes);
-      if (query_result == cudaSuccess) {
-        printf("DEBUG: *** GRAPH VALIDATION: Graph contains %zu nodes (REAL CUDA GRAPH!) ***\n", num_nodes);
-      } else {
-        printf("DEBUG: *** GRAPH VALIDATION: Query failed - %s ***\n", cudaGetErrorString(query_result));
-      }
+    // Synchronize before capture
+    cudaStreamSynchronize(stream);
+    cudaDeviceSynchronize();
+    
+    // Start graph capture
+    cudaError_t err = cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
+    if (err != cudaSuccess) {
+      printf("DEBUG: *** GRAPH CAPTURE FAILED: %s ***\n", cudaGetErrorString(err));
       fflush(stdout);
+      goto use_fallback;
     }
+    
+    // Capture all sub-operators using high-level API
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedCallBackend(CeedOperatorApply(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
+    }
+    
+    // End capture
+    err = cudaStreamEndCapture(stream, &graph);
+    if (err != cudaSuccess || graph == NULL) {
+      printf("DEBUG: *** GRAPH END CAPTURE FAILED: %s ***\n", cudaGetErrorString(err));
+      fflush(stdout);
+      goto use_fallback;
+    }
+    
+    // Instantiate graph
+    err = cudaGraphInstantiate(&graph_instance, graph, 0);
+    if (err != cudaSuccess) {
+      printf("DEBUG: *** GRAPH INSTANTIATION FAILED: %s ***\n", cudaGetErrorString(err));
+      fflush(stdout);
+      cudaGraphDestroy(graph);
+      goto use_fallback;
+    }
+    
+    graph_created = true;
+    printf("DEBUG: *** CUDA GRAPH CREATED SUCCESSFULLY ***\n");
+    fflush(stdout);
+  }
+
+  // Execute the graph
+  printf("DEBUG: *** LAUNCHING CUDA GRAPH (Launch #%d) ***\n", graph_launches + 1);
+  fflush(stdout);
+  
+  cudaError_t err = cudaGraphLaunch(graph_instance, stream);
+  if (err != cudaSuccess) {
+    printf("DEBUG: *** GRAPH LAUNCH FAILED: %s ***\n", cudaGetErrorString(err));
+    fflush(stdout);
+    goto use_fallback;
   }
   
+  graph_launches++;
+  cudaStreamSynchronize(stream);
+  printf("DEBUG: *** CUDA GRAPH EXECUTED SUCCESSFULLY ***\n");
+  fflush(stdout);
+  
+  // Success - clean up and return
+  if (stream) CeedCallCuda(ceed, cudaStreamDestroy(stream));
+  return CEED_ERROR_SUCCESS;
+
+use_fallback:
+  // Clean up graph resources
+  if (graph_instance) {
+    cudaGraphExecDestroy(graph_instance);
+    graph_instance = NULL;
+  }
+  if (graph) {
+    cudaGraphDestroy(graph);
+    graph = NULL;
+  }
+  graph_created = false;
+  
+  // Use fallback
+  fallbacks++;
+  printf("DEBUG: *** USING FALLBACK (Fallback #%d) ***\n", fallbacks);
+  fflush(stdout);
+  
+  CeedOperator op_fallback;
+  CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+  CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+  
+  if (stream) CeedCallCuda(ceed, cudaStreamDestroy(stream));
   return CEED_ERROR_SUCCESS;
 }
 
