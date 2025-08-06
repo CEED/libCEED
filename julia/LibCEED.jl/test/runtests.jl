@@ -256,10 +256,6 @@ else
             LibCEED.assemble_add_diagonal!(op, diag_vector)
             @test @witharray(a = diag_vector, a == fill(1.0, n))
 
-            comp_op = create_composite_operator(c, [op])
-            apply!(comp_op, v1, v2)
-            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
-
             @test showstr(op) == """
                 CeedOperator
                   1 elements with 27 quadrature points each

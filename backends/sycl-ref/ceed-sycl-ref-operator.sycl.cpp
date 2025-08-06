@@ -997,7 +997,7 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl(CeedOperator op,
 //------------------------------------------------------------------------------
 // Single operator assembly setup
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
+static int CeedOperatorAssembleSingleSetup_Sycl(CeedOperator op) {
   Ceed    ceed;
   CeedInt num_input_fields, num_output_fields, num_eval_mode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0, num_eval_mode_out = 0,
                                                num_B_out_mats_to_load = 0, size_B_out = 0, num_qpts = 0, elem_size = 0, num_elem, num_comp,
@@ -1337,7 +1337,7 @@ static int CeedOperatorLinearAssembleFallback_Sycl(sycl::queue &sycl_queue, cons
 // input restriction/basis per operator (could have multiple basis eval modes).
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedOperatorAssembleSingle_Sycl(CeedOperator op, CeedInt offset, CeedVector values) {
   Ceed                ceed;
   Ceed_Sycl          *sycl_data;
   CeedScalar         *values_array;
@@ -1353,7 +1353,7 @@ static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, Ceed
 
   // Setup
   if (!impl->asmb) {
-    CeedCallBackend(CeedSingleOperatorAssembleSetup_Sycl(op));
+    CeedCallBackend(CeedOperatorAssembleSingleSetup_Sycl(op));
     assert(impl->asmb != NULL);
   }
 
@@ -1397,7 +1397,7 @@ int CeedOperatorCreate_Sycl(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonal_Sycl));
   CeedCallBackend(
       CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal", CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssemble_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingle_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Sycl));
   CeedCallBackend(CeedDestroy(&ceed));

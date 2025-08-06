@@ -124,14 +124,14 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorCreate(ceed_fallback, &op_fallback));
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCreateComposite(ceed_fallback, &op_fallback));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedOperator op_sub_fallback;
 
       CeedCall(CeedOperatorGetFallback(sub_operators[i], &op_sub_fallback));
-      CeedCall(CeedCompositeOperatorAddSub(op_fallback, op_sub_fallback));
+      CeedCall(CeedOperatorCompositeAddSub(op_fallback, op_sub_fallback));
     }
   } else {
     bool               is_at_points = false;
@@ -213,7 +213,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(CeedOperator op, CeedRequest *request, const bool is_point_block,
+static inline int CeedOperatorLinearAssembleAddDiagonalSingle_Mesh(CeedOperator op, CeedRequest *request, const bool is_point_block,
                                                                    CeedVector assembled) {
   bool is_composite;
 
@@ -398,13 +398,13 @@ static inline int CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(CeedOperator 
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
+static inline int CeedOperatorLinearAssembleAddDiagonalSingle(CeedOperator op, CeedRequest *request, const bool is_point_block,
                                                               CeedVector assembled) {
   bool is_at_points;
 
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   CeedCheck(!is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "AtPoints operator not supported");
-  CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(op, request, is_point_block, assembled));
+  CeedCall(CeedOperatorLinearAssembleAddDiagonalSingle_Mesh(op, request, is_point_block, assembled));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -420,13 +420,13 @@ static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, C
 
   @ref Developer
 **/
-static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
+static inline int CeedOperatorLinearAssembleAddDiagonalComposite(CeedOperator op, CeedRequest *request, const bool is_point_block,
                                                                  CeedVector assembled) {
   CeedInt       num_sub;
   CeedOperator *suboperators;
 
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &suboperators));
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &suboperators));
   for (CeedInt i = 0; i < num_sub; i++) {
     if (is_point_block) {
       CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i], assembled, request));
@@ -451,7 +451,7 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 
   @ref Developer
 **/
-static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, CeedInt *rows, CeedInt *cols) {
+static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedInt offset, CeedInt *rows, CeedInt *cols) {
   Ceed                ceed;
   bool                is_composite;
   CeedSize            num_nodes_in, num_nodes_out, local_num_entries, count = 0;
@@ -650,7 +650,7 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
 
   @ref Developer
 **/
-int CeedOperatorFallbackLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
+int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                              CeedRequest *request) {
   return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, false, assembled, rstr, request);
 }
@@ -668,7 +668,7 @@ int CeedOperatorFallbackLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, Ce
 
   @ref Developer
 **/
-int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
+int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector values) {
   bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -690,10 +690,10 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector value
     // Operator fallback
     CeedOperator op_fallback;
 
-    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedSingleOperatorAssemble\n");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingle\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
-      CeedCall(CeedSingleOperatorAssemble(op_fallback, offset, values));
+      CeedCall(CeedOperatorAssembleSingle(op_fallback, offset, values));
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -925,7 +925,7 @@ int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector value
 
   @ref Utility
 **/
-static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num_entries) {
+static int CeedOperatorAssemblyCountEntriesSingle(CeedOperator op, CeedSize *num_entries) {
   bool                is_composite;
   CeedInt             num_elem_in, elem_size_in, num_comp_in, num_elem_out, elem_size_out, num_comp_out;
   CeedElemRestriction rstr_in, rstr_out;
@@ -972,8 +972,9 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
 
   @ref Developer
 **/
-static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
-                                            CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
+static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
+                                                       CeedBasis basis_coarse, CeedBasis basis_c_to_f, CeedOperator *op_coarse,
+                                                       CeedOperator *op_prolong, CeedOperator *op_restrict) {
   bool                is_composite;
   Ceed                ceed;
   CeedInt             num_comp, num_input_fields, num_output_fields;
@@ -2107,7 +2108,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
   } else if (is_composite) {
     // Default to summing contributions of suboperators
     CeedCall(CeedVectorSetValue(assembled, 0.0));
-    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
+    CeedCall(CeedOperatorLinearAssembleAddDiagonalComposite(op, request, false, assembled));
     return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
@@ -2167,7 +2168,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     return CEED_ERROR_SUCCESS;
   } else if (is_composite) {
     // Default to summing contributions of suboperators
-    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
+    CeedCall(CeedOperatorLinearAssembleAddDiagonalComposite(op, request, false, assembled));
     return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
@@ -2181,7 +2182,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     }
   }
   // Default interface implementation
-  CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
+  CeedCall(CeedOperatorLinearAssembleAddDiagonalSingle(op, request, false, assembled));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2217,8 +2218,8 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
   CeedCheck(input_size == output_size, CeedOperatorReturnCeed(op), CEED_ERROR_DIMENSION, "Operator must be square");
 
   if (is_composite) {
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_operators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub_operators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
   } else {
     sub_operators     = &op;
     num_sub_operators = 1;
@@ -2406,9 +2407,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
   }
   // Default interface implementation
   if (is_composite) {
-    CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, true, assembled));
+    CeedCall(CeedOperatorLinearAssembleAddDiagonalComposite(op, request, true, assembled));
   } else {
-    CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, true, assembled));
+    CeedCall(CeedOperatorLinearAssembleAddDiagonalSingle(op, request, true, assembled));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -2463,14 +2464,14 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   // Count entries and allocate rows, cols arrays
   *num_entries = 0;
   if (is_composite) {
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
-      CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
+      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
       *num_entries += single_entries;
     }
   } else {
-    CeedCall(CeedSingleOperatorAssemblyCountEntries(op, &single_entries));
+    CeedCall(CeedOperatorAssemblyCountEntriesSingle(op, &single_entries));
     *num_entries += single_entries;
   }
   CeedCall(CeedCalloc(*num_entries, rows));
@@ -2478,15 +2479,15 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
 
   // Assemble nonzero locations
   if (is_composite) {
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
-      CeedCall(CeedSingleOperatorAssembleSymbolic(sub_operators[k], offset, *rows, *cols));
-      CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
+      CeedCall(CeedOperatorAssembleSymbolicSingle(sub_operators[k], offset, *rows, *cols));
+      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
       offset += single_entries;
     }
   } else {
-    CeedCall(CeedSingleOperatorAssembleSymbolic(op, offset, *rows, *cols));
+    CeedCall(CeedOperatorAssembleSymbolicSingle(op, offset, *rows, *cols));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -2533,17 +2534,17 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   } else if (is_composite) {
     // Default to summing contributions of suboperators
     CeedCall(CeedVectorSetValue(values, 0.0));
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; k++) {
-      CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
-      CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
+      CeedCall(CeedOperatorAssembleSingle(sub_operators[k], offset, values));
+      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
       offset += single_entries;
     }
     return CEED_ERROR_SUCCESS;
   } else if (op->LinearAssembleSingle) {
     CeedCall(CeedVectorSetValue(values, 0.0));
-    CeedCall(CeedSingleOperatorAssemble(op, offset, values));
+    CeedCall(CeedOperatorAssembleSingle(op, offset, values));
     return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
@@ -2559,7 +2560,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   // Default to interface version if non-composite and no fallback
   CeedCall(CeedVectorSetValue(values, 0.0));
-  CeedCall(CeedSingleOperatorAssemble(op, offset, values));
+  CeedCall(CeedOperatorAssembleSingle(op, offset, values));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2577,7 +2578,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   @ref User
 **/
-int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult) {
+int CeedOperatorCompositeGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult) {
   Ceed                ceed;
   CeedInt             num_suboperators;
   CeedSize            l_vec_len;
@@ -2592,9 +2593,9 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
   CeedCall(CeedVectorSetValue(mult, 0.0));
 
   // Get suboperators
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
   if (num_suboperators == 0) return CEED_ERROR_SUCCESS;
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
 
   // Work vector
   CeedCall(CeedVectorGetLength(mult, &l_vec_len));
@@ -2670,7 +2671,8 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(
+      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2735,7 +2737,8 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(
+      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -2799,7 +2802,8 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(
+      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

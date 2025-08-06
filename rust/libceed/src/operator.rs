@@ -2119,7 +2119,7 @@ impl<'a> CompositeOperator<'a> {
     // Constructor
     pub fn create(ceed: &crate::Ceed) -> crate::Result<Self> {
         let mut ptr = std::ptr::null_mut();
-        ceed.check_error(unsafe { bind_ceed::CeedCompositeOperatorCreate(ceed.ptr, &mut ptr) })?;
+        ceed.check_error(unsafe { bind_ceed::CeedOperatorCreateComposite(ceed.ptr, &mut ptr) })?;
         Ok(Self {
             op_core: OperatorCore {
                 ptr,
@@ -2401,7 +2401,7 @@ impl<'a> CompositeOperator<'a> {
     #[allow(unused_mut)]
     pub fn sub_operator(mut self, subop: &Operator) -> crate::Result<Self> {
         self.op_core.check_error(unsafe {
-            bind_ceed::CeedCompositeOperatorAddSub(self.op_core.ptr, subop.op_core.ptr)
+            bind_ceed::CeedOperatorCompositeAddSub(self.op_core.ptr, subop.op_core.ptr)
         })?;
         Ok(self)
     }

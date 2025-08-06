@@ -302,8 +302,8 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   CeedOperator     *sub_operators;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
   for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -515,7 +515,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/cuda/ref CeedOperator for LinearAssemblyQFunction\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-    CeedCallBackend(CeedOperatorFallbackLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
+    CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op_fallback, assembled, rstr, request));
     return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;
@@ -695,7 +695,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen(CeedOperator o
 //------------------------------------------------------------------------------
 // AtPoints full assembly
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleAtPoints_Cuda_gen(CeedOperator op, CeedInt offset, CeedVector assembled) {
+static int CeedOperatorAssembleSingleAtPoints_Cuda_gen(CeedOperator op, CeedInt offset, CeedVector assembled) {
   Ceed                   ceed;
   CeedOperator_Cuda_gen *data;
 
@@ -851,7 +851,7 @@ static int CeedSingleOperatorAssembleAtPoints_Cuda_gen(CeedOperator op, CeedInt 
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/cuda/ref CeedOperator for AtPoints SingleOperatorAssemble\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-    CeedCallBackend(CeedSingleOperatorAssemble(op_fallback, offset, assembled));
+    CeedCallBackend(CeedOperatorAssembleSingle(op_fallback, offset, assembled));
     return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;
@@ -878,7 +878,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   if (is_at_points) {
     CeedCallBackend(
         CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen));
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssembleAtPoints_Cuda_gen));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingleAtPoints_Cuda_gen));
   }
   if (!is_at_points) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Cuda_gen));

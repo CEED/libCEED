@@ -376,8 +376,8 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -443,8 +443,8 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -506,8 +506,8 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -831,13 +831,13 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
 
   @ref User
  */
-int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
+int CeedOperatorCreateComposite(Ceed ceed, CeedOperator *op) {
   if (!ceed->CompositeOperatorCreate) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
     if (delegate) {
-      CeedCall(CeedCompositeOperatorCreate(delegate, op));
+      CeedCall(CeedOperatorCreateComposite(delegate, op));
       CeedCall(CeedDestroy(&delegate));
       return CEED_ERROR_SUCCESS;
     }
@@ -1263,7 +1263,7 @@ int CeedOperatorFieldGetData(CeedOperatorField op_field, const char **field_name
 
   @ref User
  */
-int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) {
+int CeedOperatorCompositeAddSub(CeedOperator composite_op, CeedOperator sub_op) {
   bool is_immutable;
 
   CeedCheck(composite_op->is_composite, CeedOperatorReturnCeed(composite_op), CEED_ERROR_MINOR, "CeedOperator is not a composite operator");
@@ -1303,7 +1303,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 
   @ref Backend
 **/
-int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
+int CeedOperatorCompositeGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
   bool is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -1322,7 +1322,7 @@ int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 
   @ref Backend
 **/
-int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
+int CeedOperatorCompositeGetSubList(CeedOperator op, CeedOperator **sub_operators) {
   bool is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -1346,7 +1346,7 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 
   @ref Advanced
 **/
-int CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op) {
+int CeedOperatorCompositeGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op) {
   bool          is_composite;
   CeedInt       num_sub_ops;
   CeedOperator *sub_ops;
@@ -1354,8 +1354,8 @@ int CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, Ceed
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
   *sub_op = NULL;
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &sub_ops));
   for (CeedInt i = 0; i < num_sub_ops; i++) {
     if (sub_ops[i]->name && !strcmp(op_name, sub_ops[i]->name)) {
       *sub_op = sub_ops[i];
@@ -1386,7 +1386,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
   if (is_composite) {
     CeedInt num_suboperators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     if (!num_suboperators) {
       // Empty operator setup
       op->input_size  = 0;
@@ -1394,7 +1394,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
     } else {
       CeedOperator *sub_operators;
 
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+      CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         CeedCall(CeedOperatorCheckReady(sub_operators[i]));
       }
@@ -1448,8 +1448,8 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedSize sub_input_size, sub_output_size;
 
@@ -1516,8 +1516,8 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedCall(CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(sub_operators[i], needs_data_update));
     }
@@ -1599,8 +1599,8 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
 
     for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -1729,9 +1729,9 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
   if (is_composite) {
     CeedInt num_suboperators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     CeedOperator *sub_operators;
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
 
     // FLOPs for each suboperator
     for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -1906,8 +1906,8 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     CeedContextFieldLabel new_field_label;
 
     CeedCall(CeedCalloc(1, &new_field_label));
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCall(CeedCalloc(num_sub, &new_field_label->sub_labels));
     new_field_label->num_sub_labels = num_sub;
 
@@ -2209,8 +2209,8 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
       CeedInt       num_suboperators;
       CeedOperator *sub_operators;
 
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+      CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+      CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
       }
@@ -2250,8 +2250,8 @@ int CeedOperatorApplyAddActive(CeedOperator op, CeedVector in, CeedVector out, C
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
 
     // Zero all output vectors
     for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -2308,8 +2308,8 @@ int CeedOperatorAssemblyDataStrip(CeedOperator op) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedCall(CeedQFunctionAssemblyDataDestroy(&sub_operators[i]->qf_assembled));
       CeedCall(CeedOperatorAssemblyDataDestroy(&sub_operators[i]->op_assembled));

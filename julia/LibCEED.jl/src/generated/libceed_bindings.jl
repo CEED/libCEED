@@ -658,8 +658,8 @@ function CeedOperatorCreate(ceed, qf, dqf, dqfT, op)
     ccall((:CeedOperatorCreate, libceed), Cint, (Ceed, CeedQFunction, CeedQFunction, CeedQFunction, Ptr{CeedOperator}), ceed, qf, dqf, dqfT, op)
 end
 
-function CeedCompositeOperatorCreate(ceed, op)
-    ccall((:CeedCompositeOperatorCreate, libceed), Cint, (Ceed, Ptr{CeedOperator}), ceed, op)
+function CeedOperatorCreateComposite(ceed, op)
+    ccall((:CeedOperatorCreateComposite, libceed), Cint, (Ceed, Ptr{CeedOperator}), ceed, op)
 end
 
 function CeedOperatorReferenceCopy(op, op_copy)
@@ -674,16 +674,16 @@ function CeedOperatorGetFields(op, num_input_fields, input_fields, num_output_fi
     ccall((:CeedOperatorGetFields, libceed), Cint, (CeedOperator, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}), op, num_input_fields, input_fields, num_output_fields, output_fields)
 end
 
-function CeedCompositeOperatorAddSub(composite_op, sub_op)
-    ccall((:CeedCompositeOperatorAddSub, libceed), Cint, (CeedOperator, CeedOperator), composite_op, sub_op)
+function CeedOperatorCompositeAddSub(composite_op, sub_op)
+    ccall((:CeedOperatorCompositeAddSub, libceed), Cint, (CeedOperator, CeedOperator), composite_op, sub_op)
 end
 
-function CeedCompositeOperatorGetNumSub(op, num_suboperators)
-    ccall((:CeedCompositeOperatorGetNumSub, libceed), Cint, (CeedOperator, Ptr{CeedInt}), op, num_suboperators)
+function CeedOperatorCompositeGetNumSub(op, num_suboperators)
+    ccall((:CeedOperatorCompositeGetNumSub, libceed), Cint, (CeedOperator, Ptr{CeedInt}), op, num_suboperators)
 end
 
-function CeedCompositeOperatorGetSubList(op, sub_operators)
-    ccall((:CeedCompositeOperatorGetSubList, libceed), Cint, (CeedOperator, Ptr{Ptr{CeedOperator}}), op, sub_operators)
+function CeedOperatorCompositeGetSubList(op, sub_operators)
+    ccall((:CeedOperatorCompositeGetSubList, libceed), Cint, (CeedOperator, Ptr{Ptr{CeedOperator}}), op, sub_operators)
 end
 
 function CeedOperatorCheckReady(op)
@@ -738,8 +738,8 @@ function CeedOperatorLinearAssemble(op, values)
     ccall((:CeedOperatorLinearAssemble, libceed), Cint, (CeedOperator, CeedVector), op, values)
 end
 
-function CeedCompositeOperatorGetMultiplicity(op, num_skip_indices, skip_indices, mult)
-    ccall((:CeedCompositeOperatorGetMultiplicity, libceed), Cint, (CeedOperator, CeedInt, Ptr{CeedInt}, CeedVector), op, num_skip_indices, skip_indices, mult)
+function CeedOperatorCompositeGetMultiplicity(op, num_skip_indices, skip_indices, mult)
+    ccall((:CeedOperatorCompositeGetMultiplicity, libceed), Cint, (CeedOperator, CeedInt, Ptr{CeedInt}, CeedVector), op, num_skip_indices, skip_indices, mult)
 end
 
 function CeedOperatorMultigridLevelCreate(op_fine, p_mult_fine, rstr_coarse, basis_coarse, op_coarse, op_prolong, op_restrict)

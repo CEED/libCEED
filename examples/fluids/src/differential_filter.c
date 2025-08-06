@@ -96,7 +96,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     // -- Get Grid anisotropy tensor
     PetscCall(GridAnisotropyTensorCalculateCollocatedVector(ceed, user, ceed_data, &elem_restr_grid_aniso, &grid_aniso_ceed, &num_comp_grid_aniso));
 
-    PetscCallCeed(ceed, CeedCompositeOperatorCreate(ceed, &op_lhs));
+    PetscCallCeed(ceed, CeedOperatorCreateComposite(ceed, &op_lhs));
     for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
       CeedQFunction       qf_lhs;
       PetscInt            num_comp_filter = diff_filter->num_field_components[i];
@@ -149,7 +149,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
       PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
 
-      PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_lhs, op_lhs_sub));
+      PetscCallCeed(ceed, CeedOperatorCompositeAddSub(op_lhs, op_lhs_sub));
       PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_filter));
       PetscCallCeed(ceed, CeedBasisDestroy(&basis_filter));
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));

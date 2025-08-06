@@ -1498,7 +1498,7 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op, 
 //------------------------------------------------------------------------------
 // Single Operator Assembly Setup
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceedsize_idx) {
+static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceedsize_idx) {
   Ceed                ceed;
   Ceed_Hip           *hip_data;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
@@ -1704,7 +1704,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
 // (could have multiple basis eval modes).
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedOperatorAssembleSingle_Hip(CeedOperator op, CeedInt offset, CeedVector values) {
   Ceed                ceed;
   CeedSize            values_length = 0, assembled_qf_length = 0;
   CeedInt             use_ceedsize_idx = 0, num_elem_in, num_elem_out, elem_size_in, elem_size_out;
@@ -1730,7 +1730,7 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedV
   if ((values_length > INT_MAX) || (assembled_qf_length > INT_MAX)) use_ceedsize_idx = 1;
 
   // Setup
-  if (!impl->asmb) CeedCallBackend(CeedSingleOperatorAssembleSetup_Hip(op, use_ceedsize_idx));
+  if (!impl->asmb) CeedCallBackend(CeedOperatorAssembleSingleSetup_Hip(op, use_ceedsize_idx));
   CeedOperatorAssemble_Hip *asmb = impl->asmb;
 
   assert(asmb != NULL);
@@ -2076,7 +2076,7 @@ int CeedOperatorCreate_Hip(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonal_Hip));
   CeedCallBackend(
       CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal", CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssemble_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingle_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip));
   CeedCallBackend(CeedDestroy(&ceed));
