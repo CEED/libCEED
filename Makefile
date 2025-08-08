@@ -349,6 +349,10 @@ mfemexamples     := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
 nekexamples := $(OBJDIR)/nek-bps
 
+# Rust QFunction Examples
+rustqfunctions.c       := $(sort $(wildcard examples/rust-qfunctions/*.c))
+rustqfunctionsexamples := $(rustqfunctions.c:examples/rust-qfunctions/%.c=$(OBJDIR)/rustqfunctions-%)
+
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
@@ -733,6 +737,11 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
+# Rust QFunctions
+$(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c $(libceed) | $$(@D)/.DIR
+	+$(MAKE) -C examples/rust-qfunctions CEED_DIR=`pwd`
+	cp examples/rust-qfunctions/$* $@
+
 # PETSc
 # Several executables have common utilities, but we can't build the utilities
 # from separate submake invocations because they'll compete with each
@@ -763,11 +772,13 @@ $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
 
-examples : $(allexamples)
-ceedexamples : $(examples)
-nekexamples : $(nekexamples)
-mfemexamples : $(mfemexamples)
+examples      : $(allexamples)
+ceedexamples  : $(examples)
+nekexamples   : $(nekexamples)
+mfemexamples  : $(mfemexamples)
 petscexamples : $(petscexamples)
+
+rustqfunctionsexamples : $(rustqfunctionsexamples)
 
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
@@ -775,7 +786,8 @@ external_examples := \
 	$(if $(NEK5K_DIR),$(nekexamples)) \
 	$(if $(DEAL_II_DIR),$(dealiiexamples)) \
 	$(if $(PETSC_DIR),$(fluidsexamples)) \
-	$(if $(PETSC_DIR),$(solidsexamples))
+	$(if $(PETSC_DIR),$(solidsexamples)) \
+	$(if $(or $(RUST_QF),$(GPU_CLANG)),$(rustqfunctionsexamples))
 
 allexamples = $(examples) $(external_examples)
 
@@ -904,6 +916,7 @@ cln clean :
 	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(call quiet,MAKE) -C python/tests clean
 	$(RM) benchmarks/*output.txt
+	$(RM) -rf temp
 
 distclean : clean
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)

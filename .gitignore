@@ -51,6 +51,9 @@ doc/sphinx/build/
 # Example docs automatically copied from source tree
 doc/sphinx/source/examples/
 
+# Clang GPU temp files
+temp/*
+
 # Output files, videos, and compressed archives should not be added accidentally
 *.avi
 *.bin

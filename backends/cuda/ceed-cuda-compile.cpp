@@ -11,11 +11,19 @@
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
+#include <dirent.h>
 #include <nvrtc.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
 #include <sstream>
+#include <string>
 
 #include "ceed-cuda-common.h"
 
@@ -31,9 +39,35 @@
     CeedChk_Nvrtc(ceed, ierr_q_); \
   } while (0)
 
+#define CeedCallSystem(ceed, command, message) CeedCallBackend(CeedCallSystem_Core(ceed, command, message))
+
+//------------------------------------------------------------------------------
+// Call system command and capture stdout + stderr
+//------------------------------------------------------------------------------
+static int CeedCallSystem_Core(Ceed ceed, const char *command, const char *message) {
+  CeedDebug(ceed, "Running command:\n$ %s", command);
+  FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
+
+  CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to %s\ncommand:\n$ %s", message, command);
+
+  char        line[CEED_MAX_RESOURCE_LEN] = "";
+  std::string output                      = "";
+
+  while (fgets(line, sizeof(line), output_stream) != nullptr) {
+    output += line;
+  }
+  CeedDebug(ceed, "output:\n%s\n", output.c_str());
+  CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to %s\ncommand:\n$ %s\nerror:\n%s", message, command, output.c_str());
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
+using std::ifstream;
+using std::ofstream;
+using std::ostringstream;
+
 static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, CUmodule *module,
                                 const CeedInt num_defines, va_list args) {
   size_t                ptx_size;
@@ -48,6 +82,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   cudaFree(0);  // Make sure a Context exists for nvrtc
 
   std::ostringstream code;
+  bool               using_clang;
+
+  CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
+
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS,
+               using_clang ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
+                           : "Compiling CUDA with NVRTC backend (without Rust QFunction support).\nTo use the Clang backend, set the environment "
+                             "variable GPU_CLANG=1");
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -115,67 +157,250 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
   // Add string source argument provided in call
   code << source;
 
-  // Create Program
-  CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
-
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
-  if (CeedDebugFlag(ceed)) {
-    // LCOV_EXCL_START
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
-    for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
-      CeedDebug(ceed, "Option %d: %s", i, opts[i]);
-    }
-    CeedDebug(ceed, "");
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
-    // LCOV_EXCL_STOP
-  }
-  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
 
-  for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-    CeedCallBackend(CeedFree(&opts[num_opts + i]));
-  }
-  for (CeedInt i = 0; i < num_jit_defines; i++) {
-    CeedCallBackend(CeedFree(&opts[num_opts + num_jit_source_dirs + i]));
-  }
-  CeedCallBackend(CeedFree(&opts));
-  *is_compile_good = result == NVRTC_SUCCESS;
-  if (!*is_compile_good) {
-    char  *log;
-    size_t log_size;
+  if (!using_clang) {
+    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
-    CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
-    CeedCallBackend(CeedMalloc(log_size, &log));
-    CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
-    if (throw_error) {
-      return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
-    } else {
+    if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
-      CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
-      CeedCallBackend(CeedFree(&log));
-      CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
-      return CEED_ERROR_SUCCESS;
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
+      for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
+        CeedDebug(ceed, "Option %d: %s", i, opts[i]);
+      }
+      CeedDebug(ceed, "");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
       // LCOV_EXCL_STOP
     }
-  }
+
+    nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
+
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+      CeedCallBackend(CeedFree(&opts[num_opts + i]));
+    }
+    for (CeedInt i = 0; i < num_jit_defines; i++) {
+      CeedCallBackend(CeedFree(&opts[num_opts + num_jit_source_dirs + i]));
+    }
+    CeedCallBackend(CeedFree(&opts));
+    *is_compile_good = result == NVRTC_SUCCESS;
+    if (!*is_compile_good) {
+      char  *log;
+      size_t log_size;
+
+      CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
+      CeedCallBackend(CeedMalloc(log_size, &log));
+      CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
+      if (throw_error) {
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
+      } else {
+        // LCOV_EXCL_START
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+        CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+        CeedCallBackend(CeedFree(&log));
+        CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
+        return CEED_ERROR_SUCCESS;
+        // LCOV_EXCL_STOP
+      }
+    }
 
 #if CUDA_VERSION >= 11010
-  CeedCallNvrtc(ceed, nvrtcGetCUBINSize(prog, &ptx_size));
-  CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-  CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx));
+    CeedCallNvrtc(ceed, nvrtcGetCUBINSize(prog, &ptx_size));
+    CeedCallBackend(CeedMalloc(ptx_size, &ptx));
+    CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx));
 #else
-  CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
-  CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-  CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
+    CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
+    CeedCallBackend(CeedMalloc(ptx_size, &ptx));
+    CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
 #endif
-  CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
+    CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
 
-  CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
-  CeedCallBackend(CeedFree(&ptx));
+    CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
+    CeedCallBackend(CeedFree(&ptx));
+    return CEED_ERROR_SUCCESS;
+  } else {
+    srand(time(NULL));
+    const int build_id = rand();
+
+    // Create temp dir if needed
+    {
+      DIR *dir = opendir("temp");
+
+      if (dir) {
+        closedir(dir);
+      } else {
+        // In parallel multiple processes may attempt
+        // Only one process needs to succeed
+        mkdir("temp", 0777);
+        chmod("temp", 0777);
+      }
+    }
+    // Write code to temp file
+    {
+      std::string filename = std::string("temp/kernel_") + std::to_string(build_id) + std::string("_0_source.cu");
+      FILE       *file     = fopen(filename.c_str(), "w");
+
+      CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cuda-clang");
+      fputs(code.str().c_str(), file);
+      fclose(file);
+    }
+
+    // Get rust crate directories
+    const char **rust_source_dirs     = nullptr;
+    int          num_rust_source_dirs = 0;
+
+    CeedCallBackend(CeedGetRustSourceRoots(ceed, &num_rust_source_dirs, &rust_source_dirs));
+
+    std::string rust_dirs[10];
+
+    if (num_rust_source_dirs > 0) {
+      CeedDebug(ceed, "There are %d source dirs, including %s\n", num_rust_source_dirs, rust_source_dirs[0]);
+    }
+
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
+      rust_dirs[i] = std::string(rust_source_dirs[i]);
+    }
+
+    CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_dirs));
+
+    char *rust_toolchain = std::getenv("RUST_TOOLCHAIN");
+
+    if (rust_toolchain == nullptr) {
+      rust_toolchain = (char *)"nightly";
+      setenv("RUST_TOOLCHAIN", "nightly", 0);
+    }
+
+    // Compile Rust crate(s) needed
+    std::string command;
+
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
+      command = "cargo +" + std::string(rust_toolchain) + " build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] +
+                "/.cargo/config.toml --manifest-path " + rust_dirs[i] + "/Cargo.toml";
+      CeedCallSystem(ceed, command.c_str(), "build Rust crate");
+    }
+
+    // Get Clang version
+    bool use_llvm_version = ceed_data->use_llvm_version;
+    int  llvm_version     = ceed_data->llvm_version;
+
+    if (llvm_version == 0) {
+      command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
+      CeedDebug(ceed, "Attempting to detect Rust LLVM version.\ncommand:\n$ %s", command.c_str());
+      FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
+
+      CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to detect Rust LLVM version");
+
+      char        line[CEED_MAX_RESOURCE_LEN] = "";
+      std::string output                      = "";
+
+      while (fgets(line, sizeof(line), output_stream) != nullptr) {
+        output += line;
+      }
+      CeedDebug(ceed, "output:\n%s", output.c_str());
+      CeedCheck(pclose(output_stream) == 0, ceed, CEED_ERROR_BACKEND, "Failed to detect Rust LLVM version\ncommand:\n$ %s\nerror:\n%s",
+                command.c_str(), output.c_str());
+
+      const char *version_substring = strstr(output.c_str(), "LLVM version ");
+
+      version_substring += 13;
+
+      char *next_dot = strchr((char *)version_substring, '.');
+
+      if (next_dot) {
+        next_dot[0]             = '\0';
+        ceed_data->llvm_version = llvm_version = std::stoi(version_substring);
+        CeedDebug(ceed, "Rust LLVM version number: %d\n", llvm_version);
+
+        command                     = std::string("clang++-") + std::to_string(llvm_version);
+        output_stream               = popen((command + std::string(" 2>&1")).c_str(), "r");
+        ceed_data->use_llvm_version = use_llvm_version = pclose(output_stream) == 0;
+      } else {
+        ceed_data->llvm_version     = -1;
+        ceed_data->use_llvm_version = use_llvm_version = false;
+      }
+    }
+
+    // Compile wrapper kernel
+    command = "clang++" + (use_llvm_version ? (std::string("-") + std::to_string(llvm_version)) : "") + " -flto=thin --cuda-gpu-arch=sm_" +
+              std::to_string(prop.major) + std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) +
+              "_0_source.cu -o temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll ";
+    command += opts[4];
+    CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");
+
+    // Find Rust's llvm-link tool and run it
+    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
+              std::to_string(build_id) +
+              "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o "
+              "temp/kernel_" +
+              std::to_string(build_id) + "_2_linked.ll ";
+
+    // Searches for .a files in Rust directory
+    // Note: Rust crate names may not match the folder they are in
+    // TODO: If libCEED switches to c++17, use std::filesystem here
+    for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
+      std::string dir = rust_dirs[i] + "/target/nvptx64-nvidia-cuda/release";
+      DIR        *dp  = opendir(dir.c_str());
+
+      CeedCheck(dp != nullptr, ceed, CEED_ERROR_BACKEND, "Could not open directory: %s", dir.c_str());
+      struct dirent *entry;
+
+      // Find files ending in .a
+      while ((entry = readdir(dp)) != nullptr) {
+        std::string filename(entry->d_name);
+
+        if (filename.size() >= 2 && filename.substr(filename.size() - 2) == ".a") {
+          command += dir + "/" + filename + " ";
+        }
+      }
+      closedir(dp);
+    }
+
+    // Link, optimize, and compile final CUDA kernel
+    CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
+    CeedCallSystem(
+        ceed,
+        ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline temp/kernel_" +
+         std::to_string(build_id) + "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
+            .c_str(),
+        "optimize linked C and Rust source");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_2_linked.ll").c_str(), "update JiT file permissions");
+    CeedCallSystem(ceed,
+                   ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
+                    std::to_string(prop.major) + std::to_string(prop.minor) + " temp/kernel_" + std::to_string(build_id) +
+                    "_3_opt.bc -o temp/kernel_" + std::to_string(build_id) + "_4_final.ptx")
+                       .c_str(),
+                   "compile final CUDA kernel");
+    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_4_final.ptx").c_str(), "update JiT file permissions");
+
+    // Load module from final PTX
+    ifstream      ptxfile("temp/kernel_" + std::to_string(build_id) + "_4_final.ptx");
+    ostringstream sstr;
+
+    sstr << ptxfile.rdbuf();
+
+    auto ptx_data = sstr.str();
+    ptx_size      = ptx_data.length();
+
+    int result = cuModuleLoadData(module, ptx_data.c_str());
+
+    *is_compile_good = result == 0;
+    if (!*is_compile_good) {
+      if (throw_error) {
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
+      } else {
+        // LCOV_EXCL_START
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+        CeedDebug(ceed, "Error: Failed to load module data");
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+        return CEED_ERROR_SUCCESS;
+        // LCOV_EXCL_STOP
+      }
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
 

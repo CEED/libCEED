@@ -258,7 +258,9 @@ CEED_EXTERN int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec);
 CEED_EXTERN int CeedClearWorkVectors(Ceed ceed, CeedSize min_len);
 CEED_EXTERN int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb);
 CEED_EXTERN int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***jit_source_roots);
+CEED_EXTERN int CeedGetRustSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***rust_source_roots);
 CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots);
+CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots);
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
 
