@@ -1,4 +1,0 @@
-autopep8
-pytest
-setuptools
-vermin
