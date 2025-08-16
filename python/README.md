@@ -1,4 +1,12 @@
-# libCEED for Python
+# libCEED: Code for Efficient Extensible Discretization
+
+libCEED is a lightweight library for expressing and manipulating operators that arise in high-order element-based discretization of partial differential equations.
+libCEED's representations are much for efficient than assembled sparse matrices, and can achieve very high performance on modern CPU and GPU hardware.
+This approach is applicable to a broad range of linear and nonlinear problems, and includes facilities for preconditioning.
+libCEED is meant to be easy to incorporate into existing libraries and applications, and to build new tools on top of.
+
+libCEED has been developed as part of the DOE Exascale Computing Project
+co-design Center for Efficient Exascale Discretizations (CEED).
 
 ## Install
 

@@ -1,12 +1,12 @@
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel", "cffi"]
+requires = ["setuptools>=77.0.0", "wheel", "cffi>=1.0.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.autopep8]
 max_line_length = 80
 
 [tool.cibuildwheel]
-build-verbosity = "1"
+build-verbosity = 1
 test-requires = ["pytest"]
 test-command = "bash {project}/python/test-wheel.sh {project}"
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
@@ -14,3 +14,59 @@ skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
+
+[tool.setuptools]
+package-dir = { "libceed" = "python" }
+include-package-data = true
+platforms = ["POSIX"]
+
+[project]
+name="libceed"
+description="libCEED: Code for Efficient Extensible Discretization"
+authors = [
+  {name="libCEED Team", email="ceed-users@llnl.gov"}
+]
+readme = "python/README.md"
+license = "BSD-2-Clause"
+license-files = ["LICENSE"]
+dependencies = [
+  "cffi>=1.0.0",
+  "numpy"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: POSIX",
+  "Programming Language :: C",
+  "Programming Language :: C++",
+  "Programming Language :: Fortran",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.5",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Software Development :: Libraries",
+]
+keywords = ["libCEED"]
+dynamic = [
+  "version"
+]
+
+[project.urls]
+Homepage = "https://libceed.org"
+Download = "https://github.com/CEED/libCEED/releases"
+Repository = "https://github.com/CEED/libCEED"
+Documentation = "https://libceed.org"
+Issues = "https://github.com/CEED/libCEED/issues"
+
+[project.optional-dependencies]
+cuda = ['numba']
+test = [
+  'autopep8',
+  'pytest',
+  'setuptools',
+  'vermin',
+]
