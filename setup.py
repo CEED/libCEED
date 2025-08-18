@@ -79,7 +79,6 @@ classifiers = """
 Development Status :: 4 - Beta
 Intended Audience :: Developers
 Intended Audience :: Science/Research
-License :: OSI Approved :: BSD License
 Operating System :: POSIX
 Programming Language :: C
 Programming Language :: C++
