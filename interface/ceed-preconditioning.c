@@ -957,6 +957,42 @@ static int CeedOperatorAssemblyCountEntriesSingle(CeedOperator op, CeedSize *num
 }
 
 /**
+  @brief Count number of entries for assembled `CeedOperator`
+
+  @param[in]  op          `CeedOperator` to assemble
+  @param[out] num_entries Number of entries in assembled representation
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entries) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
+  if (is_composite) {
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+
+    *num_entries = 0;
+    for (CeedInt k = 0; k < num_suboperators; ++k) {
+      CeedSize single_entries;
+
+      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
+      *num_entries += single_entries;
+    }
+  } else {
+    CeedCall(CeedOperatorAssemblyCountEntriesSingle(op, num_entries));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Common code for creating a multigrid coarse `CeedOperator` and level transfer `CeedOperator` for a `CeedOperator`
 
   @param[in]  op_fine      Fine grid `CeedOperator`
@@ -2462,18 +2498,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   // Default interface implementation
 
   // Count entries and allocate rows, cols arrays
-  *num_entries = 0;
-  if (is_composite) {
-    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
-    for (CeedInt k = 0; k < num_suboperators; ++k) {
-      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
-      *num_entries += single_entries;
-    }
-  } else {
-    CeedCall(CeedOperatorAssemblyCountEntriesSingle(op, &single_entries));
-    *num_entries += single_entries;
-  }
+  CeedCall(CeedOperatorLinearAssembleGetNumEntries(op, num_entries));
   CeedCall(CeedCalloc(*num_entries, rows));
   CeedCall(CeedCalloc(*num_entries, cols));
 
