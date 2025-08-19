@@ -12,6 +12,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+
 typedef struct {
   bool           use_fallback, use_assembly_fallback;
   CeedInt        dim;
@@ -26,6 +27,33 @@ typedef struct {
   Fields_Cuda    G;
   CeedScalar    *W;
   Points_Cuda    points;
+  
+  // PETSc integration for CUDA graph compatibility
+#ifdef CEED_USE_PETSC
+  void *dm;
+  void *global_vec;
+  void *local_vec;
+  bool petsc_vectors_initialized;
+#endif
+
+  // -----------------------------------------------------------------------------
+  // CUDA Graph + PETSc integration state (per-operator, NOT static)
+  // -----------------------------------------------------------------------------
+  bool            graph_created;
+  cudaGraph_t     graph;
+  cudaGraphExec_t graph_instance;
+  int             graph_launches;
+  int             fallbacks;
+
+  // CEED vectors that alias stable device pointers used during capture
+  CeedVector      persistent_input_vec;
+  CeedVector      persistent_output_vec;
+  CeedSize        persistent_input_size;
+  CeedSize        persistent_output_size;
+
+  // Captured device pointers (for validation / recapture)
+  const CeedScalar *captured_input_ptr;
+  CeedScalar       *captured_output_ptr;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
@@ -36,3 +64,7 @@ typedef struct {
 CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
+
+#ifdef CEED_USE_PETSC
+CEED_EXTERN int CeedOperatorSetupPETScVectors_Cuda_gen(CeedOperator op, void *dm, void *global_vec);
+#endif
