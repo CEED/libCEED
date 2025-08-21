@@ -16,50 +16,10 @@
 #include <stdint.h>
 #include <stdint.h>
 
-// Add PETSc includes for direct local vector management
-#ifdef CEED_USE_PETSC
-#include <petscdm.h>
-#include <petscvec.h>
-#endif
-
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-gen-operator-build.h"
 #include "ceed-cuda-gen.h"
-
-#ifdef CEED_USE_PETSC
-int CeedOperatorSetupPETScVectors_Cuda_gen(CeedOperator op, void *dm_in, void *g_in) {
-  CeedOperator_Cuda_gen *impl = NULL;
-  Ceed ceed = NULL;
-  PetscErrorCode ierr;
-
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-
-  DM  dm = (DM)dm_in;
-  Vec g  = (Vec)g_in;
-
-  // (Re)create and store PETSc objects
-  if (impl->local_vec) { VecDestroy((Vec*)&impl->local_vec); impl->local_vec = NULL; }
-  ierr = DMCreateLocalVector(dm, (Vec*)&impl->local_vec); CHKERRQ(ierr);
-
-  impl->dm         = (void*)dm;
-  impl->global_vec = (void*)g;
-  impl->petsc_vectors_initialized = true;
-
-  // Any existing graph is invalid if we’re changing pointers
-  if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
-  if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
-  impl->graph_created = false;
-  impl->captured_input_ptr = NULL;
-
-  printf("DEBUG: *** PETSc VECTORS SETUP SUCCESSFUL ***\n"); fflush(stdout);
-  CeedCallBackend(CeedDestroy(&ceed));
-  return CEED_ERROR_SUCCESS;
-}
-#endif
-
-
 
 //------------------------------------------------------------------------------
 // Destroy operator
@@ -76,19 +36,6 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   if (impl->module_assemble_qfunction) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_qfunction));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
   
-#ifdef CEED_USE_PETSC
-  // Clean up PETSc vectors
-  if (impl->petsc_vectors_initialized) {
-    if (impl->local_vec) {
-      Vec v = (Vec)impl->local_vec;
-      VecDestroy(&v);
-      impl->local_vec = NULL;
-    }
-    impl->petsc_vectors_initialized = false;
-    printf("DEBUG: *** PETSc VECTORS CLEANED UP ***\n");
-    fflush(stdout);
-  }
-#endif
   // Destroy CUDA Graph state (if any)
   if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
   if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
@@ -170,6 +117,40 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 
 
 
+// Forward declaration
+static int CeedOperatorApplyAddCoreCapture_Cuda_gen(CeedOperator op, CUstream stream, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
+                                                    CeedRequest *request);
+
+//------------------------------------------------------------------------------
+// Apply and add to output - capture-friendly version using CeedVector
+//------------------------------------------------------------------------------
+static int CeedOperatorApplyAddCoreCaptureVector_Cuda_gen(CeedOperator op, CUstream stream, CeedVector input_vec, CeedVector output_vec, bool *is_run_good,
+                                                          CeedRequest *request) {
+  const CeedScalar *input_arr = NULL;
+  CeedScalar *output_arr = NULL;
+  
+  // Get array pointers from vectors
+  if (input_vec != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+  }
+  if (output_vec != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
+  }
+  
+  // Call the original function
+  int result = CeedOperatorApplyAddCoreCapture_Cuda_gen(op, stream, input_arr, output_arr, is_run_good, request);
+  
+  // Restore array pointers
+  if (output_vec != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+  }
+  if (input_vec != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
+  }
+  
+  return result;
+}
+
 //------------------------------------------------------------------------------
 // Apply and add to output - capture-friendly version without synchronization
 //------------------------------------------------------------------------------
@@ -218,6 +199,7 @@ static int CeedOperatorApplyAddCoreCapture_Cuda_gen(CeedOperator op, CUstream st
   }
 
   
+  // Pre-sync context data before graph capture (safe, outside capture)
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
 
   // Apply operator - kernel launch only
@@ -467,6 +449,15 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     CeedCallBackend(CeedVectorGetLength(output_vec, &output_size));
   }
 
+  // Simple CUDA Graph implementation based on working approach
+  // Static variables for CUDA graph management
+  static bool graph_created = false;
+  static cudaGraph_t graph;
+  static cudaGraphExec_t graph_instance;
+  static int graph_launches = 0;
+  static int fallbacks = 0;
+
+  // Check for environment variable to force baseline
   static bool force_baseline = false;
   static bool force_baseline_checked = false;
   if (!force_baseline_checked) {
@@ -481,117 +472,87 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     return CEED_ERROR_SUCCESS;
   }
 
-#ifdef CEED_USE_PETSC
-  if (impl->petsc_vectors_initialized && impl->dm && impl->global_vec && impl->local_vec) {
+  // Try CUDA Graph approach
+  if (!graph_created) {
+    // Create a CUDA stream for graph operations
+    cudaStream_t capture_stream = NULL;
+    CeedCallCuda(ceed, cudaStreamCreate(&capture_stream));
+    
+    printf("DEBUG: CUDA Graph: BEGIN CAPTURE\n"); fflush(stdout);
+    cudaError_t err = cudaStreamBeginCapture(capture_stream, cudaStreamCaptureModeThreadLocal);
+    if (err != cudaSuccess) { cudaStreamDestroy(capture_stream); goto use_fallback; }
 
-    PetscErrorCode ierr = 0;
-    DM  dm = (DM)impl->dm;
-    Vec g  = (Vec)impl->global_vec;
-    Vec l  = (Vec)impl->local_vec;
-
-recapture:
-    ierr = DMGlobalToLocalBegin(dm, g, INSERT_VALUES, l); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd  (dm, g, INSERT_VALUES, l); CHKERRQ(ierr);
-
-    if (!impl->graph_created) {
-      const PetscScalar *local_ptr = NULL;
-      ierr = VecCUDAGetArrayRead(l, &local_ptr); CHKERRQ(ierr);
-
-
-      if (!impl->persistent_input_vec || impl->persistent_input_size != input_size) {
-        if (impl->persistent_input_vec) CeedCallBackend(CeedVectorDestroy(&impl->persistent_input_vec));
-        CeedCallBackend(CeedVectorCreate(ceed, input_size, &impl->persistent_input_vec));
-        impl->persistent_input_size = input_size;
-      }
-      CeedCallBackend(CeedVectorSetArray(impl->persistent_input_vec, CEED_MEM_DEVICE, CEED_USE_POINTER,(CeedScalar*)(uintptr_t)local_ptr));
-
-      CeedVector graph_input_vec  = impl->persistent_input_vec;
-      CeedVector graph_output_vec = output_vec;
-
-      // Pre-warm kernels and contexts
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        bool is_build_good = false;
-        CeedQFunction           qf_pre;
-        CeedQFunction_Cuda_gen *qf_data_pre;
-        CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(sub_operators[i], &is_build_good));
-        CeedCallBackend(CeedOperatorGetQFunction(sub_operators[i], &qf_pre));
-        CeedCallBackend(CeedQFunctionGetData(qf_pre, &qf_data_pre));
-        CeedCallBackend(CeedQFunctionGetInnerContextData(qf_pre, CEED_MEM_DEVICE, &qf_data_pre->d_c));
-        CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf_pre, &qf_data_pre->d_c));
-      }
-
-      cudaStream_t stream = NULL;
-      CeedCallCuda(ceed, cudaStreamCreate(&stream));
-      printf("DEBUG: CUDA Graph: BEGIN CAPTURE\n"); fflush(stdout);
-      cudaError_t err = cudaStreamBeginCapture(stream, cudaStreamCaptureModeThreadLocal);
-      if (err != cudaSuccess) { cudaStreamDestroy(stream); VecCUDARestoreArrayRead(l, &local_ptr); goto use_fallback; }
-
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        bool run_ok = false;
-        const CeedScalar *cap_in = (graph_input_vec  != CEED_VECTOR_NONE) ? (const CeedScalar*)local_ptr : NULL;
-        CeedScalar       *cap_out= NULL;
-        if (graph_output_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorGetArray(graph_output_vec, CEED_MEM_DEVICE, &cap_out));
-
-        CeedCallBackend(CeedOperatorApplyAddCoreCapture_Cuda_gen(sub_operators[i], (CUstream)stream, cap_in, cap_out, &run_ok, CEED_REQUEST_IMMEDIATE));
-
-        if (graph_output_vec != CEED_VECTOR_NONE)
-          CeedCallBackend(CeedVectorRestoreArray(graph_output_vec, &cap_out));
-        if (!run_ok) { cudaStreamEndCapture(stream, &impl->graph); cudaStreamDestroy(stream); VecCUDARestoreArrayRead(impl->local_vec, &local_ptr); goto use_fallback; }
-      }
-
-      impl->captured_input_ptr = (const CeedScalar*)local_ptr;
-      ierr = VecCUDARestoreArrayRead(l, &local_ptr); CHKERRQ(ierr);
-
-      err = cudaStreamEndCapture(stream, &impl->graph);
-      if (err != cudaSuccess || impl->graph == NULL) { cudaStreamDestroy(stream); goto use_fallback; }
-      err = cudaGraphInstantiate(&impl->graph_instance, impl->graph, 0);
-      if (err != cudaSuccess) { cudaGraphDestroy(impl->graph); impl->graph = NULL; cudaStreamDestroy(stream); goto use_fallback; }
-      cudaGraphUpload(impl->graph_instance, stream);
-      cudaStreamDestroy(stream);
-
-      impl->graph_created  = true;
-      impl->graph_launches = 0;
-      printf("DEBUG: CUDA Graph: CAPTURED & INSTANTIATED\n"); fflush(stdout);
-    }
-
-    {
-      const PetscScalar *cur_ptr = NULL;
-      ierr = VecCUDAGetArrayRead(l, &cur_ptr); CHKERRQ(ierr);
-      bool ptr_changed = (cur_ptr != impl->captured_input_ptr);
-      ierr = VecCUDARestoreArrayRead(l, &cur_ptr); CHKERRQ(ierr);
-      if (ptr_changed) {
-        printf("DEBUG: CUDA Graph: INPUT PTR CHANGED — RECAPTURE\n"); fflush(stdout);
-        if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
-        if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
-        impl->graph_created = false;
-        goto recapture;
-      }
-    }
-
-    {
-      // Refresh the local Vec from the current global solution before launching the graph
-      ierr = DMGlobalToLocalBegin(dm, g, INSERT_VALUES, l); CHKERRQ(ierr);
-      ierr = DMGlobalToLocalEnd  (dm, g, INSERT_VALUES, l); CHKERRQ(ierr);
+    // Manually capture each suboperator (composite operators need special handling)
+    CeedInt num_suboperators;
+    CeedOperator *sub_operators;
+    CeedCallBackend(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCallBackend(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      bool is_sub_run_good = true;
+      CeedRequest sub_request = NULL;
       
-      // Update the persistent input vector with the current local data
-      const PetscScalar *current_local_ptr = NULL;
-      ierr = VecCUDAGetArrayRead(l, &current_local_ptr); CHKERRQ(ierr);
-      CeedCallBackend(CeedVectorSetArray(impl->persistent_input_vec, CEED_MEM_DEVICE, CEED_USE_POINTER, (CeedScalar*)(uintptr_t)current_local_ptr));
-      ierr = VecCUDARestoreArrayRead(l, &current_local_ptr); CHKERRQ(ierr);
-      
-      cudaStream_t stream = NULL;
-      CeedCallCuda(ceed, cudaStreamCreate(&stream));
-      printf("DEBUG: CUDA Graph: LAUNCH #%d\n", impl->graph_launches+1); fflush(stdout);
-      cudaError_t err = cudaGraphLaunch(impl->graph_instance, stream);
-      if (err != cudaSuccess) { cudaStreamDestroy(stream); goto use_fallback; }
-      cudaStreamSynchronize(stream);
-      cudaStreamDestroy(stream);
-      impl->graph_launches++;
-      return CEED_ERROR_SUCCESS;
+      // Use the capture function for each individual suboperator
+      CeedCallBackend(CeedOperatorApplyAddCoreCapture_Cuda_gen(sub_operators[i], capture_stream, NULL, NULL, &is_sub_run_good, &sub_request));
+      if (!is_sub_run_good) {
+        cudaStreamEndCapture(capture_stream, &graph);
+        cudaStreamDestroy(capture_stream);
+        goto use_fallback;
+      }
     }
+
+    err = cudaStreamEndCapture(capture_stream, &graph);
+    if (err != cudaSuccess || graph == NULL) { cudaStreamDestroy(capture_stream); goto use_fallback; }
+    
+    err = cudaGraphInstantiate(&graph_instance, graph, 0);
+    if (err != cudaSuccess) { cudaGraphDestroy(graph); graph = NULL; cudaStreamDestroy(capture_stream); goto use_fallback; }
+    
+    cudaStreamDestroy(capture_stream);
+    graph_created = true;
+    graph_launches = 0;
+    printf("DEBUG: CUDA Graph: CAPTURED & INSTANTIATED\n"); fflush(stdout);
   }
-#endif
+
+  // Launch the graph
+  {
+    cudaStream_t launch_stream = NULL;
+    CeedCallCuda(ceed, cudaStreamCreate(&launch_stream));
+    printf("DEBUG: CUDA Graph: LAUNCH #%d\n", graph_launches+1); fflush(stdout);
+    cudaError_t err = cudaGraphLaunch(graph_instance, launch_stream);
+    if (err != cudaSuccess) { cudaStreamDestroy(launch_stream); goto use_fallback; }
+    
+    graph_launches++;
+    cudaStreamSynchronize(launch_stream);
+    printf("DEBUG: *** CUDA GRAPH EXECUTED SUCCESSFULLY ***\n");
+    fflush(stdout);
+
+    // Success - clean up and return
+    if (launch_stream) CeedCallCuda(ceed, cudaStreamDestroy(launch_stream));
+    return CEED_ERROR_SUCCESS;
+  }
+
+use_fallback:
+  // Clean up graph resources
+  if (graph_instance) {
+    cudaGraphExecDestroy(graph_instance);
+    graph_instance = NULL;
+  }
+  if (graph) {
+    cudaGraphDestroy(graph);
+    graph = NULL;
+  }
+  graph_created = false;
+
+  // Use fallback
+  fallbacks++;
+  printf("DEBUG: *** USING FALLBACK (Fallback #%d) ***\n", fallbacks);
+  fflush(stdout);
+
+  CeedOperator op_fallback;
+  CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+  CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+
+  return CEED_ERROR_SUCCESS;
 
   {
     CeedOperator op_fallback;
@@ -600,22 +561,7 @@ recapture:
     return CEED_ERROR_SUCCESS;
   }
 
-use_fallback:
-  printf("DEBUG: CUDA Graph: FALLBACK\n"); fflush(stdout);
-  if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
-  if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
-  impl->graph_created = false;
-  impl->captured_input_ptr  = NULL;
-  impl->captured_output_ptr = NULL;
-  if (impl->persistent_input_vec)  { CeedCallBackend(CeedVectorDestroy(&impl->persistent_input_vec));  impl->persistent_input_vec  = NULL; impl->persistent_input_size  = 0; }
-  if (impl->persistent_output_vec) { CeedCallBackend(CeedVectorDestroy(&impl->persistent_output_vec)); impl->persistent_output_vec = NULL; impl->persistent_output_size = 0; }
-  impl->fallbacks++;
-  {
-    CeedOperator op_fallback;
-    CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-    CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
-  }
-  return CEED_ERROR_SUCCESS;
+
 }
 
 
@@ -1153,17 +1099,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
   
-  // Initialize PETSc vectors for CUDA graph compatibility
-#ifdef CEED_USE_PETSC
-  impl->dm = NULL;
-  impl->global_vec = NULL;
-  impl->local_vec = NULL;
-  impl->petsc_vectors_initialized = false;
-  
-  // This would typically be done during operator setup in PETSc applications
-  printf("DEBUG: *** INITIALIZING PETSc VECTORS FOR CUDA GRAPH COMPATIBILITY ***\n");
-  fflush(stdout);
-#endif
+  // Initialize CUDA Graph state
   impl->graph_created            = false;
   impl->graph                    = NULL;
   impl->graph_instance           = NULL;

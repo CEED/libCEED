@@ -28,16 +28,8 @@ typedef struct {
   CeedScalar    *W;
   Points_Cuda    points;
   
-  // PETSc integration for CUDA graph compatibility
-#ifdef CEED_USE_PETSC
-  void *dm;
-  void *global_vec;
-  void *local_vec;
-  bool petsc_vectors_initialized;
-#endif
-
   // -----------------------------------------------------------------------------
-  // CUDA Graph + PETSc integration state (per-operator, NOT static)
+  // CUDA Graph state (per-operator, framework-agnostic)
   // -----------------------------------------------------------------------------
   bool            graph_created;
   cudaGraph_t     graph;
@@ -45,7 +37,7 @@ typedef struct {
   int             graph_launches;
   int             fallbacks;
 
-  // CEED vectors that alias stable device pointers used during capture
+  // CEED vectors that provide stable interfaces for graph capture
   CeedVector      persistent_input_vec;
   CeedVector      persistent_output_vec;
   CeedSize        persistent_input_size;
@@ -64,7 +56,3 @@ typedef struct {
 CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
-
-#ifdef CEED_USE_PETSC
-CEED_EXTERN int CeedOperatorSetupPETScVectors_Cuda_gen(CeedOperator op, void *dm, void *global_vec);
-#endif
