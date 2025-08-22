@@ -6,7 +6,7 @@ use std::process::Command;
 
 fn main() {
     let out_dir = PathBuf::from(env("OUT_DIR").unwrap());
-    let statik = env("CARGO_FEATURE_STATIC").is_some();
+    let shared = env("CARGO_FEATURE_SHARED").is_some();
     let system = env("CARGO_FEATURE_SYSTEM").is_some();
 
     let ceed_pc = if system {
@@ -28,7 +28,7 @@ fn main() {
             .arg("FC=") // Don't try to find Fortran (unused library build/install)
             .env("MAKEFLAGS", makeflags)
             .current_dir("c-src");
-        if statik {
+        if !shared {
             make.arg("STATIC=1");
         }
         run(&mut make);
@@ -40,7 +40,7 @@ fn main() {
             .into_owned()
     };
     pkg_config::Config::new()
-        .statik(statik)
+        .statik(!shared)
         .atleast_version("0.12.0")
         .probe(&ceed_pc)
         .unwrap();
