@@ -115,124 +115,6 @@ static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threa
 // callback for cuOccupancyMaxPotentialBlockSize, providing the amount of dynamic shared memory required for a thread block of size threads.
 static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar); }
 
-
-
-// Forward declaration
-static int CeedOperatorApplyAddCoreCapture_Cuda_gen(CeedOperator op, CUstream stream, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
-                                                    CeedRequest *request);
-
-//------------------------------------------------------------------------------
-// Apply and add to output - capture-friendly version using CeedVector
-//------------------------------------------------------------------------------
-static int CeedOperatorApplyAddCoreCaptureVector_Cuda_gen(CeedOperator op, CUstream stream, CeedVector input_vec, CeedVector output_vec, bool *is_run_good,
-                                                          CeedRequest *request) {
-  const CeedScalar *input_arr = NULL;
-  CeedScalar *output_arr = NULL;
-  
-  // Get array pointers from vectors
-  if (input_vec != CEED_VECTOR_NONE) {
-    CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
-  }
-  if (output_vec != CEED_VECTOR_NONE) {
-    CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  }
-  
-  // Call the original function
-  int result = CeedOperatorApplyAddCoreCapture_Cuda_gen(op, stream, input_arr, output_arr, is_run_good, request);
-  
-  // Restore array pointers
-  if (output_vec != CEED_VECTOR_NONE) {
-    CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-  }
-  if (input_vec != CEED_VECTOR_NONE) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-  }
-  
-  return result;
-}
-
-//------------------------------------------------------------------------------
-// Apply and add to output - capture-friendly version without synchronization
-//------------------------------------------------------------------------------
-static int CeedOperatorApplyAddCoreCapture_Cuda_gen(CeedOperator op, CUstream stream, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
-                                                    CeedRequest *request) {
-  bool                    is_tensor;
-  Ceed                    ceed;
-  Ceed_Cuda              *cuda_data;
-  CeedInt                 num_elem, num_input_fields, num_output_fields;
-  CeedEvalMode            eval_mode;
-  CeedQFunctionField     *qf_input_fields, *qf_output_fields;
-  CeedQFunction_Cuda_gen *qf_data;
-  CeedQFunction           qf;
-  CeedOperatorField      *op_input_fields, *op_output_fields;
-  CeedOperator_Cuda_gen  *data;
-
-  // Build the operator kernel
-  CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, is_run_good));
-  if (!(*is_run_good)) return CEED_ERROR_SUCCESS;
-
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedGetData(ceed, &cuda_data));
-  CeedCallBackend(CeedOperatorGetData(op, &data));
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-
-  // Input vectors
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-      data->fields.inputs[i] = NULL;
-    } else {
-      data->fields.inputs[i] = input_arr;  // Use pre-obtained array directly
-    }
-  }
-  for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-      data->fields.outputs[i] = NULL;
-    } else {
-      data->fields.outputs[i] = output_arr;  // Use pre-obtained array directly
-    }
-  }
-
-  
-  // Pre-sync context data before graph capture (safe, outside capture)
-  CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
-
-  // Apply operator - kernel launch only
-  void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points};
-  int   max_threads_per_block, min_grid_size, grid;
-
-  CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
-  CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
-
-  if (is_tensor) {
-    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
-                                       cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
-  } else {
-    CeedInt elems_per_block = CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(512 / data->thread_1d, 1));
-
-    grid     = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
-    block[2] = elems_per_block;
-  }
-  CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
-  
-  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
-  
-  // Skip cleanup during capture - will be done after
-  // Restore context data
-  CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
-
-  CeedCallBackend(CeedDestroy(&ceed));
-  CeedCallBackend(CeedQFunctionDestroy(&qf));
-  if (!(*is_run_good)) data->use_fallback = true;
-  return CEED_ERROR_SUCCESS;
-}
-
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
@@ -488,17 +370,9 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     CeedCallBackend(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
     CeedCallBackend(CeedCompositeOperatorGetSubList(op, &sub_operators));
     
+    // Capture all sub-operators using high-level API
     for (CeedInt i = 0; i < num_suboperators; i++) {
-      bool is_sub_run_good = true;
-      CeedRequest sub_request = NULL;
-      
-      // Use the capture function for each individual suboperator
-      CeedCallBackend(CeedOperatorApplyAddCoreCapture_Cuda_gen(sub_operators[i], capture_stream, NULL, NULL, &is_sub_run_good, &sub_request));
-      if (!is_sub_run_good) {
-        cudaStreamEndCapture(capture_stream, &graph);
-        cudaStreamDestroy(capture_stream);
-        goto use_fallback;
-      }
+      CeedCallBackend(CeedOperatorApply(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
     }
 
     err = cudaStreamEndCapture(capture_stream, &graph);
