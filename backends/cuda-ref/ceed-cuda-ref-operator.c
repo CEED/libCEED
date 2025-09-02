@@ -854,7 +854,13 @@ static int CeedOperatorApplyAddAtPoints_Cuda(CeedOperator op, CeedVector in_vec,
 
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &point_coords));
     if (!impl->point_coords_elem) CeedCallBackend(CeedElemRestrictionCreateVector(rstr_points, NULL, &impl->point_coords_elem));
-    CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+    {
+      uint64_t state;
+      CeedCallBackend(CeedVectorGetState(point_coords, &state));
+      if (impl->points_state != state) {
+        CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+      }
+    }
     CeedCallBackend(CeedVectorDestroy(&point_coords));
     CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
@@ -1861,7 +1867,13 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda(CeedOperator op, C
 
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &point_coords));
     if (!impl->point_coords_elem) CeedCallBackend(CeedElemRestrictionCreateVector(rstr_points, NULL, &impl->point_coords_elem));
-    CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+    {
+      uint64_t state;
+      CeedCallBackend(CeedVectorGetState(point_coords, &state));
+      if (impl->points_state != state) {
+        CeedCallBackend(CeedElemRestrictionApply(rstr_points, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
+      }
+    }
     CeedCallBackend(CeedVectorDestroy(&point_coords));
     CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
