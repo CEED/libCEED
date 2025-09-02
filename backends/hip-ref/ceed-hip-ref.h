@@ -138,7 +138,7 @@ typedef struct {
 
 typedef struct {
   bool                     *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
-  uint64_t                 *input_states;  // State tracking for passive inputs
+  uint64_t                 *input_states, points_state;  // State tracking for passive inputs
   CeedVector               *e_vecs_in, *e_vecs_out;
   CeedVector               *q_vecs_in, *q_vecs_out;
   CeedInt                   num_inputs, num_outputs;
