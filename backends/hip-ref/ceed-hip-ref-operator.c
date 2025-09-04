@@ -2054,8 +2054,8 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
     if (eval_mode == CEED_EVAL_NONE) {
       CeedScalar *e_vec_array;
 
-      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_in[i], CEED_MEM_DEVICE, &e_vec_array));
-      CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_in[i], &e_vec_array));
+      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[i], CEED_MEM_DEVICE, &e_vec_array));
+      CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[i], &e_vec_array));
     }
   }
 
