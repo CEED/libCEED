@@ -323,6 +323,10 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
   CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  
+  // Get operator name for debugging
+  char *op_name = NULL;
+  CeedCallBackend(CeedOperatorGetName(op, (const char**)&op_name));
 
   if (input_vec != CEED_VECTOR_NONE) {
     CeedCallBackend(CeedVectorGetLength(input_vec, &input_size));
@@ -331,13 +335,6 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     CeedCallBackend(CeedVectorGetLength(output_vec, &output_size));
   }
 
-  // Simple CUDA Graph implementation based on working approach
-  // Static variables for CUDA graph management
-  static bool graph_created = false;
-  static cudaGraph_t graph;
-  static cudaGraphExec_t graph_instance;
-  static int graph_launches = 0;
-  static int fallbacks = 0;
 
   // Check for environment variable to force baseline
   static bool force_baseline = false;
@@ -354,51 +351,62 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     return CEED_ERROR_SUCCESS;
   }
 
-  // Try CUDA Graph approach
-  if (!graph_created) {
+
+  // Try CUDA Graph approach - use per-operator state
+  if (!impl->graph_created) {
     // Create a CUDA stream for graph operations
     cudaStream_t capture_stream = NULL;
     CeedCallCuda(ceed, cudaStreamCreate(&capture_stream));
     
-    printf("DEBUG: CUDA Graph: BEGIN CAPTURE\n"); fflush(stdout);
+    // Try CUDA Graph approach - attempt capture and handle failures gracefully
+    printf("Attempting CUDA Graph capture for %s with %d suboperators\n", op_name ? op_name : "unnamed", num_suboperators);
     cudaError_t err = cudaStreamBeginCapture(capture_stream, cudaStreamCaptureModeThreadLocal);
-    if (err != cudaSuccess) { cudaStreamDestroy(capture_stream); goto use_fallback; }
+    if (err != cudaSuccess) { 
+      printf("CUDA Graph capture failed at begin: %s\n", cudaGetErrorString(err));
+      cudaStreamDestroy(capture_stream); 
+      goto use_fallback; 
+    }
 
-    // Manually capture each suboperator (composite operators need special handling)
-    CeedInt num_suboperators;
-    CeedOperator *sub_operators;
-    CeedCallBackend(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCallBackend(CeedCompositeOperatorGetSubList(op, &sub_operators));
-    
-    // Capture all sub-operators using high-level API
+    // Capture suboperators (if any)
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedCallBackend(CeedOperatorApply(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
     }
 
-    err = cudaStreamEndCapture(capture_stream, &graph);
-    if (err != cudaSuccess || graph == NULL) { cudaStreamDestroy(capture_stream); goto use_fallback; }
+    err = cudaStreamEndCapture(capture_stream, &impl->graph);
+    if (err != cudaSuccess || impl->graph == NULL) { 
+      printf("CUDA Graph capture failed at end: %s (graph=%p)\n", cudaGetErrorString(err), impl->graph);
+      cudaStreamDestroy(capture_stream); 
+      goto use_fallback; 
+    }
     
-    err = cudaGraphInstantiate(&graph_instance, graph, 0);
-    if (err != cudaSuccess) { cudaGraphDestroy(graph); graph = NULL; cudaStreamDestroy(capture_stream); goto use_fallback; }
+    err = cudaGraphInstantiate(&impl->graph_instance, impl->graph, 0);
+    if (err != cudaSuccess) { 
+      printf("CUDA Graph instantiation failed: %s\n", cudaGetErrorString(err));
+      cudaGraphDestroy(impl->graph); impl->graph = NULL; 
+      cudaStreamDestroy(capture_stream); 
+      goto use_fallback; 
+    }
     
     cudaStreamDestroy(capture_stream);
-    graph_created = true;
-    graph_launches = 0;
-    printf("DEBUG: CUDA Graph: CAPTURED & INSTANTIATED\n"); fflush(stdout);
+    impl->graph_created = true;
+    impl->graph_launches = 0;
+    
+    printf("CUDA Graph created for %s (%d suboperators)\n", op_name ? op_name : "operator", num_suboperators);
   }
 
   // Launch the graph
   {
     cudaStream_t launch_stream = NULL;
     CeedCallCuda(ceed, cudaStreamCreate(&launch_stream));
-    printf("DEBUG: CUDA Graph: LAUNCH #%d\n", graph_launches+1); fflush(stdout);
-    cudaError_t err = cudaGraphLaunch(graph_instance, launch_stream);
+    cudaError_t err = cudaGraphLaunch(impl->graph_instance, launch_stream);
     if (err != cudaSuccess) { cudaStreamDestroy(launch_stream); goto use_fallback; }
     
-    graph_launches++;
+    impl->graph_launches++;
     cudaStreamSynchronize(launch_stream);
-    printf("DEBUG: *** CUDA GRAPH EXECUTED SUCCESSFULLY ***\n");
-    fflush(stdout);
+    
+    if (impl->graph_launches <= 2) {
+      printf("CUDA Graph launch #%d successful for %s\n", impl->graph_launches, op_name ? op_name : "operator");
+    }
 
     // Success - clean up and return
     if (launch_stream) CeedCallCuda(ceed, cudaStreamDestroy(launch_stream));
@@ -407,20 +415,18 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
 
 use_fallback:
   // Clean up graph resources
-  if (graph_instance) {
-    cudaGraphExecDestroy(graph_instance);
-    graph_instance = NULL;
+  if (impl->graph_instance) {
+    cudaGraphExecDestroy(impl->graph_instance);
+    impl->graph_instance = NULL;
   }
-  if (graph) {
-    cudaGraphDestroy(graph);
-    graph = NULL;
+  if (impl->graph) {
+    cudaGraphDestroy(impl->graph);
+    impl->graph = NULL;
   }
-  graph_created = false;
-
+  impl->graph_created = false;
+  
   // Use fallback
-  fallbacks++;
-  printf("DEBUG: *** USING FALLBACK (Fallback #%d) ***\n", fallbacks);
-  fflush(stdout);
+  impl->fallbacks++;
 
   CeedOperator op_fallback;
   CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
@@ -986,16 +992,10 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   impl->captured_input_ptr       = NULL;
   impl->captured_output_ptr      = NULL;
   
+  
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
-    printf("DEBUG: CUDA-gen backend creating composite operator with CUDA graphs!\n");
-    // CUDA graphs will be handled via static variables in ApplyComposite
-    int cuda_version;
-    CeedCallCuda(ceed, cudaRuntimeGetVersion(&cuda_version));
-    printf("DEBUG: CUDA graphs ENABLED for composite operator (CUDA version: %d)\n", cuda_version);
-    
-    printf("DEBUG: *** Registering ApplyAddComposite function! ***\n");
-    fflush(stdout);
+    // CUDA graphs are handled in ApplyAddComposite for composite operators
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAddComposite", CeedOperatorApplyAddComposite_Cuda_gen));
   } else {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Cuda_gen));
