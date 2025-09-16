@@ -41,6 +41,7 @@
 
 #include <deal.II/matrix_free/portable_fe_evaluation.h>
 #include <deal.II/matrix_free/portable_matrix_free.h>
+#include <deal.II/matrix_free/tools.h>
 
 // boost
 #include <boost/algorithm/string.hpp>
@@ -308,9 +309,32 @@ public:
    * Compute inverse of diagonal.
    */
   void
-  compute_inverse_diagonal(VectorType &) const override
+  compute_inverse_diagonal(VectorType &diagonal) const override
   {
-    AssertThrow(false, ExcNotImplemented());
+    this->initialize_dof_vector(diagonal);
+
+    const unsigned int n_components  = dof_handler.get_fe().n_components();
+    const unsigned int fe_degree     = dof_handler.get_fe().tensor_degree();
+    const unsigned int n_q_points_1d = quadrature.get_tensor_basis()[0].size();
+
+    if (n_components == 1 && fe_degree == 1 && n_q_points_1d == 2)
+      this->compute_inverse_diagonal_internal<1, 1, 2>(diagonal);
+    else if (n_components == 1 && fe_degree == 2 && n_q_points_1d == 3)
+      this->compute_inverse_diagonal_internal<1, 2, 3>(diagonal);
+    else if (n_components == dim && fe_degree == 1 && n_q_points_1d == 2)
+      this->compute_inverse_diagonal_internal<dim, 1, 2>(diagonal);
+    else if (n_components == dim && fe_degree == 2 && n_q_points_1d == 3)
+      this->compute_inverse_diagonal_internal<dim, 2, 3>(diagonal);
+    else if (n_components == 1 && fe_degree == 1 && n_q_points_1d == 3)
+      this->compute_inverse_diagonal_internal<1, 1, 3>(diagonal);
+    else if (n_components == 1 && fe_degree == 2 && n_q_points_1d == 4)
+      this->compute_inverse_diagonal_internal<1, 2, 4>(diagonal);
+    else if (n_components == dim && fe_degree == 1 && n_q_points_1d == 3)
+      this->compute_inverse_diagonal_internal<dim, 1, 3>(diagonal);
+    else if (n_components == dim && fe_degree == 2 && n_q_points_1d == 4)
+      this->compute_inverse_diagonal_internal<dim, 2, 4>(diagonal);
+    else
+      AssertThrow(false, ExcInternalError());
   }
 
 private:
@@ -332,6 +356,38 @@ private:
           local_operator;
         matrix_free.cell_loop(local_operator, src, dst);
       }
+  }
+
+  /**
+   * Templated compute_inverse_diagonal function.
+   */
+  template <int n_components, int fe_degree, int n_q_points_1d>
+  void
+  compute_inverse_diagonal_internal(VectorType &diagonal) const
+  {
+    if (bp <= BPType::BP2) // mass matrix
+      {
+        OperatorDealiiMassQuad<dim, fe_degree, n_q_points_1d, n_components, Number> op_quad;
+
+        MatrixFreeTools::compute_diagonal<dim, fe_degree, n_q_points_1d, n_components, Number>(
+          matrix_free, diagonal, op_quad, EvaluationFlags::values, EvaluationFlags::values);
+      }
+    else
+      {
+        OperatorDealiiLaplaceQuad<dim, fe_degree, n_q_points_1d, n_components, Number> op_quad;
+
+        MatrixFreeTools::compute_diagonal<dim, fe_degree, n_q_points_1d, n_components, Number>(
+          matrix_free, diagonal, op_quad, EvaluationFlags::gradients, EvaluationFlags::gradients);
+      }
+
+
+    Number *diagonal_ptr = diagonal.get_values();
+
+    Kokkos::parallel_for(
+      "lethe::invert_vector",
+      Kokkos::RangePolicy<MemorySpace::Default::kokkos_space::execution_space>(
+        0, diagonal.locally_owned_size()),
+      KOKKOS_LAMBDA(int i) { diagonal_ptr[i] = 1.0 / diagonal_ptr[i]; });
   }
 
   /**
@@ -435,6 +491,10 @@ main(int argc, char *argv[])
     // create solver
     ReductionControl reduction_control(100, 1e-20, 1e-6);
 
+    // create preconditioner
+    DiagonalMatrix<VectorType> diagonal_matrix;
+    op.compute_inverse_diagonal(diagonal_matrix.get_vector());
+
     std::chrono::time_point<std::chrono::system_clock> now;
 
     bool not_converged = false;
@@ -444,7 +504,7 @@ main(int argc, char *argv[])
         // solve problem
         SolverCG<VectorType> solver(reduction_control);
         now = std::chrono::system_clock::now();
-        solver.solve(op, v, u, PreconditionIdentity());
+        solver.solve(op, v, u, diagonal_matrix);
       }
     catch (const SolverControl::NoConvergence &)
       {
