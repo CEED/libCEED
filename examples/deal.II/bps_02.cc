@@ -39,8 +39,8 @@
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_cg.h>
 
-#include <deal.II/matrix_free/cuda_fe_evaluation.h>
-#include <deal.II/matrix_free/cuda_matrix_free.h>
+#include <deal.II/matrix_free/portable_fe_evaluation.h>
+#include <deal.II/matrix_free/portable_matrix_free.h>
 
 // boost
 #include <boost/algorithm/string.hpp>
@@ -134,8 +134,8 @@ class OperatorDealiiMassQuad
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(CUDAWrappers::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> *fe_eval,
-             const int                                                             q_point) const
+  operator()(Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> *fe_eval,
+             const int                                                         q_point) const
   {
     fe_eval->submit_value(fe_eval->get_value(q_point), q_point);
   }
@@ -148,8 +148,8 @@ class OperatorDealiiLaplaceQuad
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(CUDAWrappers::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> *fe_eval,
-             const int                                                             q_point) const
+  operator()(Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> *fe_eval,
+             const int                                                         q_point) const
   {
     fe_eval->submit_gradient(fe_eval->get_gradient(q_point), q_point);
   }
@@ -162,23 +162,18 @@ class OperatorDealiiMassLocal
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(const unsigned int                                          cell,
-             const typename CUDAWrappers::MatrixFree<dim, Number>::Data *gpu_data,
-             CUDAWrappers::SharedData<dim, Number>                      *shared_data,
-             const Number                                               *src,
-             Number                                                     *dst) const
+  operator()(const typename Portable::MatrixFree<dim, Number>::Data *data,
+             const Portable::DeviceVector<Number>                   &src,
+             Portable::DeviceVector<Number>                         &dst) const
   {
-    (void)cell;
-
-    CUDAWrappers::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> fe_eval(/*cell,*/ gpu_data,
-                                                                                 shared_data);
+    Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> fe_eval(data);
     fe_eval.read_dof_values(src);
     fe_eval.evaluate(EvaluationFlags::values);
     fe_eval.apply_for_each_quad_point(OperatorDealiiMassQuad<dim, fe_degree, Number>());
     fe_eval.integrate(EvaluationFlags::values);
     fe_eval.distribute_local_to_global(dst);
   }
-  static const unsigned int n_dofs_1d    = fe_degree + 1;
+
   static const unsigned int n_local_dofs = Utilities::pow(fe_degree + 1, dim);
   static const unsigned int n_q_points   = Utilities::pow(fe_degree + 1, dim);
 };
@@ -190,23 +185,18 @@ class OperatorDealiiLaplaceLocal
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(const unsigned int                                          cell,
-             const typename CUDAWrappers::MatrixFree<dim, Number>::Data *gpu_data,
-             CUDAWrappers::SharedData<dim, Number>                      *shared_data,
-             const Number                                               *src,
-             Number                                                     *dst) const
+  operator()(const typename Portable::MatrixFree<dim, Number>::Data *data,
+             const Portable::DeviceVector<Number>                   &src,
+             Portable::DeviceVector<Number>                         &dst) const
   {
-    (void)cell;
-
-    CUDAWrappers::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> fe_eval(/*cell,*/ gpu_data,
-                                                                                 shared_data);
+    Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, 1, Number> fe_eval(data);
     fe_eval.read_dof_values(src);
     fe_eval.evaluate(EvaluationFlags::gradients);
     fe_eval.apply_for_each_quad_point(OperatorDealiiLaplaceQuad<dim, fe_degree, Number>());
     fe_eval.integrate(EvaluationFlags::gradients);
     fe_eval.distribute_local_to_global(dst);
   }
-  static const unsigned int n_dofs_1d    = fe_degree + 1;
+
   static const unsigned int n_local_dofs = Utilities::pow(fe_degree + 1, dim);
   static const unsigned int n_q_points   = Utilities::pow(fe_degree + 1, dim);
 };
@@ -248,7 +238,7 @@ public:
   reinit() override
   {
     // configure MatrixFree
-    typename CUDAWrappers::MatrixFree<dim, Number>::AdditionalData additional_data;
+    typename Portable::MatrixFree<dim, Number>::AdditionalData additional_data;
 
     if (bp <= BPType::BP2) // mass matrix
       additional_data.mapping_update_flags = update_JxW_values | update_values;
@@ -351,7 +341,7 @@ private:
   /**
    * MatrixFree object.
    */
-  CUDAWrappers::MatrixFree<dim, Number> matrix_free;
+  Portable::MatrixFree<dim, Number> matrix_free;
 };
 
 
