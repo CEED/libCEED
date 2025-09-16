@@ -71,7 +71,7 @@ struct Parameters
       {
         std::cout << "Usage: ./bp [OPTION]..." << std::endl;
         std::cout << std::endl;
-        std::cout << "--bp             name of benchmark (BP1, BP5)" << std::endl;
+        std::cout << "--bp             name of benchmark (BP1-BP6)" << std::endl;
         std::cout << "--n_refinements  number of refinements (0-)" << std::endl;
         std::cout << "--fe_degree      polynomial degree (1-)" << std::endl;
         std::cout << "--print_timings  name of benchmark (0, 1)" << std::endl;
@@ -91,13 +91,13 @@ struct Parameters
             std::string bp_string(argv[1]);
 
             if (bp_string == "BP1")
-              bp = BPType::BP1; // with q = p + 1
+              bp = BPType::BP1;
             else if (bp_string == "BP2")
-              bp = BPType::BP2; // with q = p + 1
+              bp = BPType::BP2;
             else if (bp_string == "BP3")
-              bp = BPType::BP3; // with q = p + 1
+              bp = BPType::BP3;
             else if (bp_string == "BP4")
-              bp = BPType::BP4; // with q = p + 1
+              bp = BPType::BP4;
             else if (bp_string == "BP5")
               bp = BPType::BP5;
             else if (bp_string == "BP6")
@@ -281,6 +281,14 @@ public:
       this->vmult_internal<dim, 1, 2>(dst, src);
     else if (n_components == dim && fe_degree == 2 && n_q_points_1d == 3)
       this->vmult_internal<dim, 2, 3>(dst, src);
+    else if (n_components == 1 && fe_degree == 1 && n_q_points_1d == 3)
+      this->vmult_internal<1, 1, 3>(dst, src);
+    else if (n_components == 1 && fe_degree == 2 && n_q_points_1d == 4)
+      this->vmult_internal<1, 2, 4>(dst, src);
+    else if (n_components == dim && fe_degree == 1 && n_q_points_1d == 3)
+      this->vmult_internal<dim, 1, 3>(dst, src);
+    else if (n_components == dim && fe_degree == 2 && n_q_points_1d == 4)
+      this->vmult_internal<dim, 2, 4>(dst, src);
     else
       AssertThrow(false, ExcInternalError());
 
@@ -377,7 +385,7 @@ main(int argc, char *argv[])
   using VectorType              = LinearAlgebra::distributed::Vector<Number, MemorySpace::Default>;
   const unsigned int dim        = 2;
   const unsigned int fe_degree  = params.fe_degree;
-  const unsigned int n_q_points = fe_degree + 1;
+  const unsigned int n_q_points = (bp <= BPType::BP4) ? (fe_degree + 2) : (fe_degree + 1);
   const unsigned int n_refinements = params.n_global_refinements;
   const unsigned int n_components =
     (bp == BPType::BP1 || bp == BPType::BP3 || bp == BPType::BP5) ? 1 : dim;
