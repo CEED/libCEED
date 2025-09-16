@@ -137,12 +137,12 @@ struct Parameters
 
 
 
-template <int dim, int fe_degree, int n_components, typename Number>
+template <int dim, int fe_degree, int n_q_points_1d, int n_components, typename Number>
 class OperatorDealiiMassQuad
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, n_components, Number> *fe_eval,
+  operator()(Portable::FEEvaluation<dim, fe_degree, n_q_points_1d, n_components, Number> *fe_eval,
              const int q_point) const
   {
     fe_eval->submit_value(fe_eval->get_value(q_point), q_point);
@@ -151,12 +151,12 @@ public:
 
 
 
-template <int dim, int fe_degree, int n_components, typename Number>
+template <int dim, int fe_degree, int n_q_points_1d, int n_components, typename Number>
 class OperatorDealiiLaplaceQuad
 {
 public:
   DEAL_II_HOST_DEVICE void
-  operator()(Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, n_components, Number> *fe_eval,
+  operator()(Portable::FEEvaluation<dim, fe_degree, n_q_points_1d, n_components, Number> *fe_eval,
              const int q_point) const
   {
     fe_eval->submit_gradient(fe_eval->get_gradient(q_point), q_point);
@@ -165,7 +165,7 @@ public:
 
 
 
-template <int dim, int fe_degree, int n_components, typename Number>
+template <int dim, int fe_degree, int n_q_points_1d, int n_components, typename Number>
 class OperatorDealiiMassLocal
 {
 public:
@@ -174,22 +174,22 @@ public:
              const Portable::DeviceVector<Number>                   &src,
              Portable::DeviceVector<Number>                         &dst) const
   {
-    Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, n_components, Number> fe_eval(data);
+    Portable::FEEvaluation<dim, fe_degree, n_q_points_1d, n_components, Number> fe_eval(data);
     fe_eval.read_dof_values(src);
     fe_eval.evaluate(EvaluationFlags::values);
     fe_eval.apply_for_each_quad_point(
-      OperatorDealiiMassQuad<dim, fe_degree, n_components, Number>());
+      OperatorDealiiMassQuad<dim, fe_degree, n_q_points_1d, n_components, Number>());
     fe_eval.integrate(EvaluationFlags::values);
     fe_eval.distribute_local_to_global(dst);
   }
 
   static const unsigned int n_local_dofs = Utilities::pow(fe_degree + 1, dim) * n_components;
-  static const unsigned int n_q_points   = Utilities::pow(fe_degree + 1, dim);
+  static const unsigned int n_q_points   = Utilities::pow(n_q_points_1d, dim);
 };
 
 
 
-template <int dim, int fe_degree, int n_components, typename Number>
+template <int dim, int fe_degree, int n_q_points_1d, int n_components, typename Number>
 class OperatorDealiiLaplaceLocal
 {
 public:
@@ -198,17 +198,17 @@ public:
              const Portable::DeviceVector<Number>                   &src,
              Portable::DeviceVector<Number>                         &dst) const
   {
-    Portable::FEEvaluation<dim, fe_degree, fe_degree + 1, n_components, Number> fe_eval(data);
+    Portable::FEEvaluation<dim, fe_degree, n_q_points_1d, n_components, Number> fe_eval(data);
     fe_eval.read_dof_values(src);
     fe_eval.evaluate(EvaluationFlags::gradients);
     fe_eval.apply_for_each_quad_point(
-      OperatorDealiiLaplaceQuad<dim, fe_degree, n_components, Number>());
+      OperatorDealiiLaplaceQuad<dim, fe_degree, n_q_points_1d, n_components, Number>());
     fe_eval.integrate(EvaluationFlags::gradients);
     fe_eval.distribute_local_to_global(dst);
   }
 
   static const unsigned int n_local_dofs = Utilities::pow(fe_degree + 1, dim) * n_components;
-  static const unsigned int n_q_points   = Utilities::pow(fe_degree + 1, dim);
+  static const unsigned int n_q_points   = Utilities::pow(n_q_points_1d, dim);
 };
 
 
@@ -269,17 +269,18 @@ public:
   {
     dst = 0.0;
 
-    const unsigned int n_components = dof_handler.get_fe().n_components();
-    const unsigned int fe_degree    = dof_handler.get_fe().tensor_degree();
+    const unsigned int n_components  = dof_handler.get_fe().n_components();
+    const unsigned int fe_degree     = dof_handler.get_fe().tensor_degree();
+    const unsigned int n_q_points_1d = quadrature.get_tensor_basis()[0].size();
 
-    if (n_components == 1 && fe_degree == 1)
-      this->vmult_internal<1, 1>(dst, src);
-    else if (n_components == 1 && fe_degree == 2)
-      this->vmult_internal<1, 2>(dst, src);
-    else if (n_components == dim && fe_degree == 1)
-      this->vmult_internal<dim, 1>(dst, src);
-    else if (n_components == dim && fe_degree == 2)
-      this->vmult_internal<dim, 2>(dst, src);
+    if (n_components == 1 && fe_degree == 1 && n_q_points_1d == 2)
+      this->vmult_internal<1, 1, 2>(dst, src);
+    else if (n_components == 1 && fe_degree == 2 && n_q_points_1d == 3)
+      this->vmult_internal<1, 2, 3>(dst, src);
+    else if (n_components == dim && fe_degree == 1 && n_q_points_1d == 2)
+      this->vmult_internal<dim, 1, 2>(dst, src);
+    else if (n_components == dim && fe_degree == 2 && n_q_points_1d == 3)
+      this->vmult_internal<dim, 2, 3>(dst, src);
     else
       AssertThrow(false, ExcInternalError());
 
@@ -308,18 +309,19 @@ private:
   /**
    * Templated vmult function.
    */
-  template <int n_components, int fe_degree>
+  template <int n_components, int fe_degree, int n_q_points_1d>
   void
   vmult_internal(VectorType &dst, const VectorType &src) const
   {
     if (bp <= BPType::BP2) // mass matrix
       {
-        OperatorDealiiMassLocal<dim, fe_degree, n_components, Number> mass_operator;
+        OperatorDealiiMassLocal<dim, fe_degree, n_q_points_1d, n_components, Number> mass_operator;
         matrix_free.cell_loop(mass_operator, src, dst);
       }
     else
       {
-        OperatorDealiiLaplaceLocal<dim, fe_degree, n_components, Number> local_operator;
+        OperatorDealiiLaplaceLocal<dim, fe_degree, n_q_points_1d, n_components, Number>
+          local_operator;
         matrix_free.cell_loop(local_operator, src, dst);
       }
   }
