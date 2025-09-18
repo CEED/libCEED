@@ -5,7 +5,7 @@ cflags_extra=%opt%
 
 Name: CEED
 Description: Code for Efficient Extensible Discretization
-Version: 0.12.0
+Version: 1.0.0
 Cflags: -I${includedir}
 Libs: -L${libdir} -lceed
 Libs.private: %libs_private%
