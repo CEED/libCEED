@@ -322,7 +322,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   }
   if (impl->d_array) {
     if (val == 0) {
-      CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemset(impl->d_array, 0, length * sizeof(CeedScalar)));
+      CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemsetAsync(impl->d_array, 0, length * sizeof(CeedScalar), 0));
     } else {
       CeedCallBackend(CeedDeviceSetValue_Cuda(impl->d_array, length, val));
     }
