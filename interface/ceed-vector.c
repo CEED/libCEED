@@ -159,6 +159,7 @@ int CeedVectorReference(CeedVector vec) {
   @ref User
 **/
 int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
+  CeedCheck(length >= 0, ceed, CEED_ERROR_UNSUPPORTED, "CeedVector must have length >= 0, recieved %" CeedSize_FMT, length);
   if (!ceed->VectorCreate) {
     Ceed delegate;
 
