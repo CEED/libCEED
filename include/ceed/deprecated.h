@@ -26,7 +26,7 @@ DEPRECATED("Use CeedOperatorCompositeGetNumSub()")
 static inline int CeedCompositeOperatorGetNumSub(CeedOperator a, CeedInt *b) { return CeedOperatorCompositeGetNumSub(a, b); }
 DEPRECATED("Use CeedOperatorCompositeGetSubList()")
 static inline int CeedCompositeOperatorGetSubList(CeedOperator a, CeedOperator **b) { return CeedOperatorCompositeGetSubList(a, b); }
-DEPRECATED("Use CeedCompositeOperatorGetSubByName()")
+DEPRECATED("Use CeedOperatorCompositeGetSubByName()")
 static inline int CeedCompositeOperatorGetSubByName(CeedOperator a, const char *b, CeedOperator *c) {
   return CeedOperatorCompositeGetSubByName(a, b, c);
 }
