@@ -206,8 +206,8 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
 
   PetscCall(CreateElemRestrColloc_CompMajor(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,
                                             &(*stats_data)->elem_restr_parent_colloc));
-  PetscCall(
-      CreateElemRestrColloc_CompMajor(ceed, num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q, &(*stats_data)->elem_restr_child_colloc));
+  PetscCall(CreateElemRestrColloc_CompMajor(ceed, num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q,
+                                            &(*stats_data)->elem_restr_child_colloc));
 
   {  // -- Copy DM coordinates into CeedVector
     DM cdm;
@@ -397,9 +397,9 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
 
     PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(collect_context, "solution time",
                                                            offsetof(struct Turbulence_SpanStatsContext_, solution_time), 1, "Current solution time"));
-    PetscCallCeed(
-        ceed, CeedQFunctionContextRegisterDouble(collect_context, "previous time", offsetof(struct Turbulence_SpanStatsContext_, previous_time), 1,
-                                                 "Previous time statistics collection was done"));
+    PetscCallCeed(ceed,
+                  CeedQFunctionContextRegisterDouble(collect_context, "previous time", offsetof(struct Turbulence_SpanStatsContext_, previous_time),
+                                                     1, "Previous time statistics collection was done"));
 
     PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
   }
@@ -423,8 +423,8 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
   PetscCall(OperatorApplyContextCreate(user->dm, user->spanstats.dm, user->ceed, op_stats_collect, user->q_ceed, NULL, NULL, NULL,
                                        &user->spanstats.op_stats_collect_ctx));
 
-  PetscCall(
-      CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, NULL, &user->spanstats.Child_Stats_loc));
+  PetscCall(CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, NULL,
+                                        &user->spanstats.Child_Stats_loc));
   PetscCall(VecZeroEntries(user->spanstats.Child_Stats_loc));
 
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stats_collect));

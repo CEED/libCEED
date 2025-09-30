@@ -80,8 +80,8 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
                                                       thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -92,8 +92,8 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
                                                       thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       }
     } break;
@@ -331,8 +331,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, 1, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 2) {
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
@@ -345,8 +345,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -357,8 +357,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       }
     } break;
@@ -394,8 +394,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      grad_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -406,8 +406,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      grad_args));
         }
       }
     } break;
@@ -637,8 +637,8 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(
-      CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd", &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd",
+                                     &data->InterpTransposeAdd));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocated" : "Grad", &data->Grad));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTranspose" : "GradTranspose", &data->GradTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTransposeAdd" : "GradTransposeAdd", &data->GradTransposeAdd));

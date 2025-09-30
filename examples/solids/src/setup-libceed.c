@@ -316,8 +316,8 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
       CeedOperator        op_traction;
       CeedQFunctionContextSetData(traction_ctx, CEED_MEM_HOST, CEED_USE_POINTER, 3 * sizeof(CeedScalar), app_ctx->bc_traction_vector[i]);
       // Setup restriction
-      PetscCall(
-          GetRestrictionForDomain(ceed, dm, 1, domain_label, app_ctx->bc_traction_faces[i], Q, 0, &elem_restr_u_face, &elem_restr_x_face, NULL));
+      PetscCall(GetRestrictionForDomain(ceed, dm, 1, domain_label, app_ctx->bc_traction_faces[i], Q, 0, &elem_restr_u_face, &elem_restr_x_face,
+                                        NULL));
       // ---- Create boundary Operator
       CeedOperatorCreate(ceed, qf_traction, NULL, NULL, &op_traction);
       CeedOperatorSetField(op_traction, "dx", elem_restr_x_face, basis_x_face, CEED_VECTOR_ACTIVE);

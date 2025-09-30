@@ -423,8 +423,8 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
     // Sum into for transpose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedTranspose_Ref_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedTranspose_Ref_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu,
+                                                                          vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetTranspose_Ref_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
@@ -463,8 +463,8 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
     // Overwrite for notranspose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset,
+                                                                            uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetNoTranspose_Ref_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,

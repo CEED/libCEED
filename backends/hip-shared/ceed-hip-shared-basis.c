@@ -409,8 +409,8 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
           CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                     interp_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = 1;
@@ -421,8 +421,8 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
           CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                     interp_args));
         }
       }
     } break;
@@ -457,8 +457,8 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
           CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                     grad_args));
         }
       } else if (dim == 3) {
         const CeedInt elems_per_block = 1;
@@ -469,8 +469,8 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
           CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                      thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Hip(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                     grad_args));
         }
       }
     } break;
@@ -703,8 +703,8 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(
-      CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd", &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd",
+                                    &data->InterpTransposeAdd));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocated" : "Grad", &data->Grad));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocatedTranspose" : "GradTranspose", &data->GradTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, is_collocated ? "GradCollocatedTransposeAdd" : "GradTransposeAdd", &data->GradTransposeAdd));

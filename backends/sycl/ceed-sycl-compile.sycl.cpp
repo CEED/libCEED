@@ -157,8 +157,9 @@ int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::st
     return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to retrieve kernel from Level Zero module");
   }
 
-  *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
-      {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
+  *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>({*sycl_module, lz_kernel,
+                                                                                           sycl::ext::oneapi::level_zero::ownership::transfer},
+                                                                                          data->sycl_context));
   return CEED_ERROR_SUCCESS;
 }
 

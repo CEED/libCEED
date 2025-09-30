@@ -476,8 +476,8 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, Ceed
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_NONE) {
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &size));
-        CeedCallBackend(
-            CeedVectorSetArray(impl->q_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i + num_input_fields][(CeedSize)e * Q * size]));
+        CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER,
+                                           &e_data_full[i + num_input_fields][(CeedSize)e * Q * size]));
       }
     }
 
@@ -508,8 +508,8 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, Ceed
     // Active
     if (is_active) vec = out_vec;
     // Restrict
-    CeedCallBackend(
-        CeedElemRestrictionApply(impl->block_rstr[i + impl->num_inputs], CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec, request));
+    CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[i + impl->num_inputs], CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec,
+                                             request));
     if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
   }
 

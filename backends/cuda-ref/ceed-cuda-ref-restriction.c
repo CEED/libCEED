@@ -652,8 +652,8 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOrientations", CeedElemRestrictionGetOrientations_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Cuda));
   if (rstr_type == CEED_RESTRICTION_POINTS) {
-    CeedCallBackend(
-        CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetAtPointsElementOffset", CeedElemRestrictionGetAtPointsElementOffset_Cuda));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetAtPointsElementOffset",
+                                           CeedElemRestrictionGetAtPointsElementOffset_Cuda));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Cuda));
   CeedCallBackend(CeedDestroy(&ceed));

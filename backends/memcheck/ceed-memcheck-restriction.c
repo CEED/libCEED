@@ -420,8 +420,8 @@ static inline int CeedElemRestrictionApply_Memcheck_Core(CeedElemRestriction rst
     // Sum into for transpose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset,
+                                                                               uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetTranspose_Memcheck_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem,
@@ -460,8 +460,8 @@ static inline int CeedElemRestrictionApply_Memcheck_Core(CeedElemRestriction rst
     // Overwrite for notranspose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size,
+                                                                                 v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetNoTranspose_Memcheck_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem,
@@ -760,8 +760,8 @@ int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCopyMode copy_m
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApplyUnsigned_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApplyUnoriented_Memcheck));
   if (rstr_type == CEED_RESTRICTION_POINTS) {
-    CeedCallBackend(
-        CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement", CeedElemRestrictionApplyAtPointsInElement_Memcheck));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement",
+                                           CeedElemRestrictionApplyAtPointsInElement_Memcheck));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyBlock", CeedElemRestrictionApplyBlock_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Memcheck));
