@@ -170,8 +170,8 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op, bool 
           CeedInt num_points[num_elem];
 
           for (CeedInt i = 0; i < num_elem; i++) num_points[i] = Q;
-          CeedCallBackend(
-              CeedBasisApplyAtPoints(basis, num_elem, num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE, q_vecs[i]));
+          CeedCallBackend(CeedBasisApplyAtPoints(basis, num_elem, num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE,
+                                                 q_vecs[i]));
         } else {
           CeedCallBackend(CeedBasisApply(basis, num_elem, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]));
         }
@@ -269,8 +269,8 @@ static int CeedOperatorSetup_Cuda(CeedOperator op) {
   impl->num_outputs = num_output_fields;
 
   // Set up infield and outfield e-vecs and q-vecs
-  CeedCallBackend(
-      CeedOperatorSetupFields_Cuda(qf, op, true, false, impl->skip_rstr_in, NULL, impl->e_vecs_in, impl->q_vecs_in, num_input_fields, Q, num_elem));
+  CeedCallBackend(CeedOperatorSetupFields_Cuda(qf, op, true, false, impl->skip_rstr_in, NULL, impl->e_vecs_in, impl->q_vecs_in, num_input_fields, Q,
+                                               num_elem));
   CeedCallBackend(CeedOperatorSetupFields_Cuda(qf, op, false, false, impl->skip_rstr_out, impl->apply_add_basis_out, impl->e_vecs_out,
                                                impl->q_vecs_out, num_output_fields, Q, num_elem));
 
@@ -522,8 +522,8 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector in_vec, CeedVec
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedInt field = impl->input_field_order[i];
 
-    CeedCallBackend(
-        CeedOperatorInputRestrict_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, false, impl, request));
+    CeedCallBackend(CeedOperatorInputRestrict_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, false, impl,
+                                                   request));
     CeedCallBackend(CeedOperatorInputBasis_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, num_elem, false, impl));
   }
 
@@ -869,8 +869,8 @@ static int CeedOperatorApplyAddAtPoints_Cuda(CeedOperator op, CeedVector in_vec,
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedInt field = impl->input_field_order[i];
 
-    CeedCallBackend(
-        CeedOperatorInputRestrict_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, false, impl, request));
+    CeedCallBackend(CeedOperatorInputRestrict_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, false, impl,
+                                                   request));
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Cuda(op_input_fields[field], qf_input_fields[field], field, in_vec, active_e_vec, num_elem,
                                                         num_points, false, false, impl));
   }
@@ -1015,8 +1015,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op, 
           CeedSize q_size = (CeedSize)Q * num_elem;
 
           CeedCallBackend(CeedVectorCreate(ceed, q_size, &active_inputs[num_active_in + field]));
-          CeedCallBackend(
-              CeedVectorSetArray(active_inputs[num_active_in + field], CEED_MEM_DEVICE, CEED_USE_POINTER, &q_vec_array[field * Q * num_elem]));
+          CeedCallBackend(CeedVectorSetArray(active_inputs[num_active_in + field], CEED_MEM_DEVICE, CEED_USE_POINTER,
+                                             &q_vec_array[field * Q * num_elem]));
         }
         num_active_in += size;
         CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &q_vec_array));
@@ -1881,8 +1881,8 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda(CeedOperator op, C
   // Process inputs
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorInputRestrict_Cuda(op_input_fields[i], qf_input_fields[i], i, NULL, NULL, true, impl, request));
-    CeedCallBackend(
-        CeedOperatorInputBasisAtPoints_Cuda(op_input_fields[i], qf_input_fields[i], i, NULL, NULL, num_elem, num_points, true, false, impl));
+    CeedCallBackend(CeedOperatorInputBasisAtPoints_Cuda(op_input_fields[i], qf_input_fields[i], i, NULL, NULL, num_elem, num_points, true, false,
+                                                        impl));
   }
 
   // Output pointers, as necessary
@@ -2003,8 +2003,8 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda(CeedOperator op, C
 
             CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[field_out], &basis));
             if (impl->apply_add_basis_out[field_out]) {
-              CeedCallBackend(
-                  CeedBasisApplyAddAtPoints(basis, num_elem, num_points, CEED_TRANSPOSE, eval_mode, impl->point_coords_elem, q_vec, e_vec));
+              CeedCallBackend(CeedBasisApplyAddAtPoints(basis, num_elem, num_points, CEED_TRANSPOSE, eval_mode, impl->point_coords_elem, q_vec,
+                                                        e_vec));
             } else {
               CeedCallBackend(CeedBasisApplyAtPoints(basis, num_elem, num_points, CEED_TRANSPOSE, eval_mode, impl->point_coords_elem, q_vec, e_vec));
             }
@@ -2087,8 +2087,8 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonal_Cuda));
-  CeedCallBackend(
-      CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal", CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal",
+                                         CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingle_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda));

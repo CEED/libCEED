@@ -116,11 +116,11 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           }
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(
-                contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
-                (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
-                (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
-                (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem] : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
+            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
+                                                    (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
+                                                    (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
+                                                    (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem]
+                                                                                : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
             pre /= P;
             post *= Q;
           }

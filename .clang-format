@@ -8,6 +8,7 @@ AlignEscapedNewlines:         true
 AlignOperands:                Align
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 ColumnLimit:                  150
+PenaltyBreakOpenParenthesis:  100
 ReflowComments:               false
 CommentPragmas:               'TESTARGS'
 DerivePointerAlignment:       false

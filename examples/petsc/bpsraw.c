@@ -385,8 +385,8 @@ int main(int argc, char **argv) {
   PetscInt two       = 2;
   ksp_max_it_clip[0] = 5;
   ksp_max_it_clip[1] = 20;
-  PetscCall(
-      PetscOptionsIntArray("-ksp_max_it_clip", "Min and max number of iterations to use during benchmarking", NULL, ksp_max_it_clip, &two, NULL));
+  PetscCall(PetscOptionsIntArray("-ksp_max_it_clip", "Min and max number of iterations to use during benchmarking", NULL, ksp_max_it_clip, &two,
+                                 NULL));
   PetscOptionsEnd();
   P = degree + 1;
   Q = P + q_extra;
@@ -767,8 +767,8 @@ int main(int argc, char **argv) {
       }
     }
     if (!test_mode) {
-      PetscCall(
-          PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * gsize * its / rt_max, 1e-6 * gsize * its / rt_min));
+      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * gsize * its / rt_max,
+                            1e-6 * gsize * its / rt_min));
     }
   }
 

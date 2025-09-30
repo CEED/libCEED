@@ -361,12 +361,12 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     // Link, optimize, and compile final CUDA kernel
     CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
-    CeedCallSystem(
-        ceed,
-        ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline temp/kernel_" +
-         std::to_string(build_id) + "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
-            .c_str(),
-        "optimize linked C and Rust source");
+    CeedCallSystem(ceed,
+                   ("$(find $(rustup run " + std::string(rust_toolchain) +
+                    " rustc --print sysroot) -name opt) --passes internalize,inline temp/kernel_" + std::to_string(build_id) +
+                    "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
+                       .c_str(),
+                   "optimize linked C and Rust source");
     CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_2_linked.ll").c_str(), "update JiT file permissions");
     CeedCallSystem(ceed,
                    ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +

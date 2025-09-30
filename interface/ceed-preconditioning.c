@@ -2696,8 +2696,8 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
   }
 
   // Core code
-  CeedCall(
-      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong,
+                                                       op_restrict));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2762,8 +2762,8 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   }
 
   // Core code
-  CeedCall(
-      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong,
+                                                       op_restrict));
   CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -2827,8 +2827,8 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   }
 
   // Core code
-  CeedCall(
-      CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
+  CeedCall(CeedOperatorMultigridLevelCreateSingle_Core(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong,
+                                                       op_restrict));
   CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

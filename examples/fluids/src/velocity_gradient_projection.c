@@ -22,8 +22,8 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscCall(DMClone(user->dm, &grad_velo_proj->dm));
   PetscCall(PetscObjectSetName((PetscObject)grad_velo_proj->dm, "Velocity Gradient Projection"));
 
-  PetscCall(
-      DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &grad_velo_proj->num_comp, grad_velo_proj->dm));
+  PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &grad_velo_proj->num_comp,
+                               grad_velo_proj->dm));
 
   PetscCall(DMGetLocalSection(grad_velo_proj->dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
@@ -67,8 +67,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   // -- Build RHS operator
   switch (state_var_input) {
     case STATEVAR_PRIMITIVE:
-      PetscCallCeed(
-          ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Prim, VelocityGradientProjectionRHS_Prim_loc, &qf_rhs_assemble));
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Prim, VelocityGradientProjectionRHS_Prim_loc,
+                                                      &qf_rhs_assemble));
       break;
     case STATEVAR_CONSERVATIVE:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Conserv, VelocityGradientProjectionRHS_Conserv_loc,

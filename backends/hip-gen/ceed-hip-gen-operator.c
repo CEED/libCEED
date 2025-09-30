@@ -163,20 +163,20 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
 
-    CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                  is_run_good, opargs));
   } else if (data->dim == 2) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
 
-    CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                  is_run_good, opargs));
   } else if (data->dim == 3) {
     CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
 
-    CeedCallBackend(
-        CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, is_run_good, opargs));
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
+                                                  is_run_good, opargs));
   }
 
   // Restore input arrays
@@ -522,8 +522,8 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
     CeedOperatorAssemblyData assembly_data;
 
     CeedCallBackend(CeedOperatorGetOperatorAssemblyData(op, &assembly_data));
-    CeedCallBackend(
-        CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
+    CeedCallBackend(CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL,
+                                                         NULL, NULL));
     if (num_active_bases_in == num_active_bases_out) {
       CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_build_good));
       if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Hip_gen(op, &is_build_good));
@@ -698,8 +698,8 @@ static int CeedOperatorAssembleSingleAtPoints_Hip_gen(CeedOperator op, CeedInt o
     CeedOperatorAssemblyData assembly_data;
 
     CeedCallBackend(CeedOperatorGetOperatorAssemblyData(op, &assembly_data));
-    CeedCallBackend(
-        CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL, NULL, NULL));
+    CeedCallBackend(CeedOperatorAssemblyDataGetEvalModes(assembly_data, &num_active_bases_in, NULL, NULL, NULL, &num_active_bases_out, NULL, NULL,
+                                                         NULL, NULL));
     if (num_active_bases_in == num_active_bases_out) {
       CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_build_good));
       if (is_build_good) CeedCallBackend(CeedOperatorBuildKernelFullAssemblyAtPoints_Hip_gen(op, &is_build_good));

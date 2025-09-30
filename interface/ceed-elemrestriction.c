@@ -689,8 +689,8 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionCreateOriented");
-    CeedCall(
-        CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr));
+    CeedCall(CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients,
+                                               rstr));
     CeedCall(CeedDestroy(&delegate));
     return CEED_ERROR_SUCCESS;
   }
@@ -1031,8 +1031,8 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
-  CeedCall(
-      ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)block_offsets, (const bool *)block_orients, NULL, *rstr));
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)block_offsets, (const bool *)block_orients, NULL,
+                                              *rstr));
   if (copy_mode == CEED_OWN_POINTER) CeedCall(CeedFree(&offsets));
   return CEED_ERROR_SUCCESS;
 }

@@ -65,8 +65,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
 
   // Dirichlet boundary conditions
   app_ctx->bc_clamp_count = 16;
-  PetscCall(
-      PetscOptionsIntArray("-bc_clamp", "Face IDs to apply incremental Dirichlet BC", NULL, app_ctx->bc_clamp_faces, &app_ctx->bc_clamp_count, NULL));
+  PetscCall(PetscOptionsIntArray("-bc_clamp", "Face IDs to apply incremental Dirichlet BC", NULL, app_ctx->bc_clamp_faces, &app_ctx->bc_clamp_count,
+                                 NULL));
   // Set vector for each clamped BC
   for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
     // Translation vector

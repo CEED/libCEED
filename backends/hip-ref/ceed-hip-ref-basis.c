@@ -208,8 +208,8 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
       void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
       const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
-      CeedCallBackend(
-          CeedRunKernel_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size, interp_args));
+      CeedCallBackend(CeedRunKernel_Hip(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size,
+                                        interp_args));
     } break;
     case CEED_EVAL_GRAD: {
       void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
