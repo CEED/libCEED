@@ -446,6 +446,7 @@ CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssembly
                                                             CeedElemRestriction **active_elem_rstrs_out);
 CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
 
+CEED_EXTERN int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs);
 CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis);
 CEED_EXTERN int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, CeedBasis *active_output_basis);
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);

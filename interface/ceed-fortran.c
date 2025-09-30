@@ -1019,6 +1019,13 @@ CEED_EXTERN void fCeedOperatorSetName(int *op, const char *name, int *err, fortr
   *err = CeedOperatorSetName(op_, name_c);
 }
 
+#define fCeedOperatorSetNumViewTabs FORTRAN_NAME(ceedoperatorsetnumviewtabs, CEEDOPERATORSETNUMVIEWTABS)
+CEED_EXTERN void fCeedOperatorSetNumViewTabs(int *op, int *ntabs, int *err) {
+  CeedOperator op_ = CeedOperator_dict[*op];
+
+  *err = CeedOperatorSetNumViewTabs(op_, *ntabs);
+}
+
 #define fCeedOperatorLinearAssembleQFunction FORTRAN_NAME(ceedoperatorlinearassembleqfunction, CEEDOPERATORLINEARASSEMBLEQFUNCTION)
 CEED_EXTERN void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec, int *assembledrstr, int *rqst, int *err) {
   // Vector

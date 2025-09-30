@@ -95,6 +95,7 @@
       call ceedoperatorsetname(op_setup,'setup',err)
       call ceedoperatorview(op_setup,err)
       call ceedoperatorsetname(op_mass,'mass',err)
+      call ceedoperatorsetnumviewtabs(op_mass,1,err)
       call ceedoperatorview(op_mass,err)
 
       call ceedvectordestroy(qdata,err)
