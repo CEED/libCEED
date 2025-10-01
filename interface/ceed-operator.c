@@ -88,16 +88,16 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
   @param[in] qf_field     `CeedQFunction` Field (carries field name)
   @param[in] field_number Number of field being viewed
   @param[in] tabs         Tabs to append before each line
-  @param[in] input        true for an input field; false for output field
+  @param[in] is_input    `true` for an input field; `false` for output field
   @param[in] stream       Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, const char *tabs, bool input,
+static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, const char *tabs, bool is_input,
                                  FILE *stream) {
-  const char  *in_out = input ? "Input" : "Output";
+  const char  *field_type = is_input ? "Input" : "Output";
   const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
@@ -112,7 +112,7 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
           "%s    %s field %" CeedInt_FMT
           ":\n"
           "%s      Name: \"%s\"\n",
-          tabs, in_out, field_number, tabs, field_name);
+          tabs, field_type, field_number, tabs, field_name);
   fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", tabs, size);
   fprintf(stream, "%s      EvalMode: %s\n", tabs, CeedEvalModes[eval_mode]);
   if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", tabs);
