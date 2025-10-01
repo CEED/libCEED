@@ -166,6 +166,7 @@ int main(int argc, char **argv) {
   // View
   CeedOperatorViewTerse(op_setup, stdout);
   CeedOperatorView(op_setup, stdout);
+  CeedOperatorSetNumViewTabs(op_mass, 1);
   CeedOperatorViewTerse(op_mass, stdout);
   CeedOperatorView(op_mass, stdout);
 

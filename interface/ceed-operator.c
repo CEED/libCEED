@@ -87,17 +87,17 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
   @param[in] op_field     `CeedOperator` Field to view
   @param[in] qf_field     `CeedQFunction` Field (carries field name)
   @param[in] field_number Number of field being viewed
-  @param[in] sub          true indicates sub-operator, which increases indentation; false for top-level operator
-  @param[in] input        true for an input field; false for output field
+  @param[in] tabs         Tabs to append before each line
+  @param[in] is_input    `true` for an input field; `false` for output field
   @param[in] stream       Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, bool sub, bool input, FILE *stream) {
-  const char  *pre    = sub ? "  " : "";
-  const char  *in_out = input ? "Input" : "Output";
+static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, const char *tabs, bool is_input,
+                                 FILE *stream) {
+  const char  *field_type = is_input ? "Input" : "Output";
   const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
@@ -112,12 +112,12 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
           "%s    %s field %" CeedInt_FMT
           ":\n"
           "%s      Name: \"%s\"\n",
-          pre, in_out, field_number, pre, field_name);
-  fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", pre, size);
-  fprintf(stream, "%s      EvalMode: %s\n", pre, CeedEvalModes[eval_mode]);
-  if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", pre);
-  if (vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", pre);
-  else if (vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", pre);
+          tabs, field_type, field_number, tabs, field_name);
+  fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", tabs, size);
+  fprintf(stream, "%s      EvalMode: %s\n", tabs, CeedEvalModes[eval_mode]);
+  if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", tabs);
+  if (vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", tabs);
+  else if (vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", tabs);
 
   CeedCall(CeedVectorDestroy(&vec));
   CeedCall(CeedBasisDestroy(&basis));
@@ -128,16 +128,15 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   @brief View a single `CeedOperator`
 
   @param[in] op     `CeedOperator` to view
-  @param[in] sub    Boolean flag for sub-operator
+  @param[in] tabs   Tabs to append before each new line
   @param[in] stream Stream to write; typically `stdout` or a file
 
   @return Error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
+int CeedOperatorSingleView(CeedOperator op, const char *tabs, FILE *stream) {
   bool                is_at_points;
-  const char         *pre = sub ? "  " : "";
   CeedInt             num_elem, num_qpts, total_fields = 0, num_input_fields, num_output_fields;
   CeedQFunction       qf;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
@@ -158,20 +157,35 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 
     CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
     CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_points));
-    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " max points each\n", pre, num_elem, max_points);
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " max points each\n", tabs, num_elem, max_points);
     CeedCall(CeedElemRestrictionDestroy(&rstr_points));
   } else {
-    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", tabs, num_elem, num_qpts);
   }
-  fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", pre, total_fields, total_fields > 1 ? "s" : "");
-  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", pre, num_input_fields, num_input_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", tabs, total_fields, total_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", tabs, num_input_fields, num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCall(CeedOperatorFieldView(op_input_fields[i], qf_input_fields[i], i, sub, 1, stream));
+    CeedCall(CeedOperatorFieldView(op_input_fields[i], qf_input_fields[i], i, tabs, 1, stream));
   }
-  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", pre, num_output_fields, num_output_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", tabs, num_output_fields, num_output_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCall(CeedOperatorFieldView(op_output_fields[i], qf_output_fields[i], i, sub, 0, stream));
+    CeedCall(CeedOperatorFieldView(op_output_fields[i], qf_output_fields[i], i, tabs, 0, stream));
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedOperatorView() output
+
+  @param[in]  op       `CeedOperator` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
+  *num_tabs = op->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1588,31 +1602,58 @@ int CeedOperatorGetName(CeedOperator op, const char **name) {
   @ref Developer
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
-  bool        has_name, is_composite, is_at_points;
-  const char *name = NULL;
+  bool          has_name, is_composite, is_at_points;
+  char         *tabs      = NULL;
+  const char   *name      = NULL;
+  const CeedInt tab_width = 2;
+  CeedInt       num_tabs  = 0;
 
   CeedCall(CeedOperatorGetName(op, &name));
   has_name = name ? strlen(name) : false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  // Set tabs
+  CeedCall(CeedOperatorGetNumViewTabs(op, &num_tabs));
+  CeedCall(CeedCalloc(tab_width * (num_tabs + is_composite) + 1, &tabs));
+  for (CeedInt i = 0; i < tab_width * num_tabs; i++) tabs[i] = ' ';
   if (is_composite) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
     CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+    fprintf(stream, tabs);
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
-
+    for (CeedInt i = 0; i < tab_width; i++) tabs[tab_width * num_tabs + i] = ' ';
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
-      fprintf(stream, "  SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
+      fprintf(stream, tabs);
+      fprintf(stream, "SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
               has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
-      if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
+      if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], tabs, stream));
     }
   } else {
+    fprintf(stream, tabs);
     fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? name : "");
-    if (is_full) CeedCall(CeedOperatorSingleView(op, 0, stream));
+    if (is_full) CeedCall(CeedOperatorSingleView(op, tabs, stream));
   }
+  CeedCall(CeedFree(&tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the number of tabs to indent for @ref CeedOperatorView() output
+
+  @param[in] op       `CeedOperator` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetNumViewTabs(CeedOperator op, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  op->num_tabs = num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

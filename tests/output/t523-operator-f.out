@@ -39,44 +39,44 @@ Composite CeedOperator - setup
         Size: 1
         EvalMode: none
         No basis
-Composite CeedOperator - mass
-  SubOperator 0 - triangle elements:
-    6 elements with 4 quadrature points each
-    3 fields
-    2 input fields:
-      Input field 0:
-        Name: "rho"
-        Size: 1
-        EvalMode: none
-        No basis
-      Input field 1:
-        Name: "u"
-        Size: 1
-        EvalMode: interpolation
-        Active vector
-    1 output field:
-      Output field 0:
-        Name: "v"
-        Size: 1
-        EvalMode: interpolation
-        Active vector
-  SubOperator 1 - quadrilateral elements:
-    6 elements with 16 quadrature points each
-    3 fields
-    2 input fields:
-      Input field 0:
-        Name: "rho"
-        Size: 1
-        EvalMode: none
-        No basis
-      Input field 1:
-        Name: "u"
-        Size: 1
-        EvalMode: interpolation
-        Active vector
-    1 output field:
-      Output field 0:
-        Name: "v"
-        Size: 1
-        EvalMode: interpolation
-        Active vector
+  Composite CeedOperator - mass
+    SubOperator 0 - triangle elements:
+      6 elements with 4 quadrature points each
+      3 fields
+      2 input fields:
+        Input field 0:
+          Name: "rho"
+          Size: 1
+          EvalMode: none
+          No basis
+        Input field 1:
+          Name: "u"
+          Size: 1
+          EvalMode: interpolation
+          Active vector
+      1 output field:
+        Output field 0:
+          Name: "v"
+          Size: 1
+          EvalMode: interpolation
+          Active vector
+    SubOperator 1 - quadrilateral elements:
+      6 elements with 16 quadrature points each
+      3 fields
+      2 input fields:
+        Input field 0:
+          Name: "rho"
+          Size: 1
+          EvalMode: none
+          No basis
+        Input field 1:
+          Name: "u"
+          Size: 1
+          EvalMode: interpolation
+          Active vector
+      1 output field:
+        Output field 0:
+          Name: "v"
+          Size: 1
+          EvalMode: interpolation
+          Active vector

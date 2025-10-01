@@ -212,6 +212,7 @@
 
       call ceedoperatorcreatecomposite(ceed,op_mass,err)
       call ceedoperatorsetname(op_mass,'mass',err)
+      call ceedoperatorsetnumviewtabs(op_mass,1,err)
       call ceedoperatorcompositeaddsub(op_mass,op_masstet,err)
       call ceedoperatorcompositeaddsub(op_mass,op_masshex,err)
 

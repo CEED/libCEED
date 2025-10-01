@@ -70,6 +70,7 @@ int main(int argc, char **argv) {
   CeedOperatorViewTerse(op_setup, stdout);
   CeedOperatorView(op_setup, stdout);
   CeedOperatorSetName(op_mass, "mass");
+  CeedOperatorSetNumViewTabs(op_mass, 1);
   CeedOperatorViewTerse(op_mass, stdout);
   CeedOperatorView(op_mass, stdout);
 
