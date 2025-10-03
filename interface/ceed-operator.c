@@ -1622,18 +1622,18 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
 
     CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
-    fprintf(stream, tabs);
+    fprintf(stream, "%s", tabs);
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
     for (CeedInt i = 0; i < tab_width; i++) tabs[tab_width * num_tabs + i] = ' ';
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
-      fprintf(stream, tabs);
+      fprintf(stream, "%s", tabs);
       fprintf(stream, "SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
               has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
       if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], tabs, stream));
     }
   } else {
-    fprintf(stream, tabs);
+    fprintf(stream, "%s", tabs);
     fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? name : "");
     if (is_full) CeedCall(CeedOperatorSingleView(op, tabs, stream));
   }
