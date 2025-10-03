@@ -390,7 +390,7 @@ To illustrate how the user can declare a {ref}`CeedQFunction` via the gallery of
 LibCEED is intended to be extensible via backends that are packaged with the library and packaged separately (possibly as a binary containing proprietary code).
 Backends are registered by calling
 
-```{literalinclude} ../../../backends/ref/ceed-ref.c
+```{literalinclude} ../../../backends/ceed-backend-list.c
 :end-before: //! [Register]
 :language: c
 :start-after: //! [Register]
