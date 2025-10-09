@@ -1208,6 +1208,7 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
     // Setup points for element
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, NULL,
@@ -1391,6 +1392,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
     // Setup points for element
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply for non-active bases
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
@@ -1597,6 +1599,7 @@ static int CeedOperatorAssembleSingleAtPoints_Ref(CeedOperator op, CeedInt offse
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem,
                                                               CEED_REQUEST_IMMEDIATE));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply for non-active bases
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
