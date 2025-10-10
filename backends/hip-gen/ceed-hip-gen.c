@@ -5,18 +5,18 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-hip-gen.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../hip/ceed-hip-common.h"
+#include "ceed-hip-gen.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
-static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Hip_Gen(const char *resource, Ceed ceed) {
   char     *resource_root;
   Ceed      ceed_shared, ceed_ref;
   Ceed_Hip *data;
@@ -45,10 +45,5 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Register backend
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip_Gen(void) { return CeedRegister("/gpu/hip/gen", CeedInit_Hip_gen, 20); }
 
 //------------------------------------------------------------------------------
