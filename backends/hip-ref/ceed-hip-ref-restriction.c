@@ -551,7 +551,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
     CeedCallBackend(CeedMalloc(num_elem, &points_per_elem));
     for (CeedInt i = 0; i < num_elem; i++) {
       CeedInt num_points = offsets[i + 1] - offsets[i];
-      CeedInt last_point = offsets[offsets[i]] * num_comp;
+      CeedInt last_point = 0;
 
       points_per_elem[i] = num_points;
       at_points_size += num_points;
