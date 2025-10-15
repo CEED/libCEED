@@ -5,19 +5,19 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-magma.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "ceed-magma-common.h"
+#include "ceed-magma.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Magma(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Magma(const char *resource, Ceed ceed) {
   Ceed        ceed_ref;
   Ceed_Magma *data;
   const int   nrc = 14;  // number of characters in resource
@@ -44,17 +44,6 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHcurl", CeedBasisCreateHcurl_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Magma));
   return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Magma(void) {
-#ifdef CEED_MAGMA_USE_HIP
-  return CeedRegister("/gpu/hip/magma", CeedInit_Magma, 120);
-#else
-  return CeedRegister("/gpu/cuda/magma", CeedInit_Magma, 120);
-#endif
 }
 
 //------------------------------------------------------------------------------

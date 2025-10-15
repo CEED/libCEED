@@ -5,14 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-cuda-ref.h"
-
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "../ceed-backend-init.h"
 #include "../cuda/ceed-cuda-common.h"
+#include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
 // CUDA preferred MemType
@@ -37,7 +37,7 @@ int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda_ref(const char *resource, Ceed ceed) {
+CEED_INTERN int CeedInit_Cuda_Ref(const char *resource, Ceed ceed) {
   Ceed_Cuda *data;
   char      *resource_root;
 
@@ -65,10 +65,5 @@ static int CeedInit_Cuda_ref(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------
-// Backend Register
-//------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda(void) { return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda_ref, 40); }
 
 //------------------------------------------------------------------------------
