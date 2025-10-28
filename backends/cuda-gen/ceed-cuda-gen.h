@@ -32,6 +32,7 @@ typedef struct {
   // CUDA Graph state (per-operator, framework-agnostic)
   // -----------------------------------------------------------------------------
   bool            graph_created;
+  bool            warmup_done;
   cudaGraph_t     graph;
   cudaGraphExec_t graph_instance;
   int             graph_launches;

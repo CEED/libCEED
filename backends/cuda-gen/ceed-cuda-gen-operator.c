@@ -36,7 +36,13 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   if (impl->module_assemble_qfunction) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_qfunction));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
   
-  // Destroy CUDA Graph state (if any)
+  // Destroy CUDA Graph state (if any) and print statistics
+  if (impl->graph_created && impl->graph_launches > 0) {
+    char *op_name = NULL;
+    CeedOperatorGetName(op, (const char**)&op_name);
+    printf("[CUDA Graph] Summary for operator '%s': %d graph launches, %d fallbacks\n", 
+           op_name ? op_name : "unnamed", impl->graph_launches, impl->fallbacks);
+  }
   if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
   if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
   impl->graph_created = false;
@@ -234,10 +240,7 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
     block[2] = elems_per_block;
   }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
-
-  // Note: Do NOT synchronize during CUDA Graph capture - synchronization is not allowed during capture
-  // The stream parameter being non-NULL doesn't necessarily mean we're capturing, but synchronization
-  // will be handled by the graph execution, not here
+  
   CeedCallBackend(
       CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
 
@@ -298,7 +301,11 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
+  // Check if we're in graph capture mode and use appropriate stream
+  enum cudaStreamCaptureStatus capture_status;
+  cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+  CUstream stream_to_use = (capture_status != cudaStreamCaptureStatusNone) ? cudaStreamPerThread : NULL;
+  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, stream_to_use, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
 
@@ -353,55 +360,87 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   }
 
 
-  // Try CUDA Graph approach - use per-operator state
+  // Phase 1: Warm-up to pre-allocate resources (first call only)
+  if (!impl->warmup_done) {
+    // Execute operators once to trigger lazy allocations (QFunction context)
+    printf("[CUDA Graph] Phase 1: Warm-up for operator '%s' - allocating GPU resources\n", op_name ? op_name : "unnamed");
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedCallBackend(CeedOperatorApplyAdd(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
+    }
+    CeedCallCuda(ceed, cudaDeviceSynchronize());
+    impl->warmup_done = true;
+    
+    // Results from warm-up will be handled by fallback call
+    return CEED_ERROR_SUCCESS;
+  }
+  
+  // Phase 2: Create CUDA Graph (second call only)
   if (!impl->graph_created) {
+    printf("[CUDA Graph] Phase 2: Recording graph for operator '%s'...\n", op_name ? op_name : "unnamed");
     cudaStream_t capture_stream = cudaStreamPerThread;
 
     cudaError_t err = cudaStreamBeginCapture(capture_stream, cudaStreamCaptureModeThreadLocal);
     if (err != cudaSuccess) { 
+      printf("[CUDA Graph] ERROR: Failed to begin capture - %s\n", cudaGetErrorString(err));
       goto use_fallback; 
     }
 
     // Capture suboperators (if any)
     for (CeedInt i = 0; i < num_suboperators; i++) {
-      CeedCallBackend(CeedOperatorApply(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
+      CeedCallBackend(CeedOperatorApplyAdd(sub_operators[i], input_vec, output_vec, CEED_REQUEST_IMMEDIATE));
     }
 
     err = cudaStreamEndCapture(capture_stream, &impl->graph);
     if (err != cudaSuccess || impl->graph == NULL) { 
+      printf("[CUDA Graph] ERROR: Failed to end capture - %s\n", cudaGetErrorString(err));
       goto use_fallback; 
     }
     
     err = cudaGraphInstantiate(&impl->graph_instance, impl->graph, 0);
     if (err != cudaSuccess) { 
+      printf("[CUDA Graph] ERROR: Failed to instantiate - %s\n", cudaGetErrorString(err));
       cudaGraphDestroy(impl->graph); impl->graph = NULL; 
       goto use_fallback; 
     }
     impl->graph_created = true;
     impl->graph_launches = 0;
     
-    // Get operator name for debug message
-    char *op_name = NULL;
-    CeedCallBackend(CeedOperatorGetName(op, (const char**)&op_name));
-    printf("CUDA Graph created successfully for operator: %s\n", op_name ? op_name : "unnamed");
+    printf("[CUDA Graph] Graph created successfully for operator '%s'\n", op_name ? op_name : "unnamed");
+  
+    // Use fallback for first execution (graph capture may have side effects)
+    CeedOperator op_fallback;
+    CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+    CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+    return CEED_ERROR_SUCCESS;
   }
 
   // Launch the graph
   {
     cudaStream_t launch_stream = cudaStreamPerThread;
     cudaError_t err = cudaGraphLaunch(impl->graph_instance, launch_stream);
-    if (err != cudaSuccess) { goto use_fallback; }
+    if (err != cudaSuccess) { 
+      // Graph launch failed - use fallback but DON'T destroy graph for retry
+      printf("CUDA Graph launch failed: %s - using fallback\n", cudaGetErrorString(err));
+      CeedOperator op_fallback;
+      CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+      CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+      return CEED_ERROR_SUCCESS;
+    }
     
     impl->graph_launches++;
     
-    // Print debug message for first few launches
-    if (impl->graph_launches <= 3) {
-      char *op_name = NULL;
-      CeedCallBackend(CeedOperatorGetName(op, (const char**)&op_name));
-      printf("CUDA Graph launch #%d for operator: %s\n", impl->graph_launches, op_name ? op_name : "unnamed");
+    // Show first few launches and periodic updates
+    if (impl->graph_launches == 1) {
+      printf("[CUDA Graph] ✓ EXECUTING graph for operator '%s' (launch #%d)\n", 
+             op_name ? op_name : "unnamed", impl->graph_launches);
+    } else if (impl->graph_launches <= 5) {
+      printf("[CUDA Graph] ✓ Graph launch #%d for operator '%s'\n", 
+             impl->graph_launches, op_name ? op_name : "unnamed");
+    } else if (impl->graph_launches % 100 == 0) {
+      printf("[CUDA Graph] ✓ Graph launch #%d for operator '%s'\n", 
+             impl->graph_launches, op_name ? op_name : "unnamed");
     }
     
-    cudaStreamSynchronize(launch_stream);
     
     return CEED_ERROR_SUCCESS;
   }
@@ -974,6 +1013,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   
   // Initialize CUDA Graph state
   impl->graph_created            = false;
+  impl->warmup_done              = false;
   impl->graph                    = NULL;
   impl->graph_instance           = NULL;
   impl->graph_launches           = 0;
