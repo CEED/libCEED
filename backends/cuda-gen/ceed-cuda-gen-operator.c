@@ -406,8 +406,7 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     impl->graph_launches = 0;
     
     printf("[CUDA Graph] Graph created successfully for operator '%s'\n", op_name ? op_name : "unnamed");
-  
-    // Use fallback for first execution (graph capture may have side effects)
+    
     CeedOperator op_fallback;
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
     CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
