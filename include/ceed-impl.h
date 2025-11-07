@@ -104,6 +104,7 @@ struct Ceed_private {
   bool         cuda_compile_with_clang;
   char       **jit_defines;
   CeedInt      num_jit_defines, max_jit_defines, num_jit_defines_readers;
+  CeedInt      num_tabs; /* Viewing offset */
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
   int (*SetStream)(Ceed, void *);
   int (*GetPreferredMemType)(CeedMemType *);
@@ -160,6 +161,7 @@ struct CeedVector_private {
   CeedSize length;
   uint64_t state;
   uint64_t num_readers;
+  CeedInt  num_tabs; /* Viewing offset */
   void    *data;
 };
 
@@ -192,6 +194,7 @@ struct CeedElemRestriction_private {
   CeedRestrictionType
            rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
   uint64_t num_readers; /* number of instances of offset read only access */
+  CeedInt  num_tabs;    /* Viewing offset */
   void    *data;        /* place for the backend to store any data */
 };
 
@@ -225,6 +228,7 @@ struct CeedBasis_private {
                        quadrature points for H(curl) discretizations */
   CeedVector  vec_chebyshev;
   CeedBasis   basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
+  CeedInt     num_tabs;        /* Viewing offset */
   void       *data;            /* place for the backend to store any data */
 };
 
@@ -251,6 +255,7 @@ struct CeedQFunction_private {
   int (*Destroy)(CeedQFunction);
   int                  ref_count;
   CeedInt              vec_length; /* Number of quadrature points must be padded to a multiple of vec_length */
+  CeedInt              num_tabs;   /* Viewing offset */
   CeedQFunctionField  *input_fields;
   CeedQFunctionField  *output_fields;
   CeedInt              num_input_fields, num_output_fields;
@@ -286,6 +291,7 @@ struct CeedQFunctionContext_private {
   CeedMemType                         data_destroy_mem_type;
   CeedInt                             num_fields;
   CeedInt                             max_fields;
+  CeedInt                             num_tabs; /* Viewing offset */
   CeedContextFieldLabel              *field_labels;
   uint64_t                            state;
   uint64_t                            num_readers;

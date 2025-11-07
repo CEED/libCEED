@@ -40,6 +40,21 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /// @{
 
 /**
+  @brief Get the number of tabs to indent for @ref CeedVectorView() output
+
+  @param[in]  vec      `CeedVector` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
+  *num_tabs = vec->num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check for valid data in a `CeedVector`
 
   @param[in]  vec             `CeedVector` to check validity
@@ -995,6 +1010,22 @@ int CeedVectorReciprocal(CeedVector vec) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedVectorView() output
+
+  @param[in] vec      `CeedVector` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  vec->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedVector`
 
   Note: It is safe to use any unsigned values for `start` or `stop` and any nonzero integer for `step`.
@@ -1013,24 +1044,34 @@ int CeedVectorReciprocal(CeedVector vec) {
 **/
 int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream) {
   char              fmt[1024];
+  char             *tabs = NULL;
   CeedSize          length;
   const CeedScalar *x;
 
   CeedCheck(step != 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedVectorGetNumViewTabs(vec, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
+
   CeedCall(CeedVectorGetLength(vec, &length));
-  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", length);
+  fprintf(stream, "%sCeedVector length %" CeedSize_FMT "\n", tabs, length);
   if (start != 0 || stop != length || step != 1) {
-    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", start, stop, step);
+    fprintf(stream, "%s  start: %" CeedSize_FMT "\n%s  stop:  %" CeedSize_FMT "\n%s  step:  %" CeedInt_FMT "\n", tabs, start, tabs, stop, tabs, step);
   }
   if (start > length) start = length;
   if (stop == -1 || stop > length) stop = length;
 
-  snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
+  snprintf(fmt, sizeof fmt, "%s  %s\n", tabs, fp_fmt ? fp_fmt : "%g");
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
   for (CeedSize i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
   CeedCall(CeedVectorRestoreArrayRead(vec, &x));
-  if (stop != length) fprintf(stream, "  ...\n");
+  if (stop != length) fprintf(stream, "%s  ...\n", tabs);
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 

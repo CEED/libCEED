@@ -122,6 +122,21 @@ int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rs
 }
 
 /**
+  @brief Get the number of tabs to indent for @ref CeedElemRestrictionView() output
+
+  @param[in]  rstr     `CeedElemRestriction` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumViewTabs(CeedElemRestriction rstr, CeedInt *num_tabs) {
+  *num_tabs = rstr->num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the strided status of a `CeedElemRestriction`
 
   @param[in]  rstr       `CeedElemRestriction`
@@ -1722,6 +1737,22 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedElemRestrictionView() output
+
+  @param[in] rstr     `CeedElemRestriction` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionSetNumViewTabs(CeedElemRestriction rstr, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  rstr->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedElemRestriction`
 
   @param[in] rstr   `CeedElemRestriction` to view
@@ -1732,7 +1763,16 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
   @ref User
 **/
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
+  char               *tabs = NULL;
   CeedRestrictionType rstr_type;
+
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedElemRestrictionGetNumViewTabs(rstr, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
 
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
   if (rstr_type == CEED_RESTRICTION_POINTS) {
@@ -1740,9 +1780,9 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
 
     CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr, &max_points));
     fprintf(stream,
-            "CeedElemRestriction at points from (%" CeedSize_FMT ", %" CeedInt_FMT ") to %" CeedInt_FMT " elements with a maximum of %" CeedInt_FMT
+            "%sCeedElemRestriction at points from (%" CeedSize_FMT ", %" CeedInt_FMT ") to %" CeedInt_FMT " elements with a maximum of %" CeedInt_FMT
             " points on an element\n",
-            rstr->l_size, rstr->num_comp, rstr->num_elem, max_points);
+            tabs, rstr->l_size, rstr->num_comp, rstr->num_elem, max_points);
   } else {
     char strides_str[500];
 
@@ -1752,11 +1792,12 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
       sprintf(strides_str, "%" CeedInt_FMT, rstr->comp_stride);
     }
     fprintf(stream,
-            "%sCeedElemRestriction from (%" CeedSize_FMT ", %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT
+            "%s%sCeedElemRestriction from (%" CeedSize_FMT ", %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT
             " nodes each and %s %s\n",
-            rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
+            tabs, rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
             rstr->strides ? "strides" : "component stride", strides_str);
   }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -664,6 +664,21 @@ int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed) {
 }
 
 /**
+  @brief Get the number of tabs to indent for @ref CeedView() output
+
+  @param[in]  ceed     `Ceed` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
+  *num_tabs = ceed->num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Flag `Ceed` context as deterministic
 
   @param[in]  ceed             `Ceed` to flag as deterministic
@@ -1538,6 +1553,22 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedView() output
+
+  @param[in] ceed     `Ceed` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, ceed, CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  ceed->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `Ceed`
 
   @param[in] ceed   `Ceed` to view
@@ -1548,15 +1579,25 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   @ref User
 **/
 int CeedView(Ceed ceed, FILE *stream) {
+  char       *tabs = NULL;
   CeedMemType mem_type;
+
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedGetNumViewTabs(ceed, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
 
   CeedCall(CeedGetPreferredMemType(ceed, &mem_type));
 
   fprintf(stream,
-          "Ceed\n"
-          "  Ceed Resource: %s\n"
-          "  Preferred MemType: %s\n",
-          ceed->resource, CeedMemTypes[mem_type]);
+          "%sCeed\n"
+          "%s  Ceed Resource: %s\n"
+          "%s  Preferred MemType: %s\n",
+          tabs, tabs, ceed->resource, tabs, CeedMemTypes[mem_type]);
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -182,7 +182,7 @@ int CeedOperatorSingleView(CeedOperator op, const char *tabs, FILE *stream) {
 
   @return Error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
 int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
   *num_tabs = op->num_tabs;
@@ -1602,11 +1602,10 @@ int CeedOperatorGetName(CeedOperator op, const char **name) {
   @ref Developer
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
-  bool          has_name, is_composite, is_at_points;
-  char         *tabs      = NULL;
-  const char   *name      = NULL;
-  const CeedInt tab_width = 2;
-  CeedInt       num_tabs  = 0;
+  bool        has_name, is_composite, is_at_points;
+  char       *tabs     = NULL;
+  const char *name     = NULL;
+  CeedInt     num_tabs = 0;
 
   CeedCall(CeedOperatorGetName(op, &name));
   has_name = name ? strlen(name) : false;
@@ -1614,8 +1613,8 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   // Set tabs
   CeedCall(CeedOperatorGetNumViewTabs(op, &num_tabs));
-  CeedCall(CeedCalloc(tab_width * (num_tabs + is_composite) + 1, &tabs));
-  for (CeedInt i = 0; i < tab_width * num_tabs; i++) tabs[i] = ' ';
+  CeedCall(CeedCalloc(CEED_TAB_WIDTH * (num_tabs + is_composite) + 1, &tabs));
+  for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   if (is_composite) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
@@ -1624,7 +1623,7 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
     CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     fprintf(stream, "%s", tabs);
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
-    for (CeedInt i = 0; i < tab_width; i++) tabs[tab_width * num_tabs + i] = ' ';
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH; i++) tabs[CEED_TAB_WIDTH * num_tabs + i] = ' ';
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
       fprintf(stream, "%s", tabs);

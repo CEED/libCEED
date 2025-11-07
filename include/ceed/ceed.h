@@ -109,6 +109,7 @@ CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
 CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root);
 CEED_EXTERN int CeedAddJitDefine(Ceed ceed, const char *jit_define);
+CEED_EXTERN int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
@@ -204,6 +205,7 @@ CEED_EXTERN int  CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
 CEED_EXTERN int  CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x);
 CEED_EXTERN int  CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
 CEED_EXTERN int  CeedVectorReciprocal(CeedVector vec);
+CEED_EXTERN int  CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs);
 CEED_EXTERN int  CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int  CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int  CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
@@ -293,6 +295,7 @@ CEED_EXTERN int  CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr, C
 CEED_EXTERN int  CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr, CeedInt *num_block);
 CEED_EXTERN int  CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr, CeedInt *block_size);
 CEED_EXTERN int  CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult);
+CEED_EXTERN int  CeedElemRestrictionSetNumViewTabs(CeedElemRestriction rstr, CeedInt num_tabs);
 CEED_EXTERN int  CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
 CEED_EXTERN int  CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
@@ -312,6 +315,7 @@ CEED_EXTERN int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt n
                                      const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
+CEED_EXTERN int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
 CEED_EXTERN int CeedBasisApplyAdd(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
@@ -368,6 +372,7 @@ CEED_EXTERN int  CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fie
 CEED_EXTERN int  CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx);
 CEED_EXTERN int  CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
 CEED_EXTERN int  CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops);
+CEED_EXTERN int  CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs);
 CEED_EXTERN int  CeedQFunctionView(CeedQFunction qf, FILE *stream);
 CEED_EXTERN int  CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
 CEED_EXTERN Ceed CeedQFunctionReturnCeed(CeedQFunction qf);
@@ -406,6 +411,7 @@ CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, 
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
                                                     const char **field_description, CeedContextFieldType *field_type);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_size);
+CEED_EXTERN int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tabs);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream);
 CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
