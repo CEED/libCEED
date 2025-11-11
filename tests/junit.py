@@ -24,7 +24,6 @@ def create_argparser() -> argparse.ArgumentParser:
         help='Output mode, junit or tap',
         default=RunMode.JUNIT)
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
-    parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
     parser.add_argument('-s', '--search', type=str, default='.*',
@@ -213,6 +212,6 @@ if __name__ == '__main__':
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:
-        write_junit_xml(result, args.output, args.junit_batch)
+        write_junit_xml(result, args.junit_batch)
         if has_failures(result):
             sys.exit(1)
