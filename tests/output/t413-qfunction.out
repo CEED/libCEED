@@ -28,3 +28,18 @@ Gallery CeedQFunction - MassApply
       Name: "v"
       Size: 1
       EvalMode: "interpolation"
+  Gallery CeedQFunction - MassApply
+    2 input fields:
+      Input field 0:
+        Name: "u"
+        Size: 1
+        EvalMode: "interpolation"
+      Input field 1:
+        Name: "qdata"
+        Size: 1
+        EvalMode: "none"
+    1 output field:
+      Output field 0:
+        Name: "v"
+        Size: 1
+        EvalMode: "interpolation"

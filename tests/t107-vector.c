@@ -17,6 +17,9 @@ int main(int argc, char **argv) {
 
   CeedVectorView(x, "%12.8f", stdout);
 
+  CeedVectorSetNumViewTabs(x, 1);
+  CeedVectorView(x, "%12.8f", stdout);
+
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
   return 0;

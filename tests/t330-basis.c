@@ -21,6 +21,8 @@ int main(int argc, char **argv) {
   BuildHdivQuadrilateral(q, q_ref, q_weights, interp, div, CEED_GAUSS);
   CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, 1, p, num_qpts, interp, div, q_ref, q_weights, &basis);
   CeedBasisView(basis, stdout);
+  CeedBasisSetNumViewTabs(basis, 1);
+  CeedBasisView(basis, stdout);
 
   CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);

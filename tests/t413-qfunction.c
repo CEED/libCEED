@@ -14,6 +14,8 @@ int main(int argc, char **argv) {
 
   CeedQFunctionView(qf_setup, stdout);
   CeedQFunctionView(qf_mass, stdout);
+  CeedQFunctionSetNumViewTabs(qf_mass, 1);
+  CeedQFunctionView(qf_mass, stdout);
 
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
