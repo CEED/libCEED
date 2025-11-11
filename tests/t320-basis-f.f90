@@ -32,6 +32,8 @@
       call ceedbasiscreateh1(ceed,ceed_triangle,1,p,q,interp,grad,qref,qweight,&
      & b,err)
       call ceedbasisview(b,err)
+      call ceedbasissetnumviewtabs(b,1,err)
+      call ceedbasisview(b,err)
 
       call ceedbasisdestroy(b,err)
       call ceeddestroy(ceed,err)

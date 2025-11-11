@@ -49,6 +49,11 @@
      & ctxdata,coffset,err)
       call ceedqfunctioncontextview(ctx,err)
 
+      call ceedqfunctionsetnumviewtabs(qf_mass,1,err)
+      call ceedqfunctionview(qf_mass,err)
+      call ceedqfunctioncontextsetnumviewtabs(ctx,1,err)
+      call ceedqfunctioncontextview(ctx,err)
+
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)
       call ceeddestroy(ceed,err)
