@@ -34,6 +34,11 @@ int main(int argc, char **argv) {
   }
   CeedQFunctionContextView(ctx, stdout);
 
+  CeedQFunctionSetNumViewTabs(qf_mass, 1);
+  CeedQFunctionView(qf_mass, stdout);
+  CeedQFunctionContextSetNumViewTabs(ctx, 1);
+  CeedQFunctionContextView(ctx, stdout);
+
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedQFunctionContextDestroy(&ctx);

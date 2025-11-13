@@ -11,6 +11,9 @@ int main(int argc, char **argv) {
 
   CeedView(ceed, stdout);
 
+  CeedSetNumViewTabs(ceed, 1);
+  CeedView(ceed, stdout);
+
   CeedDestroy(&ceed);
   return 0;
 }

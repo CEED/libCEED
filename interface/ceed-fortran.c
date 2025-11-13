@@ -85,6 +85,9 @@ CEED_EXTERN void fCeedIsDeterministic(int *ceed, int *is_deterministic, int *err
 #define fCeedGetPreferredMemType FORTRAN_NAME(ceedgetpreferredmemtype, CEEDGETPREFERREDMEMTYPE)
 CEED_EXTERN void fCeedGetPreferredMemType(int *ceed, int *type, int *err) { *err = CeedGetPreferredMemType(Ceed_dict[*ceed], (CeedMemType *)type); }
 
+#define fCeedSetNumViewTabs FORTRAN_NAME(ceedsetnumviewtabs, CEEDSETNUMVIEWTABS)
+CEED_EXTERN void fCeedSetNumViewTabs(int *ceed, int *num_tabs, int *err) { *err = CeedSetNumViewTabs(Ceed_dict[*ceed], *num_tabs); }
+
 #define fCeedView FORTRAN_NAME(ceedview, CEEDVIEW)
 CEED_EXTERN void fCeedView(int *ceed, int *err) { *err = CeedView(Ceed_dict[*ceed], stdout); }
 
@@ -191,6 +194,9 @@ CEED_EXTERN void fCeedVectorNorm(int *vec, int *type, CeedScalar *norm, int *err
 
 #define fCeedVectorReciprocal FORTRAN_NAME(ceedvectorreciprocal, CEEDVECTORRECIPROCAL)
 CEED_EXTERN void fCeedVectorReciprocal(int *vec, int *err) { *err = CeedVectorReciprocal(CeedVector_dict[*vec]); }
+
+#define fCeedVectorSetNumViewTabs FORTRAN_NAME(ceedvectorsetnumviewtabs, CEEDVECTORSETNUMVIEWTABS)
+CEED_EXTERN void fCeedVectorSetNumViewTabs(int *vec, int *num_tabs, int *err) { *err = CeedVectorSetNumViewTabs(CeedVector_dict[*vec], *num_tabs); }
 
 #define fCeedVectorView FORTRAN_NAME(ceedvectorview, CEEDVECTORVIEW)
 CEED_EXTERN void fCeedVectorView(int *vec, int *err) { *err = CeedVectorView(CeedVector_dict[*vec], "%12.8f", stdout); }
@@ -449,6 +455,11 @@ CEED_EXTERN void fCeedElemRestrictionGetELayout(int *elemr, int *layout, int *er
   for (int i = 0; i < 3; i++) layout[i] = layout_c[i];
 }
 
+#define fCeedElemRestrictionSetNumViewTabs FORTRAN_NAME(ceedelemrestrictionsetnumviewtabs, CEEDELEMRESTRICTIONSETNUMVIEWTABS)
+CEED_EXTERN void fCeedElemRestrictionSetNumViewTabs(int *elemr, int *num_tabs, int *err) {
+  *err = CeedElemRestrictionSetNumViewTabs(CeedElemRestriction_dict[*elemr], *num_tabs);
+}
+
 #define fCeedElemRestrictionView FORTRAN_NAME(ceedelemrestrictionview, CEEDELEMRESTRICTIONVIEW)
 CEED_EXTERN void fCeedElemRestrictionView(int *elemr, int *err) { *err = CeedElemRestrictionView(CeedElemRestriction_dict[*elemr], stdout); }
 
@@ -575,6 +586,9 @@ CEED_EXTERN void fCeedBasisCreateHcurl(int *ceed, int *topo, int *num_comp, int 
   }
 }
 
+#define fCeedBasisSetNumViewTabs FORTRAN_NAME(ceedbasissetnumviewtabs, CEEDBASISSETNUMVIEWTABS)
+CEED_EXTERN void fCeedBasisSetNumViewTabs(int *basis, int *num_tabs, int *err) { *err = CeedBasisSetNumViewTabs(CeedBasis_dict[*basis], *num_tabs); }
+
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
 CEED_EXTERN void fCeedBasisView(int *basis, int *err) { *err = CeedBasisView(CeedBasis_dict[*basis], stdout); }
 
@@ -686,6 +700,11 @@ CEED_EXTERN void fCeedQFunctionContextGetData(int *ctx, int *memtype, CeedScalar
 CEED_EXTERN void fCeedQFunctionContextRestoreData(int *ctx, CeedScalar *data, int64_t *offset, int *err) {
   *err    = CeedQFunctionContextRestoreData(CeedQFunctionContext_dict[*ctx], (void **)&data);
   *offset = 0;
+}
+
+#define fCeedQFunctionContextSetNumViewTabs FORTRAN_NAME(ceedqfunctioncontextsetnumviewtabs, CEEDQFUNCTIONCONTEXTSETNUMVIEWTABS)
+CEED_EXTERN void fCeedQFunctionContextSetNumViewTabs(int *ctx, int *num_tabs, int *err) {
+  *err = CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext_dict[*ctx], *num_tabs);
 }
 
 #define fCeedQFunctionContextView FORTRAN_NAME(ceedqfunctioncontextview, CEEDQFUNCTIONCONTEXTVIEW)
@@ -847,6 +866,11 @@ CEED_EXTERN void fCeedQFunctionSetContext(int *qf, int *ctx, int *err) {
   *err                = CeedQFunctionContextRestoreData(fctx, (void **)&fctxdata);
   if (*err) return;
   *err = CeedQFunctionContextDestroy(&fctx);
+}
+
+#define fCeedQFunctionSetNumViewTabs FORTRAN_NAME(ceedqfunctionsetnumviewtabs, CEEDQFUNCTIONSETNUMVIEWTABS)
+CEED_EXTERN void fCeedQFunctionSetNumViewTabs(int *qf, int *num_tabs, int *err) {
+  *err = CeedQFunctionSetNumViewTabs(CeedQFunction_dict[*qf], *num_tabs);
 }
 
 #define fCeedQFunctionView FORTRAN_NAME(ceedqfunctionview, CEEDQFUNCTIONVIEW)

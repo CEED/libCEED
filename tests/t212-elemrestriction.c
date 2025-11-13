@@ -15,6 +15,8 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, 2, 2, 1, num_elem * 2, strides, &elem_restriction);
 
   CeedElemRestrictionView(elem_restriction, stdout);
+  CeedElemRestrictionSetNumViewTabs(elem_restriction, 1);
+  CeedElemRestrictionView(elem_restriction, stdout);
 
   CeedElemRestrictionDestroy(&elem_restriction);
   CeedDestroy(&ceed);

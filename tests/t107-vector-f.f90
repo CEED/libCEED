@@ -25,6 +25,9 @@
 
       call ceedvectorview(x,err)
 
+      call ceedvectorsetnumviewtabs(x,1,err)
+      call ceedvectorview(x,err)
+
       call ceedvectordestroy(x,err)
       call ceeddestroy(ceed,err)
 

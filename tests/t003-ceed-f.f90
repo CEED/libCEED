@@ -12,6 +12,9 @@
 
       call ceedview(ceed,err)
 
+      call ceedsetnumviewtabs(ceed,1,err)
+      call ceedview(ceed,err)
+
       call ceeddestroy(ceed,err)
 
       end

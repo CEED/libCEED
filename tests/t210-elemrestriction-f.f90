@@ -27,6 +27,9 @@
 
       call ceedelemrestrictionview(r,err)
 
+      call ceedelemrestrictionsetnumviewtabs(r,1,err)
+      call ceedelemrestrictionview(r,err)
+
       call ceedelemrestrictiondestroy(r,err)
       call ceeddestroy(ceed,err)
 

@@ -153,23 +153,24 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s, CeedTra
   @param[in] m      Number of rows in array
   @param[in] n      Number of columns in array
   @param[in] a      Array to be viewed
+  @param[in] tabs   Tabs to append before each new line
   @param[in] stream Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, FILE *stream) {
+static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, const char *tabs, FILE *stream) {
   if (m > 1) {
-    fprintf(stream, "  %s:\n", name);
+    fprintf(stream, "%s  %s:\n", tabs, name);
   } else {
     char padded_name[12];
 
     snprintf(padded_name, 11, "%s:", name);
-    fprintf(stream, "  %-10s", padded_name);
+    fprintf(stream, "%s  %-10s", tabs, padded_name);
   }
   for (CeedInt i = 0; i < m; i++) {
-    if (m > 1) fprintf(stream, "    [%" CeedInt_FMT "]", i);
+    if (m > 1) fprintf(stream, "%s    [%" CeedInt_FMT "]", tabs, i);
     for (CeedInt j = 0; j < n; j++) fprintf(stream, fp_fmt, fabs(a[i * n + j]) > 1E-14 ? a[i * n + j] : 0);
     fputs("\n", stream);
   }
@@ -720,6 +721,21 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 
   CeedCall(CeedFree(&interp_1d_pinv));
   CeedCall(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedBasisView() output
+
+  @param[in]  basis    `CeedBasis` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
+  *num_tabs = basis->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1893,6 +1909,22 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedBasisView() output
+
+  @param[in] basis    `CeedBasis` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  basis->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedBasis`
 
   @param[in] basis  `CeedBasis` to view
@@ -1904,6 +1936,7 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   bool             is_tensor_basis;
+  char            *tabs = NULL;
   CeedElemTopology topo;
   CeedFESpace      fe_space;
 
@@ -1912,14 +1945,22 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   CeedCall(CeedBasisGetTopology(basis, &topo));
   CeedCall(CeedBasisGetFESpace(basis, &fe_space));
 
-  // Print FE space and element topology of the basis
-  fprintf(stream, "CeedBasis in a %s on a %s element\n", CeedFESpaces[fe_space], CeedElemTopologies[topo]);
-  if (is_tensor_basis) {
-    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P_1d, basis->Q_1d);
-  } else {
-    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P, basis->Q);
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedBasisGetNumViewTabs(basis, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   }
-  fprintf(stream, "  dimension: %" CeedInt_FMT "\n  field components: %" CeedInt_FMT "\n", basis->dim, basis->num_comp);
+
+  // Print FE space and element topology of the basis
+  fprintf(stream, "%sCeedBasis in a %s on a %s element\n", tabs, CeedFESpaces[fe_space], CeedElemTopologies[topo]);
+  if (is_tensor_basis) {
+    fprintf(stream, "%s  P: %" CeedInt_FMT "\n%s  Q: %" CeedInt_FMT "\n", tabs, basis->P_1d, tabs, basis->Q_1d);
+  } else {
+    fprintf(stream, "%s  P: %" CeedInt_FMT "\n%s  Q: %" CeedInt_FMT "\n", tabs, basis->P, tabs, basis->Q);
+  }
+  fprintf(stream, "%s  dimension: %" CeedInt_FMT "\n%s  field components: %" CeedInt_FMT "\n", tabs, basis->dim, tabs, basis->num_comp);
   // Print quadrature data, interpolation/gradient/divergence/curl of the basis
   if (is_tensor_basis) {  // tensor basis
     CeedInt           P_1d, Q_1d;
@@ -1932,10 +1973,10 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
     CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
 
-    CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, Q_1d, q_ref_1d, stream));
-    CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, Q_1d, q_weight_1d, stream));
-    CeedCall(CeedScalarView("interp1d", "\t% 12.8f", Q_1d, P_1d, interp_1d, stream));
-    CeedCall(CeedScalarView("grad1d", "\t% 12.8f", Q_1d, P_1d, grad_1d, stream));
+    CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, Q_1d, q_ref_1d, tabs, stream));
+    CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, Q_1d, q_weight_1d, tabs, stream));
+    CeedCall(CeedScalarView("interp1d", "\t% 12.8f", Q_1d, P_1d, interp_1d, tabs, stream));
+    CeedCall(CeedScalarView("grad1d", "\t% 12.8f", Q_1d, P_1d, grad_1d, tabs, stream));
   } else {  // non-tensor basis
     CeedInt           P, Q, dim, q_comp;
     const CeedScalar *q_ref, *q_weight, *interp, *grad, *div, *curl;
@@ -1950,23 +1991,24 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     CeedCall(CeedBasisGetDiv(basis, &div));
     CeedCall(CeedBasisGetCurl(basis, &curl));
 
-    CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, Q * dim, q_ref, stream));
-    CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, Q, q_weight, stream));
+    CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, Q * dim, q_ref, tabs, stream));
+    CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, Q, q_weight, tabs, stream));
     CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp));
-    CeedCall(CeedScalarView("interp", "\t% 12.8f", q_comp * Q, P, interp, stream));
+    CeedCall(CeedScalarView("interp", "\t% 12.8f", q_comp * Q, P, interp, tabs, stream));
     if (grad) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp));
-      CeedCall(CeedScalarView("grad", "\t% 12.8f", q_comp * Q, P, grad, stream));
+      CeedCall(CeedScalarView("grad", "\t% 12.8f", q_comp * Q, P, grad, tabs, stream));
     }
     if (div) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp));
-      CeedCall(CeedScalarView("div", "\t% 12.8f", q_comp * Q, P, div, stream));
+      CeedCall(CeedScalarView("div", "\t% 12.8f", q_comp * Q, P, div, tabs, stream));
     }
     if (curl) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp));
-      CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * Q, P, curl, stream));
+      CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * Q, P, curl, tabs, stream));
     }
   }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 

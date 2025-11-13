@@ -117,13 +117,14 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name, 
   @param[in] field        `CeedQFunction` field to view
   @param[in] field_number Number of field being viewed
   @param[in] in           true for input field, false for output
+  @param[in] tabs         Tabs to append before each new line
   @param[in] stream       Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, FILE *stream) {
+static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, const char *tabs, FILE *stream) {
   const char  *inout = in ? "Input" : "Output";
   const char  *field_name;
   CeedInt      size;
@@ -131,13 +132,13 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number
 
   CeedCall(CeedQFunctionFieldGetData(field, &field_name, &size, &eval_mode));
   fprintf(stream,
-          "    %s field %" CeedInt_FMT
-          ":\n"
-          "      Name: \"%s\"\n"
+          "%s    %s field %" CeedInt_FMT
+          ":\n%s"
+          "      Name: \"%s\"\n%s"
           "      Size: %" CeedInt_FMT
-          "\n"
+          "\n%s"
           "      EvalMode: \"%s\"\n",
-          inout, field_number, field_name, size, CeedEvalModes[eval_mode]);
+          tabs, inout, field_number, tabs, field_name, tabs, size, tabs, CeedEvalModes[eval_mode]);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -334,6 +335,21 @@ int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer
 **/
 int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
   *f = qf->function;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedQFunctionView() output
+
+  @param[in]  qf       `CeedQFunction` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
+  *num_tabs = qf->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1011,6 +1027,22 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedQFunctionView() output
+
+  @param[in] qf       `CeedQFunction` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  qf->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedQFunction`
 
   @param[in] qf     `CeedQFunction` to view
@@ -1021,20 +1053,30 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
+  char       *tabs = NULL;
   const char *name;
 
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedQFunctionGetNumViewTabs(qf, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
+
   CeedCall(CeedQFunctionGetName(qf, &name));
-  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", name);
+  fprintf(stream, "%s%sCeedQFunction - %s\n", tabs, qf->is_gallery ? "Gallery " : "User ", name);
 
-  fprintf(stream, "  %" CeedInt_FMT " input field%s:\n", qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", tabs, qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCall(CeedQFunctionFieldView(qf->input_fields[i], i, 1, stream));
+    CeedCall(CeedQFunctionFieldView(qf->input_fields[i], i, 1, tabs, stream));
   }
 
-  fprintf(stream, "  %" CeedInt_FMT " output field%s:\n", qf->num_output_fields, qf->num_output_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", tabs, qf->num_output_fields, qf->num_output_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCall(CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream));
+    CeedCall(CeedQFunctionFieldView(qf->output_fields[i], i, 0, tabs, stream));
   }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -817,15 +817,14 @@ def run_tests(test: str, ceed_backends: List[str], mode: RunMode, nproc: int,
     return TestSuite(test, test_cases)
 
 
-def write_junit_xml(test_suite: TestSuite, output_file: Optional[Path], batch: str = '') -> None:
+def write_junit_xml(test_suite: TestSuite, batch: str = '') -> None:
     """Write a JUnit XML file containing the results of a `TestSuite`
 
     Args:
         test_suite (TestSuite): JUnit `TestSuite` to write
-        output_file (Optional[Path]): Path to output file, or `None` to generate automatically as `build/{test_suite.name}{batch}.junit`
         batch (str): Name of JUnit batch, defaults to empty string
     """
-    output_file = output_file or Path('build') / (f'{test_suite.name}{batch}.junit')
+    output_file = Path('build') / (f'{test_suite.name}{batch}.junit')
     output_file.write_text(to_xml_report_string([test_suite]))
 
 

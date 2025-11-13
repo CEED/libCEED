@@ -163,6 +163,21 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx) { return ctx->ceed; }
 
 /**
+  @brief Get the number of tabs to indent for @ref CeedQFunctionContextView() output
+
+  @param[in]  ctx      `CeedQFunctionContext` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs) {
+  *num_tabs = ctx->num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check for valid data in a `CeedQFunctionContext`
 
   @param[in]  ctx            `CeedQFunctionContext` to check validity
@@ -882,6 +897,22 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedQFunctionContextView() output
+
+  @param[in] ctx      `CeedQFunctionContext` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  ctx->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedQFunctionContext`
 
   @param[in] ctx    `CeedQFunctionContext` to view
@@ -892,11 +923,22 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
   @ref User
 **/
 int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
-  fprintf(stream, "CeedQFunctionContext\n");
-  fprintf(stream, "  Context Data Size: %zu\n", ctx->ctx_size);
-  for (CeedInt i = 0; i < ctx->num_fields; i++) {
-    fprintf(stream, "  Labeled %s field: %s\n", CeedContextFieldTypes[ctx->field_labels[i]->type], ctx->field_labels[i]->name);
+  char *tabs = NULL;
+
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedQFunctionContextGetNumViewTabs(ctx, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   }
+
+  fprintf(stream, "%sCeedQFunctionContext\n", tabs);
+  fprintf(stream, "%s  Context Data Size: %zu\n", tabs, ctx->ctx_size);
+  for (CeedInt i = 0; i < ctx->num_fields; i++) {
+    fprintf(stream, "%s  Labeled %s field: %s\n", tabs, CeedContextFieldTypes[ctx->field_labels[i]->type], ctx->field_labels[i]->name);
+  }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 
