@@ -252,7 +252,6 @@ CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name);
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed);
-CEED_EXTERN int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
 CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void));
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
@@ -269,7 +268,6 @@ CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
 
-CEED_EXTERN int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
@@ -298,7 +296,6 @@ typedef enum {
 } CeedRestrictionType;
 
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
-CEED_EXTERN int CeedElemRestrictionGetNumViewTabs(CeedElemRestriction rstr, CeedInt *num_tabs);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
 CEED_EXTERN int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points);
 CEED_EXTERN int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible);
@@ -339,7 +336,6 @@ CEED_EXTERN const char *const CeedFESpaces[];
 
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d);
-CEED_EXTERN int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
@@ -380,7 +376,6 @@ CEED_EXTERN int CeedQFunctionGetName(CeedQFunction qf, const char **name);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path);
 CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f);
-CEED_EXTERN int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data);
@@ -398,7 +393,6 @@ CEED_EXTERN int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops)
 
 CEED_EXTERN int  CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed);
 CEED_EXTERN Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx);
-CEED_EXTERN int  CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs);
 CEED_EXTERN int  CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_data);
 CEED_EXTERN int  CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type);
 CEED_EXTERN int  CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state);
@@ -456,7 +450,6 @@ CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssembly
                                                             CeedElemRestriction **active_elem_rstrs_out);
 CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
 
-CEED_EXTERN int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs);
 CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis);
 CEED_EXTERN int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, CeedBasis *active_output_basis);
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
