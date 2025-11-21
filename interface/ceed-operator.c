@@ -175,21 +175,6 @@ int CeedOperatorSingleView(CeedOperator op, const char *tabs, FILE *stream) {
 }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedOperatorView() output
-
-  @param[in]  op       `CeedOperator` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
-  *num_tabs = op->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Find the active input vector `CeedBasis` for a non-composite `CeedOperator`.
 
   Note: Caller is responsible for destroying the `active_basis` with @ref CeedBasisDestroy().
@@ -1653,6 +1638,21 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
 int CeedOperatorSetNumViewTabs(CeedOperator op, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   op->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedOperatorView() output
+
+  @param[in]  op       `CeedOperator` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
+  *num_tabs = op->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

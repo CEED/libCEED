@@ -163,21 +163,6 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx) { return ctx->ceed; }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedQFunctionContextView() output
-
-  @param[in]  ctx      `CeedQFunctionContext` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs) {
-  *num_tabs = ctx->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Check for valid data in a `CeedQFunctionContext`
 
   @param[in]  ctx            `CeedQFunctionContext` to check validity
@@ -909,6 +894,21 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
 int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   ctx->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedQFunctionContextView() output
+
+  @param[in]  ctx      `CeedQFunctionContext` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs) {
+  *num_tabs = ctx->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 
