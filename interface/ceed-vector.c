@@ -40,21 +40,6 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /// @{
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedVectorView() output
-
-  @param[in]  vec      `CeedVector` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
-  *num_tabs = vec->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Check for valid data in a `CeedVector`
 
   @param[in]  vec             `CeedVector` to check validity
@@ -1022,6 +1007,21 @@ int CeedVectorReciprocal(CeedVector vec) {
 int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   vec->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedVectorView() output
+
+  @param[in]  vec      `CeedVector` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
+  *num_tabs = vec->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

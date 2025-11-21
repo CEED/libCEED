@@ -122,21 +122,6 @@ int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rs
 }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedElemRestrictionView() output
-
-  @param[in]  rstr     `CeedElemRestriction` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetNumViewTabs(CeedElemRestriction rstr, CeedInt *num_tabs) {
-  *num_tabs = rstr->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the strided status of a `CeedElemRestriction`
 
   @param[in]  rstr       `CeedElemRestriction`
@@ -1749,6 +1734,21 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
 int CeedElemRestrictionSetNumViewTabs(CeedElemRestriction rstr, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   rstr->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedElemRestrictionView() output
+
+  @param[in]  rstr     `CeedElemRestriction` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetNumViewTabs(CeedElemRestriction rstr, CeedInt *num_tabs) {
+  *num_tabs = rstr->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

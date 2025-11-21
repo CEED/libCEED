@@ -664,21 +664,6 @@ int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed) {
 }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedView() output
-
-  @param[in]  ceed     `Ceed` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
-  *num_tabs = ceed->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Flag `Ceed` context as deterministic
 
   @param[in]  ceed             `Ceed` to flag as deterministic
@@ -1565,6 +1550,21 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
 int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, ceed, CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   ceed->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedView() output
+
+  @param[in]  ceed     `Ceed` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
+  *num_tabs = ceed->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

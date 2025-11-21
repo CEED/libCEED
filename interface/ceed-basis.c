@@ -725,21 +725,6 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedBasisView() output
-
-  @param[in]  basis    `CeedBasis` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
-  *num_tabs = basis->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Return 1D interpolation matrix to Chebyshev polynomial coefficients on quadrature space
 
   @param[in]  basis               `CeedBasis`
@@ -1921,6 +1906,21 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   basis->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedBasisView() output
+
+  @param[in]  basis    `CeedBasis` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
+  *num_tabs = basis->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 

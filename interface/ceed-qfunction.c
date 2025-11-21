@@ -339,21 +339,6 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
 }
 
 /**
-  @brief Get the number of tabs to indent for @ref CeedQFunctionView() output
-
-  @param[in]  qf       `CeedQFunction` to get the number of view tabs
-  @param[out] num_tabs Number of view tabs
-
-  @return Error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
-  *num_tabs = qf->num_tabs;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get global context for a `CeedQFunction`.
 
   Note: For `CeedQFunction` from the Fortran interface, this function will return the Fortran context `CeedQFunctionContext`.
@@ -1039,6 +1024,21 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
   CeedCheck(num_tabs >= 0, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
   qf->num_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedQFunctionView() output
+
+  @param[in]  qf       `CeedQFunction` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
+  *num_tabs = qf->num_tabs;
   return CEED_ERROR_SUCCESS;
 }
 
