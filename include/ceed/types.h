@@ -33,7 +33,7 @@
 #else
 #define CEED_QFUNCTION_ATTR
 #endif
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 #define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR __attribute__((always_inline))
 #else
 #define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR
