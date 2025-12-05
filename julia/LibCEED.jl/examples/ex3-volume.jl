@@ -59,7 +59,6 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
     #Create the Q-function that builds the mass operator ( i.e it computes the quadrature data) and set its context data.
     num_q_comp = 1 + div(dim*(dim+1), 2)
     
-    if !gallery
     @interior_qf build_qfunc = (
         ceed,
         dim=dim,
@@ -68,15 +67,7 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         (qdata, :out, EVAL_NONE, num_q_comp), # ← qdata output
         begin
             # Compute determinant
-            if dim == 1
-                det_J = dx[1,1]
-            elseif dim == 2
-                det_J = dx[1,1]*dx[2,2] - dx[1,2]*dx[2,1]
-            else  # dim == 3
-                det_J = dx[1,1]*(dx[2,2]*dx[3,3] - dx[2,3]*dx[3,2]) -
-                        dx[1,2]*(dx[2,1]*dx[3,3] - dx[2,3]*dx[3,1]) +
-                        dx[1,3]*(dx[2,1]*dx[3,2] - dx[2,2]*dx[3,1])
-            end
+            det_J = det(dx)
             
             # Store mass component
             qdata[1] = weights * det_J
@@ -85,19 +76,12 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
             idx = 2
             for i = 1:dim
                 for j = i:dim
-                    sum_val = 0.0
-                    for k = 1:dim
-                        sum_val += dx[k,i] * dx[k,j]
-                    end
-                    qdata[idx] = sum_val
+                    qdata[idx] = dx[:, i]' * dx[:, j]
                     idx += 1
                 end
             end
         end,
     )
-    else
-        build_qfunc = create_interior_qfunction(ceed, "MassDiff$(dim)DBuild")
-    end
 
     #Create the operator that builds the quadrature data for the mass operator
     build_oper = Operator(
