@@ -104,7 +104,6 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
     println(" done.")
 
     #Create QFunction for applying the mass+diffusion operator
-    if !gallery
     @interior_qf apply_qfunc = (
         ceed,
         dim=dim,
@@ -138,9 +137,6 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
             end
         end,
     )
-else
-    apply_qfunc = create_interior_qfunction(ceed, "MassDiffApply")
-end
     apply_oper = Operator(
     ceed,
     qf=apply_qfunc,
