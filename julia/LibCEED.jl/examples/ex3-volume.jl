@@ -28,8 +28,7 @@ function transform_mesh_coords!(dim, mesh_size, mesh_coords)
     end
 end
 
-function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, gallery)
-    # Main implementation goes here
+function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
     ncompx = dim
     prob_size < 0 && (prob_size = 256*1024)
 
@@ -39,15 +38,24 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
     sol_basis =
         create_tensor_h1_lagrange_basis(ceed, dim, 1, sol_order + 1, num_qpts, GAUSS)
 
+    # Determine the mesh size based on the given approximate problem size.
     nxyz = get_cartesian_mesh_size(dim, sol_order, prob_size)
-    println("Mesh size:", nxyz)
+    println("Mesh size: ", nxyz)
 
-    #Build CeedElemRestriction objects describing the mesh and solution discrete
-    # mesh_rstr: for building (no qdata restriction needed)
+    # Build CeedElemRestriction objects describing the mesh and solution discrete
+    # representations.
     mesh_size, mesh_rstr, _ =
         build_cartesian_restriction(ceed, dim, nxyz, mesh_order, ncompx, num_qpts)
-
-    # sol_rstr + sol_rstr_i: for solving
+    num_q_comp = 1 + div(dim*(dim + 1), 2)
+    sol_size, _, qdata_rstr_i = build_cartesian_restriction(
+        ceed,
+        dim,
+        nxyz,
+        sol_order,
+        num_q_comp,
+        num_qpts,
+        mode=StridedOnly,
+    )
     sol_size, sol_rstr, sol_rstr_i = build_cartesian_restriction(
         ceed,
         dim,
@@ -57,15 +65,16 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         num_qpts,
         mode=RestrictionAndStrided,
     )
+    println("Number of mesh nodes     : ", div(mesh_size, dim))
+    println("Number of solution nodes : ", sol_size)
 
-    # mesh_coords
+    # Create a CeedVector with the mesh coordinates.
     mesh_coords = CeedVector(ceed, mesh_size)
     set_cartesian_mesh_coords!(dim, nxyz, mesh_order, mesh_coords)
+    # Apply a transformation to the mesh.
     exact_vol = transform_mesh_coords!(dim, mesh_size, mesh_coords)
 
-    #Create the Q-function that builds the mass operator ( i.e it computes the quadrature data) and set its context data.
-    num_q_comp = 1 + div(dim*(dim + 1), 2)
-
+    #Create the Q-function that builds the mass+diffusion operator ( i.e it computes the quadrature data) and set its context data.
     @interior_qf build_qfunc = (
         ceed,
         dim=dim,
@@ -90,27 +99,27 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         end,
     )
 
-    #Create the operator that builds the quadrature data for the mass operator
+    # Create the operator that builds the quadrature data for the mass+diffusion operator.
     build_oper = Operator(
         ceed,
         qf=build_qfunc,
         fields=[
             (:dx, mesh_rstr, mesh_basis, CeedVectorActive()),
             (:weights, ElemRestrictionNone(), mesh_basis, CeedVectorNone()),
-            (:qdata, sol_rstr_i, BasisNone(), CeedVectorActive()),
+            (:qdata, qdata_rstr_i, BasisNone(), CeedVectorActive()),
         ],
     )
 
-    # Apply to get qdata
+    # Compute the quadrature data for the mass+diff operator.
     elem_qpts = num_qpts^dim
     num_elem = prod(nxyz)
     qdata = CeedVector(ceed, num_elem*elem_qpts*num_q_comp)
-    print("Computing the quadrature data for the mass operator ...")
+    print("Computing the quadrature data for the mass+diffusion operator ...")
     flush(stdout)
     apply!(build_oper, mesh_coords, qdata)
     println(" done.")
 
-    #Create QFunction for applying the mass+diffusion operator
+    # Create the Q-function that defines the action of the mass+diffusion operator.
     @interior_qf apply_qfunc = (
         ceed,
         dim=dim,
@@ -144,32 +153,34 @@ function run_ex3(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
             end
         end,
     )
-    apply_oper = Operator(
+
+    # Create the mass+diffusion operator.
+    oper = Operator(
         ceed,
         qf=apply_qfunc,
         fields=[
             (:u, sol_rstr, sol_basis, CeedVectorActive()),
             (:du, sol_rstr, sol_basis, CeedVectorActive()),
-            (:qdata, sol_rstr_i, BasisNone(), qdata),
+            (:qdata, qdata_rstr_i, BasisNone(), qdata),
             (:v, sol_rstr, sol_basis, CeedVectorActive()),
             (:dv, sol_rstr, sol_basis, CeedVectorActive()),
         ],
     )
 
-    # # Compute the mesh volume using the massdiff operator
+    # Compute the mesh volume using the mass+diffusion operator: vol = 1^T \cdot (M + K) \cdot 1
     print("Computing the mesh volume using the formula: vol = 1^T * (M + K) * 1...")
     flush(stdout)
-
+    # Create auxiliary solution-size vectors.
     u = CeedVector(ceed, sol_size)
     v = CeedVector(ceed, sol_size)
+    # Initialize 'u' with ones.
     u[] = 1.0
-
-    # Apply operator
-    apply!(apply_oper, u, v)
-
-    # Compute volume
+    # Apply the mass+diffusion operator: 'u' -> 'v'.
+    apply!(oper, u, v)
+    # Compute and print the sum of the entries of 'v' giving the mesh volume.
     vol = witharray_read(sum, v, MEM_HOST)
 
+    println(" done.")
     @printf("Exact mesh volume    : % .14g\n", exact_vol)
     @printf("Computed mesh volume : % .14g\n", vol)
     @printf("Volume error         : % .14g\n", vol - exact_vol)
@@ -178,10 +189,9 @@ end
 # Entry point
 run_ex3(
     ceed_spec="/cpu/self",
-    dim=2,
-    mesh_order=2,
-    sol_order=2,
-    num_qpts=3,
+    dim=3,
+    mesh_order=4,
+    sol_order=4,
+    num_qpts=4 + 2,
     prob_size=-1,
-    gallery=false,
 )
