@@ -25,7 +25,7 @@
 #ifndef __NO_INLINE__
 #if defined(__GNUC__) || defined(__clang__)
 #define CEED_QFUNCTION_ATTR __attribute__((flatten))
-#elif defined(__INTEL_COMPILER)
+#elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
 #define CEED_QFUNCTION_ATTR _Pragma("forceinline")
 #else
 #define CEED_QFUNCTION_ATTR
@@ -103,7 +103,7 @@ values for CPU backends.
     Code generation backends may redefine this macro, as needed.
 **/
 #ifndef CeedPragmaSIMD
-#if defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
 #define CeedPragmaSIMD _Pragma("vector")
 /// Cannot use Intel pragma ivdep because it miscompiles unpacking symmetric tensors, as in Poisson2DApply, where the SIMD loop body contains
 /// temporaries such as the following.
