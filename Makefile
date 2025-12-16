@@ -50,9 +50,6 @@ HIP_ARCH ?=
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
 
-# OCCA_DIR env variable should point to OCCA main (github.com/libocca/occa)
-OCCA_DIR ?= ../occa/install
-
 
 # ------------------------------------------------------------
 # Compiler flags
@@ -103,7 +100,7 @@ UNDERSCORE ?= 1
 # Verbose mode, V or VERBOSE
 V ?= $(VERBOSE)
 
-# Warning: SANTIZ options still don't run with /gpu/occa
+# SANTIZ options
 AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
@@ -324,7 +321,6 @@ sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
 sycl-gen.cpp   := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
-occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 
 # Tests
 tests.c := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -442,7 +438,6 @@ info:
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info SYCL_DIR      = $(SYCL_DIR)$(call backend_status,$(SYCL_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
-	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
 	$(info )
 	$(info -----------------------------------------)
 	$(info )
@@ -617,22 +612,6 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   endif
   LIBCEED_CONTAINS_CXX = 1
   BACKENDS_MAKE += $(MAGMA_BACKENDS)
-endif
-
-# OCCA Backends
-OCCA_BACKENDS = /cpu/self/occa
-ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_MODES := $(shell LD_LIBRARY_PATH=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa modes)
-  OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
-  OCCA_BACKENDS += $(if $(filter dpcpp,$(OCCA_MODES)),/gpu/dpcpp/occa)
-  OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
-  OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
-  OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
-  $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
-  PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
-  LIBCEED_CONTAINS_CXX = 1
-  libceed.cpp += $(occa.cpp)
-  BACKENDS_MAKE += $(OCCA_BACKENDS)
 endif
 
 BACKENDS ?= $(BACKENDS_MAKE)
@@ -976,7 +955,7 @@ CLANG_TIDY ?= clang-tidy
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(ROCM_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include
 
 tidy-c   : $(libceed.c:%=%.tidy)
 tidy-cpp : $(libceed.cpp:%=%.tidy)
@@ -1032,7 +1011,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

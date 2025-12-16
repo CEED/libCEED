@@ -259,7 +259,7 @@ If greater than 1, the caller must ensure that the number of quadrature points `
 This is often satisfied automatically due to the element size or by batching elements together to facilitate vectorization in other stages, and can always be ensured by padding.
 
 In addition to the function pointers (`setup` and `mass`), {ref}`CeedQFunction` constructors take a string representation specifying where the source for the implementation is found.
-This is used by backends that support Just-In-Time (JIT) compilation (i.e., CUDA and OCCA) to compile for coprocessors.
+This is used by backends that support Just-In-Time (JIT) compilation (i.e., CUDA and HIP) to compile for coprocessors.
 For full support across all backends, these {ref}`CeedQFunction` source files must only contain constructs mutually supported by C99, C++11, and CUDA.
 For example, explicit type casting of void pointers and explicit use of compatible arguments for {code}`math` library functions is required, and variable-length array (VLA) syntax for array reshaping is only available via libCEED's {code}`CEED_Q_VLA` macro.
 

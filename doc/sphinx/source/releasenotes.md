@@ -35,6 +35,10 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 
 - Add deal.II example with CEED BP suite.
 
+### Maintainability
+
+- OCCA backends were retired.
+
 (v0-12)=
 
 ## v0.12 (Oct 31, 2023)

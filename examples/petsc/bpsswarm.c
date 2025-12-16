@@ -161,7 +161,6 @@ int main(int argc, char **argv) {
 
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
       else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
       else vec_type = VECSTANDARD;
     }
