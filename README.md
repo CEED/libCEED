@@ -480,7 +480,7 @@ The BibTeX entries for these references can be found in the `doc/bib/references.
 
 The following copyright applies to each file in the CEED software suite, unless otherwise stated in the file:
 
-> Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+> Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 > All rights reserved.
 
 See files LICENSE and NOTICE for details.
