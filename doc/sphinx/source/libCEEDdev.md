@@ -86,8 +86,6 @@ This kernel is compiled at runtime via NVRTC, HIPRTC, or OpenCL RTC.
 The `/gpu/*/magma` backends delegate to the corresponding `/gpu/cuda/ref` and `/gpu/hip/ref` backends.
 These backends provide better performance for {ref}`CeedBasis` kernels but do not have the improvements from the `/gpu/*/gen` backends for {ref}`CeedOperator`.
 
-The `/*/*/occa` backends are an experimental feature and not part of any family.
-
 ## Internal Layouts
 
 Ceed backends are free to use any E-vector and Q-vector data layout (including never fully forming these vectors) so long as the backend passes the `t5**` series tests and all examples.

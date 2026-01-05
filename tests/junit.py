@@ -107,9 +107,6 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             Optional[str]: Skip reason, or `None` if test case should not be skipped
         """
-        if contains_any(resource, ['occa']) and startswith_any(
-                test, ['t4', 't5', 'ex', 'mfem', 'nek', 'petsc', 'fluids', 'solids']):
-            return 'OCCA mode not supported'
         if test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']):
             return 'CUDA ref backend not supported'
         if test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']):
@@ -130,9 +127,7 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             Optional[str]: Skip reason, or `None` if unexpeced error
         """
-        if 'OCCA backend failed to use' in stderr:
-            return f'OCCA mode not supported'
-        elif 'Backend does not implement' in stderr:
+        if 'Backend does not implement' in stderr:
             return f'Backend does not implement'
         elif 'Can only provide HOST memory for this backend' in stderr:
             return f'Device memory not supported'
