@@ -37,8 +37,8 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
 }
 // LCOV_EXCL_STOP
 
-#define CEED_BACKEND(name, num_prefixes, ...)       \
-  CEED_INTERN int name(void) __attribute__((weak)); \
-  int             name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
+#define CEED_BACKEND(name, num_prefixes, ...)                 \
+  CEED_INTERN int           name(void) __attribute__((weak)); \
+  int __attribute__((weak)) name(void) { return CeedRegister_Weak(#name, num_prefixes, __VA_ARGS__); }
 #include "ceed-backend-list.h"
 #undef CEED_BACKEND
