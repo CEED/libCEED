@@ -494,6 +494,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
   }
 
   // Create TensorContract object if needed, such as a basis from the GPU backends
+  // LCOV_EXCL_START
   if (!basis->contract) {
     Ceed      ceed_ref;
     CeedBasis basis_ref = NULL;
@@ -508,6 +509,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
     CeedCall(CeedBasisDestroy(&basis_ref));
     CeedCall(CeedDestroy(&ceed_ref));
   }
+  // LCOV_EXCL_STOP
 
   // Basis evaluation
   switch (t_mode) {

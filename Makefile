@@ -143,7 +143,7 @@ CXXFLAGS.icc            := $(CXXFLAGS.gcc)
 CXXFLAGS.oneAPI         := $(CXXFLAGS.clang)
 CXXFLAGS.XL             := $(if $(STATIC),,-qpic) -std=c++11 -MMD
 CXXFLAGS.emcc           := $(CXXFLAGS.clang)
-FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
+FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP -C
 FFLAGS.ifort            := $(if $(STATIC),,-fPIC) -cpp
 FFLAGS.ifx              := $(FFLAGS.ifort)
 FFLAGS.XL               := $(if $(STATIC),,-qpic) -ffree-form -qpreprocess -qextname -MMD
@@ -680,13 +680,13 @@ $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS) -I./tests/test-include
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS) $(FFLAGS)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f | $$(@D)/.DIR
-	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
+	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS) $(FFLAGS)
 
 
 # ------------------------------------------------------------
