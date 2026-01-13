@@ -1211,19 +1211,23 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
                                                          &use_3d_slices));
     data->max_P_1d = is_all_tensor ? max_P_1d : max_P;
   }
-  if (max_dim == 0) max_dim = 1;
-  data->dim = max_dim;
   if (is_at_points) {
+    CeedInt                   coords_dim = 0;
     CeedElemRestriction_Cuda *rstr_data;
     CeedElemRestriction       rstr_points = NULL;
 
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
     CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
     CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &coords_comp_stride));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_points, &coords_dim));
     CeedCallBackend(CeedElemRestrictionGetData(rstr_points, &rstr_data));
     data->points.indices = (CeedInt *)rstr_data->d_offsets;
     CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+    if (max_dim == 0) max_dim = coords_dim;
+    if (Q_1d == 0) max_num_points = ceil(pow(max_num_points, 1.0 / max_dim));
   }
+  if (max_dim == 0) max_dim = 1;
+  data->dim = max_dim;
   if (is_at_points) use_3d_slices = false;
   if (Q_1d == 0) {
     if (is_at_points) Q_1d = max_num_points;
