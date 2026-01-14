@@ -90,21 +90,28 @@ struct CeedWorkVectors_private {
   CeedVector *vecs;
 };
 
+typedef struct CeedObject_private {
+  Ceed ceed;
+  int (*ViewFunction)(CeedObject, FILE *);
+  int ref_count;
+} CeedObject_private;
+
 struct Ceed_private {
-  const char  *resource;
-  Ceed         delegate;
-  Ceed         parent;
-  ObjDelegate *obj_delegates;
-  int          obj_delegate_count;
-  Ceed         op_fallback_ceed;
-  char       **jit_source_roots;
-  char       **rust_source_roots;
-  CeedInt      num_rust_source_roots, max_rust_source_roots, num_rust_source_roots_readers;
-  CeedInt      num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
-  bool         cuda_compile_with_clang;
-  char       **jit_defines;
-  CeedInt      num_jit_defines, max_jit_defines, num_jit_defines_readers;
-  CeedInt      num_tabs; /* Viewing offset */
+  CeedObject_private obj;
+  const char        *resource;
+  Ceed               delegate;
+  Ceed               parent;
+  ObjDelegate       *obj_delegates;
+  int                obj_delegate_count;
+  Ceed               op_fallback_ceed;
+  char             **jit_source_roots;
+  char             **rust_source_roots;
+  CeedInt            num_rust_source_roots, max_rust_source_roots, num_rust_source_roots_readers;
+  CeedInt            num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
+  bool               cuda_compile_with_clang;
+  char             **jit_defines;
+  CeedInt            num_jit_defines, max_jit_defines, num_jit_defines_readers;
+  CeedInt            num_tabs; /* Viewing offset */
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
   int (*SetStream)(Ceed, void *);
   int (*GetPreferredMemType)(CeedMemType *);
@@ -126,7 +133,6 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
-  int             ref_count;
   void           *data;
   bool            is_debug;
   bool            is_deterministic;
@@ -136,7 +142,7 @@ struct Ceed_private {
 };
 
 struct CeedVector_private {
-  Ceed ceed;
+  CeedObject_private obj;
   int (*HasValidArray)(CeedVector, bool *);
   int (*HasBorrowedArrayOfType)(CeedVector, CeedMemType, bool *);
   int (*CopyStrided)(CeedVector, CeedSize, CeedSize, CeedSize, CeedVector);
@@ -157,7 +163,6 @@ struct CeedVector_private {
   int (*PointwiseMult)(CeedVector, CeedVector, CeedVector);
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
-  int      ref_count;
   CeedSize length;
   uint64_t state;
   uint64_t num_readers;
@@ -166,7 +171,7 @@ struct CeedVector_private {
 };
 
 struct CeedElemRestriction_private {
-  Ceed                ceed;
+  CeedObject_private  obj;
   CeedElemRestriction rstr_base;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
@@ -178,7 +183,6 @@ struct CeedElemRestriction_private {
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
   int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
   int (*Destroy)(CeedElemRestriction);
-  int      ref_count;
   CeedInt  num_elem;    /* number of elements */
   CeedInt  elem_size;   /* number of nodes per element */
   CeedInt  num_points;  /* number of points, for points restriction */
@@ -199,13 +203,12 @@ struct CeedElemRestriction_private {
 };
 
 struct CeedBasis_private {
-  Ceed ceed;
+  CeedObject_private obj;
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
   int (*ApplyAdd)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
   int (*ApplyAtPoints)(CeedBasis, CeedInt, const CeedInt *, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector);
   int (*ApplyAddAtPoints)(CeedBasis, CeedInt, const CeedInt *, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
-  int                ref_count;
   bool               is_tensor_basis; /* flag for tensor basis */
   CeedInt            dim;             /* topological dimension */
   CeedElemTopology   topo;            /* element topology */
@@ -233,11 +236,10 @@ struct CeedBasis_private {
 };
 
 struct CeedTensorContract_private {
-  Ceed ceed;
+  CeedObject_private obj;
   int (*Apply)(CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt, const CeedScalar *restrict, CeedTransposeMode, const CeedInt,
                const CeedScalar *restrict, CeedScalar *restrict);
   int (*Destroy)(CeedTensorContract);
-  int   ref_count;
   void *data;
 };
 
@@ -248,12 +250,11 @@ struct CeedQFunctionField_private {
 };
 
 struct CeedQFunction_private {
-  Ceed ceed;
+  CeedObject_private obj;
   int (*Apply)(CeedQFunction, CeedInt, CeedVector *, CeedVector *);
   int (*SetCUDAUserFunction)(CeedQFunction, void *);
   int (*SetHIPUserFunction)(CeedQFunction, void *);
   int (*Destroy)(CeedQFunction);
-  int                  ref_count;
   CeedInt              vec_length; /* Number of quadrature points must be padded to a multiple of vec_length */
   CeedInt              num_tabs;   /* Viewing offset */
   CeedQFunctionField  *input_fields;
@@ -275,8 +276,7 @@ struct CeedQFunction_private {
 };
 
 struct CeedQFunctionContext_private {
-  Ceed ceed;
-  int  ref_count;
+  CeedObject_private obj;
   int (*HasValidData)(CeedQFunctionContext, bool *);
   int (*HasBorrowedDataOfType)(CeedQFunctionContext, CeedMemType, bool *);
   int (*SetData)(CeedQFunctionContext, CeedMemType, CeedCopyMode, void *);
@@ -352,9 +352,8 @@ struct CeedOperatorAssemblyData_private {
 };
 
 struct CeedOperator_private {
-  Ceed         ceed;
-  CeedOperator op_fallback, op_fallback_parent;
-  int          ref_count;
+  CeedObject_private obj;
+  CeedOperator       op_fallback, op_fallback_parent;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *, CeedElemRestriction *, CeedRequest *);
   int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector, CeedElemRestriction, CeedRequest *);
   int (*LinearAssembleDiagonal)(CeedOperator, CeedVector, CeedRequest *);

@@ -99,6 +99,13 @@ typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a `CeedOperator` expresses operations of the form \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
+/// Generic type for all libCEED objects to support common functionality, such as viewing
+/// @ingroup CeedUser
+typedef struct CeedObject_private *CeedObject;
+
+CEED_EXTERN int  CeedObjectView(CeedObject obj, FILE *stream);
+CEED_EXTERN int  CeedObjectGetCeed(CeedObject obj, Ceed *ceed);
+CEED_EXTERN Ceed CeedObjectReturnCeed(CeedObject obj);
 
 CEED_EXTERN int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **array);
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);

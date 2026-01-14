@@ -186,6 +186,11 @@ CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedStringAllocCopy(const char *source, char **copy);
 CEED_INTERN int CeedFree(void *p);
 
+CEED_INTERN int CeedObjectCreate(Ceed ceed, int (*view_function)(CeedObject, FILE *), CeedObject obj);
+CEED_INTERN int CeedObjectReference(CeedObject obj);
+CEED_INTERN int CeedObjectDereference(CeedObject obj);
+CEED_INTERN int CeedObjectDestroy(CeedObject obj);
+
 CEED_INTERN int CeedSetHostBoolArray(const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values, const bool **target_array_owned,
                                      const bool **target_array_borrowed, const bool **target_array);
 CEED_INTERN int CeedSetHostCeedInt8Array(const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values,
