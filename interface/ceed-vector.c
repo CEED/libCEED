@@ -1027,8 +1027,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   @ref User
 **/
 int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  vec->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)vec, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1043,7 +1042,7 @@ int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
   @ref User
 **/
 int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
-  *num_tabs = vec->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)vec, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

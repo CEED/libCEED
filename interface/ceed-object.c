@@ -103,6 +103,37 @@ int CeedObjectView(CeedObject obj, FILE *stream) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedObjectView() output
+
+  @param[in] obj      `CeedObject` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedObjectSetNumViewTabs(CeedObject obj, CeedInt num_tabs) {
+  CeedCheck(num_tabs >= 0, CeedObjectReturnCeed(obj), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
+  obj->num_view_tabs = num_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedObjectView() output
+
+  @param[in]  obj      `CeedObject` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedObjectGetNumViewTabs(CeedObject obj, CeedInt *num_tabs) {
+  *num_tabs = obj->num_view_tabs;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the `Ceed` associated with a `CeedObject`
 
   @param[in]  obj   `CeedObject`

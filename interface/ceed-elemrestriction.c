@@ -1733,8 +1733,7 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
   @ref User
 **/
 int CeedElemRestrictionSetNumViewTabs(CeedElemRestriction rstr, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  rstr->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)rstr, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1749,7 +1748,7 @@ int CeedElemRestrictionSetNumViewTabs(CeedElemRestriction rstr, CeedInt num_tabs
   @ref User
 **/
 int CeedElemRestrictionGetNumViewTabs(CeedElemRestriction rstr, CeedInt *num_tabs) {
-  *num_tabs = rstr->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)rstr, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

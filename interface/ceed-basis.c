@@ -1915,8 +1915,7 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
   @ref User
 **/
 int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  basis->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)basis, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1931,7 +1930,7 @@ int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
   @ref User
 **/
 int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
-  *num_tabs = basis->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)basis, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

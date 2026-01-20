@@ -1648,8 +1648,7 @@ static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   @ref User
 **/
 int CeedOperatorSetNumViewTabs(CeedOperator op, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  op->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)op, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1664,7 +1663,7 @@ int CeedOperatorSetNumViewTabs(CeedOperator op, CeedInt num_tabs) {
   @ref User
 **/
 int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
-  *num_tabs = op->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)op, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

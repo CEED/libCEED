@@ -104,6 +104,8 @@ typedef struct CeedOperator_private *CeedOperator;
 typedef struct CeedObject_private *CeedObject;
 
 CEED_EXTERN int  CeedObjectView(CeedObject obj, FILE *stream);
+CEED_EXTERN int  CeedObjectSetNumViewTabs(CeedObject obj, CeedInt num_tabs);
+CEED_EXTERN int  CeedObjectGetNumViewTabs(CeedObject obj, CeedInt *num_tabs);
 CEED_EXTERN int  CeedObjectGetCeed(CeedObject obj, Ceed *ceed);
 CEED_EXTERN Ceed CeedObjectReturnCeed(CeedObject obj);
 

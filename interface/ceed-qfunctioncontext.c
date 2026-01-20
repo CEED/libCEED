@@ -905,8 +905,7 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
   @ref User
 **/
 int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  ctx->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)ctx, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -921,7 +920,7 @@ int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tab
   @ref User
 **/
 int CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs) {
-  *num_tabs = ctx->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)ctx, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

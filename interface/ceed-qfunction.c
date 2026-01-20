@@ -1036,8 +1036,7 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  qf->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)qf, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1052,7 +1051,7 @@ int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
   @ref User
 **/
 int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
-  *num_tabs = qf->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)qf, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

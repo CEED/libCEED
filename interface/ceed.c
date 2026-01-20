@@ -1572,8 +1572,7 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   @ref User
 **/
 int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, ceed, CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  ceed->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)ceed, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1588,7 +1587,7 @@ int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
   @ref User
 **/
 int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
-  *num_tabs = ceed->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)ceed, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 

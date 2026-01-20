@@ -93,7 +93,8 @@ struct CeedWorkVectors_private {
 typedef struct CeedObject_private {
   Ceed ceed;
   int (*ViewFunction)(CeedObject, FILE *);
-  int ref_count;
+  int     ref_count;
+  CeedInt num_view_tabs;
 } CeedObject_private;
 
 struct Ceed_private {
@@ -111,7 +112,6 @@ struct Ceed_private {
   bool               cuda_compile_with_clang;
   char             **jit_defines;
   CeedInt            num_jit_defines, max_jit_defines, num_jit_defines_readers;
-  CeedInt            num_tabs; /* Viewing offset */
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
   int (*SetStream)(Ceed, void *);
   int (*GetPreferredMemType)(CeedMemType *);
@@ -166,7 +166,6 @@ struct CeedVector_private {
   CeedSize length;
   uint64_t state;
   uint64_t num_readers;
-  CeedInt  num_tabs; /* Viewing offset */
   void    *data;
 };
 
@@ -198,7 +197,6 @@ struct CeedElemRestriction_private {
   CeedRestrictionType
            rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
   uint64_t num_readers; /* number of instances of offset read only access */
-  CeedInt  num_tabs;    /* Viewing offset */
   void    *data;        /* place for the backend to store any data */
 };
 
@@ -231,7 +229,6 @@ struct CeedBasis_private {
                        quadrature points for H(curl) discretizations */
   CeedVector  vec_chebyshev;
   CeedBasis   basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
-  CeedInt     num_tabs;        /* Viewing offset */
   void       *data;            /* place for the backend to store any data */
 };
 
@@ -256,7 +253,6 @@ struct CeedQFunction_private {
   int (*SetHIPUserFunction)(CeedQFunction, void *);
   int (*Destroy)(CeedQFunction);
   CeedInt              vec_length; /* Number of quadrature points must be padded to a multiple of vec_length */
-  CeedInt              num_tabs;   /* Viewing offset */
   CeedQFunctionField  *input_fields;
   CeedQFunctionField  *output_fields;
   CeedInt              num_input_fields, num_output_fields;
@@ -291,7 +287,6 @@ struct CeedQFunctionContext_private {
   CeedMemType                         data_destroy_mem_type;
   CeedInt                             num_fields;
   CeedInt                             max_fields;
-  CeedInt                             num_tabs; /* Viewing offset */
   CeedContextFieldLabel              *field_labels;
   uint64_t                            state;
   uint64_t                            num_readers;
@@ -373,7 +368,6 @@ struct CeedOperator_private {
   CeedOperatorField        *input_fields;
   CeedOperatorField        *output_fields;
   CeedSize                  input_size, output_size;
-  CeedInt                   num_tabs;   /* Viewing offset */
   CeedInt                   num_elem;   /* Number of elements */
   CeedInt                   num_qpts;   /* Number of quadrature points over all elements */
   CeedInt                   num_fields; /* Number of fields that have been set */
