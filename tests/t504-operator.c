@@ -69,10 +69,18 @@ int main(int argc, char **argv) {
   CeedOperatorSetName(op_setup, "setup");
   CeedOperatorViewTerse(op_setup, stdout);
   CeedOperatorView(op_setup, stdout);
-  CeedOperatorSetName(op_mass, "mass");
-  CeedOperatorSetNumViewTabs(op_mass, 1);
-  CeedOperatorViewTerse(op_mass, stdout);
-  CeedOperatorView(op_mass, stdout);
+
+  // Check tabs and CeedObject functionality
+  {
+    CeedOperator op_mass_copy = NULL;
+
+    CeedOperatorReferenceCopy(op_mass, &op_mass_copy);
+    CeedOperatorSetName(op_mass_copy, "mass");
+    CeedOperatorSetNumViewTabs(op_mass_copy, 1);
+    CeedOperatorViewTerse(op_mass_copy, stdout);
+    CeedObjectView((CeedObject)op_mass_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&op_mass_copy);
+  }
 
   CeedVectorDestroy(&q_data);
   CeedElemRestrictionDestroy(&elem_restriction_u);

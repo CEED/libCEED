@@ -18,10 +18,18 @@ int main(int argc, char **argv) {
 
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 4, 4, CEED_GAUSS, &basis);
   CeedBasisView(basis, stdout);
-  CeedBasisSetNumViewTabs(basis, 1);
-  CeedBasisView(basis, stdout);
-  CeedBasisDestroy(&basis);
 
+  // Check tabs and CeedObject functionality
+  {
+    CeedBasis basis_copy = NULL;
+
+    CeedBasisReferenceCopy(basis, &basis_copy);
+    CeedBasisSetNumViewTabs(basis_copy, 1);
+    CeedObjectView((CeedObject)basis_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&basis_copy);
+  }
+
+  CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);
   return 0;
 }

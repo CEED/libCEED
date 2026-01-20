@@ -34,10 +34,21 @@ int main(int argc, char **argv) {
   }
   CeedQFunctionContextView(ctx, stdout);
 
-  CeedQFunctionSetNumViewTabs(qf_mass, 1);
-  CeedQFunctionView(qf_mass, stdout);
-  CeedQFunctionContextSetNumViewTabs(ctx, 1);
-  CeedQFunctionContextView(ctx, stdout);
+  // Check tabs and CeedObject functionality
+  {
+    CeedQFunction        qf_mass_copy = NULL;
+    CeedQFunctionContext ctx_copy     = NULL;
+
+    CeedQFunctionReferenceCopy(qf_mass, &qf_mass_copy);
+    CeedQFunctionSetNumViewTabs(qf_mass_copy, 1);
+    CeedObjectView((CeedObject)qf_mass_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&qf_mass_copy);
+
+    CeedQFunctionContextReferenceCopy(ctx, &ctx_copy);
+    CeedQFunctionContextSetNumViewTabs(ctx_copy, 1);
+    CeedObjectView((CeedObject)ctx_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&ctx_copy);
+  }
 
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);

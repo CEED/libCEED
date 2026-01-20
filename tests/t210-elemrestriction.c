@@ -18,8 +18,16 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   CeedElemRestrictionView(elem_restriction, stdout);
-  CeedElemRestrictionSetNumViewTabs(elem_restriction, 1);
-  CeedElemRestrictionView(elem_restriction, stdout);
+
+  // Check tabs and CeedObject functionality
+  {
+    CeedElemRestriction elem_restriction_copy = NULL;
+
+    CeedElemRestrictionReferenceCopy(elem_restriction, &elem_restriction_copy);
+    CeedElemRestrictionSetNumViewTabs(elem_restriction_copy, 1);
+    CeedObjectView((CeedObject)elem_restriction_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&elem_restriction_copy);
+  }
 
   CeedElemRestrictionDestroy(&elem_restriction);
   CeedDestroy(&ceed);

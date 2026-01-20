@@ -17,8 +17,15 @@ int main(int argc, char **argv) {
 
   CeedVectorView(x, "%12.8f", stdout);
 
-  CeedVectorSetNumViewTabs(x, 1);
-  CeedVectorView(x, "%12.8f", stdout);
+  // Check tabs and CeedObject functionality
+  {
+    CeedVector x_copy = NULL;
+
+    CeedVectorReferenceCopy(x, &x_copy);
+    CeedVectorSetNumViewTabs(x_copy, 1);
+    CeedObjectView((CeedObject)x_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&x_copy);
+  }
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

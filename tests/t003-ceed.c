@@ -14,6 +14,15 @@ int main(int argc, char **argv) {
   CeedSetNumViewTabs(ceed, 1);
   CeedView(ceed, stdout);
 
+  // Check CeedObject interface
+  {
+    Ceed ceed_copy = NULL;
+
+    CeedReferenceCopy(ceed, &ceed_copy);
+    CeedObjectView((CeedObject)ceed_copy, stdout);
+    CeedObjectDestroy((CeedObject *)&ceed_copy);
+  }
+
   CeedDestroy(&ceed);
   return 0;
 }
