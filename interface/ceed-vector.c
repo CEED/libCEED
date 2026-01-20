@@ -54,6 +54,20 @@ static int CeedVectorView_Object(CeedObject vec, FILE *stream) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy a `CeedVector` passed as a `CeedObject`
+
+  @param[in,out] vec Address of `CeedVector` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedVectorDestroy_Object(CeedObject *vec) {
+  CeedCall(CeedVectorDestroy((CeedVector *)vec));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -194,7 +208,7 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   }
 
   CeedCall(CeedCalloc(1, vec));
-  CeedCall(CeedObjectCreate(ceed, CeedVectorView_Object, &(*vec)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedVectorView_Object, CeedVectorDestroy_Object, &(*vec)->obj));
   (*vec)->length = length;
   (*vec)->state  = 0;
   CeedCall(ceed->VectorCreate(length, *vec));
@@ -1174,7 +1188,7 @@ int CeedVectorDestroy(CeedVector *vec) {
   CeedCheck((*vec)->num_readers == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
-  CeedCall(CeedObjectDestroy(&(*vec)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*vec)->obj));
   CeedCall(CeedFree(vec));
   return CEED_ERROR_SUCCESS;
 }

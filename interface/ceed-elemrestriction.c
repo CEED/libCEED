@@ -113,6 +113,20 @@ static int CeedElemRestrictionView_Object(CeedObject rstr, FILE *stream) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy a `CeedElemRestricton` passed as a `CeedObject`
+
+  @param[in,out] rstr Address of `CeedElemRestriction` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedElemRestrictionDestroy_Object(CeedObject *rstr) {
+  CeedCall(CeedElemRestrictionDestroy((CeedElemRestriction *)rstr));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -658,7 +672,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -715,7 +729,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -773,7 +787,7 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -827,7 +841,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
             (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, l_size);
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem   = num_elem;
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
@@ -894,7 +908,7 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
             l_size);
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->num_points  = num_points;
   (*rstr)->num_comp    = num_comp;
@@ -959,7 +973,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   CeedCall(CeedPermutePadOffsets(offsets, block_offsets, num_block, num_elem, block_size, elem_size));
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -1029,7 +1043,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   CeedCall(CeedPermutePadOrients(orients, block_orients, num_block, num_elem, block_size, elem_size));
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -1102,7 +1116,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   CeedCall(CeedPermutePadCurlOrients(curl_orients, block_curl_orients, num_block, num_elem, block_size, 3 * elem_size));
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
   (*rstr)->num_comp    = num_comp;
@@ -1160,7 +1174,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
             (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, l_size);
 
   CeedCall(CeedCalloc(1, rstr));
-  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, &(*rstr)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object, &(*rstr)->obj));
   (*rstr)->num_elem   = num_elem;
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
@@ -1192,7 +1206,8 @@ int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRest
 
   // Copy old rstr
   memcpy(*rstr_unsigned, rstr, sizeof(struct CeedElemRestriction_private));
-  CeedCall(CeedObjectCreate(CeedElemRestrictionReturnCeed(rstr), CeedElemRestrictionView_Object, &(*rstr_unsigned)->obj));
+  CeedCall(CeedObjectCreate(CeedElemRestrictionReturnCeed(rstr), CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object,
+                            &(*rstr_unsigned)->obj));
   (*rstr_unsigned)->strides = NULL;
   if (rstr->strides) {
     CeedCall(CeedMalloc(3, &(*rstr_unsigned)->strides));
@@ -1222,7 +1237,8 @@ int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRe
 
   // Copy old rstr
   memcpy(*rstr_unoriented, rstr, sizeof(struct CeedElemRestriction_private));
-  CeedCall(CeedObjectCreate(CeedElemRestrictionReturnCeed(rstr), CeedElemRestrictionView_Object, &(*rstr_unoriented)->obj));
+  CeedCall(CeedObjectCreate(CeedElemRestrictionReturnCeed(rstr), CeedElemRestrictionView_Object, CeedElemRestrictionDestroy_Object,
+                            &(*rstr_unoriented)->obj));
   (*rstr_unoriented)->strides = NULL;
   if (rstr->strides) {
     CeedCall(CeedMalloc(3, &(*rstr_unoriented)->strides));
@@ -1823,7 +1839,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   else if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
 
   CeedCall(CeedFree(&(*rstr)->strides));
-  CeedCall(CeedObjectDestroy(&(*rstr)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*rstr)->obj));
   CeedCall(CeedFree(rstr));
   return CEED_ERROR_SUCCESS;
 }

@@ -190,6 +190,20 @@ static int CeedOperatorView_Object(CeedObject op, FILE *stream) {
 }
 
 /**
+  @brief Destroy a `CeedOperator` passed as a `CeedObject`
+
+  @param[in,out] op Address of `CeedOperator` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorDestroy_Object(CeedObject *op) {
+  CeedCall(CeedOperatorDestroy((CeedOperator *)op));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Find the active input vector `CeedBasis` for a non-composite `CeedOperator`.
 
   Note: Caller is responsible for destroying the `active_basis` with @ref CeedBasisDestroy().
@@ -778,7 +792,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
   CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid CeedQFunction.");
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, &(*op)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->input_size  = -1;
   (*op)->output_size = -1;
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
@@ -820,7 +834,7 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
   CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid CeedQFunction.");
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, &(*op)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->is_at_points = true;
   (*op)->input_size   = -1;
   (*op)->output_size  = -1;
@@ -856,7 +870,7 @@ int CeedOperatorCreateComposite(Ceed ceed, CeedOperator *op) {
   }
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, &(*op)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->is_composite = true;
   CeedCall(CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators));
   (*op)->input_size  = -1;
@@ -2446,7 +2460,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   CeedCall(CeedOperatorDestroy(&(*op)->op_fallback));
 
   CeedCall(CeedFree(&(*op)->name));
-  CeedCall(CeedObjectDestroy(&(*op)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*op)->obj));
   CeedCall(CeedFree(op));
   return CEED_ERROR_SUCCESS;
 }

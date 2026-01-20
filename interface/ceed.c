@@ -193,6 +193,20 @@ static int CeedView_Object(CeedObject ceed, FILE *stream) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy a `Ceed` passed as a `CeedObject`
+
+  @param[in,out] ceed Address of `Ceed` context to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedDestroy_Object(CeedObject *ceed) {
+  CeedCall(CeedDestroy((Ceed *)ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -1233,7 +1247,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Setup Ceed
   CeedCall(CeedCalloc(1, ceed));
-  CeedCall(CeedObjectCreate(NULL, CeedView_Object, &(*ceed)->obj));
+  CeedCall(CeedObjectCreate(NULL, CeedView_Object, CeedDestroy_Object, &(*ceed)->obj));
   CeedCall(CeedCalloc(1, &(*ceed)->jit_source_roots));
   CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
@@ -1674,7 +1688,7 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
   CeedCall(CeedWorkVectorsDestroy(*ceed));
-  CeedCall(CeedObjectDestroy(&(*ceed)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*ceed)->obj));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
 }

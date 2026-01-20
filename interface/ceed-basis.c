@@ -193,6 +193,20 @@ static int CeedBasisView_Object(CeedObject basis, FILE *stream) {
 }
 
 /**
+  @brief Destroy a `CeedBasis` passed as a `CeedObject`
+
+  @param[in,out] basis Address of `CeedBasis` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisDestroy_Object(CeedObject *basis) {
+  CeedCall(CeedBasisDestroy((CeedBasis *)basis));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create the interpolation and gradient matrices for projection from the nodes of `basis_from` to the nodes of `basis_to`.
 
   The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pseudoinverse `interp_to^+` is given by QR factorization.
@@ -1539,7 +1553,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, &(*basis)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = true;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1677,7 +1691,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, &(*basis)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1736,7 +1750,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, &(*basis)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1796,7 +1810,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   curl_comp = (dim < 3) ? 1 : dim;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, &(*basis)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -2470,7 +2484,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));
   CeedCall(CeedBasisDestroy(&(*basis)->basis_chebyshev));
-  CeedCall(CeedObjectDestroy(&(*basis)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*basis)->obj));
   CeedCall(CeedFree(basis));
   return CEED_ERROR_SUCCESS;
 }

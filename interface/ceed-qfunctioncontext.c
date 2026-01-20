@@ -142,6 +142,20 @@ static int CeedQFunctionContextView_Object(CeedObject ctx, FILE *stream) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy a `CeedQFunctionContext` passed as a `CeedObject`
+
+  @param[in,out] ctx Address of `CeedQFunctionContext` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionContextDestroy_Object(CeedObject *ctx) {
+  CeedCall(CeedQFunctionContextDestroy((CeedQFunctionContext *)ctx));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -590,7 +604,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
   }
 
   CeedCall(CeedCalloc(1, ctx));
-  CeedCall(CeedObjectCreate(ceed, CeedQFunctionContextView_Object, &(*ctx)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedQFunctionContextView_Object, CeedQFunctionContextDestroy_Object, &(*ctx)->obj));
   CeedCall(ceed->QFunctionContextCreate(*ctx));
   return CEED_ERROR_SUCCESS;
 }
@@ -996,7 +1010,7 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
     CeedCall(CeedFree(&(*ctx)->field_labels[i]));
   }
   CeedCall(CeedFree(&(*ctx)->field_labels));
-  CeedCall(CeedObjectDestroy(&(*ctx)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*ctx)->obj));
   CeedCall(CeedFree(ctx));
   return CEED_ERROR_SUCCESS;
 }

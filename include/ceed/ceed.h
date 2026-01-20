@@ -108,6 +108,7 @@ CEED_EXTERN int  CeedObjectSetNumViewTabs(CeedObject obj, CeedInt num_tabs);
 CEED_EXTERN int  CeedObjectGetNumViewTabs(CeedObject obj, CeedInt *num_tabs);
 CEED_EXTERN int  CeedObjectGetCeed(CeedObject obj, Ceed *ceed);
 CEED_EXTERN Ceed CeedObjectReturnCeed(CeedObject obj);
+CEED_EXTERN int  CeedObjectDestroy(CeedObject *obj);
 
 CEED_EXTERN int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **array);
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);

@@ -14,6 +14,28 @@
 /// Implementation of CeedTensorContract interfaces
 
 /// ----------------------------------------------------------------------------
+/// CeedTensorContract Library Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedTensorContractDeveloper
+/// @{
+
+/**
+  @brief Destroy a `CeedTensorContract` passed as a `CeedObject`
+
+  @param[in,out] contract Address of `CeedTensorContract` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedTensorContractDestroy_Object(CeedObject *contract) {
+  CeedCall(CeedTensorContractDestroy((CeedTensorContract *)contract));
+  return CEED_ERROR_SUCCESS;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
 /// CeedTensorContract Backend API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedBasisBackend
@@ -41,7 +63,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
   }
 
   CeedCall(CeedCalloc(1, contract));
-  CeedCall(CeedObjectCreate(ceed, NULL, &(*contract)->obj));
+  CeedCall(CeedObjectCreate(ceed, NULL, CeedTensorContractDestroy_Object, &(*contract)->obj));
   CeedCall(ceed->TensorContractCreate(*contract));
   return CEED_ERROR_SUCCESS;
 }
@@ -222,7 +244,7 @@ int CeedTensorContractDestroy(CeedTensorContract *contract) {
   if ((*contract)->Destroy) {
     CeedCall((*contract)->Destroy(*contract));
   }
-  CeedCall(CeedObjectDestroy(&(*contract)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*contract)->obj));
   CeedCall(CeedFree(contract));
   return CEED_ERROR_SUCCESS;
 }

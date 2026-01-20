@@ -92,7 +92,8 @@ struct CeedWorkVectors_private {
 
 typedef struct CeedObject_private {
   Ceed ceed;
-  int (*ViewFunction)(CeedObject, FILE *);
+  int (*View)(CeedObject, FILE *);
+  int (*Destroy)(CeedObject *);
   int     ref_count;
   CeedInt num_view_tabs;
 } CeedObject_private;

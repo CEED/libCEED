@@ -158,6 +158,20 @@ static int CeedQFunctionView_Object(CeedObject qf, FILE *stream) {
 }
 
 /**
+  @brief Destroy a `CeedQFunction` passed as a `CeedObject`
+
+  @param[in,out] qf Address of `CeedQFunction` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionDestroy_Object(CeedObject *qf) {
+  CeedCall(CeedQFunctionDestroy((CeedQFunction *)qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set flag to determine if Fortran interface is used
 
   @param[in,out] qf     CeedQFunction
@@ -677,7 +691,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
             "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"", source);
 
   CeedCall(CeedCalloc(1, qf));
-  CeedCall(CeedObjectCreate(ceed, CeedQFunctionView_Object, &(*qf)->obj));
+  CeedCall(CeedObjectCreate(ceed, CeedQFunctionView_Object, CeedQFunctionDestroy_Object, &(*qf)->obj));
   (*qf)->vec_length          = vec_length;
   (*qf)->is_identity         = false;
   (*qf)->is_context_writable = true;
@@ -1182,7 +1196,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   CeedCall(CeedFree(&(*qf)->source_path));
   CeedCall(CeedFree(&(*qf)->gallery_name));
   CeedCall(CeedFree(&(*qf)->kernel_name));
-  CeedCall(CeedObjectDestroy(&(*qf)->obj));
+  CeedCall(CeedObjectDestroy_Private(&(*qf)->obj));
   CeedCall(CeedFree(qf));
   return CEED_ERROR_SUCCESS;
 }

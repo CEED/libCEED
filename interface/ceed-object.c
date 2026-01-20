@@ -21,19 +21,22 @@
 /**
   @brief Create a `CeedObject`
 
-  @param[in]  ceed          `Ceed` object to reference
-  @param[in]  view_function `Ceed*` function for viewing the `obj`
-  @param[out] obj           Address of the variable where is `CeedObject` exists
+  @param[in]  ceed             `Ceed` object to reference
+  @param[in]  view_function    `Ceed*` function for viewing the `obj`
+  @param[in]  destroy_function `Ceed*` function for destroying the `obj`
+  @param[out] obj              Address of the variable where is `CeedObject` exists
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedObjectCreate(Ceed ceed, int (*view_function)(CeedObject, FILE *), CeedObject obj) {
+int CeedObjectCreate(Ceed ceed, int (*view_function)(CeedObject, FILE *), int (*destroy_function)(CeedObject *), CeedObject obj) {
   obj->ceed = NULL;
   if (ceed) CeedCall(CeedReferenceCopy(ceed, &obj->ceed));
-  obj->ViewFunction = view_function;
-  obj->ref_count    = 1;
+  obj->View = view_function;
+  CeedCheck(destroy_function, CeedObjectReturnCeed(obj), CEED_ERROR_UNSUPPORTED, "Must provide destroy function to create CeedObject");
+  obj->Destroy   = destroy_function;
+  obj->ref_count = 1;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -73,8 +76,9 @@ int CeedObjectDereference(CeedObject obj) {
 
   @ref Backend
 **/
-int CeedObjectDestroy(CeedObject obj) {
-  CeedCheck(obj->ref_count == 0, CeedObjectReturnCeed(obj), CEED_ERROR_ACCESS, "Cannot destroy CeedObject, it is still referenced by another object");
+int CeedObjectDestroy_Private(CeedObject obj) {
+  CeedCheck(obj->ref_count == 0, CeedObjectReturnCeed(obj), CEED_ERROR_UNSUPPORTED,
+            "Cannot destroy CeedObject, it is still referenced by another object");
   if (obj->ceed) CeedCall(CeedDestroy(&obj->ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -98,7 +102,7 @@ int CeedObjectDestroy(CeedObject obj) {
   @ref User
 **/
 int CeedObjectView(CeedObject obj, FILE *stream) {
-  if (obj->ViewFunction) CeedCall(obj->ViewFunction(obj, stream));
+  if (obj->View) CeedCall(obj->View(obj, stream));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -159,5 +163,19 @@ int CeedObjectGetCeed(CeedObject obj, Ceed *ceed) {
   @ref Advanced
 **/
 Ceed CeedObjectReturnCeed(CeedObject obj) { return (obj->ceed) ? obj->ceed : (Ceed)obj; }
+
+/**
+  @brief Destroy a @ref CeedObject
+
+  @param[in,out] obj Address of `CeedObject` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedObjectDestroy(CeedObject *obj) {
+  CeedCall((*obj)->Destroy(obj));
+  return CEED_ERROR_SUCCESS;
+}
 
 /// @}
