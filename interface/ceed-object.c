@@ -19,7 +19,11 @@
 /// @{
 
 /**
-  @brief Create a `CeedObject`
+  @brief Create a `CeedObject`.
+
+  Note: This interface takes a `CeedObject` and not a pointer to a `CeedObject` like other `Ceed*Create` interfaces.
+          This `CeedObject` will have already been allocated a the first part of the `Ceed*` struct.
+          This function is only intended to be called inside of `Ceed*Create` functions.
 
   @param[in]  ceed             `Ceed` object to reference
   @param[in]  view_function    `Ceed*` function for viewing the `obj`
