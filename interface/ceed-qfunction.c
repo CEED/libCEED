@@ -228,10 +228,10 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 
 /**
   @brief Get the name of the `CeedQFunction`.
-    Use the `name` if created via @ref `CeedQFunctionCreateInteriorByName`, otherwise return the kernel name via @ref `CeedQFunctionGetKernelName`.
+    Use the `name` if created via @ref CeedQFunctionCreateInteriorByName(), otherwise return the kernel name via @ref CeedQFunctionGetKernelName().
 
-  @param[in]  qf          `CeedQFunction`
-  @param[out] kernel_name Variable to store `CeedQFunction` name
+  @param[in]  qf   `CeedQFunction`
+  @param[out] name Variable to store `CeedQFunction` name
 
   @return An error code: 0 - success, otherwise - failure
 

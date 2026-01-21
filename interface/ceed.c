@@ -1619,6 +1619,8 @@ int CeedView(Ceed ceed, FILE *stream) {
   char       *tabs = NULL;
   CeedMemType mem_type;
 
+  CeedCall(CeedGetPreferredMemType(ceed, &mem_type));
+
   {
     CeedInt num_tabs = 0;
 
@@ -1626,9 +1628,6 @@ int CeedView(Ceed ceed, FILE *stream) {
     CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
     for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   }
-
-  CeedCall(CeedGetPreferredMemType(ceed, &mem_type));
-
   fprintf(stream,
           "%sCeed\n"
           "%s  Ceed Resource: %s\n"

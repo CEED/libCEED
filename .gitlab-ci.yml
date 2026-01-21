@@ -121,7 +121,7 @@ noether-cpu:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -209,7 +209,7 @@ noether-rust-qfunctions:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -290,7 +290,7 @@ noether-cuda:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -357,7 +357,7 @@ noether-cuda:
 #  after_script:
 #    - |
 #      if [ -f .SUCCESS ]; then
-#        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+#        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -460,7 +460,7 @@ noether-float:
   after_script:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
