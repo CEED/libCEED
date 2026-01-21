@@ -165,13 +165,45 @@ static int CeedWorkVectorsDestroy(Ceed ceed) {
   if (!ceed->work_vectors) return CEED_ERROR_SUCCESS;
   for (CeedSize i = 0; i < ceed->work_vectors->num_vecs; i++) {
     CeedCheck(!ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " checked out but not returned");
-    ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering again
+    // Note: increase ref_count to prevent Ceed destructor from triggering again
+    CeedCall(CeedObjectReference((CeedObject)ceed));
+    CeedCall(CeedObjectReference((CeedObject)ceed));
     CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
-    ceed->ref_count -= 1;  // Note: restore ref_count
+    // Note: restore ref_count
+    CeedObjectDereference((CeedObject)ceed);
   }
   CeedCall(CeedFree(&ceed->work_vectors->is_in_use));
   CeedCall(CeedFree(&ceed->work_vectors->vecs));
   CeedCall(CeedFree(&ceed->work_vectors));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `Ceed` passed as a `CeedObject`
+
+  @param[in] ceed   `Ceed` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedView_Object(CeedObject ceed, FILE *stream) {
+  CeedCall(CeedView((Ceed)ceed, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `Ceed` passed as a `CeedObject`
+
+  @param[in,out] ceed Address of `Ceed` context to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedDestroy_Object(CeedObject *ceed) {
+  CeedCall(CeedDestroy((Ceed *)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -759,7 +791,7 @@ int CeedSetData(Ceed ceed, void *data) {
   @ref Backend
 **/
 int CeedReference(Ceed ceed) {
-  ceed->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -823,9 +855,12 @@ int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
     CeedSize vec_len;
     CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
     if (vec_len < min_len) {
-      ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering
+      // Note: increase ref_count to prevent Ceed destructor from triggering
+      CeedCall(CeedObjectReference((CeedObject)ceed));
+      CeedCall(CeedObjectReference((CeedObject)ceed));
       CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
-      ceed->ref_count -= 1;  // Note: restore ref_count
+      // Note: restore ref_count
+      CeedObjectDereference((CeedObject)ceed);
       ceed->work_vectors->num_vecs--;
       if (ceed->work_vectors->num_vecs > 0) {
         ceed->work_vectors->vecs[i]                                 = ceed->work_vectors->vecs[ceed->work_vectors->num_vecs];
@@ -889,14 +924,16 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     }
     ceed->work_vectors->num_vecs++;
     CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
-    ceed->ref_count--;  // Note: ref_count manipulation to prevent a ref-loop
+    // Note: ref_count manipulation to prevent a ref-loop
+    CeedObjectDereference((CeedObject)ceed);
     if (ceed->is_debug) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
   }
   // Return pointer to work vector
   ceed->work_vectors->is_in_use[i] = true;
   *vec                             = NULL;
   CeedCall(CeedVectorReferenceCopy(ceed->work_vectors->vecs[i], vec));
-  ceed->ref_count++;  // Note: bump ref_count to account for external access
+  // Note: bump ref_count to account for external access
+  CeedCall(CeedObjectReference((CeedObject)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -926,7 +963,8 @@ int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
       CeedCheck(ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " was not checked out but is being returned");
       CeedCall(CeedVectorDestroy(vec));
       ceed->work_vectors->is_in_use[i] = false;
-      ceed->ref_count--;  // Note: reduce ref_count again to prevent a ref-loop
+      // Note: reduce ref_count again to prevent a ref-loop
+      CeedObjectDereference((CeedObject)ceed);
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -1209,6 +1247,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Setup Ceed
   CeedCall(CeedCalloc(1, ceed));
+  CeedCall(CeedObjectCreate(NULL, CeedView_Object, CeedDestroy_Object, &(*ceed)->obj));
   CeedCall(CeedCalloc(1, &(*ceed)->jit_source_roots));
   CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
@@ -1217,8 +1256,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   else if (!strcmp(ceed_error_handler, "store")) (*ceed)->Error = CeedErrorStore;
   else (*ceed)->Error = CeedErrorAbort;
   memcpy((*ceed)->err_msg, "No error message stored", 24);
-  (*ceed)->ref_count = 1;
-  (*ceed)->data      = NULL;
+  (*ceed)->data = NULL;
 
   // Set lookup table
   FOffset f_offsets[] = {
@@ -1548,8 +1586,7 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   @ref User
 **/
 int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, ceed, CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  ceed->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)ceed, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1564,7 +1601,7 @@ int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
   @ref User
 **/
 int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
-  *num_tabs = ceed->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)ceed, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1611,7 +1648,7 @@ int CeedView(Ceed ceed, FILE *stream) {
   @ref User
 **/
 int CeedDestroy(Ceed *ceed) {
-  if (!*ceed || --(*ceed)->ref_count > 0) {
+  if (!*ceed || CeedObjectDereference((CeedObject)*ceed) > 0) {
     *ceed = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -1651,6 +1688,7 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
   CeedCall(CeedWorkVectorsDestroy(*ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*ceed)->obj));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
 }

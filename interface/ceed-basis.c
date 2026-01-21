@@ -178,6 +178,35 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedI
 }
 
 /**
+  @brief View a `CeedBasis` passed as a `CeedObject`
+
+  @param[in] basis  `CeedBasis` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisView_Object(CeedObject basis, FILE *stream) {
+  CeedCall(CeedBasisView((CeedBasis)basis, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedBasis` passed as a `CeedObject`
+
+  @param[in,out] basis Address of `CeedBasis` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisDestroy_Object(CeedObject *basis) {
+  CeedCall(CeedBasisDestroy((CeedBasis *)basis));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create the interpolation and gradient matrices for projection from the nodes of `basis_from` to the nodes of `basis_to`.
 
   The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pseudoinverse `interp_to^+` is given by QR factorization.
@@ -684,7 +713,7 @@ int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp
   CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
   CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateH1");
 
-  CeedCall(CeedReferenceCopy(delegate, &(basis)->ceed));
+  CeedCall(CeedReferenceCopy(delegate, &(basis)->obj.ceed));
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
   CeedCall(delegate->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, basis));
   CeedCall(CeedDestroy(&delegate));
@@ -847,7 +876,7 @@ int CeedBasisSetData(CeedBasis basis, void *data) {
   @ref Backend
 **/
 int CeedBasisReference(CeedBasis basis) {
-  basis->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1524,8 +1553,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = true;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1663,8 +1691,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1723,8 +1750,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1784,8 +1810,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   curl_comp = (dim < 3) ? 1 : dim;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1904,8 +1929,7 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
   @ref User
 **/
 int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  basis->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)basis, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1920,7 +1944,7 @@ int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
   @ref User
 **/
 int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
-  *num_tabs = basis->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)basis, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2143,21 +2167,20 @@ int CeedBasisApplyAddAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *
   @ref Advanced
 **/
 int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedBasisReturnCeed(basis), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)basis, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Return the `Ceed` associated with a `CeedBasis`
 
-  @param[in]  basis `CeedBasis`
+  @param[in] basis `CeedBasis`
 
   @return `Ceed` associated with the `basis`
 
   @ref Advanced
 **/
-Ceed CeedBasisReturnCeed(CeedBasis basis) { return basis->ceed; }
+Ceed CeedBasisReturnCeed(CeedBasis basis) { return CeedObjectReturnCeed((CeedObject)basis); }
 
 /**
   @brief Get dimension for given `CeedBasis`
@@ -2436,7 +2459,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 }
 
 /**
-  @brief Destroy a @ref  CeedBasis
+  @brief Destroy a @ref CeedBasis
 
   @param[in,out] basis `CeedBasis` to destroy
 
@@ -2445,7 +2468,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || *basis == CEED_BASIS_NONE || --(*basis)->ref_count > 0) {
+  if (!*basis || *basis == CEED_BASIS_NONE || CeedObjectDereference((CeedObject)*basis) > 0) {
     *basis = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -2461,7 +2484,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));
   CeedCall(CeedBasisDestroy(&(*basis)->basis_chebyshev));
-  CeedCall(CeedDestroy(&(*basis)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*basis)->obj));
   CeedCall(CeedFree(basis));
   return CEED_ERROR_SUCCESS;
 }

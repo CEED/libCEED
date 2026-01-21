@@ -14,6 +14,28 @@
 /// Implementation of CeedTensorContract interfaces
 
 /// ----------------------------------------------------------------------------
+/// CeedTensorContract Library Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedTensorContractDeveloper
+/// @{
+
+/**
+  @brief Destroy a `CeedTensorContract` passed as a `CeedObject`
+
+  @param[in,out] contract Address of `CeedTensorContract` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedTensorContractDestroy_Object(CeedObject *contract) {
+  CeedCall(CeedTensorContractDestroy((CeedTensorContract *)contract));
+  return CEED_ERROR_SUCCESS;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
 /// CeedTensorContract Backend API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedBasisBackend
@@ -41,7 +63,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
   }
 
   CeedCall(CeedCalloc(1, contract));
-  CeedCall(CeedReferenceCopy(ceed, &(*contract)->ceed));
+  CeedCall(CeedObjectCreate(ceed, NULL, CeedTensorContractDestroy_Object, &(*contract)->obj));
   CeedCall(ceed->TensorContractCreate(*contract));
   return CEED_ERROR_SUCCESS;
 }
@@ -124,8 +146,7 @@ int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedI
   @ref Backend
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedTensorContractReturnCeed(contract), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)contract, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -138,7 +159,7 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 
   @ref Backend
 **/
-Ceed CeedTensorContractReturnCeed(CeedTensorContract contract) { return contract->ceed; }
+Ceed CeedTensorContractReturnCeed(CeedTensorContract contract) { return CeedObjectReturnCeed((CeedObject)contract); }
 
 /**
   @brief Get backend data of a `CeedTensorContract`
@@ -180,7 +201,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
   @ref Backend
 **/
 int CeedTensorContractReference(CeedTensorContract contract) {
-  contract->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)contract));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -216,14 +237,14 @@ int CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContrac
   @ref Backend
 **/
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
-  if (!*contract || --(*contract)->ref_count > 0) {
+  if (!*contract || CeedObjectDereference((CeedObject)*contract) > 0) {
     *contract = NULL;
     return CEED_ERROR_SUCCESS;
   }
   if ((*contract)->Destroy) {
     CeedCall((*contract)->Destroy(*contract));
   }
-  CeedCall(CeedDestroy(&(*contract)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*contract)->obj));
   CeedCall(CeedFree(contract));
   return CEED_ERROR_SUCCESS;
 }

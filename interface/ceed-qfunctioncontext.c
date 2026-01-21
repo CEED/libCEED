@@ -127,6 +127,35 @@ static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief View a `CeedQFunctionContext` passed as a `CeedObject`
+
+  @param[in] ctx    `CeedQFunctionContext` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionContextView_Object(CeedObject ctx, FILE *stream) {
+  CeedCall(CeedQFunctionContextView((CeedQFunctionContext)ctx, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedQFunctionContext` passed as a `CeedObject`
+
+  @param[in,out] ctx Address of `CeedQFunctionContext` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionContextDestroy_Object(CeedObject *ctx) {
+  CeedCall(CeedQFunctionContextDestroy((CeedQFunctionContext *)ctx));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -146,8 +175,7 @@ static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
   @ref Backend
 **/
 int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedQFunctionContextReturnCeed(ctx), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)ctx, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -160,7 +188,7 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 
   @ref Backend
 **/
-Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx) { return ctx->ceed; }
+Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx) { return CeedObjectReturnCeed((CeedObject)ctx); }
 
 /**
   @brief Check for valid data in a `CeedQFunctionContext`
@@ -542,7 +570,7 @@ int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_
   @ref Backend
 **/
 int CeedQFunctionContextReference(CeedQFunctionContext ctx) {
-  ctx->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -576,8 +604,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
   }
 
   CeedCall(CeedCalloc(1, ctx));
-  CeedCall(CeedReferenceCopy(ceed, &(*ctx)->ceed));
-  (*ctx)->ref_count = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedQFunctionContextView_Object, CeedQFunctionContextDestroy_Object, &(*ctx)->obj));
   CeedCall(ceed->QFunctionContextCreate(*ctx));
   return CEED_ERROR_SUCCESS;
 }
@@ -892,8 +919,7 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
   @ref User
 **/
 int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  ctx->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)ctx, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -908,7 +934,7 @@ int CeedQFunctionContextSetNumViewTabs(CeedQFunctionContext ctx, CeedInt num_tab
   @ref User
 **/
 int CeedQFunctionContextGetNumViewTabs(CeedQFunctionContext ctx, CeedInt *num_tabs) {
-  *num_tabs = ctx->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)ctx, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -970,11 +996,11 @@ int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_m
   @ref User
 **/
 int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
-  if (!*ctx || --(*ctx)->ref_count > 0) {
+  if (!*ctx || CeedObjectDereference((CeedObject)*ctx) > 0) {
     *ctx = NULL;
     return CEED_ERROR_SUCCESS;
   }
-  CeedCheck(((*ctx)->state % 2) == 0, (*ctx)->ceed, 1, "Cannot destroy CeedQFunctionContext, the access lock is in use");
+  CeedCheck(((*ctx)->state % 2) == 0, CeedQFunctionContextReturnCeed(*ctx), 1, "Cannot destroy CeedQFunctionContext, the access lock is in use");
 
   CeedCall(CeedQFunctionContextDestroyData(*ctx));
   if ((*ctx)->Destroy) CeedCall((*ctx)->Destroy(*ctx));
@@ -984,7 +1010,7 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
     CeedCall(CeedFree(&(*ctx)->field_labels[i]));
   }
   CeedCall(CeedFree(&(*ctx)->field_labels));
-  CeedCall(CeedDestroy(&(*ctx)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*ctx)->obj));
   CeedCall(CeedFree(ctx));
   return CEED_ERROR_SUCCESS;
 }

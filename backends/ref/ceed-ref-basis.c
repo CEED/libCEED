@@ -295,6 +295,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -317,6 +318,7 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -338,6 +340,7 @@ int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -359,6 +362,7 @@ int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));

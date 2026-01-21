@@ -34,6 +34,43 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /// @}
 
 /// ----------------------------------------------------------------------------
+/// CeedVector Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedVectorDeveloper
+/// @{
+
+/**
+  @brief View a `CeedVector` passed as a `CeedObject`
+
+  @param[in] vec    `CeedVector` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedVectorView_Object(CeedObject vec, FILE *stream) {
+  CeedCall(CeedVectorView((CeedVector)vec, "%12.8f", stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedVector` passed as a `CeedObject`
+
+  @param[in,out] vec Address of `CeedVector` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedVectorDestroy_Object(CeedObject *vec) {
+  CeedCall(CeedVectorDestroy((CeedVector *)vec));
+  return CEED_ERROR_SUCCESS;
+}
+
+/// @}
+
+/// ----------------------------------------------------------------------------
 /// CeedVector Backend API
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedVectorBackend
@@ -135,7 +172,7 @@ int CeedVectorSetData(CeedVector vec, void *data) {
   @ref Backend
 **/
 int CeedVectorReference(CeedVector vec) {
-  vec->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)vec));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -171,10 +208,9 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   }
 
   CeedCall(CeedCalloc(1, vec));
-  CeedCall(CeedReferenceCopy(ceed, &(*vec)->ceed));
-  (*vec)->ref_count = 1;
-  (*vec)->length    = length;
-  (*vec)->state     = 0;
+  CeedCall(CeedObjectCreate(ceed, CeedVectorView_Object, CeedVectorDestroy_Object, &(*vec)->obj));
+  (*vec)->length = length;
+  (*vec)->state  = 0;
   CeedCall(ceed->VectorCreate(length, *vec));
   return CEED_ERROR_SUCCESS;
 }
@@ -1005,8 +1041,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   @ref User
 **/
 int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  vec->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)vec, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1021,7 +1056,7 @@ int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
   @ref User
 **/
 int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
-  *num_tabs = vec->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)vec, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1105,8 +1140,7 @@ int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
   @ref Advanced
 **/
 int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedVectorReturnCeed(vec), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)vec, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1119,7 +1153,7 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 
   @ref Advanced
 **/
-Ceed CeedVectorReturnCeed(CeedVector vec) { return vec->ceed; }
+Ceed CeedVectorReturnCeed(CeedVector vec) { return CeedObjectReturnCeed((CeedObject)vec); }
 
 /**
   @brief Get the length of a `CeedVector`
@@ -1146,16 +1180,15 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
-  if (!*vec || *vec == CEED_VECTOR_ACTIVE || *vec == CEED_VECTOR_NONE || --(*vec)->ref_count > 0) {
+  if (!*vec || *vec == CEED_VECTOR_ACTIVE || *vec == CEED_VECTOR_NONE || CeedObjectDereference((CeedObject)*vec) > 0) {
     *vec = NULL;
     return CEED_ERROR_SUCCESS;
   }
-  CeedCheck((*vec)->state % 2 == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
-  CeedCheck((*vec)->num_readers == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
+  CeedCheck((*vec)->state % 2 == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
+  CeedCheck((*vec)->num_readers == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
-
-  CeedCall(CeedDestroy(&(*vec)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*vec)->obj));
   CeedCall(CeedFree(vec));
   return CEED_ERROR_SUCCESS;
 }

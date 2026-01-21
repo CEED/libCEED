@@ -1353,7 +1353,7 @@ int CeedOperatorGetQFunctionAssemblyData(CeedOperator op, CeedQFunctionAssemblyD
   if (!op->qf_assembled) {
     CeedQFunctionAssemblyData data;
 
-    CeedCall(CeedQFunctionAssemblyDataCreate(op->ceed, &data));
+    CeedCall(CeedQFunctionAssemblyDataCreate(CeedOperatorReturnCeed(op), &data));
     op->qf_assembled = data;
   }
   *data = op->qf_assembled;
@@ -1373,8 +1373,7 @@ int CeedOperatorGetQFunctionAssemblyData(CeedOperator op, CeedQFunctionAssemblyD
 int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data) {
   CeedCall(CeedCalloc(1, data));
   (*data)->ref_count = 1;
-  (*data)->ceed      = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*data)->ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1549,7 +1548,7 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
   if (!op->op_assembled) {
     CeedOperatorAssemblyData data;
 
-    CeedCall(CeedOperatorAssemblyDataCreate(op->ceed, op, &data));
+    CeedCall(CeedOperatorAssemblyDataCreate(CeedOperatorReturnCeed(op), op, &data));
     op->op_assembled = data;
   }
   *data = op->op_assembled;
@@ -1589,8 +1588,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 
   // Allocate
   CeedCall(CeedCalloc(1, data));
-  (*data)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*data)->ceed));
 
   // Build OperatorAssembly data
   CeedCall(CeedOperatorGetQFunction(op, &qf));
@@ -2023,7 +2021,7 @@ int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
 **/
 int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
   *parent = NULL;
-  if (op->op_fallback_parent) CeedCall(CeedReferenceCopy(op->op_fallback_parent->ceed, parent));
+  if (op->op_fallback_parent) CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op->op_fallback_parent), parent));
   else CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op), parent));
   return CEED_ERROR_SUCCESS;
 }

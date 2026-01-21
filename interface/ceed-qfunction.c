@@ -143,6 +143,35 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number
 }
 
 /**
+  @brief View a `CeedQFunction` passed as a `CeedObject`
+
+  @param[in] qf     `CeedQFunction` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionView_Object(CeedObject qf, FILE *stream) {
+  CeedCall(CeedQFunctionView((CeedQFunction)qf, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedQFunction` passed as a `CeedObject`
+
+  @param[in,out] qf Address of `CeedQFunction` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionDestroy_Object(CeedObject *qf) {
+  CeedCall(CeedQFunctionDestroy((CeedQFunction *)qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set flag to determine if Fortran interface is used
 
   @param[in,out] qf     CeedQFunction
@@ -598,7 +627,7 @@ int CeedQFunctionSetImmutable(CeedQFunction qf) {
   @ref Backend
 **/
 int CeedQFunctionReference(CeedQFunction qf) {
-  qf->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -662,8 +691,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
             "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"", source);
 
   CeedCall(CeedCalloc(1, qf));
-  CeedCall(CeedReferenceCopy(ceed, &(*qf)->ceed));
-  (*qf)->ref_count           = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedQFunctionView_Object, CeedQFunctionDestroy_Object, &(*qf)->obj));
   (*qf)->vec_length          = vec_length;
   (*qf)->is_identity         = false;
   (*qf)->is_context_writable = true;
@@ -1022,8 +1050,7 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
-  CeedCheck(num_tabs >= 0, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Number of view tabs must be non-negative");
-  qf->num_tabs = num_tabs;
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)qf, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1038,7 +1065,7 @@ int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
   @ref User
 **/
 int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
-  *num_tabs = qf->num_tabs;
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)qf, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1091,8 +1118,7 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   @ref Advanced
 **/
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedQFunctionReturnCeed(qf), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)qf, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1105,7 +1131,7 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 
   @ref Advanced
 **/
-Ceed CeedQFunctionReturnCeed(CeedQFunction qf) { return qf->ceed; }
+Ceed CeedQFunctionReturnCeed(CeedQFunction qf) { return CeedObjectReturnCeed((CeedObject)qf); }
 
 /**
   @brief Apply the action of a `CeedQFunction`
@@ -1143,7 +1169,7 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v
   @ref User
 **/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
-  if (!*qf || --(*qf)->ref_count > 0) {
+  if (!*qf || CeedObjectDereference((CeedObject)*qf) > 0) {
     *qf = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -1170,7 +1196,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   CeedCall(CeedFree(&(*qf)->source_path));
   CeedCall(CeedFree(&(*qf)->gallery_name));
   CeedCall(CeedFree(&(*qf)->kernel_name));
-  CeedCall(CeedDestroy(&(*qf)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*qf)->obj));
   CeedCall(CeedFree(qf));
   return CEED_ERROR_SUCCESS;
 }
