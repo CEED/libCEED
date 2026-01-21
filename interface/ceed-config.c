@@ -36,9 +36,10 @@ int CeedGetGitVersion(const char **git_version) {
 }
 
 /**
-  @brief Set whether or not to use clang when compiling for GPU (instead of nvrtc)
+  @brief Set whether or not to use Clang when compiling for GPU (instead of nvrtc)
 
-  @param[in] is_clang Whether or not to use clang on GPU
+  @param[in,out]  ceed     `Ceed` context to set Clang GPU compilation flag
+  @param[in]      is_clang Flag to use clang for GPU compilation
 
   @ref Developer
 
@@ -52,9 +53,10 @@ int CeedSetIsClang(Ceed ceed, bool is_clang) {
 }
 
 /**
-  @brief Determine if the current ceed is set to compile with clang when on GPU
+  @brief Determine if the current `ceed` is set to compile with Clang for CPU
 
-  @param[out] is_clang The location to write the current GPU clang status to
+  @param[in]  ceed     `Ceed` context to get Clang GPU compilation flag
+  @param[out] is_clang Variable to store Clang GPU compilation flag
 
   @ref Developer
 
