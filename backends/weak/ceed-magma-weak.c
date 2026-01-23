@@ -6,11 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-backend-weak.h"
-
-#define CEED_BACKEND(name, num_prefixes, ...) \
-  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
 // LCOV_EXCL_START
-CEED_BACKEND(CeedRegister_Magma, 2, "/gpu/cuda/magma", "/gpu/hip/magma")
-CEED_BACKEND(CeedRegister_Magma_Det, 2, "/gpu/cuda/magma/det", "/gpu/hip/magma/det")
+#include "../ceed-backend-list-magma.h"
 // LCOV_EXCL_STOP
 #undef CEED_BACKEND

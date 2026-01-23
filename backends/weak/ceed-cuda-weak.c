@@ -6,12 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-backend-weak.h"
-
-#define CEED_BACKEND(name, num_prefixes, ...) \
-  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
 // LCOV_EXCL_START
-CEED_BACKEND(CeedRegister_Cuda, 1, "/gpu/cuda/ref")
-CEED_BACKEND(CeedRegister_Cuda_Gen, 1, "/gpu/cuda/gen")
-CEED_BACKEND(CeedRegister_Cuda_Shared, 1, "/gpu/cuda/shared")
+#include "../ceed-backend-list-cuda.h"
 // LCOV_EXCL_STOP
 #undef CEED_BACKEND

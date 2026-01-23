@@ -10,3 +10,6 @@
 #include <stdarg.h>
 
 CEED_INTERN int CeedRegister_Weak(const char *name, int num_prefixes, ...);
+
+#define CEED_BACKEND(name, num_prefixes, ...) \
+  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }

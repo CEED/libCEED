@@ -6,12 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-backend-weak.h"
-
-#define CEED_BACKEND(name, num_prefixes, ...) \
-  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
 // LCOV_EXCL_START
-CEED_BACKEND(CeedRegister_Sycl, 1, "/gpu/sycl/ref")
-CEED_BACKEND(CeedRegister_Sycl_Shared, 1, "/gpu/sycl/shared")
-CEED_BACKEND(CeedRegister_Sycl_Gen, 1, "/gpu/sycl/gen")
+#include "../ceed-backend-list-sycl.h"
 // LCOV_EXCL_STOP
 #undef CEED_BACKEND

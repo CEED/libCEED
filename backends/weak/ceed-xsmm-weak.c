@@ -6,11 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-backend-weak.h"
-
-#define CEED_BACKEND(name, num_prefixes, ...) \
-  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
 // LCOV_EXCL_START
-CEED_BACKEND(CeedRegister_Xsmm_Blocked, 1, "/cpu/self/xsmm/blocked")
-CEED_BACKEND(CeedRegister_Xsmm_Serial, 1, "/cpu/self/xsmm/serial")
+#include "../ceed-backend-list-xsmm.h"
 // LCOV_EXCL_STOP
 #undef CEED_BACKEND
