@@ -40,7 +40,6 @@ from sphinxcontrib import katex
 extensions = [
     "sphinxext_altair.altairplot",
     "breathe",
-    "hoverxref.extension",
     "sphinx_design",
     "myst_parser",
     "sphinx_rtd_theme",
@@ -160,13 +159,6 @@ html_sidebars = {
         "relations.html",  # needs 'show_related': True theme option to display
         "searchbox.html",
     ]
-}
-
-# hoverxref options
-hoverxref_auto_ref = True
-hoverxref_mathjax = True
-hoverxref_role_types = {
-    "ref": "modal",
 }
 
 latex_macros = r"""
