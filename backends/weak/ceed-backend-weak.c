@@ -5,6 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include "ceed-backend-weak.h"
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdarg.h>
@@ -17,7 +18,7 @@ static int CeedInit_Weak(const char *resource, Ceed ceed) {
 }
 
 // This function provides a debug target for weak symbols
-static inline int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
+int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   va_list prefixes;
   int     ierr;
 
@@ -36,8 +37,3 @@ static inline int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   return CEED_ERROR_SUCCESS;
 }
 // LCOV_EXCL_STOP
-
-#define CEED_BACKEND(name, num_prefixes, ...) \
-  CEED_INTERN int __attribute__((weak)) name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
-#include "ceed-backend-list.h"
-#undef CEED_BACKEND

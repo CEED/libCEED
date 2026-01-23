@@ -282,7 +282,7 @@ $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(
 # ------------------------------------------------------------
 
 # Interface and gallery
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/*.c gallery/*.c))
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 
