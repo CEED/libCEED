@@ -17,7 +17,7 @@ static int CeedInit_Weak(const char *resource, Ceed ceed) {
 }
 
 // This function provides a debug target for weak symbols
-static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
+static inline int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   va_list prefixes;
   int     ierr;
 
