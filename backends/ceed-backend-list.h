@@ -5,30 +5,25 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-// This header does not have guards because it is included multiple times.
+// This header does not have guards because it may be included multiple times.
 
-// List each backend registration function once here.
-// This will be expanded inside CeedRegisterAll() to call each registration function in the order listed, and also to define weak symbol aliases for
-// backends that are not configured.
+// List each backend registration function in the corresponding `ceed-backend-list-*.h` file, grouped by install requirement.
+// Include each of those files here.
+// This will be expanded inside CeedRegisterAll() to call each registration function in the order listed.
 
-CEED_BACKEND(CeedRegister_Avx_Blocked, 1, "/cpu/self/avx/blocked")
-CEED_BACKEND(CeedRegister_Avx_Serial, 1, "/cpu/self/avx/serial")
-CEED_BACKEND(CeedRegister_Cuda, 1, "/gpu/cuda/ref")
-CEED_BACKEND(CeedRegister_Cuda_Gen, 1, "/gpu/cuda/gen")
-CEED_BACKEND(CeedRegister_Cuda_Shared, 1, "/gpu/cuda/shared")
-CEED_BACKEND(CeedRegister_Hip, 1, "/gpu/hip/ref")
-CEED_BACKEND(CeedRegister_Hip_Gen, 1, "/gpu/hip/gen")
-CEED_BACKEND(CeedRegister_Hip_Shared, 1, "/gpu/hip/shared")
-CEED_BACKEND(CeedRegister_Sycl, 1, "/gpu/sycl/ref")
-CEED_BACKEND(CeedRegister_Sycl_Shared, 1, "/gpu/sycl/shared")
-CEED_BACKEND(CeedRegister_Sycl_Gen, 1, "/gpu/sycl/gen")
-CEED_BACKEND(CeedRegister_Magma, 2, "/gpu/cuda/magma", "/gpu/hip/magma")
-CEED_BACKEND(CeedRegister_Magma_Det, 2, "/gpu/cuda/magma/det", "/gpu/hip/magma/det")
-CEED_BACKEND(CeedRegister_Memcheck_Blocked, 1, "/cpu/self/memcheck/blocked")
-CEED_BACKEND(CeedRegister_Memcheck_Serial, 1, "/cpu/self/memcheck/serial")
-CEED_BACKEND(CeedRegister_Opt_Blocked, 1, "/cpu/self/opt/blocked")
-CEED_BACKEND(CeedRegister_Opt_Serial, 1, "/cpu/self/opt/serial")
-CEED_BACKEND(CeedRegister_Ref, 1, "/cpu/self/ref/serial")
-CEED_BACKEND(CeedRegister_Ref_Blocked, 1, "/cpu/self/ref/blocked")
-CEED_BACKEND(CeedRegister_Xsmm_Blocked, 1, "/cpu/self/xsmm/blocked")
-CEED_BACKEND(CeedRegister_Xsmm_Serial, 1, "/cpu/self/xsmm/serial")
+// Always compiled
+#include "ceed-backend-list-ref.h"
+// Requires AVX support
+#include "ceed-backend-list-avx.h"
+// Requires Valgrind
+#include "ceed-backend-list-memcheck.h"
+// Requires LIBXSMM
+#include "ceed-backend-list-xsmm.h"
+// Requires CUDA
+#include "ceed-backend-list-cuda.h"
+// Requires ROCm
+#include "ceed-backend-list-hip.h"
+// Requires SYCL
+#include "ceed-backend-list-sycl.h"
+// Requires MAGMA + (CUDA or ROCm)
+#include "ceed-backend-list-magma.h"
