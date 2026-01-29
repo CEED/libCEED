@@ -333,9 +333,9 @@ tests   += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
-examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
+examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f90)))
 examples   := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
-examples   += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
+examples   += $(examples.f:examples/ceed/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 
 # deal.II Examples
 dealiiexamples := $(OBJDIR)/dealii-bps
@@ -687,7 +687,7 @@ $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 
@@ -928,7 +928,7 @@ CLANG_FORMAT_OPTS += -style=file -i
 AUTOPEP8          ?= autopep8
 AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
-format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]' '*.cu'))
+format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]' '*.cu'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
 format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
