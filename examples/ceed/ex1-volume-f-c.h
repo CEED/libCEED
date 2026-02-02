@@ -7,21 +7,16 @@
 
 #include <ceed/types.h>
 
-/// A structure used to pass additional data to f_build_mass
-struct BuildContext {
-  CeedInt dim, space_dim;
-};
-
 /// libCEED Q-function for building quadrature data for a mass operator
 CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  struct BuildContext *build_data = (struct BuildContext *)ctx;
+  long long int *build_data = (long long int *)ctx;
 
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights with shape [1, Q]
   const CeedScalar *w      = in[1];
   CeedScalar       *q_data = out[0];
 
-  switch (build_data->dim + 10 * build_data->space_dim) {
+  switch (build_data[0] + 10 * build_data[1]) {
     case 11: {
       const CeedScalar(*J)[1][CEED_Q_VLA] = (const CeedScalar(*)[1][CEED_Q_VLA])in[0];
 

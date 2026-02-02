@@ -65,7 +65,10 @@ class CeedSuiteSpec(SuiteSpec):
         elif prefix == 'solids':
             return (Path('examples') / 'solids' / rest).with_suffix('.c')
         elif test.startswith('ex'):
-            return (Path('examples') / 'ceed' / test).with_suffix('.c')
+            if test.endswith('-f'):
+                return (Path('examples') / 'ceed' / test).with_suffix('.f90')
+            else:
+                return (Path('examples') / 'ceed' / test).with_suffix('.c')
         elif test.endswith('-f'):
             return (Path('tests') / test).with_suffix('.f90')
         else:

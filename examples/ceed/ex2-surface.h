@@ -14,11 +14,12 @@ struct BuildContext {
 
 /// libCEED Q-function for building quadrature data for a diffusion operator
 CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  struct BuildContext *build_data = (struct BuildContext *)ctx;
+
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar *w             = in[1];
   CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  struct BuildContext *build_data = (struct BuildContext *)ctx;
 
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
@@ -84,6 +85,7 @@ CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *
 /// libCEED Q-function for applying a diff operator
 CEED_QFUNCTION(apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   struct BuildContext *build_data = (struct BuildContext *)ctx;
+
   // in[0], out[0] solution gradients with shape [dim, 1, Q]
   // in[1] is quadrature data with shape [num_components, Q]
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
