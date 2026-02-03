@@ -46,7 +46,8 @@
 #include <sstream>
 
 // include operators
-#include "bps.h"
+#include "bps-ceed.h"
+#include "bps-cpu.h"
 
 // Test cases
 //TESTARGS(name="BP1") --resource {ceed_resource} --bp BP1 --fe_degree 2 --print_timings 0
@@ -61,7 +62,7 @@ struct Parameters
   unsigned int n_global_refinements = 1;
   unsigned int fe_degree            = 2;
   bool         print_timings        = true;
-  std::string  libCEED_resource      = "/cpu/self";
+  std::string  libCEED_resource     = "/cpu/self";
 
   bool
   parse(int argc, char *argv[])
@@ -176,6 +177,8 @@ main(int argc, char *argv[])
   DoFHandler<dim> dof_handler(tria);
   dof_handler.distribute_dofs(fe);
 
+  DoFRenumbering::support_point_wise(dof_handler);
+
   AffineConstraints<Number> constraints;
 
   if (!(bp == BPType::BP1 || bp == BPType::BP2))
@@ -184,8 +187,6 @@ main(int argc, char *argv[])
       DoFTools::make_zero_boundary_constraints(dof_handler, constraints);
       constraints.close();
     }
-
-  DoFRenumbering::support_point_wise(dof_handler);
 
   const auto test = [&](const std::string &label, const auto &op) {
     (void)label;
