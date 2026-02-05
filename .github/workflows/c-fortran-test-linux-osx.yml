@@ -12,29 +12,36 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
         compiler: [gcc, clang]
-        exclude:
-          # "gcc" on macOS is a symlink to Apple Clang, same as "clang"
-          - os: macos-15
-            compiler: gcc
         include:
-          # macOS: test with real GCC (not Apple Clang symlink)
           - os: macos-15
-            compiler: gcc-15
-          # macOS: test with Homebrew LLVM
-          - os: macos-15
-            compiler: llvm
+            compiler: apple-clang
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - name: Environment setup
       uses: actions/checkout@v4
-    - name: Set LLVM compiler path
-      if: matrix.compiler == 'llvm'
-      run: echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
     - name: Set compiler
-      if: matrix.compiler != 'llvm'
-      run: echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV
+      run: |
+        case "${{ matrix.compiler }}" in
+          gcc)
+            if [[ "${{ matrix.os }}" == macos-* ]]; then
+              echo "CC=gcc-15" >> $GITHUB_ENV
+            else
+              echo "CC=gcc" >> $GITHUB_ENV
+            fi
+            ;;
+          clang)
+            if [[ "${{ matrix.os }}" == macos-* ]]; then
+              echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
+            else
+              echo "CC=clang" >> $GITHUB_ENV
+            fi
+            ;;
+          apple-clang)
+            echo "CC=clang" >> $GITHUB_ENV
+            ;;
+        esac
     - name: Show compiler version
       run: $CC --version | head -1
     - name: Build and test libCEED
