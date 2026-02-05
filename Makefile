@@ -338,7 +338,8 @@ examples   := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
 examples   += $(examples.f:examples/ceed/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 
 # deal.II Examples
-dealiiexamples := $(OBJDIR)/dealii-bps
+dealiiexamples.cc := $(sort $(wildcard examples/deal.II/*.cc))
+dealiiexamples    := $(dealiiexamples.cc:examples/deal.II/%.cc=$(OBJDIR)/dealii-%)
 
 # MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
@@ -697,11 +698,11 @@ $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f90 | $$(@D)/.DIR
 
 # deal.II
 # Note: Invoking deal.II's CMAKE build system here
-$(OBJDIR)/dealii-bps : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
 	mkdir -p examples/deal.II/build
 	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
 	+$(call quiet,MAKE) -C examples/deal.II/build
-	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
+	cp examples/deal.II/build/$* $@
 
 # MFEM
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
