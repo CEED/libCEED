@@ -112,8 +112,12 @@ CC_VENDOR := $(subst (GCC),gcc,$(subst icc_orig,icc,$(CC_VENDOR)))
 CC_VENDOR := $(if $(filter cc,$(CC_VENDOR)),gcc,$(CC_VENDOR))
 FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort ifx XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
+# Host architecture for setting appropriate flags
+UNAME_M := $(shell uname -m)
+
 # Default extra flags by vendor
-MARCHFLAG.gcc           := -march=native
+# GCC: use -march=native only on x86 (where -mcpu doesn't exist); use -mcpu=native elsewhere
+MARCHFLAG.gcc           := $(if $(filter x86_64 i%86,$(UNAME_M)),-march=native,-mcpu=native)
 MARCHFLAG.clang         := $(MARCHFLAG.gcc)
 MARCHFLAG.icc           :=
 MARCHFLAG.oneAPI        := $(MARCHFLAG.clang)
