@@ -1097,7 +1097,7 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
 
   // Multiplicity vector
   if (op_restrict || op_prolong) {
-    CeedVector          mult_e_vec;
+    CeedVector          mult_l_vec, mult_e_vec;
     CeedRestrictionType rstr_type;
 
     CeedCall(CeedElemRestrictionGetType(rstr_fine, &rstr_type));
@@ -1105,12 +1105,40 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
               "Element restrictions created with CeedElemRestrictionCreateCurlOriented are not supported");
     CeedCheck(p_mult_fine, ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
     CeedCall(CeedElemRestrictionCreateUnsignedCopy(rstr_fine, &rstr_p_mult_fine));
-    CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
+    CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_l_vec, &mult_e_vec));
     CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
-    CeedCall(CeedVectorSetValue(mult_vec, 0.0));
-    CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_TRANSPOSE, mult_e_vec, mult_vec, CEED_REQUEST_IMMEDIATE));
-    CeedCall(CeedVectorDestroy(&mult_e_vec));
-    CeedCall(CeedVectorReciprocal(mult_vec));
+    CeedCall(CeedVectorSetValue(mult_l_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_TRANSPOSE, mult_e_vec, mult_l_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_NOTRANSPOSE, mult_l_vec, mult_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorDestroy(&mult_l_vec));
+    // Retain only first component
+    {
+      CeedInt num_elem, elem_size;
+      CeedInt layout[3];
+      const CeedScalar *mult_e_array;
+      CeedScalar *mult_array;
+
+      CeedCall(CeedElemRestrictionGetNumElements(rstr_p_mult_fine, &num_elem));
+      CeedCall(CeedElemRestrictionGetElementSize(rstr_p_mult_fine, &elem_size));
+      CeedCall(CeedVectorCreate(ceed, num_elem * elem_size, &mult_vec));
+      CeedCall(CeedVectorReciprocal(mult_e_vec));
+      CeedCall(CeedElemRestrictionGetELayout(rstr_p_mult_fine, layout));
+      CeedCall(CeedVectorGetArrayWrite(mult_vec, CEED_MEM_HOST, &mult_array));
+      CeedCall(CeedVectorGetArrayRead(mult_e_vec, CEED_MEM_HOST, &mult_e_array));
+      for (CeedInt i = 0; i < num_elem; i++) {
+        for (CeedInt j = 0; j < elem_size; j++) mult_array[j + i * elem_size] = mult_e_array[j * layout[0] + i * layout[2]];
+      }
+      CeedCall(CeedVectorRestoreArray(mult_vec, &mult_array));
+      CeedCall(CeedVectorRestoreArrayRead(mult_e_vec, &mult_e_array));
+      CeedCall(CeedVectorDestroy(&mult_e_vec));
+
+      // Create strided restriction
+      CeedCall(CeedElemRestrictionDestroy(&rstr_p_mult_fine));
+      layout[0] = 1;
+      layout[1] = 1;
+      layout[2] = elem_size;
+      CeedCall(CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, 1, num_elem * elem_size, layout, &rstr_p_mult_fine));
+    }
   }
 
   // Clone name
@@ -1131,7 +1159,7 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
     CeedQFunctionContext ctx_r;
     CeedQFunction        qf_restrict;
 
-    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_restrict));
+    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scalar Scale", &qf_restrict));
     CeedCall(CeedCalloc(1, &num_comp_r_data));
     num_comp_r_data[0] = num_comp;
     CeedCall(CeedQFunctionContextCreate(ceed, &ctx_r));
@@ -1139,7 +1167,7 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
     CeedCall(CeedQFunctionSetContext(qf_restrict, ctx_r));
     CeedCall(CeedQFunctionContextDestroy(&ctx_r));
     CeedCall(CeedQFunctionAddInput(qf_restrict, "input", num_comp, CEED_EVAL_NONE));
-    CeedCall(CeedQFunctionAddInput(qf_restrict, "scale", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddInput(qf_restrict, "scale", 1, CEED_EVAL_NONE));
     CeedCall(CeedQFunctionAddOutput(qf_restrict, "output", num_comp, CEED_EVAL_INTERP));
     CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp));
 
@@ -1169,7 +1197,7 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
     CeedQFunctionContext ctx_p;
     CeedQFunction        qf_prolong;
 
-    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_prolong));
+    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scalar Scale", &qf_prolong));
     CeedCall(CeedCalloc(1, &num_comp_p_data));
     num_comp_p_data[0] = num_comp;
     CeedCall(CeedQFunctionContextCreate(ceed, &ctx_p));
@@ -1177,7 +1205,7 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
     CeedCall(CeedQFunctionSetContext(qf_prolong, ctx_p));
     CeedCall(CeedQFunctionContextDestroy(&ctx_p));
     CeedCall(CeedQFunctionAddInput(qf_prolong, "input", num_comp, CEED_EVAL_INTERP));
-    CeedCall(CeedQFunctionAddInput(qf_prolong, "scale", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddInput(qf_prolong, "scale", 1, CEED_EVAL_NONE));
     CeedCall(CeedQFunctionAddOutput(qf_prolong, "output", num_comp, CEED_EVAL_NONE));
     CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_prolong, num_comp));
 
