@@ -1,0 +1,30 @@
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
+#include <ceed.h>
+#include <ceed/backend.h>
+#include <ceed/jit-source/gallery/ceed-scale-scalar.h>
+#include <string.h>
+
+/**
+  @brief  Set fields for vector scaling `CeedQFunction` that scales inputs
+**/
+static int CeedQFunctionInit_ScaleScalar(Ceed ceed, const char *requested, CeedQFunction qf) {
+  // Check QFunction name
+  const char *name = "Scale (scalar)";
+  CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
+
+  // QFunction fields 'input' and 'output' with requested emodes added by the library rather than being added here
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Register scaling `CeedQFunction`
+**/
+CEED_INTERN int CeedQFunctionRegister_ScaleScalar(void) {
+  return CeedQFunctionRegister("Scale (scalar)", ScaleScalar_loc, 1, ScaleScalar, CeedQFunctionInit_ScaleScalar);
+}
