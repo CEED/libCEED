@@ -16,16 +16,17 @@
 static int CeedQFunctionInit_Vector3Poisson1DApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Vector3Poisson1DApply";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 1, num_comp = 3;
+
   CeedCall(CeedQFunctionAddInput(qf, "du", num_comp * dim, CEED_EVAL_GRAD));
   CeedCall(CeedQFunctionAddInput(qf, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE));
   CeedCall(CeedQFunctionAddOutput(qf, "dv", num_comp * dim, CEED_EVAL_GRAD));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, num_comp));
-
   return CEED_ERROR_SUCCESS;
 }
 

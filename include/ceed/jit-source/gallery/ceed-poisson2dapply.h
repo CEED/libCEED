@@ -34,6 +34,5 @@ CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q, const CeedScalar *con
     // j = direction of vg
     for (CeedInt j = 0; j < dim; j++) vg[j][i] = (ug[0][i] * dXdxdXdxT[0][j] + ug[1][i] * dXdxdXdxT[1][j]);
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

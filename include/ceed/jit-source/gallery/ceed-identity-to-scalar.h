@@ -6,22 +6,17 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief  Scaling QFunction that scales inputs
+  @brief  Identity QFunction that copies first input component directly into output
 **/
 #include <ceed/types.h>
 
-CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Ctx holds field size
-  const CeedInt size = *(CeedInt *)ctx;
-
+CEED_QFUNCTION(IdentityScalar)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is input, size (Q*size)
-  // in[1] is scaling factor, size (Q*size)
   const CeedScalar *input = in[0];
-  const CeedScalar *scale = in[1];
-  // out[0] is output, size (Q*size)
+  // out[0] is output, size (Q)
   CeedScalar *output = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i] * scale[i]; }  // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { output[i] = input[i]; }  // End of Quadrature Point Loop
   return CEED_ERROR_SUCCESS;
 }

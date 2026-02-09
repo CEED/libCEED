@@ -6,25 +6,24 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief  Identity QFunction that copies inputs directly into outputs
+  @brief  Scaling QFunction that scales inputs
 **/
 #include <ceed/types.h>
 
-typedef struct {
-  CeedInt size;
-} IdentityCtx;
-
-CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ScaleScalar)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Ctx holds field size
-  IdentityCtx   identity_ctx = *(IdentityCtx *)ctx;
-  const CeedInt size         = identity_ctx.size;
+  const CeedInt size = *(CeedInt *)ctx;
 
   // in[0] is input, size (Q*size)
+  // in[1] is scaling factor, size (Q*size)
   const CeedScalar *input = in[0];
+  const CeedScalar *scale = in[1];
   // out[0] is output, size (Q*size)
   CeedScalar *output = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i]; }  // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    for (CeedInt j = 0; j < size; j++) output[i + j * Q] = input[i + j * Q] * scale[i];
+  }  // End of Quadrature Point Loop
   return CEED_ERROR_SUCCESS;
 }

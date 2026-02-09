@@ -23,6 +23,5 @@ CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
                  J[0][2][i] * (J[1][0][i] * J[2][1][i] - J[1][1][i] * J[2][0][i])) *
                 w[i];
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

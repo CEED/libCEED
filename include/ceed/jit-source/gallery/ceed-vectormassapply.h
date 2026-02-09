@@ -25,6 +25,5 @@ CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q, const CeedScalar *c
       v[c][i] = u[c][i] * q_data[i];
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

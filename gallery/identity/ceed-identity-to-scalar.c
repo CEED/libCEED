@@ -7,23 +7,28 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-source/gallery/ceed-scale.h>
+#include <ceed/jit-source/gallery/ceed-identity-to-scalar.h>
+#include <stddef.h>
 #include <string.h>
 
 /**
-  @brief  Set fields for vector scaling `CeedQFunction` that scales inputs
+  @brief Set fields identity `CeedQFunction` that copies first input component directly into output
 **/
-static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFunction qf) {
+static int CeedQFunctionInit_IdentityScalar(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
-  const char *name = "Scale";
+  const char *name = "Identity to scalar";
 
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // QFunction fields 'input' and 'output' with requested emodes added by the library rather than being added here
+
+  CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 0));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Register scaling `CeedQFunction`
+  @brief Register identity `CeedQFunction` that copies first input component directly into output
 **/
-CEED_INTERN int CeedQFunctionRegister_Scale(void) { return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale, CeedQFunctionInit_Scale); }
+CEED_INTERN int CeedQFunctionRegister_IdentityScalar(void) {
+  return CeedQFunctionRegister("Identity to scalar", IdentityScalar_loc, 1, IdentityScalar, CeedQFunctionInit_IdentityScalar);
+}

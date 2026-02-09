@@ -16,16 +16,17 @@
 static int CeedQFunctionInit_Poisson3DApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Poisson3DApply";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 3;
+
   CeedCall(CeedQFunctionAddInput(qf, "du", dim, CEED_EVAL_GRAD));
   CeedCall(CeedQFunctionAddInput(qf, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE));
   CeedCall(CeedQFunctionAddOutput(qf, "dv", dim, CEED_EVAL_GRAD));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 15));
-
   return CEED_ERROR_SUCCESS;
 }
 

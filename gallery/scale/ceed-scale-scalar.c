@@ -7,15 +7,15 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-source/gallery/ceed-scale.h>
+#include <ceed/jit-source/gallery/ceed-scale-scalar.h>
 #include <string.h>
 
 /**
   @brief  Set fields for vector scaling `CeedQFunction` that scales inputs
 **/
-static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFunction qf) {
+static int CeedQFunctionInit_ScaleScalar(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
-  const char *name = "Scale";
+  const char *name = "Scale (scalar)";
 
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
@@ -26,4 +26,6 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFuncti
 /**
   @brief Register scaling `CeedQFunction`
 **/
-CEED_INTERN int CeedQFunctionRegister_Scale(void) { return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale, CeedQFunctionInit_Scale); }
+CEED_INTERN int CeedQFunctionRegister_ScaleScalar(void) {
+  return CeedQFunctionRegister("Scale (scalar)", ScaleScalar_loc, 1, ScaleScalar, CeedQFunctionInit_ScaleScalar);
+}

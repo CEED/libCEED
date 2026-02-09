@@ -21,6 +21,5 @@ CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     q_data[i] = (J[0][0][i] * J[1][1][i] - J[0][1][i] * J[1][0][i]) * w[i];
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
