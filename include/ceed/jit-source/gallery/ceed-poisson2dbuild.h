@@ -29,10 +29,10 @@ CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
     const CeedScalar J01 = J[1][0][i];
     const CeedScalar J11 = J[1][1][i];
     const CeedScalar qw  = w[i] / (J00 * J11 - J10 * J01);
-    q_data[0][i]         = qw * (J01 * J01 + J11 * J11);
-    q_data[1][i]         = qw * (J00 * J00 + J10 * J10);
-    q_data[2][i]         = -qw * (J00 * J01 + J10 * J11);
-  }  // End of Quadrature Point Loop
 
+    q_data[0][i] = qw * (J01 * J01 + J11 * J11);
+    q_data[1][i] = qw * (J00 * J00 + J10 * J10);
+    q_data[2][i] = -qw * (J00 * J01 + J10 * J11);
+  }  // End of Quadrature Point Loop
   return CEED_ERROR_SUCCESS;
 }

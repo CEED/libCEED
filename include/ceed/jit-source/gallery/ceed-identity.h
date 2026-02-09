@@ -26,6 +26,5 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q, const CeedScalar *const *in
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i]; }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

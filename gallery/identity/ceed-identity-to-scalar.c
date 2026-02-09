@@ -17,6 +17,7 @@
 static int CeedQFunctionInit_IdentityScalar(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Identity to scalar";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // QFunction fields 'input' and 'output' with requested emodes added by the library rather than being added here

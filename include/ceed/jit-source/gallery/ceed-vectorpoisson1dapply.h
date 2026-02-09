@@ -25,6 +25,5 @@ CEED_QFUNCTION(Vector3Poisson1DApply)(void *ctx, const CeedInt Q, const CeedScal
       vg[c][i] = ug[c][i] * q_data[i];
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

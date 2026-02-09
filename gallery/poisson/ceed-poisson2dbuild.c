@@ -16,16 +16,17 @@
 static int CeedQFunctionInit_Poisson2DBuild(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Poisson2DBuild";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 2;
+
   CeedCall(CeedQFunctionAddInput(qf, "dx", dim * dim, CEED_EVAL_GRAD));
   CeedCall(CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT));
   CeedCall(CeedQFunctionAddOutput(qf, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 17));
-
   return CEED_ERROR_SUCCESS;
 }
 

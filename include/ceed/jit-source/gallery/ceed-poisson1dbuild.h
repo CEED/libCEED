@@ -23,6 +23,5 @@ CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = w[i] / J[i]; }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

@@ -16,6 +16,7 @@
 static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "MassApply";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
@@ -24,7 +25,6 @@ static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested, CeedQFu
   CeedCall(CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 1));
-
   return CEED_ERROR_SUCCESS;
 }
 
