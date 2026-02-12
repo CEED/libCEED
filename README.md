@@ -401,7 +401,22 @@ If you utilize libCEED please cite:
 
 ```bibtex
 @article{libceed-joss-paper,
-  author       = {Jed Brown and Ahmad Abdelfattah and Valeria Barra and Natalie Beams and Jean Sylvain Camier and Veselin Dobrev and Yohann Dudouit and Leila Ghaffari and Tzanio Kolev and David Medina and Will Pazner and Thilina Ratnayaka and Jeremy Thompson and Stan Tomov},
+  author       = {
+    Brown, Jed and
+    Abdelfattah, Ahmad and
+    Barra, Valeria and
+    Beams, Natalie and
+    Camier, Jean-Sylvain and
+    Dobrev, Veselin and
+    Dudouit, Yohann and
+    Ghaffari, Leila and
+    Kolev, Tzanio and
+    Medina, David and
+    Pazner, Will and
+    Ratnayaka, Thilina and
+    Thompson, Jeremy L. and
+    Tomov, Stan
+  },
   title        = {{libCEED}: Fast algebra for high-order element-based discretizations},
   journal      = {Journal of Open Source Software},
   year         = {2021},
@@ -418,23 +433,25 @@ To cite the user manual:
 
 ```bibtex
 @misc{libceed-user-manual,
-  author       = {Abdelfattah, Ahmad and
-                  Barra, Valeria and
-                  Beams, Natalie and
-                  Brown, Jed and
-                  Camier, Jean-Sylvain and
-                  Dobrev, Veselin and
-                  Dudouit, Yohann and
-                  Ghaffari, Leila and
-                  Grimberg, Sebastian and
-                  Kolev, Tzanio and
-                  Medina, David and
-                  Pazner, Will and
-                  Ratnayaka, Thilina and
-                  Shakeri, Rezgar and
-                  Thompson, Jeremy L and
-                  Tomov, Stanimire and
-                  Wright III, James},
+  author       = {
+    Abdelfattah, Ahmad and
+    Barra, Valeria and
+    Beams, Natalie and
+    Brown, Jed and
+    Camier, Jean-Sylvain and
+    Dobrev, Veselin and
+    Dudouit, Yohann and
+    Ghaffari, Leila and
+    Grimberg, Sebastian and
+    Kolev, Tzanio and
+    Medina, David and
+    Pazner, Will and
+    Ratnayaka, Thilina and
+    Shakeri, Rezgar and
+    Thompson, Jeremy L. and
+    Tomov, Stanimire and
+    Wright III, James
+  },
   title        = {{libCEED} User Manual},
   month        = nov,
   year         = 2023,
@@ -447,9 +464,14 @@ To cite the user manual:
 For libCEED's Python interface please cite:
 
 ```bibtex
-@InProceedings{libceed-paper-proc-scipy-2020,
-  author    = {{V}aleria {B}arra and {J}ed {B}rown and {J}eremy {T}hompson and {Y}ohann {D}udouit},
-  title     = {{H}igh-performance operator evaluations with ease of use: lib{C}{E}{E}{D}'s {P}ython interface},
+@InProceedings{libceed-scipy,
+  author    = {
+    Barra, Valeria and
+    Brown, Jed and
+    Thompson, Jeremy L. and
+    Dudouit, Yohann
+  },
+  title     = {{H}igh-performance operator evaluations with ease of use: {libCEED}'s {P}ython interface},
   booktitle = {{P}roceedings of the 19th {P}ython in {S}cience {C}onference},
   pages     = {85 - 90},
   year      = {2020},
