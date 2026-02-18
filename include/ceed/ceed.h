@@ -447,6 +447,8 @@ CEED_EXTERN int  CeedOperatorCompositeAddSub(CeedOperator composite_op, CeedOper
 CEED_EXTERN int  CeedOperatorCompositeGetNumSub(CeedOperator op, CeedInt *num_suboperators);
 CEED_EXTERN int  CeedOperatorCompositeGetSubList(CeedOperator op, CeedOperator **sub_operators);
 CEED_EXTERN int  CeedOperatorCompositeGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op);
+CEED_EXTERN int  CeedOperatorCompositeSetSequential(CeedOperator op, bool is_sequential);
+CEED_EXTERN int  CeedOperatorCompositeIsSequential(CeedOperator op, bool *is_sequential);
 CEED_EXTERN int  CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int  CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);

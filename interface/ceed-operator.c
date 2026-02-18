@@ -1391,6 +1391,48 @@ int CeedOperatorCompositeGetSubByName(CeedOperator op, const char *op_name, Ceed
 }
 
 /**
+  @brief Set whether the sub-operators of the composite `CeedOperator` must be run sequentially.
+
+  Note: This value currently only affects the GPU `/gpu/cuda/gen` and `/gpu/hip/gen` backends.
+
+  @param[in] op            Composite `CeedOperator`
+  @param[in] is_sequential Flag value to set, if `true`, forces the composite `CeedOperator` to execute sequentially
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorCompositeSetSequential(CeedOperator op, bool is_sequential) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
+  op->is_sequential = is_sequential;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get whether the sub-operators of the composite `CeedOperator` must be run sequentially.
+
+  Note: This value currently only affects the GPU `/gpu/cuda/gen` and `/gpu/hip/gen` backends.
+
+  @param[in]  op            Composite `CeedOperator`
+  @param[out] is_sequential Variable to store sequential status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorCompositeIsSequential(CeedOperator op, bool *is_sequential) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
+  *is_sequential = op->is_sequential;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check if a `CeedOperator` is ready to be used.
 
   @param[in] op `CeedOperator` to check

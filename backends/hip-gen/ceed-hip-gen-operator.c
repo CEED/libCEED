@@ -252,7 +252,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
 }
 
 static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool                  is_run_good[CEED_COMPOSITE_MAX] = {false};
+  bool                  is_run_good[CEED_COMPOSITE_MAX] = {false}, is_sequential;
   CeedInt               num_suboperators;
   const CeedScalar     *input_arr  = NULL;
   CeedScalar           *output_arr = NULL;
@@ -264,23 +264,28 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
   CeedCallBackend(CeedOperatorCompositeGetSubList(op, &sub_operators));
+  CeedCall(CeedOperatorCompositeIsSequential(op, &is_sequential));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
   for (CeedInt i = 0; i < num_suboperators; i++) {
-    CeedInt num_elem = 0;
+    CeedInt       num_elem     = 0;
+    const CeedInt stream_index = is_sequential ? 0 : i;
 
     CeedCallBackend(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (num_elem > 0) {
-      if (!impl->streams[i]) CeedCallHip(ceed, hipStreamCreate(&impl->streams[i]));
-      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], impl->streams[i], input_arr, output_arr, &is_run_good[i], request));
+      if (!impl->streams[stream_index]) CeedCallHip(ceed, hipStreamCreate(&impl->streams[stream_index]));
+      CeedCallBackend(CeedOperatorApplyAddCore_Hip_gen(sub_operators[i], impl->streams[stream_index], input_arr, output_arr, &is_run_good[i],
+                                                       request));
     } else {
       is_run_good[i] = true;
     }
   }
-
-  for (CeedInt i = 0; i < num_suboperators; i++) {
-    if (impl->streams[i]) {
-      if (is_run_good[i]) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[i]));
+  if (is_sequential) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[0]));
+  else {
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      if (impl->streams[i]) {
+        if (is_run_good[i]) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[i]));
+      }
     }
   }
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
