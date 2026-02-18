@@ -594,7 +594,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector in_vec, CeedVec
     if (eval_mode == CEED_EVAL_NONE) {
       CeedScalar *e_vec_array;
 
-      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[i], CEED_MEM_DEVICE, &e_vec_array));
+      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[field], CEED_MEM_DEVICE, &e_vec_array));
       CeedCallBackend(CeedVectorRestoreArray(e_vec, &e_vec_array));
     }
 
@@ -942,7 +942,7 @@ static int CeedOperatorApplyAddAtPoints_Cuda(CeedOperator op, CeedVector in_vec,
     if (eval_mode == CEED_EVAL_NONE) {
       CeedScalar *e_vec_array;
 
-      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[i], CEED_MEM_DEVICE, &e_vec_array));
+      CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[field], CEED_MEM_DEVICE, &e_vec_array));
       CeedCallBackend(CeedVectorRestoreArray(e_vec, &e_vec_array));
     }
 
