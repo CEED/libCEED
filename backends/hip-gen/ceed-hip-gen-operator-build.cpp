@@ -729,7 +729,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
                                                     CeedQFunctionField *qf_input_fields, CeedInt num_output_fields,
                                                     CeedOperatorField *op_output_fields, CeedQFunctionField *qf_output_fields,
                                                     std::string qfunction_name, CeedInt Q_1d, bool is_all_tensor, bool is_at_points,
-                                                    bool use_3d_slices) {
+                                                    bool use_3d_slices, bool is_assemble) {
   std::string         Q_name    = is_all_tensor ? "Q_1d" : "Q";
   CeedEvalMode        eval_mode = CEED_EVAL_NONE;
   CeedElemRestriction elem_rstr;
@@ -1056,6 +1056,7 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
           CeedInt             comp_stride;
           CeedElemRestriction elem_rstr;
 
+          if (is_assemble) break;
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
           CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
@@ -1596,7 +1597,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // -- Q function
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Hip_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices));
+                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices, false));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";
@@ -2013,7 +2014,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   // -- Q function
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Hip_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices));
+                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices, true));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";
@@ -2270,7 +2271,18 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
     }
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    bool is_active = false;
+
+    {
+      CeedVector vec;
+
+      CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
+      is_active = vec == CEED_VECTOR_ACTIVE;
+      CeedCallBackend(CeedVectorDestroy(&vec));
+    }
+    if (is_active) {
+      code << tab << "CeedScalar *__restrict__ d_out_" << i << " = fields.outputs[" << i << "];\n";
+    }
   }
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
@@ -2601,7 +2613,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   // -- Q function
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Hip_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices));
+                                                           Q_1d, is_all_tensor, is_at_points, use_3d_slices, true));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";

@@ -294,30 +294,32 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 }
 
 static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  bool              is_run_good[CEED_COMPOSITE_MAX] = {false};
+  bool              is_run_good[CEED_COMPOSITE_MAX] = {false}, is_sequential;
   CeedInt           num_suboperators;
   const CeedScalar *input_arr  = NULL;
   CeedScalar       *output_arr = NULL;
   Ceed              ceed;
   CeedOperator     *sub_operators;
+  cudaStream_t      stream = NULL;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
   CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+  CeedCall(CeedOperatorCompositeIsSequential(op, &is_sequential));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
+  if (is_sequential) CeedCallCuda(ceed, cudaStreamCreate(&stream));
   for (CeedInt i = 0; i < num_suboperators; i++) {
     CeedInt num_elem = 0;
 
     CeedCall(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (num_elem > 0) {
-      cudaStream_t stream = NULL;
-
-      CeedCallCuda(ceed, cudaStreamCreate(&stream));
+      if (!is_sequential) CeedCallCuda(ceed, cudaStreamCreate(&stream));
       CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request));
-      CeedCallCuda(ceed, cudaStreamDestroy(stream));
+      if (!is_sequential) CeedCallCuda(ceed, cudaStreamDestroy(stream));
     }
   }
+  if (is_sequential) CeedCallCuda(ceed, cudaStreamDestroy(stream));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
   CeedCallCuda(ceed, cudaDeviceSynchronize());
