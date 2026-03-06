@@ -37,6 +37,44 @@ PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
 };
 
 // -----------------------------------------------------------------------------
+// Destroy libCEED BDDC objects
+// -----------------------------------------------------------------------------
+PetscErrorCode CeedDataBDDCDestroy(CeedDataBDDC data) {
+  PetscFunctionBeginUser;
+
+  CeedBasisDestroy(&data->basis_Pi);
+  CeedBasisDestroy(&data->basis_Pi_r);
+  CeedElemRestrictionDestroy(&data->elem_restr_Pi);
+  CeedElemRestrictionDestroy(&data->elem_restr_Pi_r);
+  CeedElemRestrictionDestroy(&data->elem_restr_r);
+  CeedOperatorDestroy(&data->op_Pi_r);
+  CeedOperatorDestroy(&data->op_r_Pi);
+  CeedOperatorDestroy(&data->op_Pi_Pi);
+  CeedOperatorDestroy(&data->op_r_r);
+  CeedOperatorDestroy(&data->op_r_r_inv);
+  CeedOperatorDestroy(&data->op_inject_Pi);
+  CeedOperatorDestroy(&data->op_inject_Pi_r);
+  CeedOperatorDestroy(&data->op_inject_r);
+  CeedOperatorDestroy(&data->op_restrict_Pi);
+  CeedOperatorDestroy(&data->op_restrict_Pi_r);
+  CeedOperatorDestroy(&data->op_restrict_r);
+  CeedVectorDestroy(&data->x_Pi_ceed);
+  CeedVectorDestroy(&data->y_Pi_ceed);
+  CeedVectorDestroy(&data->x_Pi_r_ceed);
+  CeedVectorDestroy(&data->y_Pi_r_ceed);
+  CeedVectorDestroy(&data->x_r_ceed);
+  CeedVectorDestroy(&data->y_r_ceed);
+  CeedVectorDestroy(&data->z_r_ceed);
+  CeedVectorDestroy(&data->mult_ceed);
+  CeedVectorDestroy(&data->mask_r_ceed);
+  CeedVectorDestroy(&data->mask_Gamma_ceed);
+  CeedVectorDestroy(&data->mask_I_ceed);
+  PetscCall(PetscFree(data));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+};
+
+// -----------------------------------------------------------------------------
 // Set up libCEED for a given degree
 // -----------------------------------------------------------------------------
 PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topo_dim, CeedInt q_extra, PetscInt num_comp_x, PetscInt num_comp_u,
@@ -183,6 +221,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   CeedVectorDestroy(&x_coord);
 
   // Save libCEED data required for level
+  data->ceed            = ceed;
   data->basis_x         = basis_x;
   data->basis_u         = basis_u;
   data->elem_restr_x    = elem_restr_x;
@@ -203,6 +242,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
 // -----------------------------------------------------------------------------
 PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level, CeedInt num_comp_u, CeedData *data, BPData bp_data, Vec fine_mult) {
   PetscFunctionBeginUser;
+
   // Restriction - Fine to corse
   CeedOperator op_restrict;
   // Interpolation - Corse to fine
@@ -238,6 +278,219 @@ PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level, CeedInt n
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
+// -----------------------------------------------------------------------------
+// Set up libCEED for BDDC interface vertices
+// -----------------------------------------------------------------------------
+PetscErrorCode SetupLibceedBDDC(DM dm_Pi, CeedData data_fine, CeedDataBDDC data_bddc, PetscInt g_vertex_size, PetscInt xl_vertex_size,
+                                BPData bp_data) {
+  Ceed                ceed = data_fine->ceed;
+  CeedBasis           basis_Pi, basis_Pi_r, basis_u = data_fine->basis_u;
+  CeedElemRestriction elem_restr_Pi, elem_restr_Pi_r, elem_restr_r;
+  CeedOperator        op_Pi_r, op_r_Pi, op_Pi_Pi, op_r_r, op_r_r_inv, op_inject_Pi, op_inject_Pi_r, op_inject_r, op_restrict_Pi, op_restrict_Pi_r,
+      op_restrict_r;
+  CeedVector x_Pi_ceed, y_Pi_ceed, x_Pi_r_ceed, y_Pi_r_ceed, mult_ceed, x_r_ceed, y_r_ceed, z_r_ceed, mask_r_ceed, mask_Gamma_ceed, mask_I_ceed;
+  CeedInt    topo_dim, num_comp_u, P, P_Pi = 2, Q, num_qpts, num_elem, elem_size;
+
+  PetscFunctionBeginUser;
+
+  // CEED basis
+  // -- Basis for interface vertices
+  CeedBasisGetDimension(basis_u, &topo_dim);
+  CeedBasisGetNumComponents(basis_u, &num_comp_u);
+  CeedBasisGetNumNodes1D(basis_u, &P);
+  elem_size = CeedIntPow(P, topo_dim);
+  CeedBasisGetNumQuadraturePoints1D(basis_u, &Q);
+  CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
+  CeedScalar *interp_1d, *grad_1d, *q_ref_1d, *q_weight_1d;
+  interp_1d = calloc(2 * Q, sizeof(CeedScalar));
+  CeedScalar const *temp;
+  CeedBasisGetInterp1D(basis_u, &temp);
+  memcpy(interp_1d, temp, Q * sizeof(CeedScalar));
+  memcpy(&interp_1d[1 * Q], &temp[(P - 1) * Q], Q * sizeof(CeedScalar));
+  grad_1d = calloc(2 * Q, sizeof(CeedScalar));
+  CeedBasisGetGrad1D(basis_u, &temp);
+  memcpy(grad_1d, temp, Q * sizeof(CeedScalar));
+  memcpy(&grad_1d[1 * Q], &temp[(P - 1) * Q], Q * sizeof(CeedScalar));
+  q_ref_1d = calloc(Q, sizeof(CeedScalar));
+  CeedBasisGetQRef(basis_u, &temp);
+  memcpy(q_ref_1d, temp, Q * sizeof(CeedScalar));
+  q_weight_1d = calloc(Q, sizeof(CeedScalar));
+  CeedBasisGetQWeights(basis_u, &temp);
+  memcpy(q_weight_1d, temp, Q * sizeof(CeedScalar));
+  CeedBasisCreateTensorH1(ceed, topo_dim, num_comp_u, P_Pi, Q, interp_1d, grad_1d, q_ref_1d, q_weight_1d, &basis_Pi);
+  free(interp_1d);
+  free(grad_1d);
+  free(q_ref_1d);
+  free(q_weight_1d);
+  // -- Basis for injection/restriction
+  interp_1d            = calloc(2 * P, sizeof(CeedScalar));
+  interp_1d[0]         = 1;
+  interp_1d[2 * P - 1] = 1;  // Pick off corner vertices
+  grad_1d              = calloc(2 * P, sizeof(CeedScalar));
+  q_ref_1d             = calloc(2, sizeof(CeedScalar));
+  q_weight_1d          = calloc(2, sizeof(CeedScalar));
+  CeedBasisCreateTensorH1(ceed, topo_dim, num_comp_u, P, P_Pi, interp_1d, grad_1d, q_ref_1d, q_weight_1d, &basis_Pi_r);
+  free(interp_1d);
+  free(grad_1d);
+  free(q_ref_1d);
+  free(q_weight_1d);
+
+  // CEED restrictions
+  // -- Interface vertex restriction
+  PetscCall(CreateRestrictionFromPlex(ceed, dm_Pi, 0, 0, 0, &elem_restr_Pi));
+
+  // -- Subdomain restriction
+  CeedElemRestrictionGetNumElements(elem_restr_Pi, &num_elem);
+  CeedInt strides_r[3] = {num_comp_u, 1, num_comp_u * elem_size};
+  CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp_u, num_comp_u * num_elem * elem_size, strides_r, &elem_restr_r);
+
+  // -- Broken subdomain restriction
+  CeedInt strides_Pi_r[3] = {num_comp_u, 1, num_comp_u * 8};
+  CeedElemRestrictionCreateStrided(ceed, num_elem, 8, num_comp_u, num_comp_u * num_elem * 8, strides_Pi_r, &elem_restr_Pi_r);
+
+  // Create the persistent vectors that will be needed
+  CeedVectorCreate(ceed, xl_vertex_size, &x_Pi_ceed);
+  CeedVectorCreate(ceed, xl_vertex_size, &y_Pi_ceed);
+  CeedVectorCreate(ceed, 8 * num_elem, &x_Pi_r_ceed);
+  CeedVectorCreate(ceed, 8 * num_elem, &y_Pi_r_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &mult_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &x_r_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &y_r_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &z_r_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &mask_r_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &mask_Gamma_ceed);
+  CeedVectorCreate(ceed, num_comp_u * elem_size * num_elem, &mask_I_ceed);
+
+  // -- Masks for subdomains
+  CeedScalar *mask_r_array, *mask_Gamma_array, *mask_I_array;
+  CeedVectorGetArrayWrite(mask_r_ceed, CEED_MEM_HOST, &mask_r_array);
+  CeedVectorGetArrayWrite(mask_Gamma_ceed, CEED_MEM_HOST, &mask_Gamma_array);
+  CeedVectorGetArrayWrite(mask_I_ceed, CEED_MEM_HOST, &mask_I_array);
+  for (CeedInt e = 0; e < num_elem; e++) {
+    for (CeedInt n = 0; n < elem_size; n++) {
+      PetscBool r = n != 0 * (P - 1) && n != 1 * P - 1 && n != P * (P - 1) && n != P * P - 1 && n != P * P * (P - 1) + 0 &&
+                    n != P * P * (P - 1) + 1 * P - 1 && n != P * P * (P - 1) + P * (P - 1) && n != P * P * (P - 1) + P * P - 1;
+      PetscBool Gamma =
+          n % P == 0 || n % P == P - 1 || (n / P) % P == 0 || (n / P) % P == P - 1 || (n / (P * P)) % P == 0 || (n / (P * P)) % P == P - 1;
+      for (CeedInt c = 0; c < num_comp_u; c++) {
+        CeedInt index           = strides_r[0] * n + strides_r[1] * c + strides_r[2] * e;
+        mask_r_array[index]     = r ? 1.0 : 0.0;
+        mask_Gamma_array[index] = Gamma ? 1.0 : 0.0;
+        mask_I_array[index]     = !Gamma ? 1.0 : 0.0;
+      }
+    }
+  }
+  CeedVectorRestoreArray(mask_r_ceed, &mask_r_array);
+  CeedVectorRestoreArray(mask_Gamma_ceed, &mask_Gamma_array);
+  CeedVectorRestoreArray(mask_I_ceed, &mask_I_array);
+
+  // Create the mass or diff operator
+  PetscBool is_interp = bp_data.in_mode == CEED_EVAL_INTERP;
+
+  // -- Interface vertices
+  CeedOperatorCreate(ceed, data_fine->qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_Pi_Pi);
+  CeedOperatorSetName(op_Pi_Pi, "BDDC Pi, Pi operator");
+  CeedOperatorSetField(op_Pi_Pi, is_interp ? "u" : "du", elem_restr_Pi, basis_Pi, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_Pi_Pi, "qdata", data_fine->elem_restr_qd_i, CEED_BASIS_NONE, data_fine->q_data);
+  CeedOperatorSetField(op_Pi_Pi, is_interp ? "v" : "dv", elem_restr_Pi, basis_Pi, CEED_VECTOR_ACTIVE);
+  // -- Subdomains to interface vertices
+  CeedOperatorCreate(ceed, data_fine->qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_Pi_r);
+  CeedOperatorSetName(op_Pi_r, "BDDC Pi, r operator");
+  CeedOperatorSetField(op_Pi_r, is_interp ? "u" : "du", elem_restr_r, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_Pi_r, "qdata", data_fine->elem_restr_qd_i, CEED_BASIS_NONE, data_fine->q_data);
+  CeedOperatorSetField(op_Pi_r, is_interp ? "v" : "dv", elem_restr_Pi, basis_Pi, CEED_VECTOR_ACTIVE);
+  // -- Interface vertices to subdomains
+  CeedOperatorCreate(ceed, data_fine->qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_r_Pi);
+  CeedOperatorSetName(op_r_Pi, "BDDC r, Pi operator");
+  CeedOperatorSetField(op_r_Pi, is_interp ? "u" : "du", elem_restr_Pi, basis_Pi, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_r_Pi, "qdata", data_fine->elem_restr_qd_i, CEED_BASIS_NONE, data_fine->q_data);
+  CeedOperatorSetField(op_r_Pi, is_interp ? "v" : "dv", elem_restr_r, basis_u, CEED_VECTOR_ACTIVE);
+  // -- Subdomains
+  CeedOperatorCreate(ceed, data_fine->qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_r_r);
+  CeedOperatorSetName(op_r_r, "BDDC r, r operator");
+  CeedOperatorSetField(op_r_r, is_interp ? "u" : "du", elem_restr_r, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_r_r, "qdata", data_fine->elem_restr_qd_i, CEED_BASIS_NONE, data_fine->q_data);
+  CeedOperatorSetField(op_r_r, is_interp ? "v" : "dv", elem_restr_r, basis_u, CEED_VECTOR_ACTIVE);
+  // -- Subdomain FDM inverse
+  CeedOperatorCreateFDMElementInverse(op_r_r, &op_r_r_inv, CEED_REQUEST_IMMEDIATE);
+
+  // Injection and restriction operators
+  CeedQFunction qf_identity, qf_inject_Pi, qf_restrict_Pi;
+  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_NONE, CEED_EVAL_NONE, &qf_identity);
+  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_inject_Pi);
+  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_NONE, CEED_EVAL_INTERP, &qf_restrict_Pi);
+  // -- Injection to interface vertices
+  CeedOperatorCreate(ceed, qf_inject_Pi, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_inject_Pi);
+  CeedOperatorSetName(op_inject_Pi, "BDDC Pi injection operator");
+  CeedOperatorSetField(op_inject_Pi, "input", elem_restr_r, basis_Pi_r, CEED_VECTOR_ACTIVE);  // Note: from r to Pi
+  CeedOperatorSetField(op_inject_Pi, "output", elem_restr_Pi, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  // -- Injection to broken interface vertices
+  CeedOperatorCreate(ceed, qf_restrict_Pi, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_inject_Pi_r);
+  CeedOperatorSetName(op_inject_Pi_r, "BDDC Pi, r injection operator");
+  CeedOperatorSetField(op_inject_Pi_r, "input", elem_restr_Pi_r, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);  // Note: from r to Pi_r
+  CeedOperatorSetField(op_inject_Pi_r, "output", elem_restr_r, basis_Pi_r, CEED_VECTOR_ACTIVE);
+  // -- Injection to subdomains
+  CeedOperatorCreate(ceed, qf_identity, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_inject_r);
+  CeedOperatorSetName(op_inject_r, "BDDC r injection operator");
+  CeedOperatorSetField(op_inject_r, "input", data_fine->elem_restr_u, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_inject_r, "output", elem_restr_r, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  // -- Restriction from interface vertices
+  CeedOperatorCreate(ceed, qf_restrict_Pi, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_restrict_Pi);
+  CeedOperatorSetName(op_restrict_Pi, "BDDC Pi restriction operator");
+  CeedOperatorSetField(op_restrict_Pi, "input", elem_restr_Pi, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_restrict_Pi, "output", elem_restr_r, basis_Pi_r, CEED_VECTOR_ACTIVE);  // Note: from Pi to r
+  // -- Restriction from interface vertices
+  CeedOperatorCreate(ceed, qf_inject_Pi, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_restrict_Pi_r);
+  CeedOperatorSetName(op_restrict_Pi_r, "BDDC Pi, r restriction operator");
+  CeedOperatorSetField(op_restrict_Pi_r, "input", elem_restr_r, basis_Pi_r, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_restrict_Pi_r, "output", elem_restr_Pi_r, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);  // Note: from Pi_r to r
+  // -- Restriction from subdomains
+  CeedOperatorCreate(ceed, qf_identity, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_restrict_r);
+  CeedOperatorSetName(op_restrict_r, "BDDC r restriction operator");
+  CeedOperatorSetField(op_restrict_r, "input", elem_restr_r, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_restrict_r, "output", data_fine->elem_restr_u, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  // -- Cleanup
+  CeedQFunctionDestroy(&qf_identity);
+  CeedQFunctionDestroy(&qf_inject_Pi);
+  CeedQFunctionDestroy(&qf_restrict_Pi);
+
+  // Save libCEED data required for level
+  data_bddc->basis_Pi         = basis_Pi;
+  data_bddc->basis_Pi_r       = basis_Pi_r;
+  data_bddc->elem_restr_Pi    = elem_restr_Pi;
+  data_bddc->elem_restr_Pi_r  = elem_restr_Pi_r;
+  data_bddc->elem_restr_r     = elem_restr_r;
+  data_bddc->op_Pi_r          = op_Pi_r;
+  data_bddc->op_r_Pi          = op_r_Pi;
+  data_bddc->op_Pi_Pi         = op_Pi_Pi;
+  data_bddc->op_r_r           = op_r_r;
+  data_bddc->op_r_r_inv       = op_r_r_inv;
+  data_bddc->op_inject_r      = op_inject_r;
+  data_bddc->op_inject_Pi     = op_inject_Pi;
+  data_bddc->op_inject_Pi_r   = op_inject_Pi_r;
+  data_bddc->op_restrict_r    = op_restrict_r;
+  data_bddc->op_restrict_Pi   = op_restrict_Pi;
+  data_bddc->op_restrict_Pi_r = op_restrict_Pi_r;
+  data_bddc->x_Pi_ceed        = x_Pi_ceed;
+  data_bddc->y_Pi_ceed        = y_Pi_ceed;
+  data_bddc->x_Pi_r_ceed      = x_Pi_r_ceed;
+  data_bddc->y_Pi_r_ceed      = y_Pi_r_ceed;
+  data_bddc->mult_ceed        = mult_ceed;
+  data_bddc->x_r_ceed         = x_r_ceed;
+  data_bddc->y_r_ceed         = y_r_ceed;
+  data_bddc->z_r_ceed         = z_r_ceed;
+  data_bddc->mask_r_ceed      = mask_r_ceed;
+  data_bddc->mask_Gamma_ceed  = mask_Gamma_ceed;
+  data_bddc->mask_I_ceed      = mask_I_ceed;
+  data_bddc->x_ceed           = data_fine->x_ceed;
+  data_bddc->y_ceed           = data_fine->y_ceed;
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+};
+
+// -----------------------------------------------------------------------------
+// Set up libCEED error operator
+// -----------------------------------------------------------------------------
 PetscErrorCode SetupErrorOperator(DM dm, Ceed ceed, BPData bp_data, CeedInt topo_dim, PetscInt num_comp_x, PetscInt num_comp_u,
                                   CeedOperator *op_error) {
   DM                  dm_coord;
@@ -360,4 +613,6 @@ PetscErrorCode SetupErrorOperator(DM dm, Ceed ceed, BPData bp_data, CeedInt topo
   CeedBasisDestroy(&basis_u);
 
   PetscFunctionReturn(PETSC_SUCCESS);
-}
+};
+
+// -----------------------------------------------------------------------------
