@@ -115,7 +115,9 @@ static int CeedVectorSyncArray_Hip(const CeedVector vec, CeedMemType mem_type) {
     case CEED_MEM_DEVICE:
       return CeedVectorSyncH2D_Hip(vec);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -270,7 +272,9 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Hip(vec, copy_mode, array);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
