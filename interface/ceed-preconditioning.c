@@ -1114,6 +1114,9 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
 
     // Create multiplicity multi-component l-vector
     CeedCall(CeedElemRestrictionCreateUnsignedCopy(rstr_fine, &rstr_p_mult_full));
+    CeedCall(CeedElemRestrictionGetNumElements(rstr_p_mult_full, &num_elem));
+    CeedCall(CeedElemRestrictionGetNumComponents(rstr_p_mult_full, &num_comp));
+    CeedCall(CeedElemRestrictionGetElementSize(rstr_p_mult_full, &elem_size));
     CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_l_vec, &mult_e_vec));
     CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(rstr_p_mult_full, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
@@ -1130,9 +1133,6 @@ static int CeedOperatorMultigridLevelCreateSingle_Core(CeedOperator op_fine, Cee
 
     if (use_scalar_mult) {
       // Create multiplicity single component e-vector
-      CeedCall(CeedElemRestrictionGetNumElements(rstr_p_mult_full, &num_elem));
-      CeedCall(CeedElemRestrictionGetNumComponents(rstr_p_mult_full, &num_comp));
-      CeedCall(CeedElemRestrictionGetElementSize(rstr_p_mult_full, &elem_size));
       CeedCall(CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, 1, num_elem * elem_size, CEED_STRIDES_BACKEND, &rstr_p_mult_fine));
       CeedCall(CeedElemRestrictionCreateVector(rstr_p_mult_fine, &mult_vec, NULL));
       {
