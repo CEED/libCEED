@@ -78,7 +78,9 @@ static inline int CeedQFunctionContextSync_Hip(const CeedQFunctionContext ctx, C
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSyncH2D_Hip(ctx);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -222,7 +224,9 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx, const
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSetDataDevice_Hip(ctx, copy_mode, data);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------

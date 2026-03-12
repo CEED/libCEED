@@ -107,7 +107,9 @@ static int CeedVectorSyncArray_Cuda(const CeedVector vec, CeedMemType mem_type) 
     case CEED_MEM_DEVICE:
       return CeedVectorSyncH2D_Cuda(vec);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -217,7 +219,9 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------

@@ -79,7 +79,9 @@ static inline int CeedQFunctionContextSync_Cuda(const CeedQFunctionContext ctx, 
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSyncH2D_Cuda(ctx);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -223,7 +225,9 @@ static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx, cons
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSetDataDevice_Cuda(ctx, copy_mode, data);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
