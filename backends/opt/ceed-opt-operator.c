@@ -102,9 +102,11 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
           CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, block_size, num_comp, l_size, strides,
                                                                   &block_rstr[i + start_e]));
         } break;
+        // LCOV_EXCL_START
         case CEED_RESTRICTION_POINTS:
           // Empty case - won't occur
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCallBackend(CeedDestroy(&ceed_rstr));
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
