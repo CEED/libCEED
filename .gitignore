@@ -54,6 +54,9 @@ doc/sphinx/source/examples/
 # Clang GPU temp files
 temp/*
 
+# Nek5K
+SESSION.NAME
+
 # Output files, videos, and compressed archives should not be added accidentally
 *.avi
 *.bin
