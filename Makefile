@@ -702,10 +702,13 @@ $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f90 | $$(@D)/.DIR
 
 # deal.II
 # Note: Invoking deal.II's CMAKE build system here
-$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
+.NOPARALLEL: dealii
+dealii :
 	mkdir -p examples/deal.II/build
 	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
 	+$(call quiet,MAKE) -C examples/deal.II/build
+
+$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) dealii | $$(@D)/.DIR
 	cp examples/deal.II/build/$* $@
 
 # MFEM
