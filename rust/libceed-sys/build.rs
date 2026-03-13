@@ -14,6 +14,7 @@ fn main() {
     } else {
         // Install libceed.a or libceed.so to $OUT_DIR/lib
         let makeflags = env("CARGO_MAKEFLAGS").unwrap();
+        let optflags = env("CARGO_CEED_OPT_FLAGS").unwrap_or_else(|| "".to_string());
         let mut make = Command::new("make");
         make.arg("install")
             .arg(format!("prefix={}", out_dir.to_string_lossy()))
@@ -28,6 +29,9 @@ fn main() {
             .arg("FC=") // Don't try to find Fortran (unused library build/install)
             .env("MAKEFLAGS", makeflags)
             .current_dir("c-src");
+        if optflags.len() > 0 {
+            make.env("OPT", optflags);
+        }
         if statik {
             make.arg("STATIC=1");
         }

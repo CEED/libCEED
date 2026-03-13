@@ -32,7 +32,7 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran
-      run: cargo llvm-cov test --doctests --lcov --output-path lcov.info
+      run: CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline" cargo llvm-cov test --doctests --lcov --output-path lcov.info
     - name: Codecov upload
       uses: codecov/codecov-action@v4
       with:
