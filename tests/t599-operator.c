@@ -124,7 +124,9 @@ int main(int argc, char **argv) {
     CeedVectorRestoreArrayRead(v, &v_array);
     // Summing 9 reference elements, each 2x2 => 36 sq units area
     if (fabs(sum - 4.0 * num_elem) > CEED_EPSILON * 5e3) {
+      // LCOV_EXCL_START
       printf("Incorrect area computed, %g != %g (abs error %g)\n", sum, 4.0 * num_elem, fabs(sum - 4.0 * num_elem));
+      // LCOV_EXCL_STOP
     }
   }
 
