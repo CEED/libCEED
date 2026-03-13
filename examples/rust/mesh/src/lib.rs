@@ -48,7 +48,7 @@ pub fn build_cartesian_restriction(
     degree: usize,
     num_comp: usize,
     num_qpts: usize,
-) -> libceed::Result<(ElemRestriction, ElemRestriction)> {
+) -> libceed::Result<(ElemRestriction<'_>, ElemRestriction<'_>)> {
     let p = degree + 1;
     let num_nodes = p.pow(dim as u32); // number of nodes per element
     let elem_qpts = num_qpts.pow(dim as u32); // number of quadrature pts per element
@@ -119,7 +119,7 @@ pub fn cartesian_mesh_coords(
     num_xyz: [usize; 3],
     mesh_degree: usize,
     mesh_size: usize,
-) -> libceed::Result<Vector> {
+) -> libceed::Result<Vector<'_>> {
     let p = mesh_degree + 1;
     let mut num_d = [0; 3];
     let mut scalar_size = 1;

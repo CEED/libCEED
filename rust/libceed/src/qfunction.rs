@@ -467,7 +467,7 @@ impl<'a> QFunctionCore<'a> {
         })
     }
 
-    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         // Get array of raw C pointers for inputs
         let mut num_inputs = 0;
         let mut inputs_ptr = std::ptr::null_mut();
@@ -487,7 +487,7 @@ impl<'a> QFunctionCore<'a> {
         Ok(inputs_slice)
     }
 
-    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         // Get array of raw C pointers for outputs
         let mut num_outputs = 0;
         let mut outputs_ptr = std::ptr::null_mut();
@@ -826,7 +826,7 @@ impl<'a> QFunction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         self.qf_core.inputs()
     }
 
@@ -856,7 +856,7 @@ impl<'a> QFunction<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         self.qf_core.outputs()
     }
 }
@@ -960,7 +960,7 @@ impl<'a> QFunctionByName<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn inputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn inputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         self.qf_core.inputs()
     }
 
@@ -979,7 +979,7 @@ impl<'a> QFunctionByName<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn outputs(&self) -> crate::Result<&[QFunctionField]> {
+    pub fn outputs(&self) -> crate::Result<&[QFunctionField<'_>]> {
         self.qf_core.outputs()
     }
 }
