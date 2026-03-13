@@ -175,7 +175,7 @@ impl<'a> OperatorField<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn elem_restriction(&self) -> ElemRestrictionOpt {
+    pub fn elem_restriction(&self) -> ElemRestrictionOpt<'_> {
         if self.elem_restriction.ptr == unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE } {
             ElemRestrictionOpt::None
         } else {
@@ -237,7 +237,7 @@ impl<'a> OperatorField<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn basis(&self) -> BasisOpt {
+    pub fn basis(&self) -> BasisOpt<'_> {
         if self.basis.ptr == unsafe { bind_ceed::CEED_BASIS_NONE } {
             BasisOpt::None
         } else {
@@ -285,7 +285,7 @@ impl<'a> OperatorField<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn vector(&self) -> VectorOpt {
+    pub fn vector(&self) -> VectorOpt<'_> {
         if self.vector.ptr == unsafe { bind_ceed::CEED_VECTOR_ACTIVE } {
             VectorOpt::Active
         } else if self.vector.ptr == unsafe { bind_ceed::CEED_VECTOR_NONE } {
@@ -856,7 +856,7 @@ impl<'a> Operator<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn inputs(&self) -> crate::Result<Vec<crate::OperatorField>> {
+    pub fn inputs(&self) -> crate::Result<Vec<crate::OperatorField<'_>>> {
         // Get array of raw C pointers for inputs
         let mut num_inputs = 0;
         let mut inputs_ptr = std::ptr::null_mut();
@@ -926,7 +926,7 @@ impl<'a> Operator<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn outputs(&self) -> crate::Result<Vec<crate::OperatorField>> {
+    pub fn outputs(&self) -> crate::Result<Vec<crate::OperatorField<'_>>> {
         // Get array of raw C pointers for outputs
         let mut num_outputs = 0;
         let mut outputs_ptr = std::ptr::null_mut();
