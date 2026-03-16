@@ -1586,11 +1586,9 @@ int CeedElemRestrictionGetMinMaxPointsInElement(CeedElemRestriction rstr, CeedIn
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
 
   // Exit early if there are no elements
-  if (num_elem == 0) {
-    if (min_points) *min_points = 0;
-    if (max_points) *max_points = 0;
-    return CEED_ERROR_SUCCESS;
-  }
+  if (min_points) *min_points = 0;
+  if (max_points) *max_points = 0;
+  if (num_elem == 0) return CEED_ERROR_SUCCESS;
 
   // Initialize to the number of points in the first element
   CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, 0, &num_points));

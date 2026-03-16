@@ -595,9 +595,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           }
           break;
         }
+        // LCOV_EXCL_START
         default:
           // Nothing to do, excluded above
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
@@ -659,9 +661,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           }
           break;
         }
+        // LCOV_EXCL_START
         default:
           // Nothing to do, excluded above
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
