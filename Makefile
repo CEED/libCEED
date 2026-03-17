@@ -653,7 +653,12 @@ endif
 
 pkgconfig-libs-private = $(PKG_LIBS)
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
-  $(libceeds) : LINK = $(CXX)
+  ifneq ($(SYCL_LIB_DIR),)
+    $(libceeds) : LINK = $(SYCLCXX)
+    $(libceeds) : CEED_LDFLAGS += $(SYCLFLAGS)
+  else
+    $(libceeds) : LINK = $(CXX)
+  endif
   ifeq ($(STATIC),1)
     $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
     pkgconfig-libs-private += $(LIBCXX)
