@@ -123,7 +123,7 @@ noether-cpu:
       if [ -f .SUCCESS ]; then
         gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
         /projects/codecov/codecov --version;
-        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search -t ${CODECOV_ACCESS_TOKEN} -n 'noether-cpu' -F interface,gallery,backends,tests,examples -f coverage.json;
+        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search --git-service github -t ${CODECOV_ACCESS_TOKEN} -n 'noether-cpu' -F interface,gallery,backends,tests,examples -f coverage.json;
       fi
   artifacts:
     paths:
@@ -208,7 +208,7 @@ noether-rust-qfunctions:
       if [ -f .SUCCESS ]; then
         gcovr --gcov-executable "gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
         /projects/codecov/codecov --version;
-        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search -t ${CODECOV_ACCESS_TOKEN} -n 'noether-rust-qfunctions' -F interface,gallery,backends,tests,examples -f coverage.json;
+        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search --git-service github -t ${CODECOV_ACCESS_TOKEN} -n 'noether-rust-qfunctions' -F interface,gallery,backends,tests,examples -f coverage.json;
       fi
   artifacts:
     paths:
@@ -286,7 +286,7 @@ noether-cuda:
       if [ -f .SUCCESS ]; then
         gcovr --gcov-executable "gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
         /projects/codecov/codecov --version;
-        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search -t ${CODECOV_ACCESS_TOKEN} -n 'noether-cuda' -F interface,gallery,backends,tests,examples -f coverage.json;
+        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search --git-service github -t ${CODECOV_ACCESS_TOKEN} -n 'noether-cuda' -F interface,gallery,backends,tests,examples -f coverage.json;
       fi
   artifacts:
     paths:
@@ -350,7 +350,7 @@ noether-cuda:
 #      if [ -f .SUCCESS ]; then
 #        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
 #        /projects/codecov/codecov --version;
-#        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search -t ${CODECOV_ACCESS_TOKEN} -n 'noether-rocm' -F interface,gallery,backends,tests,examples -f coverage.json;
+#        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search --git-service github -t ${CODECOV_ACCESS_TOKEN} -n 'noether-rocm' -F interface,gallery,backends,tests,examples -f coverage.json;
 #      fi
 #  artifacts:
 #    paths:
@@ -450,7 +450,7 @@ noether-float:
       if [ $(cat .job_status) == "SUCCESS" ]; then
         gcovr --gcov-executable "gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
         /projects/codecov/codecov --version;
-        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search -t ${CODECOV_ACCESS_TOKEN} -F -n 'noether-float' interface,gallery,backends,tests,examples -f coverage.json;
+        /projects/codecov/codecov --codecov-yml-path ./.codecov.yml upload-process --disable-search --git-service github -t ${CODECOV_ACCESS_TOKEN} -F -n 'noether-float' interface,gallery,backends,tests,examples -f coverage.json;
       fi
     - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:
