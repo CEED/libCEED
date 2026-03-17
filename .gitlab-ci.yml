@@ -122,11 +122,11 @@ noether-cpu:
     - |
       if [ -f .SUCCESS ]; then
         lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
       fi
   artifacts:
     paths:
@@ -210,11 +210,11 @@ noether-rust-qfunctions:
     - |
       if [ -f .SUCCESS ]; then
         lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
       fi
   artifacts:
     paths:
@@ -291,11 +291,11 @@ noether-cuda:
     - |
       if [ -f .SUCCESS ]; then
         lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
       fi
   artifacts:
     paths:
@@ -358,11 +358,11 @@ noether-cuda:
 #    - |
 #      if [ -f .SUCCESS ]; then
 #        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
+#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
+#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
+#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
+#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
 #      fi
 #  artifacts:
 #    paths:
@@ -461,11 +461,11 @@ noether-float:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
         lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
       fi
     - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:
