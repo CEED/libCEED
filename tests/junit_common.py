@@ -244,7 +244,7 @@ def has_cgnsdiff() -> bool:
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
                           env=my_env)
-    return 'not found' not in proc.stderr.decode('utf-8')
+    return 'not found' not in proc.stderr.decode('utf-8', errors='replace')
 
 
 def contains_any(base: str, substrings: List[str]) -> bool:
@@ -498,7 +498,7 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, cgns_tol: float) -> str:
                           stderr=subprocess.PIPE,
                           env=my_env)
 
-    return proc.stderr.decode('utf-8') + proc.stdout.decode('utf-8')
+    return proc.stderr.decode('utf-8', errors='replace') + proc.stdout.decode('utf-8', errors='replace')
 
 
 def diff_ascii(test_file: Path, true_file: Path, backend: str) -> str:
@@ -634,8 +634,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                              classname=source_path.parent,
                              elapsed_sec=time.time() - start,
                              timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
-                             stdout=proc.stdout.decode('utf-8'),
-                             stderr=proc.stderr.decode('utf-8'),
+                             stdout=proc.stdout.decode('utf-8', errors='replace'),
+                             stderr=proc.stderr.decode('utf-8', errors='replace'),
                              allow_multiple_subelements=True,
                              category=spec.name,)
         ref_csvs: List[Path] = []
