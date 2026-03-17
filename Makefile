@@ -101,6 +101,7 @@ else ifneq (,$(findstring __HIP_PLATFORM_AMD__,$(HIP_CONFIG_RES)))
 else 
   $(error "HIP platform not supported")
 endif
+
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
 
