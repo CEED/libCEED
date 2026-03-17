@@ -9,6 +9,7 @@
 #include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 
+#include <string>
 #include <sycl/sycl.hpp>
 #include <vector>
 
@@ -614,7 +615,10 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   input_bundle.set_specialization_constant<BASIS_Q_1D_ID>(Q_1d);
   input_bundle.set_specialization_constant<BASIS_P_1D_ID>(P_1d);
 
-  CeedCallSycl(ceed, impl->sycl_module = new SyclModule_t(sycl::build(input_bundle)));
+  // Build with native binary caching — key encodes all specialization constant values
+  std::string spec_key = "basis_tensor:dim=" + std::to_string(dim) + ":nc=" + std::to_string(num_comp) + ":Q=" + std::to_string(Q_1d) +
+                         ":P=" + std::to_string(P_1d);
+  CeedCallBackend(CeedBuildBundleCached_Sycl(ceed, input_bundle, &impl->sycl_module, spec_key));
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
