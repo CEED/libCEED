@@ -69,7 +69,7 @@ noether-cpu:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
+    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC=gfortran
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -121,12 +121,13 @@ noether-cpu:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
+        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
+        /projects/codecov/codecov --version;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.json;
       fi
   artifacts:
     paths:
@@ -178,7 +179,7 @@ noether-rust-qfunctions:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc GPU_CLANG=1
+    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC=gfortran NVCC=nvcc GPU_CLANG=1
     - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -209,12 +210,13 @@ noether-rust-qfunctions:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
+        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
+        /projects/codecov/codecov --version;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.json;
       fi
   artifacts:
     paths:
@@ -233,7 +235,7 @@ noether-cuda:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc
+    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC=gfortran NVCC=nvcc
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -290,12 +292,13 @@ noether-cuda:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
+        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
+        /projects/codecov/codecov --version;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.json;
       fi
   artifacts:
     paths:
@@ -317,7 +320,7 @@ noether-cuda:
 #  interruptible: true
 #  before_script:
 #    # Environment
-#    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+#    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC=gfortran HIPCC=hipcc
 #    - export NPROC_POOL=4
 #    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
 #    - echo "-------------- CC ------------------" && $CC --version
@@ -357,12 +360,13 @@ noether-cuda:
 #  after_script:
 #    - |
 #      if [ -f .SUCCESS ]; then
-#        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
-#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
-#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
-#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
-#       /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
+#        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
+#        /projects/codecov/codecov --version;
+#        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.json;
+#        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.json;
+#        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.json;
+#        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.json;
+#        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.json;
 #      fi
 #  artifacts:
 #    paths:
@@ -379,7 +383,7 @@ noether-rocm:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC=gfortran HIPCC=hipcc
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -419,7 +423,7 @@ noether-float:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC= NVCC=nvcc
+    - export COVERAGE=1 CC=clang-15 CXX=clang++-15 FC= NVCC=nvcc
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -460,12 +464,13 @@ noether-float:
   after_script:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch,unused --substitute 's#(t*-f.h)#test/(t*.-f.h)#g';
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.info;
-        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.info;
+        gcovr --gcov-executable "llvm-cov-15 gcov" --exclude-noncode-lines --json-pretty --print-summary -o coverage.json;
+        /projects/codecov/codecov --version;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F interface -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F gallery   -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F backends  -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F tests     -f coverage.json;
+        /projects/codecov/codecov upload-process -t ${CODECOV_ACCESS_TOKEN} -F examples  -f coverage.json;
       fi
     - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:
