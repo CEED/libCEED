@@ -9,6 +9,7 @@
 #include <ceed-impl.h>
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -912,6 +913,8 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     }
   }
   // Long enough vector was not found
+  // Note: assert fixing bad clang-tidy assumption that num_vecs > max_vecs is ever possible
+  assert(ceed->work_vectors->num_vecs <= ceed->work_vectors->max_vecs);
   if (i == ceed->work_vectors->num_vecs) {
     if (ceed->work_vectors->max_vecs == 0) {
       ceed->work_vectors->max_vecs = 1;
@@ -1178,6 +1181,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Check for help request
   const char *help_prefix = "help";
   size_t      match_help  = 0;
+
   while (match_help < 4 && resource[match_help] == help_prefix[match_help]) match_help++;
   if (match_help == 4) {
     fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR, CEED_VERSION_MINOR, CEED_VERSION_PATCH,
@@ -1195,10 +1199,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Find best match, computed as number of matching characters from requested resource stem
   size_t stem_length = 0;
+
   while (resource[stem_length + match_help] && resource[stem_length + match_help] != ':') stem_length++;
   for (size_t i = 0; i < num_backends; i++) {
     size_t      n      = 0;
     const char *prefix = backends[i].prefix;
+
     while (prefix[n] && prefix[n] == resource[n + match_help]) n++;
     priority = backends[i].priority;
     if (n > match_len || (n == match_len && match_priority > priority)) {
@@ -1211,12 +1217,14 @@ int CeedInit(const char *resource, Ceed *ceed) {
   if (match_len <= 1 || match_len != stem_length) {
     // LCOV_EXCL_START
     size_t lev_dis   = UINT_MAX;
-    size_t lev_index = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+    size_t lev_index = num_backends, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+
     for (size_t i = 0; i < num_backends; i++) {
       const char *prefix        = backends[i].prefix;
       size_t      prefix_length = strlen(backends[i].prefix);
       size_t      min_len       = (prefix_length < stem_length) ? prefix_length : stem_length;
       size_t      column[min_len + 1];
+
       for (size_t j = 0; j <= min_len; j++) column[j] = j;
       for (size_t j = 1; j <= min_len; j++) {
         column[0] = j;
@@ -1224,11 +1232,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
           size_t old_diag = column[k];
           size_t min_1    = (column[k] < column[k - 1]) ? column[k] + 1 : column[k - 1] + 1;
           size_t min_2    = last_diag + (resource[k - 1] == prefix[j - 1] ? 0 : 1);
-          column[k]       = (min_1 < min_2) ? min_1 : min_2;
-          last_diag       = old_diag;
+
+          column[k] = (min_1 < min_2) ? min_1 : min_2;
+          last_diag = old_diag;
         }
       }
       size_t n = column[min_len];
+
       priority = backends[i].priority;
       if (n < lev_dis || (n == lev_dis && lev_priority > priority)) {
         lev_dis      = n;
@@ -1238,8 +1248,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
     }
     const char *prefix_lev = backends[lev_index].prefix;
     size_t      lev_length = 0;
+
     while (prefix_lev[lev_length] && prefix_lev[lev_length] != '\0') lev_length++;
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
+
     if (lev_dis + 1 >= m) return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
     else return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
     // LCOV_EXCL_STOP
