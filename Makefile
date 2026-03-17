@@ -574,9 +574,16 @@ HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
   HIPCONFIG_CPPFLAGS := $(shell $(ROCM_DIR)/bin/hipconfig -C)
-  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
+  # chipStar hipconfig -C includes clang-only flags (--target=, --offload=, -nohipwrapperinc, --hip-path=);
+  # strip those out for gcc-compiled C sources, keeping -D/-I/-include flags
+  ifeq ($(HIP_LIB_NAME),CHIP)
+    HIPCONFIG_CPPFLAGS_C := $(filter-out --offload% -nohipwrapperinc --hip-path% --target%,$(HIPCONFIG_CPPFLAGS)) -I$(ROCM_DIR)/include
+  else
+    HIPCONFIG_CPPFLAGS_C := $(HIPCONFIG_CPPFLAGS)
+  endif
+  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
   ifneq ($(CXX), $(HIPCC))
-    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
+    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
   endif
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l${HIP_LIB_NAME} -lhipblas
   LIBCEED_CONTAINS_CXX = 1
