@@ -108,9 +108,9 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebug256(ceed, color, ...)                               \
-  {                                                                  \
-    if (CeedDebugFlag(ceed)) CeedDebugImpl256(color, ##__VA_ARGS__); \
+#define CeedDebug256(ceed, color, ...)                             \
+  {                                                                \
+    if (CeedDebugFlag(ceed)) CeedDebugImpl256(color, __VA_ARGS__); \
   }
 /**
   Print debugging information to terminal
@@ -120,7 +120,7 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebug(ceed, ...) CeedDebug256(ceed, (unsigned char)CEED_DEBUG_COLOR_NONE, ##__VA_ARGS__)
+#define CeedDebug(ceed, ...) CeedDebug256(ceed, (unsigned char)CEED_DEBUG_COLOR_NONE, __VA_ARGS__)
 /**
   Print debugging information in color without Ceed to reference
 
@@ -129,9 +129,9 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebugEnv256(color, ...)                                 \
-  {                                                                 \
-    if (CeedDebugFlagEnv()) CeedDebugImpl256(color, ##__VA_ARGS__); \
+#define CeedDebugEnv256(...)                               \
+  {                                                        \
+    if (CeedDebugFlagEnv()) CeedDebugImpl256(__VA_ARGS__); \
   }
 /**
   Print debugging information to terminal without Ceed to reference
@@ -139,16 +139,16 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebugEnv(...) CeedDebugEnv256((unsigned char)CEED_DEBUG_COLOR_NONE, ##__VA_ARGS__)
+#define CeedDebugEnv(...) CeedDebugEnv256((unsigned char)CEED_DEBUG_COLOR_NONE, __VA_ARGS__)
 /**
   Print warning information in color
 
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedWarn(...)                                          \
-  {                                                            \
-    CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, ##__VA_ARGS__); \
+#define CeedWarn(...)                                        \
+  {                                                          \
+    CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, __VA_ARGS__); \
   }
 
 /**
