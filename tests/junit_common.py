@@ -670,7 +670,12 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
 
     # classify other results
     if not test_case.is_skipped() and not test_case.status:
-        if test_case.stderr:
+        # Filter out chipStar (CHIP) runtime informational/warning lines which are not errors
+        filtered_stderr = '\n'.join(
+            line for line in test_case.stderr.split('\n')
+            if not line.startswith(('CHIP info ', 'CHIP warning ', 'CHIP debug '))
+        ).strip()
+        if filtered_stderr:
             test_case.add_failure_info('stderr', test_case.stderr)
         if proc.returncode != 0:
             test_case.add_error_info(f'returncode = {proc.returncode}')
