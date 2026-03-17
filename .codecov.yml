@@ -2,8 +2,11 @@ codecov:
   branch: main
 
 fixes:
-  - "build/backends/::backends/"
+  - "build/interface/::interface/"
   - "build/gallery/::gallery/"
+  - "build/backends/::backends/"
+  - "build/t*/::tests/t*"
+  - "build/ex*/::examples/ceed/ex*"
 
 ignore:
   - "julia/LibCEED.jl/src/generated/*.jl"
