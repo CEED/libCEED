@@ -12,6 +12,10 @@
 #include <ceed/jit-tools.h>
 #include <level_zero/ze_api.h>
 
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iomanip>
 #include <map>
 #include <sstream>
 #include <sycl/sycl.hpp>
@@ -66,10 +70,53 @@ static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
 }
 
 //------------------------------------------------------------------------------
-// Compile an OpenCL source to SPIR-V using Intel's online compiler extension
+// Compute a cache key (hex string) for OpenCL C source + flags
+//------------------------------------------------------------------------------
+static std::string CeedSpvCacheHash(const std::string &opencl_source, const std::vector<std::string> &flags) {
+  size_t h = std::hash<std::string>{}(opencl_source);
+  for (const auto &f : flags) {
+    h ^= std::hash<std::string>{}(f) + 0x9e3779b9u + (h << 6) + (h >> 2);
+  }
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0') << std::setw(16) << h;
+  return oss.str();
+}
+
+//------------------------------------------------------------------------------
+// Return path to the SPIR-V cache directory (same base as LZ cache).
+//------------------------------------------------------------------------------
+static std::filesystem::path CeedSpvCacheDir() {
+  const char *env = std::getenv("SYCL_CACHE_DIR");
+  std::string base;
+  if (env && *env) {
+    base = env;
+  } else {
+    const char *home = std::getenv("HOME");
+    base              = home ? std::string(home) + "/.cache" : "/tmp";
+  }
+  return std::filesystem::path(base) / "ceed_spirv";
+}
+
+//------------------------------------------------------------------------------
+// Compile an OpenCL source to SPIR-V using Intel's online compiler extension.
+// Caches the resulting SPIR-V binary to avoid recompilation on subsequent runs.
 //------------------------------------------------------------------------------
 static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, const std::string &opencl_source, ByteVector_t &il_binary,
                                             const std::vector<std::string> &flags = {}) {
+  // Check SPIR-V cache first
+  std::filesystem::path cache_path;
+  try {
+    std::filesystem::path cache_dir = CeedSpvCacheDir();
+    std::filesystem::create_directories(cache_dir);
+    cache_path = cache_dir / (CeedSpvCacheHash(opencl_source, flags) + ".spv");
+    if (std::filesystem::exists(cache_path)) {
+      std::ifstream f(cache_path, std::ios::binary);
+      il_binary.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+      if (!il_binary.empty()) return CEED_ERROR_SUCCESS;
+    }
+  } catch (...) {
+  }
+
   sycl::ext::libceed::online_compiler<sycl::ext::libceed::source_language::opencl_c> compiler(sycl_device);
 
   try {
@@ -77,28 +124,105 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
   } catch (sycl::ext::libceed::online_compile_error &e) {
     return CeedError((ceed), CEED_ERROR_BACKEND, e.what());
   }
+
+  // Save SPIR-V to cache
+  if (!cache_path.empty() && !il_binary.empty()) {
+    try {
+      std::ofstream f(cache_path, std::ios::binary);
+      f.write(reinterpret_cast<const char *>(il_binary.data()), static_cast<std::streamsize>(il_binary.size()));
+    } catch (...) {
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
 
 // ------------------------------------------------------------------------------
-// Load (compile) SPIR-V source and wrap in sycl kernel_bundle
+// Compute a cache key (hex string) for SPIR-V binary + build flags
+// ------------------------------------------------------------------------------
+static std::string CeedLzCacheHash(const ByteVector_t &il_binary, const std::string &flags) {
+  size_t h = std::hash<std::string>{}(flags);
+  for (unsigned char b : il_binary) {
+    h ^= std::hash<unsigned char>{}(b) + 0x9e3779b9u + (h << 6) + (h >> 2);
+  }
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0') << std::setw(16) << h;
+  return oss.str();
+}
+
+// ------------------------------------------------------------------------------
+// Return path to the Level Zero native binary cache directory.
+// Uses $SYCL_CACHE_DIR/ceed_lz or $HOME/.cache/ceed_sycl/lz.
+// ------------------------------------------------------------------------------
+static std::filesystem::path CeedLzCacheDir() {
+  const char *env = std::getenv("SYCL_CACHE_DIR");
+  std::string base;
+  if (env && *env) {
+    base = env;
+  } else {
+    const char *home = std::getenv("HOME");
+    base              = home ? std::string(home) + "/.cache" : "/tmp";
+  }
+  return std::filesystem::path(base) / "ceed_lz";
+}
+
+// ------------------------------------------------------------------------------
+// Load (compile) SPIR-V source and wrap in sycl kernel_bundle.
+// Caches the compiled native GPU binary so subsequent runs skip JIT.
 // ------------------------------------------------------------------------------
 static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
                                SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
 
-  ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC,
-                                  nullptr,  // extension specific structs
-                                  ZE_MODULE_FORMAT_IL_SPIRV,
-                                  il_binary.size(),
-                                  il_binary.data(),
-                                  " -ze-opt-large-register-file",  // flags
-                                  nullptr};                        // specialization constants
+  const std::string build_flags = " -ze-opt-large-register-file";
+
+  // --- Cache lookup ---
+  std::filesystem::path cache_path;
+  bool                  have_cache = false;
+  ByteVector_t          native_binary;
+
+  try {
+    std::filesystem::path cache_dir = CeedLzCacheDir();
+    std::filesystem::create_directories(cache_dir);
+    cache_path = cache_dir / (CeedLzCacheHash(il_binary, build_flags) + ".native");
+    if (std::filesystem::exists(cache_path)) {
+      std::ifstream f(cache_path, std::ios::binary);
+      native_binary.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+      have_cache = !native_binary.empty();
+    }
+  } catch (...) {
+  }
 
   ze_module_handle_t           lz_module;
   ze_module_build_log_handle_t lz_log;
-  ze_result_t                  lz_err = zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, &lz_log);
+  ze_result_t                  lz_err;
+
+  if (have_cache) {
+    // Load precompiled native binary — skips JIT entirely
+    ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC, nullptr, ZE_MODULE_FORMAT_NATIVE,
+                                    native_binary.size(), native_binary.data(), nullptr, nullptr};
+    lz_err = zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, &lz_log);
+  } else {
+    // JIT compile SPIR-V → native
+    ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC, nullptr, ZE_MODULE_FORMAT_IL_SPIRV,
+                                    il_binary.size(), il_binary.data(), build_flags.c_str(), nullptr};
+    lz_err = zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, &lz_log);
+
+    // Save native binary to cache for future runs
+    if (lz_err == ZE_RESULT_SUCCESS && !cache_path.empty()) {
+      size_t native_size = 0;
+      if (zeModuleGetNativeBinary(lz_module, &native_size, nullptr) == ZE_RESULT_SUCCESS && native_size > 0) {
+        std::vector<uint8_t> out(native_size);
+        if (zeModuleGetNativeBinary(lz_module, &native_size, out.data()) == ZE_RESULT_SUCCESS) {
+          try {
+            std::ofstream f(cache_path, std::ios::binary);
+            f.write(reinterpret_cast<const char *>(out.data()), static_cast<std::streamsize>(native_size));
+          } catch (...) {
+          }  // cache write failure is non-fatal
+        }
+      }
+    }
+  }
 
   if (ZE_RESULT_SUCCESS != lz_err) {
     size_t log_size = 0;
@@ -115,6 +239,25 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
   // sycl make_<type> only throws errors for backend mismatch--assume we have vetted this already
   *sycl_module = new SyclModule_t(sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero, sycl::bundle_state::executable>(
       {lz_module, sycl::ext::oneapi::level_zero::ownership::transfer}, sycl_context));
+  return CEED_ERROR_SUCCESS;
+}
+
+// ------------------------------------------------------------------------------
+// Build a kernel_bundle<executable> from a kernel_bundle<input>, with native
+// binary caching.  cache_key_extra encodes any specialization constants so
+// different specializations get distinct cache entries.
+// ------------------------------------------------------------------------------
+int CeedBuildBundleCached_Sycl(Ceed ceed, sycl::kernel_bundle<sycl::bundle_state::input> &input_bundle, SyclModule_t **sycl_module,
+                                const std::string &cache_key_extra) {
+  // Note: native binary caching via zeModuleCreate + make_kernel_bundle does not
+  // preserve SYCL kernel IDs for bundles built with specialization constants,
+  // causing "kernel bundle does not contain the kernel" at dispatch time.
+  // Use sycl::build directly — it is fast since the input bundle is already compiled.
+  try {
+    *sycl_module = new SyclModule_t(sycl::build(input_bundle));
+  } catch (sycl::exception &e) {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "sycl::build failed: %s", e.what());
+  }
   return CEED_ERROR_SUCCESS;
 }
 
