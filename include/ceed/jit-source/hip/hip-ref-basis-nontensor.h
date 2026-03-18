@@ -20,18 +20,32 @@
 //------------------------------------------------------------------------------
 extern "C" __global__ void Interp(const CeedInt num_elem, const CeedScalar *__restrict__ d_B, const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
+#ifdef __HIP_PLATFORM_SPIRV__
+  CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z;
+  if (elem < num_elem)
+    Contract<BASIS_NUM_COMP, BASIS_Q_COMP_INTERP, BASIS_P, BASIS_Q>(elem, BASIS_P, BASIS_Q, BASIS_P * num_elem, BASIS_Q * num_elem,
+                                                                    BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
+#else
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     Contract<BASIS_NUM_COMP, BASIS_Q_COMP_INTERP, BASIS_P, BASIS_Q>(elem, BASIS_P, BASIS_Q, BASIS_P * num_elem, BASIS_Q * num_elem,
                                                                     BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
   }
+#endif
 }
 
 extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedScalar *__restrict__ d_B, const CeedScalar *__restrict__ d_U,
                                            CeedScalar *__restrict__ d_V) {
+#ifdef __HIP_PLATFORM_SPIRV__
+  CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z;
+  if (elem < num_elem)
+    ContractTranspose<BASIS_NUM_COMP, BASIS_Q_COMP_INTERP, BASIS_P, BASIS_Q>(elem, BASIS_Q, BASIS_P, BASIS_Q * num_elem, BASIS_P * num_elem,
+                                                                             BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
+#else
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ContractTranspose<BASIS_NUM_COMP, BASIS_Q_COMP_INTERP, BASIS_P, BASIS_Q>(elem, BASIS_Q, BASIS_P, BASIS_Q * num_elem, BASIS_P * num_elem,
                                                                              BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
   }
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -39,18 +53,32 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem, const CeedSca
 //------------------------------------------------------------------------------
 extern "C" __global__ void Deriv(const CeedInt num_elem, const CeedScalar *__restrict__ d_B, const CeedScalar *__restrict__ d_U,
                                  CeedScalar *__restrict__ d_V) {
+#ifdef __HIP_PLATFORM_SPIRV__
+  CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z;
+  if (elem < num_elem)
+    Contract<BASIS_NUM_COMP, BASIS_Q_COMP_DERIV, BASIS_P, BASIS_Q>(elem, BASIS_P, BASIS_Q, BASIS_P * num_elem, BASIS_Q * num_elem,
+                                                                   BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
+#else
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     Contract<BASIS_NUM_COMP, BASIS_Q_COMP_DERIV, BASIS_P, BASIS_Q>(elem, BASIS_P, BASIS_Q, BASIS_P * num_elem, BASIS_Q * num_elem,
                                                                    BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
   }
+#endif
 }
 
 extern "C" __global__ void DerivTranspose(const CeedInt num_elem, const CeedScalar *__restrict__ d_B, const CeedScalar *__restrict__ d_U,
                                           CeedScalar *__restrict__ d_V) {
+#ifdef __HIP_PLATFORM_SPIRV__
+  CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z;
+  if (elem < num_elem)
+    ContractTranspose<BASIS_NUM_COMP, BASIS_Q_COMP_DERIV, BASIS_P, BASIS_Q>(elem, BASIS_Q, BASIS_P, BASIS_Q * num_elem, BASIS_P * num_elem,
+                                                                            BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
+#else
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     ContractTranspose<BASIS_NUM_COMP, BASIS_Q_COMP_DERIV, BASIS_P, BASIS_Q>(elem, BASIS_Q, BASIS_P, BASIS_Q * num_elem, BASIS_P * num_elem,
                                                                             BASIS_NUM_COMP * BASIS_Q * num_elem, d_B, d_U, d_V);
   }
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -60,7 +88,13 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
   const CeedInt t_id = threadIdx.x;
   // TODO load q_weight in shared memory if blockDim.z > 1?
 
+#ifdef __HIP_PLATFORM_SPIRV__
+  CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z;
+  if (elem < num_elem)
+    d_V[elem * BASIS_Q + t_id] = q_weight[t_id];
+#else
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     d_V[elem * BASIS_Q + t_id] = q_weight[t_id];
   }
+#endif
 }

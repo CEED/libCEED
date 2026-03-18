@@ -12,6 +12,7 @@
 #include <ceed/gen-tools.h>
 #include <ceed/jit-tools.h>
 
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -1029,6 +1030,10 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
   // Apply QFunction
   code << "\n";
   code << tab << "// -- Apply QFunction\n";
+#ifdef __HIP_PLATFORM_SPIRV__
+  code << tab << "if (elem < num_elem) {\n";
+  tab.push();
+#endif
   code << tab << "" << qfunction_name << "(ctx, ";
   if (max_dim != 3 || is_at_points || use_3d_slices || !is_all_tensor) {
     code << "1";
@@ -1036,6 +1041,10 @@ static int CeedOperatorBuildKernelQFunction_Hip_gen(std::ostringstream &code, Ce
     code << Q_name;
   }
   code << ", inputs, outputs);\n";
+#ifdef __HIP_PLATFORM_SPIRV__
+  tab.pop();
+  code << tab << "}\n";
+#endif
 
   if (is_at_points) {
     // Map back to coefficients
@@ -1495,8 +1504,12 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
+#ifdef __HIP_PLATFORM_SPIRV__
+  code << tab << "CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z;\n";
+#else
   code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
+#endif
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -1617,8 +1630,10 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   }
 
   // Close loop and function
+#ifndef __HIP_PLATFORM_SPIRV__
   tab.pop();
   code << tab << "}\n";
+#endif
   tab.pop();
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
@@ -1853,8 +1868,12 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
+#ifdef __HIP_PLATFORM_SPIRV__
+  code << tab << "CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z;\n";
+#else
   code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
+#endif
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -2080,8 +2099,10 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   code << tab << "}\n";
 
   // Close loop and function
+#ifndef __HIP_PLATFORM_SPIRV__
   tab.pop();
   code << tab << "}\n";
+#endif
   tab.pop();
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
@@ -2421,8 +2442,12 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
+#ifdef __HIP_PLATFORM_SPIRV__
+  code << tab << "CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z;\n";
+#else
   code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
+#endif
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -2662,8 +2687,10 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   code << tab << "}\n";
 
   // Close loop and function
+#ifndef __HIP_PLATFORM_SPIRV__
   tab.pop();
   code << tab << "}\n";
+#endif
   tab.pop();
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
