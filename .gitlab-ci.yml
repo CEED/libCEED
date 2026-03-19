@@ -257,10 +257,14 @@ noether-cuda:
     - echo "-------------- core tests ----------"
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
+    # Run only operator tests for ASAN
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=t5
     # Rebuild without ASAN
     - unset ASAN AFLAGS ASAN_OPTIONS
-    - PEDANTIC=1 make -B -k -j$NPROC_CPU -l$NPROC_CPU
+    # Need to clean and run full test suite so gcda files match
+    - make clean
+    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
     # Libraries for examples
     # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
