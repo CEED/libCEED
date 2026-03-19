@@ -89,7 +89,6 @@ noether-cpu:
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
     - make clean
     - PEDANTIC=1 make -j$NPROC_CPU
-    - make -j$NPROC_CPU
     # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
@@ -261,8 +260,7 @@ noether-cuda:
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
     # Rebuild without ASAN
     - unset ASAN AFLAGS ASAN_OPTIONS
-    - make clean
-    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
+    - PEDANTIC=1 make -B -k -j$NPROC_CPU -l$NPROC_CPU
     # Libraries for examples
     # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
@@ -402,7 +400,6 @@ noether-rocm:
     - make -j$NPROC_CPU
     # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - make clean
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
     # Report status
     - touch .SUCCESS
