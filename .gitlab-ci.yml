@@ -212,8 +212,6 @@ noether-rust-qfunctions:
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
       fi
   artifacts:
     paths:
