@@ -145,6 +145,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   CeedCallBackend(CeedFree(&opts));
   *is_compile_good = result == HIPRTC_SUCCESS;
   if (!*is_compile_good) {
+    // LCOV_EXCL_START
     size_t log_size;
     char  *log;
 
@@ -154,15 +155,14 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
     if (throw_error) {
       return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
     } else {
-      // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
       CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", hiprtcGetErrorString(result), log);
       CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
       CeedCallBackend(CeedFree(&log));
       CeedCallHiprtc(ceed, hiprtcDestroyProgram(&prog));
       return CEED_ERROR_SUCCESS;
-      // LCOV_EXCL_STOP
     }
+    // LCOV_EXCL_STOP
   }
 
   CeedCallHiprtc(ceed, hiprtcGetCodeSize(prog, &ptx_size));
@@ -234,17 +234,17 @@ static int CeedRunKernelDimSharedCore_Hip(Ceed ceed, hipFunction_t kernel, hipSt
   if (result == hipSuccess) {
     *is_good_run = true;
   } else {
+    // LCOV_EXCL_START
     if (throw_error) {
       CeedCallHip(ceed, result);
     } else {
-      // LCOV_EXCL_START
       const char *message = hipGetErrorName(result);
 
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- LAUNCH ERROR DETECTED ----------\n");
       CeedDebug(ceed, "%s\n", message);
       CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
-      // LCOV_EXCL_STOP
     }
+    // LCOV_EXCL_STOP
     *is_good_run = false;
   }
   return CEED_ERROR_SUCCESS;
