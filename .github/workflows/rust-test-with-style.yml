@@ -37,9 +37,10 @@ jobs:
         cargo llvm-cov test --doctests --lcov --exclude-from-report backends/*,interface/*,gallery/*,tests/*,julia/*,python/* --output-path lcov.info
     - name: Codecov upload
       uses: codecov/codecov-action@v4
+      if: ${{ runner.os == 'Linux' }}
       with:
         files: lcov.info
-        token: ${{secrets.CODECOV_TOKEN}}
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   style:
     strategy:
