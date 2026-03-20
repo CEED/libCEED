@@ -18,9 +18,9 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Python setup
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Python dependencies

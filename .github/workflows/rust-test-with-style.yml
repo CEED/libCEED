@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Rust setup
       uses: dtolnay/rust-toolchain@master
       with:
@@ -32,12 +32,16 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran
-      run: CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline" cargo llvm-cov test --doctests --lcov --output-path lcov.info
+      run: |
+        export CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline"
+        cargo llvm-cov test --doctests --lcov --output-path lcov.info
     - name: Codecov upload
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
+      if: ${{ runner.os == 'Linux' }}
       with:
         files: lcov.info
-        token: ${{secrets.CODECOV_TOKEN}}
+        exclude: interface,gallery,backends,tests,examples
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   style:
     strategy:
@@ -49,7 +53,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Rust setup
       uses: dtolnay/rust-toolchain@master
       with:

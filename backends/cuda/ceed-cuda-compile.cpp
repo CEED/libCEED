@@ -187,6 +187,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     CeedCallBackend(CeedFree(&opts));
     *is_compile_good = result == NVRTC_SUCCESS;
     if (!*is_compile_good) {
+      // LCOV_EXCL_START
       char  *log;
       size_t log_size;
 
@@ -196,15 +197,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       if (throw_error) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
       } else {
-        // LCOV_EXCL_START
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
         CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
         CeedCallBackend(CeedFree(&log));
         CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
         return CEED_ERROR_SUCCESS;
-        // LCOV_EXCL_STOP
       }
+      // LCOV_EXCL_STOP
     }
 
 #if CUDA_VERSION >= 11010
@@ -389,16 +389,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     *is_compile_good = result == 0;
     if (!*is_compile_good) {
+      // LCOV_EXCL_START
       if (throw_error) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
       } else {
-        // LCOV_EXCL_START
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
         CeedDebug(ceed, "Error: Failed to load module data");
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
         return CEED_ERROR_SUCCESS;
-        // LCOV_EXCL_STOP
       }
+      // LCOV_EXCL_STOP
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -477,6 +477,7 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
   CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, stream, args, NULL);
 
   if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
+    // LCOV_EXCL_START
     int max_threads_per_block, shared_size_bytes, num_regs;
 
     cuFuncGetAttribute(&max_threads_per_block, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
@@ -487,13 +488,12 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
                        "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
                        max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
     } else {
-      // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- LAUNCH ERROR DETECTED ----------\n");
       CeedDebug(ceed, "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d\n",
                 max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
       CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
-      // LCOV_EXCL_STOP
     }
+    // LCOV_EXCL_STOP
     *is_good_run = false;
   } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
