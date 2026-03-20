@@ -34,7 +34,7 @@ jobs:
         FC: gfortran
       run: |
         export CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline"
-        cargo llvm-cov test --doctests --lcov --output-path lcov.info
+        cargo llvm-cov test --doctests --lcov --exclude-from-report backends/*,interface/*,gallery/*,tests/*,julia/*,python/* --output-path lcov.info
     - name: Codecov upload
       uses: codecov/codecov-action@v4
       with:
