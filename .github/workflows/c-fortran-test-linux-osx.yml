@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Set compiler
       run: |
         case "${{ matrix.compiler }}" in
