@@ -620,8 +620,20 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }
 
-  // Loop through elements
+  // Clear input QFunction buffers
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    // Clear if active input
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+
+  // Clear output vector
   CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
+
+  // Loop through elements
   for (CeedInt e = 0; e < num_blocks * block_size; e += block_size) {
     CeedCallBackend(CeedVectorGetArray(l_vec, CEED_MEM_HOST, &l_vec_array));
 

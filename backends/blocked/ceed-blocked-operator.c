@@ -626,6 +626,19 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(CeedOperator o
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }
 
+  // Clear input QFunction buffers
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    // Clear if active input
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+
+  // Clear output vector
+  CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
+
   // Loop through elements
   for (CeedInt e = 0; e < num_blocks * block_size; e += block_size) {
     // Input basis apply
@@ -713,7 +726,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(CeedOperator o
 
   // Output blocked restriction
   CeedCallBackend(CeedVectorRestoreArray(l_vec, &l_vec_array));
-  CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
   CeedCallBackend(CeedElemRestrictionApply(block_rstr, CEED_TRANSPOSE, l_vec, *assembled, request));
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
