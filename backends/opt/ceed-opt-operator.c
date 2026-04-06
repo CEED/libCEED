@@ -563,7 +563,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) {
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         qf_size_in += field_size;
       }
       CeedCallBackend(CeedVectorDestroy(&vec));
