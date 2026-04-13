@@ -1508,6 +1508,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
   code << tab << "#if CEED_HIP_USE_CHIPSTAR\n";
+  code << tab << "// Pad out elements so all threads hit syncthreads()\n";
   code << tab << "const CeedInt elem_loop_bound = (gridDim.x*blockDim.z) * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
   code << tab << "#else\n";
   code << tab << "const CeedInt elem_loop_bound = num_elem;\n\n";
@@ -1872,6 +1873,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
   code << tab << "#if CEED_HIP_USE_CHIPSTAR\n";
+  code << tab << "// Pad out elements so all threads hit syncthreads()\n";
   code << tab << "const CeedInt elem_loop_bound = (gridDim.x*blockDim.z) * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
   code << tab << "#else\n";
   code << tab << "const CeedInt elem_loop_bound = num_elem;\n\n";
