@@ -35,7 +35,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -78,7 +82,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -124,7 +132,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -167,7 +179,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -213,7 +229,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -257,7 +277,11 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -308,7 +332,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__ void Grad(const C
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -360,7 +388,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -413,7 +445,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -465,7 +501,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -518,7 +558,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -570,7 +614,11 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -616,7 +664,11 @@ extern "C" __launch_bounds__(BASIS_WEIGHT_BLOCK_SIZE) __global__
 
   CeedScalar r_W[BASIS_DIM > 2 ? BASIS_Q_1D : 1];
 
+#if CEED_HIP_USE_CHIPSTAR
   const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
