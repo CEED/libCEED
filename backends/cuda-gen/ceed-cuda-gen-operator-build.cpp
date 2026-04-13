@@ -473,7 +473,7 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
         CeedInt comp_stride;
 
         CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
-        code << tab << "if (e < num_elem) {\n";
+        code << tab << "{\n";
         tab.push();
         code << tab << "const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
@@ -497,7 +497,7 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
         if (!has_backend_strides) {
           CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
-        code << tab << "if (e < num_elem) {\n";
+        code << tab << "{\n";
         tab.push();
         code << tab << "const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
              << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n\n";
@@ -1041,7 +1041,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
           CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
-          code << tab << "if (e < num_elem) {\n";
+          code << tab << "{\n";
           tab.push();
           code << tab << "const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n\n";
           code << tab << "WritePoint<num_comp" << var_suffix << ", comp_stride" << var_suffix
@@ -1494,10 +1494,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "const CeedInt elem_loop_bound = num_elem * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
-  code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
+  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
-  code << tab << "const CeedInt elem = e % num_elem;\n\n";
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -1862,10 +1860,8 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "const CeedInt elem_loop_bound = num_elem * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
-  code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
+  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; e < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
-  code << tab << "const CeedInt elem = e % num_elem;\n\n";
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -2058,7 +2054,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
-      code << tab << "if (e < num_elem) {\n";
+      code << tab << "{\n";
       tab.push();
       code << tab << "const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
       CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
@@ -2076,7 +2072,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
-      code << tab << "if (e < num_elem) {\n";
+      code << tab << "{\n";
       tab.push();
       code << tab << "const CeedInt l_size" << var_suffix << " = " << l_size << ";\n";
       CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
@@ -2449,10 +2445,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "const CeedInt elem_loop_bound = num_elem * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
-  code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
+  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
-  code << tab << "const CeedInt elem = e % num_elem;\n\n";
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
@@ -2668,7 +2662,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     // ---- Restriction
     CeedInt field_size;
 
-    code << tab << "if (e < num_elem) {\n";
+    code << tab << "{\n";
     tab.push();
     code << tab << "WriteLVecStandard" << (is_all_tensor ? max_dim : 1) << "d_QFAssembly<total_size_out, field_size_out_" << i << ", "
          << (is_all_tensor ? "Q_1d" : "Q") << ">(data, num_elem, elem, input_offset + s, " << offset << ", r_q_out_" << i << ", values_array);\n";

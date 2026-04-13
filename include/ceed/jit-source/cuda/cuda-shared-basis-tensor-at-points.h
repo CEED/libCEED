@@ -42,11 +42,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Map to coefficients
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
@@ -74,9 +70,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
       } else if (BASIS_DIM == 3) {
         InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
-      if (e < num_elem) {
-        WritePoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
-      }
+      WritePoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
     }
   }
 }
@@ -104,11 +98,7 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Clear register
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
@@ -143,20 +133,14 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
     // Map from coefficients
     if (BASIS_DIM == 1) {
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }
   }
 }
@@ -184,11 +168,7 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Clear register
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
@@ -212,20 +192,14 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
     // Map from coefficients
     if (BASIS_DIM == 1) {
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }
   }
 }
@@ -255,11 +229,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Map to coefficients
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
@@ -287,9 +257,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
       } else if (BASIS_DIM == 3) {
         GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
-      if (e < num_elem) {
-        WritePoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
-      }
+      WritePoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
     }
   }
 }
@@ -317,11 +285,7 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Clear register
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
@@ -357,20 +321,14 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
     // Map from coefficients
     if (BASIS_DIM == 1) {
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }
   }
 }
@@ -398,11 +356,7 @@ extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, cons
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
-
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
-    const CeedInt elem = e % num_elem;
-
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     // Clear register
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
@@ -427,20 +381,14 @@ extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, cons
     // Map from coefficients
     if (BASIS_DIM == 1) {
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_C, s_B, r_V);
-      if (e < num_elem) {
-        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
-      }
+      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }
   }
 }
