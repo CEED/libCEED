@@ -524,7 +524,7 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
         if (!has_backend_strides) {
           CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
-        code << tab << "if (e < num_elem) <\n";
+        code << tab << "if (e < num_elem) {\n";
         tab.push();
         code << tab << "const CeedInt strides" << var_suffix << "_0 = " << strides[0] << ", strides" << var_suffix << "_1 = " << strides[1]
              << ", strides" << var_suffix << "_2 = " << strides[2] << ";\n\n";
