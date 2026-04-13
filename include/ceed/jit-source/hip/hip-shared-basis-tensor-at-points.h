@@ -43,7 +43,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -105,7 +105,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -185,7 +185,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -257,7 +257,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -319,7 +319,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;
@@ -400,7 +400,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  const CeedInt elem_loop_bound = num_elem * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
 
   for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
     const CeedInt elem = e % num_elem;

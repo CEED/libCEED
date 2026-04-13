@@ -1507,7 +1507,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "const CeedInt elem_loop_bound = num_elem * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
+  code << tab << "const CeedInt elem_loop_bound = (gridDim.x*blockDim.z) * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
   code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
   tab.push();
   code << tab << "const CeedInt elem = e % num_elem;\n\n";
@@ -1867,7 +1867,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "const CeedInt elem_loop_bound = num_elem * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
+  code << tab << "const CeedInt elem_loop_bound = (gridDim.x*blockDim.z) * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n\n";
   code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
   tab.push();
   code << tab << "const CeedInt elem = e % num_elem;\n\n";
