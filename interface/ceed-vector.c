@@ -757,6 +757,44 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 }
 
 /**
+  @brief Filters or clips a `CeedVector` using a threshold value. 
+  All entries in `x` with an absolute value less than or equal to `threshold` are set to `0.0`.
+
+  @param[in,out] x     `CeedVector` to filter
+  @param[in]     threshold clipping threshold or tolerance
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
+  bool        has_valid_array = true;
+  CeedSize    length;
+  CeedScalar *x_array = NULL;
+
+  CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
+  CeedCheck(has_valid_array, CeedVectorReturnCeed(x), CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to scale, must set data with CeedVectorSetValue or CeedVectorSetArray");
+
+  // Return early for empty vector
+  CeedCall(CeedVectorGetLength(x, &length));
+  if (length == 0) return CEED_ERROR_SUCCESS;
+
+  // Backend implementation
+  if (x->Filter) return x->Filter(x, threshold);
+
+  // Default implementation
+  CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
+  assert(x_array);
+  CeedPragmaSIMD
+  for (CeedSize i = 0; i < length; i++) {
+    if (fabs(x_array[i]) <= threshold) x_array[i] = 0.0;
+  }
+  CeedCall(CeedVectorRestoreArray(x, &x_array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Compute `y = alpha x + y`
 
   @param[in,out] y     target `CeedVector` for sum
