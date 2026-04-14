@@ -212,6 +212,7 @@ CEED_EXTERN int  CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
 CEED_EXTERN int  CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
 CEED_EXTERN int  CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm);
 CEED_EXTERN int  CeedVectorScale(CeedVector x, CeedScalar alpha);
+CEED_EXTERN int  CeedVectorFilter(CeedVector x, CeedScalar threshold);
 CEED_EXTERN int  CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
 CEED_EXTERN int  CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x);
 CEED_EXTERN int  CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
