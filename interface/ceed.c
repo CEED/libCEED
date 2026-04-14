@@ -1305,6 +1305,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
       CEED_FTABLE_ENTRY(CeedVector, Norm),
       CEED_FTABLE_ENTRY(CeedVector, Scale),
+      CEED_FTABLE_ENTRY(CeedVector, Filter),
       CEED_FTABLE_ENTRY(CeedVector, AXPY),
       CEED_FTABLE_ENTRY(CeedVector, AXPBY),
       CEED_FTABLE_ENTRY(CeedVector, PointwiseMult),
