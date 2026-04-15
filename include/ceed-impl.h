@@ -332,6 +332,7 @@ struct CeedQFunctionAssemblyData_private {
   bool                is_setup;
   bool                reuse_data;
   bool                needs_data_update;
+  bool                is_block_assembling;
   CeedVector          vec;
   CeedElemRestriction rstr;
 };
@@ -359,6 +360,7 @@ struct CeedOperator_private {
   int (*LinearAssembleSymbolic)(CeedOperator, CeedSize *, CeedInt **, CeedInt **);
   int (*LinearAssemble)(CeedOperator, CeedVector);
   int (*LinearAssembleSingle)(CeedOperator, CeedInt, CeedVector);
+  int (*LinearAssembleSingleBlock)(CeedOperator, CeedInt, CeedInt, CeedInt, CeedVector);
   int (*CreateFDMElementInverse)(CeedOperator, CeedOperator *, CeedRequest *);
   int (*Apply)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
