@@ -13,4 +13,12 @@
 #define CeedPragmaSIMD
 #define CEED_Q_VLA 1
 
+// If we are using Chipstar, then we have to ensure all threads have the same workloads
+//   and hit __syncthreads() at the same places/number of times
+#ifdef __HIP_PLATFORM_SPIRV__
+#define CEED_HIP_USE_CHIPSTAR true
+#else
+#define CEED_HIP_USE_CHIPSTAR false
+#endif
+
 #include "hip-types.h"

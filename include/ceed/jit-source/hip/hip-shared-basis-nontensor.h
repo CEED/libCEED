@@ -35,10 +35,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
     InterpNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
-    WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
+    if (e < num_elem) {
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
+    }
   }
 }
 
@@ -62,10 +73,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
     InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
-    WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    if (e < num_elem) {
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    }
   }
 }
 
@@ -89,10 +111,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
     InterpTransposeNonTensor<BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_B, r_V);
-    SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    if (e < num_elem) {
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    }
   }
 }
 
@@ -119,10 +152,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, d_U, r_U);
     GradNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
-    WriteElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
+    if (e < num_elem) {
+      WriteElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_V, d_V);
+    }
   }
 }
 
@@ -146,10 +190,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
     GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
-    WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    if (e < num_elem) {
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    }
   }
 }
 
@@ -173,10 +228,21 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     ReadElementStrided1d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, d_U, r_U);
     GradTransposeNonTensor<BASIS_NUM_COMP, BASIS_DIM, BASIS_P, BASIS_Q, BASIS_T_1D>(data, r_U, s_G, r_V);
-    SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    if (e < num_elem) {
+      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P>(data, elem, 1, BASIS_P * num_elem, BASIS_P, r_V, d_V);
+    }
   }
 }
 
@@ -196,8 +262,19 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 
   CeedScalar r_W[1];
 
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     WeightNonTensor<BASIS_P, BASIS_Q>(data, q_weight, r_W);
-    WriteElementStrided1d<1, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_W, d_W);
+    if (e < num_elem) {
+      WriteElementStrided1d<1, BASIS_Q>(data, elem, 1, BASIS_Q * num_elem, BASIS_Q, r_W, d_W);
+    }
   }
 }

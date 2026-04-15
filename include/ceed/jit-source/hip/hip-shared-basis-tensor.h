@@ -35,21 +35,36 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
       Interp1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       InterpTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       InterpTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
-                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
+                                                          BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -68,18 +83,33 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, d_U, r_U);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, d_U, r_U);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
-                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
+                                                          BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_U, d_V);
+      }
     }
   }
 }
@@ -104,21 +134,36 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                          BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -137,18 +182,33 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                          BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      }
     }
   }
 }
@@ -173,21 +233,36 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, r_V);
-      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -207,18 +282,33 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
-      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                        BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      if (e < num_elem) {
+        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_U, d_V);
+      }
     }
   }
 }
@@ -248,23 +338,38 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__ void Grad(const C
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
       Grad1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       GradTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V,
-                                                                    d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V,
+                                                                      d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       if (BASIS_HAS_COLLOCATED_GRAD) GradTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       else GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
-                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
+                                                                      BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -290,22 +395,37 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, d_U, r_U);
       Grad1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       GradTensorCollocatedNodes2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V,
-                                                                    d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_V,
+                                                                      d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, d_U, r_U);
       GradTensorCollocatedNodes3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
-                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
+                                                                      BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -333,23 +453,38 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U,
                                                                    r_U);
       GradTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       if (BASIS_HAS_COLLOCATED_GRAD) GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       else GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                          BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -375,22 +510,37 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U,
                                                                    r_U);
       GradTransposeTensorCollocatedNodes2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       GradTransposeTensorCollocatedNodes3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                          BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -418,23 +568,38 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U,
                                                                    r_U);
       GradTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       if (BASIS_HAS_COLLOCATED_GRAD) GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       else GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -460,22 +625,37 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
   __syncthreads();
 
   // Apply basis element by element
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, d_U, r_U);
       GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * num_elem, BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, d_U,
                                                                    r_U);
       GradTransposeTensorCollocatedNodes2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * num_elem, BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
       GradTransposeTensorCollocatedNodes3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, NULL, s_G, r_V);
-      SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
-                                                      BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      if (e < num_elem) {
+        SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
+                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
+      }
     }
   }
 }
@@ -496,17 +676,32 @@ extern "C" __launch_bounds__(BASIS_WEIGHT_BLOCK_SIZE) __global__
 
   CeedScalar r_W[BASIS_DIM > 2 ? BASIS_Q_1D : 1];
 
-  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+#if CEED_HIP_USE_CHIPSTAR
+  // Pad out elements so all threads hit syncthreads()
+  const CeedInt elem_loop_bound = (gridDim.x * blockDim.z) * ceil(1.0 * num_elem / (gridDim.x * blockDim.z));
+#else
+  const CeedInt elem_loop_bound = num_elem;
+#endif
+
+  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x * blockDim.z) {
+    const CeedInt elem = e % num_elem;
+
     if (BASIS_DIM == 1) {
       Weight1d<BASIS_P_1D, BASIS_Q_1D>(data, q_weight_1d, r_W);
-      WriteElementStrided1d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_W, d_W);
+      if (e < num_elem) {
+        WriteElementStrided1d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * num_elem, BASIS_Q_1D, r_W, d_W);
+      }
     } else if (BASIS_DIM == 2) {
       WeightTensor2d<BASIS_P_1D, BASIS_Q_1D>(data, q_weight_1d, r_W);
-      WriteElementStrided2d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_W, d_W);
+      if (e < num_elem) {
+        WriteElementStrided2d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D, r_W, d_W);
+      }
     } else if (BASIS_DIM == 3) {
       WeightTensor3d<BASIS_P_1D, BASIS_Q_1D>(data, q_weight_1d, r_W);
-      WriteElementStrided3d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_W,
-                                           d_W);
+      if (e < num_elem) {
+        WriteElementStrided3d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D,
+                                             r_W, d_W);
+      }
     }
   }
 }
