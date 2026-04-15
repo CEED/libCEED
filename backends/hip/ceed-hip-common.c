@@ -38,17 +38,6 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
     CeedDebug(ceed, "Using unified memory addressing");
   }
   data->opt_block_size = 256;
-
-  // Set CHIPSTAR modifications off by default
-  {
-#ifdef __HIP_PLATFORM_SPIRV__
-    const char *define = "CEED_HIP_USE_CHIPSTAR=true";
-#else
-    const char *define = "CEED_HIP_USE_CHIPSTAR=false";
-#endif
-
-    CeedCallBackend(CeedAddJitDefine(ceed, define));
-  }
   return CEED_ERROR_SUCCESS;
 }
 
