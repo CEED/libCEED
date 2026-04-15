@@ -438,6 +438,117 @@ static inline int CeedOperatorLinearAssembleAddDiagonalComposite(CeedOperator op
 }
 
 /**
+  @brief Count number of entries for assembled `CeedOperator`
+
+  @param[in]  op              `CeedOperator` to assemble
+  @param[in]  active_rstr_in  `CeedElemRestriction` for this block input field
+  @param[in]  active_rstr_out `CeedElemRestriction` for this block output field
+  @param[out] num_entries     Number of entries in assembled representation
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedOperatorAssemblyCountEntriesSingleBlock(CeedOperator op, CeedElemRestriction active_rstr_in, CeedElemRestriction active_rstr_out,
+                                                       CeedSize *num_entries) {
+  bool    is_composite;
+  CeedInt num_elem_in, elem_size_in, num_comp_in, num_elem_out, elem_size_out, num_comp_out;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+
+  CeedCall(CeedElemRestrictionGetNumElements(active_rstr_in, &num_elem_in));
+  CeedCall(CeedElemRestrictionGetElementSize(active_rstr_in, &elem_size_in));
+  CeedCall(CeedElemRestrictionGetNumComponents(active_rstr_in, &num_comp_in));
+  if (active_rstr_in != active_rstr_out) {
+    CeedCall(CeedElemRestrictionGetNumElements(active_rstr_out, &num_elem_out));
+    CeedCheck(num_elem_in == num_elem_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
+              "Active input and output operator restrictions must have the same number of elements."
+              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
+              num_elem_in, num_elem_out);
+    CeedCall(CeedElemRestrictionGetElementSize(active_rstr_out, &elem_size_out));
+    CeedCall(CeedElemRestrictionGetNumComponents(active_rstr_out, &num_comp_out));
+  } else {
+    num_elem_out  = num_elem_in;
+    elem_size_out = elem_size_in;
+    num_comp_out  = num_comp_in;
+  }
+  *num_entries = (CeedSize)elem_size_in * num_comp_in * elem_size_out * num_comp_out * num_elem_in;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Count number of entries for assembled `CeedOperator`
+
+  @param[in]  op          `CeedOperator` to assemble
+  @param[out] num_entries Number of entries in assembled representation
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+static int CeedOperatorAssemblyCountEntriesSingle(CeedOperator op, CeedSize *num_entries) {
+  bool                     is_composite;
+  CeedInt                  num_active_in, num_active_out;
+  CeedElemRestriction     *active_rstrs_in, *active_rstrs_out;
+  CeedOperatorAssemblyData data;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+
+  CeedCall(CeedOperatorGetOperatorAssemblyData(op, &data));
+  CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, &num_active_in, &active_rstrs_in, &num_active_out, &active_rstrs_out));
+
+  // Sum entries for each pair of input/output restrictions (block of full matrix)
+  *num_entries = 0;
+  for (CeedInt i = 0; i < num_active_in; i++) {
+    for (CeedInt j = 0; j < num_active_out; j++) {
+      CeedSize num_entries_block;
+
+      CeedCall(CeedOperatorAssemblyCountEntriesSingleBlock(op, active_rstrs_in[i], active_rstrs_out[j], &num_entries_block));
+      *num_entries += num_entries_block;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Count number of entries for assembled `CeedOperator`
+
+  @param[in]  op          `CeedOperator` to assemble
+  @param[out] num_entries Number of entries in assembled representation
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entries) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
+  if (is_composite) {
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+
+    *num_entries = 0;
+    for (CeedInt k = 0; k < num_suboperators; ++k) {
+      CeedSize single_entries;
+
+      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
+      *num_entries += single_entries;
+    }
+  } else {
+    CeedCall(CeedOperatorAssemblyCountEntriesSingle(op, num_entries));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Build nonzero pattern for non-composite CeedOperator`.
 
   Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
@@ -451,7 +562,8 @@ static inline int CeedOperatorLinearAssembleAddDiagonalComposite(CeedOperator op
 
   @ref Developer
 **/
-static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedInt offset, CeedInt *rows, CeedInt *cols) {
+static int CeedOperatorAssembleSymbolicSingleBlock(CeedOperator op, CeedSize offset, CeedElemRestriction elem_rstr_in,
+                                                   CeedElemRestriction elem_rstr_out, CeedInt *rows, CeedInt *cols) {
   Ceed                ceed;
   bool                is_composite;
   CeedSize            num_nodes_in, num_nodes_out, local_num_entries, count = 0;
@@ -460,14 +572,13 @@ static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedInt offset, C
   CeedScalar         *array;
   const CeedScalar   *elem_dof_a_in, *elem_dof_a_out;
   CeedVector          index_vec_in, index_vec_out, elem_dof_in, elem_dof_out;
-  CeedElemRestriction elem_rstr_in, elem_rstr_out, index_elem_rstr_in, index_elem_rstr_out;
+  CeedElemRestriction index_elem_rstr_in, index_elem_rstr_out;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &num_nodes_in, &num_nodes_out));
-  CeedCall(CeedOperatorGetActiveElemRestrictions(op, &elem_rstr_in, &elem_rstr_out));
   CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
   CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
   CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
@@ -545,8 +656,48 @@ static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedInt offset, C
     CeedCall(CeedVectorRestoreArrayRead(elem_dof_out, &elem_dof_a_out));
     CeedCall(CeedVectorDestroy(&elem_dof_out));
   }
-  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_in));
-  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_out));
+  CeedCall(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Build nonzero pattern for non-composite CeedOperator`.
+
+  Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
+
+  @param[in]  op     `CeedOperator` to assemble nonzero pattern
+  @param[in]  offset Offset for number of entries
+  @param[out] rows   Row number for each entry
+  @param[out] cols   Column number for each entry
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedSize offset, CeedInt *rows, CeedInt *cols) {
+  Ceed                     ceed;
+  bool                     is_composite;
+  CeedInt                  num_active_in, num_active_out;
+  CeedElemRestriction     *active_rstrs_in, *active_rstrs_out;
+  CeedOperatorAssemblyData data;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+
+  CeedCall(CeedOperatorGetOperatorAssemblyData(op, &data));
+  CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, &num_active_in, &active_rstrs_in, &num_active_out, &active_rstrs_out));
+
+  // Sum entries for each pair of input/output restrictions (block of full matrix)
+  for (CeedInt i = 0; i < num_active_in; i++) {
+    for (CeedInt j = 0; j < num_active_out; j++) {
+      CeedSize num_entries_block;
+
+      CeedCall(CeedOperatorAssembleSymbolicSingleBlock(op, offset, active_rstrs_in[i], active_rstrs_out[j], rows, cols));
+      CeedCall(CeedOperatorAssemblyCountEntriesSingleBlock(op, active_rstrs_in[i], active_rstrs_out[j], &num_entries_block));
+      offset += num_entries_block;
+    }
+  }
   CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -668,7 +819,7 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, Ce
 
   @ref Developer
 **/
-int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector values) {
+int CeedOperatorAssembleSingleBlock(CeedOperator op, CeedInt offset, CeedInt active_input, CeedInt active_output, CeedVector values) {
   bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -682,9 +833,9 @@ int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector value
     if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
 
-  if (op->LinearAssembleSingle) {
+  if (op->LinearAssembleSingleBlock) {
     // Backend version
-    CeedCall(op->LinearAssembleSingle(op, offset, values));
+    CeedCall(op->LinearAssembleSingleBlock(op, offset, active_input, active_output, values));
     return CEED_ERROR_SUCCESS;
   } else {
     // Operator fallback
@@ -693,7 +844,7 @@ int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector value
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingle\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
-      CeedCall(CeedOperatorAssembleSingle(op_fallback, offset, values));
+      CeedCall(CeedOperatorAssembleSingleBlock(op_fallback, offset, active_input, active_output, values));
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -714,281 +865,292 @@ int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector value
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
   // Get assembly data
-  CeedInt                  num_elem_in, elem_size_in, num_comp_in, num_qpts_in;
-  CeedInt                  num_elem_out, elem_size_out, num_comp_out, num_qpts_out;
   CeedSize                 local_num_entries, count = 0;
-  const CeedEvalMode     **eval_modes_in, **eval_modes_out;
   CeedInt                  num_active_bases_in, *num_eval_modes_in, num_active_bases_out, *num_eval_modes_out;
-  CeedBasis               *active_bases_in, *active_bases_out, basis_in, basis_out;
-  const CeedScalar       **B_mats_in, **B_mats_out, *B_mat_in, *B_mat_out;
-  CeedElemRestriction      elem_rstr_in, elem_rstr_out;
-  CeedRestrictionType      elem_rstr_type_in, elem_rstr_type_out;
-  const bool              *elem_rstr_orients_in = NULL, *elem_rstr_orients_out = NULL;
-  const CeedInt8          *elem_rstr_curl_orients_in = NULL, *elem_rstr_curl_orients_out = NULL;
+  CeedSize                 num_output_components, **eval_modes_offsets_in, **eval_modes_offsets_out;
+  CeedBasis               *active_bases_in, *active_bases_out;
+  CeedElemRestriction     *active_rstrs_in, *active_rstrs_out;
+  const CeedScalar       **B_mats_in, **B_mats_out;
   CeedOperatorAssemblyData data;
 
   CeedCall(CeedOperatorGetOperatorAssemblyData(op, &data));
-  CeedCall(CeedOperatorAssemblyDataGetEvalModes(data, &num_active_bases_in, &num_eval_modes_in, &eval_modes_in, NULL, &num_active_bases_out,
-                                                &num_eval_modes_out, &eval_modes_out, NULL, NULL));
+  CeedCall(CeedOperatorAssemblyDataGetEvalModes(data, &num_active_bases_in, &num_eval_modes_in, NULL, &eval_modes_offsets_in, &num_active_bases_out,
+                                                &num_eval_modes_out, NULL, &eval_modes_offsets_out, &num_output_components));
+  // Number of elem restrictions is the same as the number of bases
+  CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, NULL, &active_rstrs_in, NULL, &active_rstrs_out));
 
-  CeedCheck(num_active_bases_in == 1 && num_active_bases_out == 1, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
-            "Cannot assemble operator with multiple active bases");
   CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
             "Cannot assemble operator without inputs/outputs");
 
   CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &active_bases_in, &B_mats_in, NULL, &active_bases_out, &B_mats_out));
-  CeedCall(CeedOperatorGetActiveElemRestrictions(op, &elem_rstr_in, &elem_rstr_out));
-  basis_in  = active_bases_in[0];
-  basis_out = active_bases_out[0];
-  B_mat_in  = B_mats_in[0];
-  B_mat_out = B_mats_out[0];
 
-  CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
-  CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
-  CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
-  if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
-  else CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+  // Assemble single block (active_out, active_in)
+  {
+    CeedInt             num_elem_in, elem_size_in, num_comp_in, num_qpts_in;
+    CeedInt             num_elem_out, elem_size_out, num_comp_out, num_qpts_out;
+    CeedElemRestriction elem_rstr_in = active_rstrs_in[active_input], elem_rstr_out = active_rstrs_out[active_output];
+    CeedBasis           basis_in = active_bases_in[active_input], basis_out = active_bases_out[active_output];
+    const CeedScalar   *B_mat_in = B_mats_in[active_input], *B_mat_out = B_mats_out[active_output];
+    CeedRestrictionType elem_rstr_type_in, elem_rstr_type_out;
+    const bool         *elem_rstr_orients_in = NULL, *elem_rstr_orients_out = NULL;
+    const CeedInt8     *elem_rstr_curl_orients_in = NULL, *elem_rstr_curl_orients_out = NULL;
 
-  CeedCall(CeedElemRestrictionGetType(elem_rstr_in, &elem_rstr_type_in));
-  if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
-    CeedCall(CeedElemRestrictionGetOrientations(elem_rstr_in, CEED_MEM_HOST, &elem_rstr_orients_in));
-  } else if (elem_rstr_type_in == CEED_RESTRICTION_CURL_ORIENTED) {
-    CeedCall(CeedElemRestrictionGetCurlOrientations(elem_rstr_in, CEED_MEM_HOST, &elem_rstr_curl_orients_in));
-  }
+    CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
+    CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
+    CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
+    if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
+    else CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
 
-  if (elem_rstr_in != elem_rstr_out) {
-    CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_out, &num_elem_out));
-    CeedCheck(num_elem_in == num_elem_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
-              "Active input and output operator restrictions must have the same number of elements."
-              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
-              num_elem_in, num_elem_out);
-    CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
-    CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
-    if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
-    else CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
-    CeedCheck(num_qpts_in == num_qpts_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
-              "Active input and output bases must have the same number of quadrature points."
-              " Input has %" CeedInt_FMT " points; output has %" CeedInt_FMT "points.",
-              num_qpts_in, num_qpts_out);
-
-    CeedCall(CeedElemRestrictionGetType(elem_rstr_out, &elem_rstr_type_out));
-    if (elem_rstr_type_out == CEED_RESTRICTION_ORIENTED) {
-      CeedCall(CeedElemRestrictionGetOrientations(elem_rstr_out, CEED_MEM_HOST, &elem_rstr_orients_out));
-    } else if (elem_rstr_type_out == CEED_RESTRICTION_CURL_ORIENTED) {
-      CeedCall(CeedElemRestrictionGetCurlOrientations(elem_rstr_out, CEED_MEM_HOST, &elem_rstr_curl_orients_out));
+    CeedCall(CeedElemRestrictionGetType(elem_rstr_in, &elem_rstr_type_in));
+    if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
+      CeedCall(CeedElemRestrictionGetOrientations(elem_rstr_in, CEED_MEM_HOST, &elem_rstr_orients_in));
+    } else if (elem_rstr_type_in == CEED_RESTRICTION_CURL_ORIENTED) {
+      CeedCall(CeedElemRestrictionGetCurlOrientations(elem_rstr_in, CEED_MEM_HOST, &elem_rstr_curl_orients_in));
     }
-  } else {
-    num_elem_out  = num_elem_in;
-    elem_size_out = elem_size_in;
-    num_comp_out  = num_comp_in;
-    num_qpts_out  = num_qpts_in;
 
-    elem_rstr_orients_out      = elem_rstr_orients_in;
-    elem_rstr_curl_orients_out = elem_rstr_curl_orients_in;
-  }
-  local_num_entries = (CeedSize)elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
+    if (elem_rstr_in != elem_rstr_out) {
+      CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_out, &num_elem_out));
+      CeedCheck(num_elem_in == num_elem_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
+                "Active input and output operator restrictions must have the same number of elements."
+                " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
+                num_elem_in, num_elem_out);
+      CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
+      CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
+      if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
+      else CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+      CeedCheck(num_qpts_in == num_qpts_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
+                "Active input and output bases must have the same number of quadrature points."
+                " Input has %" CeedInt_FMT " points; output has %" CeedInt_FMT "points.",
+                num_qpts_in, num_qpts_out);
 
-  // Loop over elements and put in data structure
-  // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
-  CeedTensorContract contract;
-  CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
+      CeedCall(CeedElemRestrictionGetType(elem_rstr_out, &elem_rstr_type_out));
+      if (elem_rstr_type_out == CEED_RESTRICTION_ORIENTED) {
+        CeedCall(CeedElemRestrictionGetOrientations(elem_rstr_out, CEED_MEM_HOST, &elem_rstr_orients_out));
+      } else if (elem_rstr_type_out == CEED_RESTRICTION_CURL_ORIENTED) {
+        CeedCall(CeedElemRestrictionGetCurlOrientations(elem_rstr_out, CEED_MEM_HOST, &elem_rstr_curl_orients_out));
+      }
+    } else {
+      num_elem_out  = num_elem_in;
+      elem_size_out = elem_size_in;
+      num_comp_out  = num_comp_in;
+      num_qpts_out  = num_qpts_in;
 
-  CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
-  CeedCall(CeedCalloc(elem_size_out * num_qpts_in * num_eval_modes_in[0], &BTD_mat));
-  CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat));
-  if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
+      elem_rstr_orients_out      = elem_rstr_orients_in;
+      elem_rstr_curl_orients_out = elem_rstr_curl_orients_in;
+    }
+    local_num_entries = (CeedSize)elem_size_out * num_comp_out * elem_size_in * num_comp_in * num_elem_in;
+    // Loop over elements and put in data structure
+    // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
+    CeedTensorContract contract;
+    CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
-  CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
-  for (CeedSize e = 0; e < num_elem_in; e++) {
-    for (CeedInt comp_in = 0; comp_in < num_comp_in; comp_in++) {
-      for (CeedInt comp_out = 0; comp_out < num_comp_out; comp_out++) {
-        // Compute B^T*D
-        for (CeedSize n = 0; n < elem_size_out; n++) {
-          for (CeedSize q = 0; q < num_qpts_in; q++) {
-            for (CeedInt e_in = 0; e_in < num_eval_modes_in[0]; e_in++) {
-              const CeedSize btd_index = n * (num_qpts_in * num_eval_modes_in[0]) + q * num_eval_modes_in[0] + e_in;
-              CeedScalar     sum       = 0.0;
+    CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
+    CeedCall(CeedCalloc(elem_size_out * num_qpts_in * num_eval_modes_in[active_input], &BTD_mat));
+    CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat));
+    if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
 
-              for (CeedInt e_out = 0; e_out < num_eval_modes_out[0]; e_out++) {
-                const CeedSize b_out_index     = (q * num_eval_modes_out[0] + e_out) * elem_size_out + n;
-                const CeedSize eval_mode_index = ((e_in * num_comp_in + comp_in) * num_eval_modes_out[0] + e_out) * num_comp_out + comp_out;
-                const CeedSize qf_index        = q * layout_qf[0] + eval_mode_index * layout_qf[1] + e * layout_qf[2];
+    CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
+    for (CeedSize e = 0; e < num_elem_in; e++) {
+      for (CeedInt comp_in = 0; comp_in < num_comp_in; comp_in++) {
+        for (CeedInt comp_out = 0; comp_out < num_comp_out; comp_out++) {
+          // Compute B^T*D
+          for (CeedSize n = 0; n < elem_size_out; n++) {
+            for (CeedSize q = 0; q < num_qpts_in; q++) {
+              for (CeedInt e_in = 0; e_in < num_eval_modes_in[active_input]; e_in++) {
+                const CeedSize btd_index = n * (num_qpts_in * num_eval_modes_in[active_input]) + q * num_eval_modes_in[active_input] + e_in;
+                CeedScalar     sum       = 0.0;
 
-                sum += B_mat_out[b_out_index] * assembled_qf_array[qf_index];
+                for (CeedInt e_out = 0; e_out < num_eval_modes_out[active_output]; e_out++) {
+                  const CeedSize b_out_index     = (q * num_eval_modes_out[active_output] + e_out) * elem_size_out + n;
+                  const CeedSize row_offset      = eval_modes_offsets_in[active_input][e_in] + comp_in;
+                  const CeedSize eval_mode_index = row_offset * num_output_components + eval_modes_offsets_out[active_output][e_out] + comp_out;
+                  const CeedSize qf_index        = q * layout_qf[0] + eval_mode_index * layout_qf[1] + e * layout_qf[2];
+
+                  sum += B_mat_out[b_out_index] * assembled_qf_array[qf_index];
+                }
+                BTD_mat[btd_index] = sum;
               }
-              BTD_mat[btd_index] = sum;
             }
           }
-        }
 
-        // Form element matrix itself (for each block component)
-        if (contract) {
-          CeedCall(CeedTensorContractApply(contract, 1, num_qpts_in * num_eval_modes_in[0], elem_size_in, elem_size_out, BTD_mat, CEED_NOTRANSPOSE,
-                                           false, B_mat_in, elem_mat));
-        } else {
-          Ceed ceed;
+          // Form element matrix itself (for each block component)
+          if (contract) {
+            CeedCall(CeedTensorContractApply(contract, 1, num_qpts_in * num_eval_modes_in[active_input], elem_size_in, elem_size_out, BTD_mat,
+                                             CEED_NOTRANSPOSE, false, B_mat_in, elem_mat));
+          } else {
+            Ceed ceed;
 
-          CeedCall(CeedOperatorGetCeed(op, &ceed));
-          CeedCall(CeedMatrixMatrixMultiply(ceed, BTD_mat, B_mat_in, elem_mat, elem_size_out, elem_size_in, num_qpts_in * num_eval_modes_in[0]));
-          CeedCall(CeedDestroy(&ceed));
-        }
+            CeedCall(CeedOperatorGetCeed(op, &ceed));
+            CeedCall(CeedMatrixMatrixMultiply(ceed, BTD_mat, B_mat_in, elem_mat, elem_size_out, elem_size_in,
+                                              num_qpts_in * num_eval_modes_in[active_input]));
+            CeedCall(CeedDestroy(&ceed));
+          }
 
-        // Transform the element matrix if required
-        if (elem_rstr_orients_out) {
-          const bool *elem_orients = &elem_rstr_orients_out[e * elem_size_out];
+          // Transform the element matrix if required
+          if (elem_rstr_orients_out) {
+            const bool *elem_orients = &elem_rstr_orients_out[e * elem_size_out];
 
+            for (CeedInt i = 0; i < elem_size_out; i++) {
+              const double orient = elem_orients[i] ? -1.0 : 1.0;
+
+              for (CeedInt j = 0; j < elem_size_in; j++) {
+                elem_mat[i * elem_size_in + j] *= orient;
+              }
+            }
+          } else if (elem_rstr_curl_orients_out) {
+            const CeedInt8 *elem_curl_orients = &elem_rstr_curl_orients_out[e * 3 * elem_size_out];
+
+            // T^T*(B^T*D*B)
+            memcpy(elem_mat_b, elem_mat, elem_size_out * elem_size_in * sizeof(CeedScalar));
+            for (CeedInt i = 0; i < elem_size_out; i++) {
+              for (CeedInt j = 0; j < elem_size_in; j++) {
+                elem_mat[i * elem_size_in + j] =
+                    elem_mat_b[i * elem_size_in + j] * elem_curl_orients[3 * i + 1] +
+                    (i > 0 ? elem_mat_b[(i - 1) * elem_size_in + j] * elem_curl_orients[3 * i - 1] : 0.0) +
+                    (i < elem_size_out - 1 ? elem_mat_b[(i + 1) * elem_size_in + j] * elem_curl_orients[3 * i + 3] : 0.0);
+              }
+            }
+          }
+          if (elem_rstr_orients_in) {
+            const bool *elem_orients = &elem_rstr_orients_in[e * elem_size_in];
+
+            for (CeedInt i = 0; i < elem_size_out; i++) {
+              for (CeedInt j = 0; j < elem_size_in; j++) {
+                elem_mat[i * elem_size_in + j] *= elem_orients[j] ? -1.0 : 1.0;
+              }
+            }
+          } else if (elem_rstr_curl_orients_in) {
+            const CeedInt8 *elem_curl_orients = &elem_rstr_curl_orients_in[e * 3 * elem_size_in];
+
+            // (B^T*D*B)*T
+            memcpy(elem_mat_b, elem_mat, elem_size_out * elem_size_in * sizeof(CeedScalar));
+            for (CeedInt i = 0; i < elem_size_out; i++) {
+              for (CeedInt j = 0; j < elem_size_in; j++) {
+                elem_mat[i * elem_size_in + j] = elem_mat_b[i * elem_size_in + j] * elem_curl_orients[3 * j + 1] +
+                                                 (j > 0 ? elem_mat_b[i * elem_size_in + j - 1] * elem_curl_orients[3 * j - 1] : 0.0) +
+                                                 (j < elem_size_in - 1 ? elem_mat_b[i * elem_size_in + j + 1] * elem_curl_orients[3 * j + 3] : 0.0);
+              }
+            }
+          }
+
+          // Put element matrix in coordinate data structure
           for (CeedInt i = 0; i < elem_size_out; i++) {
-            const double orient = elem_orients[i] ? -1.0 : 1.0;
-
             for (CeedInt j = 0; j < elem_size_in; j++) {
-              elem_mat[i * elem_size_in + j] *= orient;
+              vals[offset + count] = elem_mat[i * elem_size_in + j];
+              count++;
             }
-          }
-        } else if (elem_rstr_curl_orients_out) {
-          const CeedInt8 *elem_curl_orients = &elem_rstr_curl_orients_out[e * 3 * elem_size_out];
-
-          // T^T*(B^T*D*B)
-          memcpy(elem_mat_b, elem_mat, elem_size_out * elem_size_in * sizeof(CeedScalar));
-          for (CeedInt i = 0; i < elem_size_out; i++) {
-            for (CeedInt j = 0; j < elem_size_in; j++) {
-              elem_mat[i * elem_size_in + j] = elem_mat_b[i * elem_size_in + j] * elem_curl_orients[3 * i + 1] +
-                                               (i > 0 ? elem_mat_b[(i - 1) * elem_size_in + j] * elem_curl_orients[3 * i - 1] : 0.0) +
-                                               (i < elem_size_out - 1 ? elem_mat_b[(i + 1) * elem_size_in + j] * elem_curl_orients[3 * i + 3] : 0.0);
-            }
-          }
-        }
-        if (elem_rstr_orients_in) {
-          const bool *elem_orients = &elem_rstr_orients_in[e * elem_size_in];
-
-          for (CeedInt i = 0; i < elem_size_out; i++) {
-            for (CeedInt j = 0; j < elem_size_in; j++) {
-              elem_mat[i * elem_size_in + j] *= elem_orients[j] ? -1.0 : 1.0;
-            }
-          }
-        } else if (elem_rstr_curl_orients_in) {
-          const CeedInt8 *elem_curl_orients = &elem_rstr_curl_orients_in[e * 3 * elem_size_in];
-
-          // (B^T*D*B)*T
-          memcpy(elem_mat_b, elem_mat, elem_size_out * elem_size_in * sizeof(CeedScalar));
-          for (CeedInt i = 0; i < elem_size_out; i++) {
-            for (CeedInt j = 0; j < elem_size_in; j++) {
-              elem_mat[i * elem_size_in + j] = elem_mat_b[i * elem_size_in + j] * elem_curl_orients[3 * j + 1] +
-                                               (j > 0 ? elem_mat_b[i * elem_size_in + j - 1] * elem_curl_orients[3 * j - 1] : 0.0) +
-                                               (j < elem_size_in - 1 ? elem_mat_b[i * elem_size_in + j + 1] * elem_curl_orients[3 * j + 3] : 0.0);
-            }
-          }
-        }
-
-        // Put element matrix in coordinate data structure
-        for (CeedInt i = 0; i < elem_size_out; i++) {
-          for (CeedInt j = 0; j < elem_size_in; j++) {
-            vals[offset + count] = elem_mat[i * elem_size_in + j];
-            count++;
           }
         }
       }
     }
-  }
-  CeedCheck(count == local_num_entries, CeedOperatorReturnCeed(op), CEED_ERROR_MAJOR, "Error computing entries");
-  CeedCall(CeedVectorRestoreArray(values, &vals));
+    CeedCheck(count == local_num_entries, CeedOperatorReturnCeed(op), CEED_ERROR_MAJOR, "Error computing entries");
+    CeedCall(CeedVectorRestoreArray(values, &vals));
 
-  // Cleanup
-  CeedCall(CeedFree(&BTD_mat));
-  CeedCall(CeedFree(&elem_mat));
-  CeedCall(CeedFree(&elem_mat_b));
-  if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
-    CeedCall(CeedElemRestrictionRestoreOrientations(elem_rstr_in, &elem_rstr_orients_in));
-  } else if (elem_rstr_type_in == CEED_RESTRICTION_CURL_ORIENTED) {
-    CeedCall(CeedElemRestrictionRestoreCurlOrientations(elem_rstr_in, &elem_rstr_curl_orients_in));
-  }
-  if (elem_rstr_in != elem_rstr_out) {
-    if (elem_rstr_type_out == CEED_RESTRICTION_ORIENTED) {
-      CeedCall(CeedElemRestrictionRestoreOrientations(elem_rstr_out, &elem_rstr_orients_out));
-    } else if (elem_rstr_type_out == CEED_RESTRICTION_CURL_ORIENTED) {
-      CeedCall(CeedElemRestrictionRestoreCurlOrientations(elem_rstr_out, &elem_rstr_curl_orients_out));
+    // Cleanup
+    CeedCall(CeedFree(&BTD_mat));
+    CeedCall(CeedFree(&elem_mat));
+    CeedCall(CeedFree(&elem_mat_b));
+    if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
+      CeedCall(CeedElemRestrictionRestoreOrientations(elem_rstr_in, &elem_rstr_orients_in));
+    } else if (elem_rstr_type_in == CEED_RESTRICTION_CURL_ORIENTED) {
+      CeedCall(CeedElemRestrictionRestoreCurlOrientations(elem_rstr_in, &elem_rstr_curl_orients_in));
+    }
+    if (elem_rstr_in != elem_rstr_out) {
+      if (elem_rstr_type_out == CEED_RESTRICTION_ORIENTED) {
+        CeedCall(CeedElemRestrictionRestoreOrientations(elem_rstr_out, &elem_rstr_orients_out));
+      } else if (elem_rstr_type_out == CEED_RESTRICTION_CURL_ORIENTED) {
+        CeedCall(CeedElemRestrictionRestoreCurlOrientations(elem_rstr_out, &elem_rstr_curl_orients_out));
+      }
     }
   }
   CeedCall(CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array));
   CeedCall(CeedVectorDestroy(&assembled_qf));
-  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_in));
-  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_out));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Count number of entries for assembled `CeedOperator`
+  @brief Assemble nonzero entries for non-composite `CeedOperator`.
 
-  @param[in]  op          `CeedOperator` to assemble
-  @param[out] num_entries Number of entries in assembled representation
+  Users should generally use @ref CeedOperatorLinearAssemble().
+
+  @param[in]  op     `CeedOperator` to assemble
+  @param[in]  offset Offset for number of entries
+  @param[out] values Values to assemble into matrix
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
+  @ref Developer
 **/
-static int CeedOperatorAssemblyCountEntriesSingle(CeedOperator op, CeedSize *num_entries) {
-  bool                is_composite;
-  CeedInt             num_elem_in, elem_size_in, num_comp_in, num_elem_out, elem_size_out, num_comp_out;
-  CeedElemRestriction rstr_in, rstr_out;
+int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector values) {
+  bool is_composite, is_at_points;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
-  CeedCall(CeedOperatorGetActiveElemRestrictions(op, &rstr_in, &rstr_out));
-  CeedCall(CeedElemRestrictionGetNumElements(rstr_in, &num_elem_in));
-  CeedCall(CeedElemRestrictionGetElementSize(rstr_in, &elem_size_in));
-  CeedCall(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp_in));
-  if (rstr_in != rstr_out) {
-    CeedCall(CeedElemRestrictionGetNumElements(rstr_out, &num_elem_out));
-    CeedCheck(num_elem_in == num_elem_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
-              "Active input and output operator restrictions must have the same number of elements."
-              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
-              num_elem_in, num_elem_out);
-    CeedCall(CeedElemRestrictionGetElementSize(rstr_out, &elem_size_out));
-    CeedCall(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
-  } else {
-    num_elem_out  = num_elem_in;
-    elem_size_out = elem_size_in;
-    num_comp_out  = num_comp_in;
+  // Early exit for empty operator
+  {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
-  CeedCall(CeedElemRestrictionDestroy(&rstr_in));
-  CeedCall(CeedElemRestrictionDestroy(&rstr_out));
-  *num_entries = (CeedSize)elem_size_in * num_comp_in * elem_size_out * num_comp_out * num_elem_in;
-  return CEED_ERROR_SUCCESS;
-}
 
-/**
-  @brief Count number of entries for assembled `CeedOperator`
+  // Check for multiple active elem restrictions
+  CeedInt                  num_active_rstr_in, num_active_rstr_out;
+  CeedElemRestriction     *active_rstrs_in, *active_rstrs_out;
+  CeedOperatorAssemblyData data;
 
-  @param[in]  op          `CeedOperator` to assemble
-  @param[out] num_entries Number of entries in assembled representation
+  CeedCall(CeedOperatorGetOperatorAssemblyData(op, &data));
+  CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, &num_active_rstr_in, &active_rstrs_in, &num_active_rstr_out, &active_rstrs_out));
 
-  @return An error code: 0 - success, otherwise - failure
+  const bool multiple_active_rstr = num_active_rstr_in > 1 || num_active_rstr_out > 1;
 
-  @ref Utility
-**/
-int CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entries) {
-  bool is_composite;
+  if (multiple_active_rstr) {
+    if (!op->LinearAssembleSingleBlock) {
+      // Operator fallback
+      CeedOperator op_fallback;
 
-  CeedCall(CeedOperatorCheckReady(op));
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
-
-  if (is_composite) {
-    CeedInt       num_suboperators;
-    CeedOperator *sub_operators;
-
-    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
-
-    *num_entries = 0;
-    for (CeedInt k = 0; k < num_suboperators; ++k) {
-      CeedSize single_entries;
-
-      CeedCall(CeedOperatorAssemblyCountEntriesSingle(sub_operators[k], &single_entries));
-      *num_entries += single_entries;
+      CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingle\n");
+      CeedCall(CeedOperatorGetFallback(op, &op_fallback));
+      if (op_fallback) {
+        CeedCall(CeedOperatorAssembleSingle(op_fallback, offset, values));
+        return CEED_ERROR_SUCCESS;
+      }
     }
+
+    // Assemble QFunction for each block
+    for (CeedInt i = 0; i < num_active_rstr_in; i++) {
+      for (CeedInt j = 0; j < num_active_rstr_out; j++) {
+        CeedSize num_entries_block;
+
+        CeedCall(CeedOperatorAssembleSingleBlock(op, offset, i, j, values));
+        CeedCall(CeedOperatorAssemblyCountEntriesSingleBlock(op, active_rstrs_in[i], active_rstrs_out[j], &num_entries_block));
+        offset += num_entries_block;
+      }
+    }
+    return CEED_ERROR_SUCCESS;
+  } else if (op->LinearAssembleSingle) {
+    // Backend version
+    CeedCall(op->LinearAssembleSingle(op, offset, values));
+    return CEED_ERROR_SUCCESS;
   } else {
-    CeedCall(CeedOperatorAssemblyCountEntriesSingle(op, num_entries));
+    // Operator fallback
+    CeedOperator op_fallback;
+
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingle\n");
+    CeedCall(CeedOperatorGetFallback(op, &op_fallback));
+    if (op_fallback) {
+      CeedCall(CeedOperatorAssembleSingle(op_fallback, offset, values));
+      return CEED_ERROR_SUCCESS;
+    }
   }
+
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  CeedCheck(!is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedOperatorLinearAssemble for AtPoints operator");
+
+  // Assemble QFunction for 0 0 block
+  CeedCall(CeedOperatorAssembleSingleBlock(op, offset, 0, 0, values));
   return CEED_ERROR_SUCCESS;
 }
 
