@@ -13,11 +13,11 @@ static int VerifyFilter(CeedVector x, const CeedScalar *expected, CeedSize len) 
   const CeedScalar *read_array;
   int errors = 0;
 
-  CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array));
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
   for (CeedInt i = 0; i < len; i++) {
     if (read_array[i] != expected[i]) errors++;
   }
-  CeedCall(CeedVectorRestoreArrayRead(x, &read_array));
+  CeedVectorRestoreArrayRead(x, &read_array);
   return errors;
 }
 
@@ -61,10 +61,10 @@ int main(int argc, char **argv) {
     CeedInt    len = 10;
     
     printf("Running Test Case %d (Threshold: %g)...\n", i + 1, (double)tests[i].threshold);
-    CeedCall(CeedVectorCreate(ceed, len, &x));
-    CeedCall(CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, tests[i].input));
+    CeedVectorCreate(ceed, len, &x);
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, tests[i].input);
 
-    CeedCall(CeedVectorFilter(x, tests[i].threshold));
+    CeedVectorFilter(x, tests[i].threshold);
 
     if (VerifyFilter(x, tests[i].expected, len) == 0) {
       printf("  Result: PASS\n");
