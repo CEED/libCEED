@@ -781,7 +781,10 @@ int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
   if (length == 0) return CEED_ERROR_SUCCESS;
 
   // Backend implementation
-  if (x->Filter) return x->Filter(x, threshold);
+  if (x->Filter) {
+    CeedCall(x->Filter(x, threshold));
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Default implementation
   CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
