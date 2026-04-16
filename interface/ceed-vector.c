@@ -760,7 +760,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   @brief Filters or clips a `CeedVector` using a threshold value. 
   All entries in `x` with an absolute value less than or equal to `threshold` are set to `0.0`.
 
-  @param[in,out] x     `CeedVector` to filter
+  @param[in,out] x         `CeedVector` to filter
   @param[in]     threshold clipping threshold or tolerance
 
   @return An error code: 0 - success, otherwise - failure
