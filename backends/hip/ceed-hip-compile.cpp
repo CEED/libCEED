@@ -9,6 +9,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/hip/hip-chipstar.h>
 #include <ceed/jit-tools.h>
 #include <stdarg.h>
 #include <string.h>
@@ -37,7 +38,6 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
                                const CeedInt num_defines, va_list args) {
   size_t                 ptx_size;
   char                  *ptx;
-  const int              num_opts            = 4;
   CeedInt                num_jit_source_dirs = 0, num_jit_defines = 0;
   const char           **opts;
   int                    runtime_version;
@@ -77,14 +77,26 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   code << "#include <ceed/jit-source/hip/hip-jit.h>\n\n";
 
   // Non-macro options
+#if CEED_HIP_USE_CHIPSTAR
+  const int num_opts = 1;
+
+  CeedCallBackend(CeedCalloc(num_opts, &opts));
+  opts[0] = "-DCEED_RUNNING_JIT_PASS=1";
+#else
+  const int num_opts = 4;
+
   CeedCallBackend(CeedCalloc(num_opts, &opts));
   opts[0] = "-default-device";
-  CeedCallBackend(CeedGetData(ceed, (void **)&ceed_data));
-  CeedCallHip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
-  std::string arch_arg = "--gpu-architecture=" + std::string(prop.gcnArchName);
-  opts[1]              = arch_arg.c_str();
-  opts[2]              = "-munsafe-fp-atomics";
-  opts[3]              = "-DCEED_RUNNING_JIT_PASS=1";
+  {
+    CeedCallBackend(CeedGetData(ceed, (void **)&ceed_data));
+    CeedCallHip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg = "--gpu-architecture=" + std::string(prop.gcnArchName);
+
+    opts[1] = arch_arg.c_str();
+  }
+  opts[2] = "-munsafe-fp-atomics";
+  opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
+#endif
   // Additional include dirs
   {
     const char **jit_source_dirs;
