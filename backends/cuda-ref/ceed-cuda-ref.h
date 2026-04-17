@@ -132,19 +132,21 @@ typedef struct {
 } CeedOperatorAssemble_Cuda;
 
 typedef struct {
-  bool                      *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
-  uint64_t                  *input_states, points_state;  // State tracking for passive inputs
-  CeedVector                *e_vecs_in, *e_vecs_out;
-  CeedVector                *q_vecs_in, *q_vecs_out;
-  CeedInt                    num_inputs, num_outputs;
-  CeedInt                    num_active_in, num_active_out;
-  CeedInt                   *input_field_order, *output_field_order;
-  CeedSize                   max_active_e_vec_len;
-  CeedInt                    max_num_points;
-  CeedInt                   *num_points;
-  CeedVector                *qf_active_in, point_coords_elem;
-  CeedOperatorDiag_Cuda     *diag;
-  CeedOperatorAssemble_Cuda *asmb;
+  bool                       *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
+  uint64_t                   *input_states, points_state;  // State tracking for passive inputs
+  CeedVector                 *e_vecs_in, *e_vecs_out;
+  CeedVector                 *q_vecs_in, *q_vecs_out;
+  CeedInt                     num_inputs, num_outputs;
+  CeedInt                     num_active_in, num_active_out;
+  CeedInt                    *input_field_order, *output_field_order;
+  CeedSize                    max_active_e_vec_len;
+  CeedInt                     max_num_points;
+  CeedInt                    *num_points;
+  CeedVector                 *qf_active_in, point_coords_elem;
+  CeedOperatorDiag_Cuda      *diag;
+  CeedOperatorAssemble_Cuda  *asmb;
+  CeedOperatorAssemble_Cuda **asmb_blocks;
+  CeedInt                     num_blocks_in, num_blocks_out;
 } CeedOperator_Cuda;
 
 CEED_INTERN int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle);
