@@ -1,81 +1,60 @@
 /// @file
-/// Test Filter function: Filters or clips a CeedVector using a threshold value.
+/// Test filtering a vector using a threshold or tolerance
+/// \test Test filtering a vector using a threshold or tolerance
+
+//TESTARGS(name="filter none") {ceed_resource} 10 0.0
+//TESTARGS(name="filter all") {ceed_resource} 10 10.0
+//TESTARGS(name="between values") {ceed_resource} 10 3.5
+//TESTARGS(name="equal to value") {ceed_resource} 10 7.0
+//TESTARGS(name="empty vector") {ceed_resource} 0 1.0
 #include <ceed.h>
+#include <math.h>
 #include <stdio.h>
-
-typedef struct {
-  CeedScalar threshold;
-  CeedScalar input[10];
-  CeedScalar expected[10];
-} FilterTest;
-
-static int VerifyFilter(CeedVector x, const CeedScalar *expected, CeedSize len) {
-  const CeedScalar *read_array;
-  int errors = 0;
-
-  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
-  for (CeedInt i = 0; i < len; i++) {
-    if (read_array[i] != expected[i]) errors++;
-  }
-  CeedVectorRestoreArrayRead(x, &read_array);
-  return errors;
-}
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
-  int  test_errors = 0;
+  Ceed       ceed;
+  CeedVector x;
+  CeedInt    len = 10;
+  CeedScalar tolerance = 1e-10; 
 
-  // Initialize libCEED
   CeedInit(argv[1], &ceed);
+  len = argc > 2 ? atoi(argv[2]) : len;
+  if (argc > 3) tolerance = (CeedScalar)atof(argv[3]);
 
-  // Test Data
-  FilterTest tests[] = {
-    // Filter some values
-    { .threshold = 0.5,
-      .input    = {1.0, -0.2, 0.5, -1.0, 0.0, 0.51, -0.49, 10.0, -0.5, 0.1},
-      .expected = {1.0,  0.0, 0.0, -1.0, 0.0, 0.51,  0.0,  10.0,  0.0, 0.0} 
-    },
+  CeedVectorCreate(ceed, len, &x);
+  {
+    CeedScalar array[len];
 
-    // Filter all of the values
-    { .threshold = 6.0,
-      .input    = {1.0, -2.0, 3.0, -4.0, 5.0, -5.0, 5.1, -5.1, 0.0, 1.1},
-      .expected = {0.0,  0.0, 0.0,  0.0, 0.0,  0.0, 0.0, 0.0, 0.0, 0.0} 
-    },
+    for (CeedInt i = 0; i < len; i++) array[i] = (1.0 + i)* pow(-1, i);
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
+  }
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+    CeedGetPreferredMemType(ceed, &type);
+    CeedVectorSyncArray(x, type);
+  }
+  CeedVectorFilter(x, tolerance);
 
-    // Filter none of the values
-    { .threshold = 1.2E-14,
-      .input    = {1.0, -1.0, 0.5, -0.5, 0.0001, -0.0001, 0.0, 2.2, -2.2, 3.3},
-      .expected = {1.0, -1.0, 0.5, -0.5, 0.0001, -0.0001, 0.0, 2.2, -2.2, 3.3}
-    },
+  {
+    const CeedScalar *read_array;
+    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
+    for (CeedInt i = 0; i < len; i++) {
+      CeedScalar initial_value = (1.0 + i) * pow(-1, i);
+      CeedScalar expected_value = (fabs(initial_value) <= tolerance) ? 0.0 : initial_value;
 
-    // Filter some values
-    { .threshold = 1E-9,
-      .input    = {0.11, -1.2E-10, 0.1, -0.1, 9.0E-8, -0.09, 0.0, 7.0E-12, -1.0, 5.1E-6},
-      .expected = {0.11, 0.0, 0.1, -0.1, 9.0E-8, -0.09, 0.0, 0.0, -1.0, 5.1E-6} 
+      if (fabs(read_array[i] - expected_value) > 1e-14) {
+        // LCOV_EXCL_START
+        printf("Error in filtered vector at index %" CeedInt_FMT ", computed: %f actual: %f\n", 
+               i, read_array[i], expected_value);
+        // LCOV_EXCL_STOP
+      }
     }
-  };
-
-  // Execution Loop
-  for (int i = 0; i < 4; i++) {
-    CeedVector x;
-    CeedInt    len = 10;
-    
-    printf("Running Test Case %d (Threshold: %g)...\n", i + 1, (double)tests[i].threshold);
-    CeedVectorCreate(ceed, len, &x);
-    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, tests[i].input);
-
-    CeedVectorFilter(x, tests[i].threshold);
-
-    if (VerifyFilter(x, tests[i].expected, len) == 0) {
-      printf("  Result: PASS\n");
-    } else {
-      printf("  Result: FAIL\n");
-      test_errors++;
-    }
-    CeedVectorDestroy(&x);
+    CeedVectorRestoreArrayRead(x, &read_array);
   }
 
-  // Cleanup and Exit
+  CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
-  return test_errors;
+  return 0;
 }
