@@ -774,7 +774,7 @@ int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
   CeedCheck(has_valid_array, CeedVectorReturnCeed(x), CEED_ERROR_BACKEND,
-            "CeedVector has no valid data to scale, must set data with CeedVectorSetValue or CeedVectorSetArray");
+            "CeedVector has no valid data to filter, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Return early for empty vector
   CeedCall(CeedVectorGetLength(x, &length));
