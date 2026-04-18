@@ -789,8 +789,7 @@ int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
   // Default implementation
   CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
   assert(x_array);
-  CeedPragmaSIMD
-  for (CeedSize i = 0; i < length; i++) {
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
     if (fabs(x_array[i]) <= threshold) x_array[i] = 0.0;
   }
   CeedCall(CeedVectorRestoreArray(x, &x_array));
