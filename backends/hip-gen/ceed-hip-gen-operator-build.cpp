@@ -12,6 +12,7 @@
 #include <ceed/gen-tools.h>
 #include <ceed/jit-tools.h>
 
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <string>
