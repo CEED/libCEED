@@ -183,10 +183,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
       const long current_size = strlen(*buffer);
       const long copy_size    = first_hash - &temp_buffer[file_offset] + (is_pragma_once ? 0 : (next_new_line - first_hash + 1));
 
-      CeedCall(CeedRealloc(current_size + copy_size + 1, buffer));
+      CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
       memcpy(&(*buffer)[current_size], "\n", 2);
       memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
-      memcpy(&(*buffer)[current_size + copy_size], "\0", 1);  // NOLINT
+      memcpy(&(*buffer)[current_size + copy_size + 1], "\0", 1);  // NOLINT
 
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
     }
@@ -208,10 +208,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
       const long current_size = strlen(*buffer);
       const long copy_size    = first_hash - &temp_buffer[file_offset];
 
-      CeedCall(CeedRealloc(current_size + copy_size + 1, buffer));
+      CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
       memcpy(&(*buffer)[current_size], "\n", 2);
       memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
-      memcpy(&(*buffer)[current_size + copy_size], "\0", 1);  // NOLINT
+      memcpy(&(*buffer)[current_size + copy_size + 1], "\0", 1);  // NOLINT
       // -- Load local "header.h"
       char *next_quote        = strchr(first_hash, '"');
       char *next_new_line     = strchr(first_hash, '\n');

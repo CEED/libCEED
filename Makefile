@@ -579,7 +579,7 @@ ifneq ($(SYCL_DIR),)
   SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
 endif
 ifneq ($(SYCL_LIB_DIR),)
-  PKG_LIBS += $(SYCL_FLAG) -lze_loader
+  PKG_LIBS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS)) -lze_loader
   LIBCEED_CONTAINS_CXX = 1
   libceed.sycl  += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
   BACKENDS_MAKE += $(SYCL_BACKENDS)
@@ -640,7 +640,12 @@ endif
 
 pkgconfig-libs-private = $(PKG_LIBS)
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
-  $(libceeds) : LINK = $(CXX)
+  ifneq ($(SYCL_LIB_DIR),)
+    $(libceeds) : LINK = $(SYCLCXX)
+    $(libceeds) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
+  else
+    $(libceeds) : LINK = $(CXX)
+  endif
   ifeq ($(STATIC),1)
     $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
     pkgconfig-libs-private += $(LIBCXX)
