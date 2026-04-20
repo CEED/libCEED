@@ -97,6 +97,10 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
         const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
         CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
 
+        // Prevent race: idle work items (i >= writeLen) must not overwrite
+        // s_buffer_1 while active work items still read it from the previous comp.
+        sycl::group_barrier(work_group);
+
         for (CeedInt k = i; k < u_size; k += group_size) {
           s_buffer_1[k] = cur_u[k];
         }
