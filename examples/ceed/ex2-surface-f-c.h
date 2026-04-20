@@ -7,11 +7,10 @@
 
 #include <ceed/types.h>
 
-
 /// libCEED Q-function for building quadrature data for a diffusion operator
 CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-const long long int dim       = ((long long int *)ctx)[0];
-const long long int space_dim = ((long long int *)ctx)[1];
+  const long long int dim       = ((long long int *)ctx)[0];
+  const long long int space_dim = ((long long int *)ctx)[1];
 
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights, size (Q)
@@ -20,7 +19,7 @@ const long long int space_dim = ((long long int *)ctx)[1];
 
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  switch (dim + 10 * space_dim){
+  switch (dim + 10 * space_dim) {
     case 11: {
       const CeedScalar(*J)[1][CEED_Q_VLA] = (const CeedScalar(*)[1][CEED_Q_VLA])in[0];
 
