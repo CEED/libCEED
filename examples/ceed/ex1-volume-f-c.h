@@ -9,7 +9,7 @@
 
 /// libCEED Q-function for building quadrature data for a mass operator
 CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  long long int *build_data = (long long int *)ctx;
+  const long *build_data = (const long *)ctx;
 
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights with shape [1, Q]
