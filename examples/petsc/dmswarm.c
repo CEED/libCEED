@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
       PetscFE fe_coord;
 
       PetscCall(PetscFECreateLagrange(comm, dim, dim, PETSC_FALSE, mesh_order, solution_order + q_extra, &fe_coord));
-      PetscCall(DMSetCoordinateDisc(dm_mesh, fe_coord, PETSC_TRUE));
+      PetscCall(DMSetCoordinateDisc(dm_mesh, fe_coord, PETSC_FALSE, PETSC_TRUE));
       PetscCall(PetscFEDestroy(&fe_coord));
     }
 

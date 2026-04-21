@@ -71,8 +71,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData problem, PetscInt degree) {
     }
 
     PetscCall(DMPlexLabelComplete(user->dm, label));
-    PetscCall(DMPlexFilter(user->dm, label, 1, PETSC_FALSE, PETSC_FALSE, NULL, &user->spanstats.dm));
-    PetscCall(DMSetCoordinateDisc(user->spanstats.dm, NULL, PETSC_TRUE));  // Ensure that a coordinate FE exists
+    PetscCall(DMPlexFilter(user->dm, label, 1, PETSC_FALSE, PETSC_FALSE, PetscObjectComm((PetscObject)user->dm), NULL, &user->spanstats.dm));
+    PetscCall(DMSetCoordinateDisc(user->spanstats.dm, NULL, PETSC_FALSE, PETSC_TRUE));  // Ensure that a coordinate FE exists
 
     PetscCall(DMPlexDistribute(user->spanstats.dm, 0, NULL, &parent_distributed_dm));
     PetscCallMPI(MPI_Comm_size(comm, &size));

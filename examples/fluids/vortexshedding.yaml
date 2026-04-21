@@ -9,7 +9,7 @@ checkpoint_interval: 10
 ts:
   adapt_type: 'none'
   type: alpha
-  dt: .05
+  time_step: .05
   max_time: 100
   alpha_radius: 0.5
   monitor_solution: cgns:vortexshedding-q3-g1-n08.cgns
