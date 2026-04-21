@@ -130,6 +130,24 @@ int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedJitAddDefinitions_Sycl(ceed, kernel_source, jit_source, constants));
   CeedCallBackend(CeedJitGetFlags_Sycl(flags));
+  // Add JIT source root directories as -I include paths (matches CUDA/HIP behavior)
+  {
+    const char **jit_source_dirs;
+    CeedInt      num_jit_source_dirs;
+
+    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) flags.push_back(std::string("-I") + jit_source_dirs[i]);
+    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+  }
+  // Add user JIT defines as -D flags
+  {
+    const char **jit_defines;
+    CeedInt      num_jit_defines;
+
+    CeedCallBackend(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
+    for (CeedInt i = 0; i < num_jit_defines; i++) flags.push_back(std::string("-D") + jit_defines[i]);
+    CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
+  }
   CeedCallBackend(CeedJitCompileSource_Sycl(ceed, data->sycl_device, jit_source, il_binary, flags));
   CeedCallBackend(CeedLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
   return CEED_ERROR_SUCCESS;
