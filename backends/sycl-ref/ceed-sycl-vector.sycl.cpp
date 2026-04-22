@@ -690,14 +690,9 @@ static int CeedVectorDestroy_Sycl(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  // data may be NULL if CeedDestroy_Sycl already ran (work vectors are destroyed
-  // after the backend Destroy callback). When NULL, the SYCL context destructor
-  // already waited for pending work and freed context-owned USM allocations.
-  if (data) {
-    CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
-    if (impl->d_array_owned) CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
-    if (impl->reduction_norm) CeedCallSycl(ceed, sycl::free(impl->reduction_norm, data->sycl_context));
-  }
+  CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+  if (impl->d_array_owned) CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+  if (impl->reduction_norm) CeedCallSycl(ceed, sycl::free(impl->reduction_norm, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl->h_array_owned));
   CeedCallBackend(CeedFree(&impl));
