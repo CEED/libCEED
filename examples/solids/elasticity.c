@@ -507,7 +507,7 @@ int main(int argc, char **argv) {
         // ---------- Smoother KSP
         PetscCall(PCMGGetSmoother(pc, level, &ksp_smoother));
         PetscCall(KSPSetDM(ksp_smoother, level_dms[level]));
-        PetscCall(KSPSetDMActive(ksp_smoother, PETSC_FALSE));
+        PetscCall(KSPSetDMActive(ksp_smoother, KSP_DMACTIVE_ALL, PETSC_FALSE));
 
         // ---------- Chebyshev options
         PetscCall(KSPSetType(ksp_smoother, KSPCHEBYSHEV));
