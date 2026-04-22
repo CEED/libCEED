@@ -77,6 +77,8 @@ endif
 ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
   ARFLAGS = $(if $(DARWIN),cr,crD)
 endif
+# chipStar sets HIP_DIR instead of ROCM_DIR
+ROCM_DIR ?= ${HIP_DIR}
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(ROCM_DIR)/bin/hipcc
@@ -88,6 +90,15 @@ ifneq ($(EMSCRIPTEN),)
   EM_LDFLAGS = -s TOTAL_MEMORY=256MB
 endif
 
+# Detect chipStar (SPIR-V HIP) vs AMD ROCm
+HIP_LIB_NAME = amdhip64
+ifneq ($(ROCM_DIR),)
+  ifneq ($(wildcard $(ROCM_DIR)/bin/hipconfig),)
+    ifneq (,$(findstring __HIP_PLATFORM_SPIRV__,$(shell $(ROCM_DIR)/bin/hipconfig 2>/dev/null)))
+      HIP_LIB_NAME = CHIP
+    endif
+  endif
+endif
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
 
@@ -555,16 +566,23 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/libamdhip64.${SO_EXT}))
+HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/lib${HIP_LIB_NAME}.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
-  HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
-  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
-  ifneq ($(CXX), $(HIPCC))
-    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
+  ifeq ($(HIP_LIB_NAME),CHIP)
+    # chipStar hipconfig -C emits clang-only flags; keep only -D/-I/-include for gcc
+    HIPCONFIG_CPPFLAGS := $(shell $(ROCM_DIR)/bin/hipconfig -C)
+    HIPCONFIG_CPPFLAGS_C := $(filter-out --offload% -nohipwrapperinc --hip-path% --target%,$(HIPCONFIG_CPPFLAGS)) -I$(ROCM_DIR)/include
+  else
+    HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
+    HIPCONFIG_CPPFLAGS_C := $(HIPCONFIG_CPPFLAGS)
   endif
-  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
+  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
+  ifneq ($(CXX), $(HIPCC))
+    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
+  endif
+  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l${HIP_LIB_NAME} -lhipblas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += $(hip-all.c)
   libceed.cpp   += $(hip-all.cpp)
