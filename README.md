@@ -208,6 +208,10 @@ The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
 ROCm version 4.2 or newer is required.
 
+The `/gpu/hip/*` backends can also run on non-AMD GPUs (e.g., Intel) via [chipStar](https://github.com/CHIP-SPV/chipStar), which implements HIP on top of SPIR-V through Level Zero or OpenCL.
+To build against chipStar, set `HIP_DIR` to the chipStar install prefix (in place of `ROCM_DIR`); libCEED's Makefile detects chipStar by inspecting `hipconfig` and automatically enables the required code paths.
+At runtime, chipStar's own environment variables (e.g., `CHIP_BE=level0` or `CHIP_BE=opencl`, `CHIP_DEVICE_TYPE`, `CHIP_PLATFORM`) select the backend and device — see the chipStar documentation for details.
+
 The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
 They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
 
