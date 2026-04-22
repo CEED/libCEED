@@ -82,14 +82,10 @@ int CeedDestroy_Sycl(Ceed ceed) {
   Ceed_Sycl *data;
 
   CeedCallBackend(CeedGetData(ceed, &data));
-  // Explicitly call C++ destructors before freeing: CeedCalloc allocates without
-  // constructors, so we must destruct manually. The queue destructor waits for
-  // pending work, ensuring GPU operations complete before memory is freed.
+  // CeedCalloc allocates without calling constructors; explicitly run destructors
+  // before freeing so the sycl::queue destructor waits for pending GPU work.
   data->~Ceed_Sycl();
   CeedCallBackend(CeedFree(&data));
-  // Null out ceed->data so CeedVectorDestroy_Sycl can detect Ceed is already torn down.
-  // CeedWorkVectorsDestroy runs after this callback, so vectors must guard against NULL.
-  CeedCallBackend(CeedSetData(ceed, NULL));
   return CEED_ERROR_SUCCESS;
 }
 
