@@ -1678,6 +1678,8 @@ int CeedDestroy(Ceed *ceed) {
     CeedCall(CeedFree(&(*ceed)->obj_delegates));
   }
 
+  CeedCall(CeedWorkVectorsDestroy(*ceed));
+
   if ((*ceed)->Destroy) CeedCall((*ceed)->Destroy(*ceed));
 
   for (CeedInt i = 0; i < (*ceed)->num_jit_source_roots; i++) {
@@ -1698,7 +1700,6 @@ int CeedDestroy(Ceed *ceed) {
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
-  CeedCall(CeedWorkVectorsDestroy(*ceed));
   CeedCall(CeedObjectDestroy_Private(&(*ceed)->obj));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
