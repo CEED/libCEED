@@ -344,6 +344,7 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedStringAllocCopy(const char *source, char **copy) {
   size_t len = strlen(source);
+
   CeedCall(CeedCalloc(len + 1, copy));
   memcpy(*copy, source, len);
   return CEED_ERROR_SUCCESS;

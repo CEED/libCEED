@@ -62,6 +62,75 @@ static int CeedCallSystem_Core(Ceed ceed, const char *command, const char *messa
 }
 
 //------------------------------------------------------------------------------
+// Build array of JIT flags
+//------------------------------------------------------------------------------
+static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 4;
+
+  // Standard options
+  CeedCallBackend(CeedCalloc(opts_count, opts));
+  CeedCallBackend(CeedStringAllocCopy("-default-device", (char **)&(*opts)[0]));
+  {
+    Ceed_Cuda            *ceed_data;
+    struct cudaDeviceProp prop;
+
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg =
+#if CUDA_VERSION >= 11010
+        // NVRTC used to support only virtual architectures through the option
+        // -arch, since it was only emitting PTX. It will now support actual
+        // architectures as well to emit SASS.
+        // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#dynamic-code-generation
+        "-arch=sm_"
+#else
+        "-arch=compute_"
+#endif
+        + std::to_string(prop.major) + std::to_string(prop.minor);
+
+    CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[1]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("-Dint32_t=int", (char **)&(*opts)[2]));
+  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[3]));
+
+  // Additional include dirs
+  {
+    const char **jit_source_dirs;
+    CeedInt      num_jit_source_dirs;
+
+    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+    CeedCallBackend(CeedRealloc(opts_count + num_jit_source_dirs, opts));
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
+      std::ostringstream include_dir_arg;
+
+      include_dir_arg << "-I" << jit_source_dirs[i];
+      CeedCallBackend(CeedStringAllocCopy(include_dir_arg.str().c_str(), (char **)&(*opts)[opts_count + i]));
+    }
+    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+    opts_count += num_jit_source_dirs;
+  }
+
+  // User defines
+  {
+    const char **jit_defines;
+    CeedInt      num_jit_defines;
+
+    CeedCallBackend(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
+    CeedCallBackend(CeedRealloc(opts_count + num_jit_defines, opts));
+    for (CeedInt i = 0; i < num_jit_defines; i++) {
+      std::ostringstream define_arg;
+
+      define_arg << "-D" << jit_defines[i];
+      CeedCallBackend(CeedStringAllocCopy(define_arg.str().c_str(), (char **)&(*opts)[opts_count + i]));
+    }
+    CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
+    opts_count += num_jit_defines;
+  }
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
 using std::ifstream;
@@ -70,26 +139,22 @@ using std::ostringstream;
 
 static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, CUmodule *module,
                                 const CeedInt num_defines, va_list args) {
-  size_t                ptx_size;
-  char                 *ptx;
-  const int             num_opts            = 4;
-  CeedInt               num_jit_source_dirs = 0, num_jit_defines = 0;
-  const char          **opts;
-  nvrtcProgram          prog;
-  struct cudaDeviceProp prop;
-  Ceed_Cuda            *ceed_data;
-
-  cudaFree(0);  // Make sure a Context exists for nvrtc
-
-  std::ostringstream code;
   bool               using_clang;
+  size_t             ptx_size;
+  char              *ptx;
+  const char       **opts;
+  int                num_opts;
+  nvrtcProgram       prog;
+  std::ostringstream code;
+
+  // Make sure a Context exists for nvrtc
+  cudaFree(0);
 
   CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
-
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS,
                using_clang ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
-                           : "Compiling CUDA with NVRTC backend (without Rust QFunction support).\nTo use the Clang backend, set the environment "
-                             "variable GPU_CLANG=1");
+                           : "Compiling CUDA with NVRTC backend (without Rust QFunction support)."
+                             "\nTo use the Clang backend, set the environment variable GPU_CLANG=1");
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -99,63 +164,18 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     for (int i = 0; i < num_defines; i++) {
       name = va_arg(args, char *);
       val  = va_arg(args, int);
-      code << "#define " << name << " " << val << "\n";
+      code << "#define " << name << " " << val << "\n\n";
     }
   }
 
   // Standard libCEED definitions for CUDA backends
   code << "#include <ceed/jit-source/cuda/cuda-jit.h>\n\n";
 
-  // Non-macro options
-  CeedCallBackend(CeedCalloc(num_opts, &opts));
-  opts[0] = "-default-device";
-  CeedCallBackend(CeedGetData(ceed, &ceed_data));
-  CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
-  std::string arch_arg =
-#if CUDA_VERSION >= 11010
-      // NVRTC used to support only virtual architectures through the option
-      // -arch, since it was only emitting PTX. It will now support actual
-      // architectures as well to emit SASS.
-      // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#dynamic-code-generation
-      "-arch=sm_"
-#else
-      "-arch=compute_"
-#endif
-      + std::to_string(prop.major) + std::to_string(prop.minor);
-  opts[1] = arch_arg.c_str();
-  opts[2] = "-Dint32_t=int";
-  opts[3] = "-DCEED_RUNNING_JIT_PASS=1";
-  // Additional include dirs
-  {
-    const char **jit_source_dirs;
-
-    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
-    CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs, &opts));
-    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-      std::ostringstream include_dir_arg;
-
-      include_dir_arg << "-I" << jit_source_dirs[i];
-      CeedCallBackend(CeedStringAllocCopy(include_dir_arg.str().c_str(), (char **)&opts[num_opts + i]));
-    }
-    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
-  }
-  // User defines
-  {
-    const char **jit_defines;
-
-    CeedCallBackend(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
-    CeedCallBackend(CeedRealloc(num_opts + num_jit_source_dirs + num_jit_defines, &opts));
-    for (CeedInt i = 0; i < num_jit_defines; i++) {
-      std::ostringstream define_arg;
-
-      define_arg << "-D" << jit_defines[i];
-      CeedCallBackend(CeedStringAllocCopy(define_arg.str().c_str(), (char **)&opts[num_opts + num_jit_source_dirs + i]));
-    }
-    CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
-  }
-
   // Add string source argument provided in call
   code << source;
+
+  // Get compile options
+  CeedCallBackend(CeedJitGetOpts_Cuda(ceed, &opts, &num_opts));
 
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
@@ -168,23 +188,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
-      for (CeedInt i = 0; i < num_opts + num_jit_source_dirs + num_jit_defines; i++) {
-        CeedDebug(ceed, "Option %d: %s", i, opts[i]);
-      }
+      for (CeedInt i = 0; i < num_opts; i++) CeedDebug(ceed, "Option %d: %s", i, opts[i]);
       CeedDebug(ceed, "");
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
       // LCOV_EXCL_STOP
     }
+    nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
 
-    nvrtcResult result = nvrtcCompileProgram(prog, num_opts + num_jit_source_dirs + num_jit_defines, opts);
-
-    for (CeedInt i = 0; i < num_jit_source_dirs; i++) {
-      CeedCallBackend(CeedFree(&opts[num_opts + i]));
-    }
-    for (CeedInt i = 0; i < num_jit_defines; i++) {
-      CeedCallBackend(CeedFree(&opts[num_opts + num_jit_source_dirs + i]));
-    }
+    for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
     CeedCallBackend(CeedFree(&opts));
+
     *is_compile_good = result == NVRTC_SUCCESS;
     if (!*is_compile_good) {
       // LCOV_EXCL_START
@@ -217,13 +230,13 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
 #endif
     CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
-
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
     CeedCallBackend(CeedFree(&ptx));
     return CEED_ERROR_SUCCESS;
   } else {
     srand(time(NULL));
-    const int build_id = rand();
+    const int             build_id = rand();
+    struct cudaDeviceProp prop;
 
     // Create temp dir if needed
     {
@@ -283,6 +296,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     // Get Clang version
+    Ceed_Cuda *ceed_data;
+
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
     bool use_llvm_version = ceed_data->use_llvm_version;
     int  llvm_version     = ceed_data->llvm_version;
 
@@ -324,6 +340,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
 
     // Compile wrapper kernel
+    CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
     command = "clang++" + (use_llvm_version ? (std::string("-") + std::to_string(llvm_version)) : "") + " -flto=thin --cuda-gpu-arch=sm_" +
               std::to_string(prop.major) + std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) +
               "_0_source.cu -o temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll ";
