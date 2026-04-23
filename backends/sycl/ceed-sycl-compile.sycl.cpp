@@ -36,7 +36,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
     oss << "#define " << name << " " << value << "\n";
   }
 
-  // libCeed definitions for Sycl Backends
+  // libCEED definitions for Sycl Backends
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, sycl_jith_path, &jit_defs_path));
   {
     char *source;
