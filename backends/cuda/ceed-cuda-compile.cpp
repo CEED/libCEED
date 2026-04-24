@@ -21,6 +21,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -418,6 +419,29 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
       // LCOV_EXCL_STOP
     }
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+template <typename ArrayT>
+struct CeedArrayView {
+  const ArrayT *array;
+  CeedInt       size;
+
+  CeedArrayView(const ArrayT *array_, CeedInt size_) : array(array_), size(size_) {}
+};
+
+template <typename OStream, typename ArrayT>
+OStream &operator<<(OStream &ostream, const CeedArrayView<ArrayT> &view) {
+  ostream << "{";
+  for (CeedInt i = 0; i < view.size; i++) ostream << std::setprecision(17) << view.array[i] << (i == view.size - 1 ? "}" : ", ");
+  return ostream;
+}
+
+int CeedBuildArrayConstantSize_Cuda(Ceed ceed, const char *name, CeedInt length, const CeedSize *array, char **line) {
+  std::ostringstream code;
+
+  code << "constexpr CeedSize " << name << "[" << length << "] = " << CeedArrayView<CeedSize>(array, length) << ";";
+  CeedCallBackend(CeedStringAllocCopy(code.str().c_str(), line));
   return CEED_ERROR_SUCCESS;
 }
 
