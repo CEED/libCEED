@@ -690,10 +690,9 @@ static int CeedVectorDestroy_Sycl(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
-  CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
-  CeedCallSycl(ceed, sycl::free(impl->reduction_norm, data->sycl_context));
+  if (impl->d_array_owned) CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+  if (impl->reduction_norm) CeedCallSycl(ceed, sycl::free(impl->reduction_norm, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl->h_array_owned));
   CeedCallBackend(CeedFree(&impl));

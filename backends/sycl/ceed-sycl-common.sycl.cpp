@@ -82,6 +82,9 @@ int CeedDestroy_Sycl(Ceed ceed) {
   Ceed_Sycl *data;
 
   CeedCallBackend(CeedGetData(ceed, &data));
+  // CeedCalloc allocates without calling constructors; explicitly run destructors
+  // before freeing so the sycl::queue destructor waits for pending GPU work.
+  data->~Ceed_Sycl();
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
