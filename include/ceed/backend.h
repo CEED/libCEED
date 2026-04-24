@@ -474,7 +474,7 @@ CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *par
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                          CeedRequest *request);
-CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector values);
+CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector values);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,

@@ -30,6 +30,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Added support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen` for operators with both tensor and non-tensor bases.
 - Add `CeedGetGitVersion()` to access the Git commit and dirty state of the repository at build time.
 - Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
+- Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends. 
 
 ### Examples
 
