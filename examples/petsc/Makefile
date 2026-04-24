@@ -94,7 +94,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere dmswarm multigrid libutils.a
+	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere bpsswarm dmswarm multigrid libutils.a
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \
