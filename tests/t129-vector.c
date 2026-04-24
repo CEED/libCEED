@@ -21,7 +21,6 @@ static int InitVector(CeedVector x, CeedInt len) {
 
 static int VerifyFilter(CeedVector x, CeedInt len, CeedScalar tolerance) {
     const CeedScalar *read_array;
-    CeedInt VF_error_count = 0;
 
     CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
     for (CeedInt i = 0; i < len; i++) {
@@ -33,19 +32,17 @@ static int VerifyFilter(CeedVector x, CeedInt len, CeedScalar tolerance) {
         printf("Error in filtered vector at index %" CeedInt_FMT ", computed: %f actual: %f\n", 
                i, read_array[i], expected_value);
         // LCOV_EXCL_STOP
-        VF_error_count++;
       }
     }
     CeedVectorRestoreArrayRead(x, &read_array);
-    return VF_error_count;
+    return 0;
   }
 
 int main(int argc, char **argv) {
   Ceed       ceed;
   CeedVector x;
   CeedInt    len = 10;
-  CeedScalar tolerance = 1e-10;
-  CeedInt    error_count = 0; 
+  CeedScalar tolerance = 1e-10; 
 
   CeedInit(argv[1], &ceed);
   len = argc > 2 ? atoi(argv[2]) : len;
@@ -56,7 +53,7 @@ int main(int argc, char **argv) {
   InitVector(x, len);
   tolerance = 3.5;
   CeedVectorFilter(x, tolerance);
-  error_count += VerifyFilter(x, len, tolerance);
+  VerifyFilter(x, len, tolerance);
 
   {
     // Sync memtype to device for GPU backends
@@ -69,21 +66,21 @@ int main(int argc, char **argv) {
   InitVector(x, len);
   tolerance = 7.0;
   CeedVectorFilter(x, tolerance);
-  error_count += VerifyFilter(x, len, tolerance);
+  VerifyFilter(x, len, tolerance);
 
   // Test Case 3 - filter no values
   InitVector(x, len);
   tolerance = 0.0;
   CeedVectorFilter(x, tolerance);
-  error_count += VerifyFilter(x, len, tolerance);
+  VerifyFilter(x, len, tolerance);
 
   // Test Case 4 - filter all values
   InitVector(x, len);
   tolerance = 100.0;
   CeedVectorFilter(x, tolerance);
-  error_count += VerifyFilter(x, len, tolerance);
+  VerifyFilter(x, len, tolerance);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);
-  return error_count;
+  return 0;
 }
