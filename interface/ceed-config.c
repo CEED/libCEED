@@ -22,7 +22,7 @@ const char *CeedBuildConfiguration = CEED_BUILD_CONFIGURATION;
   @param[out] git_version A static string containing the Git commit description.
 
   If `git describe --always --dirty` fails, the string `"unknown"` will be provided.
-  This could occur if Git is not installed or if libCEED is not being built from a repository, for example.`
+  This could occur if Git is not installed or if libCEED is not being built from a repository, for example.
 
   @ref Developer
 

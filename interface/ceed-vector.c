@@ -761,7 +761,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 
   @param[in,out] y     target `CeedVector` for sum
   @param[in]     alpha scaling factor
-  @param[in]     x     second `CeedVector`, must be different than ``y`
+  @param[in]     x     second `CeedVector`, must be different than `y`
 
   @return An error code: 0 - success, otherwise - failure
 
