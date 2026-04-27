@@ -1,6 +1,6 @@
-## libCEED + Nek5000 Examples
+# libCEED + Nek5000 Examples
 
-### Prerequisites
+## Prerequisites
 
 Nek5000 v19.0 or greater must be [installed](https://nek5000.mcs.anl.gov/getstarted/) to run these examples.
 It is assumed to exist at `../../../Nek5000` (a sibling to the libCEED directory) or at a path defined in the environment variable `NEK5K_DIR`.
@@ -17,7 +17,7 @@ They can be built using
 ```
 See also the [Nek5000 documentation](https://nek5000.mcs.anl.gov/getstarted/).
 
-### Building the Nek5000 examples
+## Building the Nek5000 examples
 
 You can build the Nek5000 libCEED examples with the command `make bps`.
 
@@ -33,7 +33,7 @@ Note: Nek5000 examples must be built sequentially.
 Due to the Nek5000 build process, multiple examples cannot be built in parallel.
 At present, there is only one Nek5000 example file to build, which handles both CEED BP 1 and CEED BP 3.
 
-### Running Nek5000 examples
+## Running Nek5000 examples
 
 You can run the Nek5000 libCEED examples by invoking `nek-examples.sh` script.
 The syntax is:

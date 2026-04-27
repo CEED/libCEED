@@ -1,4 +1,4 @@
-## libCEED: Navier-Stokes Example
+# libCEED: Navier-Stokes Example
 
 This page provides a description of the Navier-Stokes example for the libCEED library, based on PETSc.
 

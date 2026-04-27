@@ -13,7 +13,7 @@ For more details, please see the dedicated [documentation section](https://libce
 
 The Center for Efficient Exascale Discretizations (CEED) uses Bakeoff Problems (BPs) to test and compare the performance of high-order finite element implementations.
 The definitions of the problems are given on the ceed [website](https://ceed.exascaleproject.org/bps/).
-Each of the following bakeoff problems that use external discretization libraries (such as deal.II, MFEM, PETSc, and Nek5000) are located in the subdirectories `deal.II/`, `mfem/`, `petsc/`, and `nek5000/`, respectively.
+Each of the following bakeoff problems that use external discretization libraries (such as deal.II, MFEM, PETSc, and Nek5000) are located in the directories `examples/deal.II/`, `examples/mfem/`, `examples/nek5000/`, and `examples/petsc/`, respectively.
 
 Here we provide a short summary:
 
@@ -32,6 +32,9 @@ Here we provide a short summary:
 * - `mfem`
   - * BP1 (scalar mass operator) with $Q=P+1$
     * BP3 (scalar Laplace operator) with $Q=P+1$
+* - `nek5000`
+  - * BP1 (scalar mass operator) with $Q=P+1$
+    * BP3 (scalar Laplace operator) with $Q=P+1$
 * - `petsc`
   - * BP1 (scalar mass operator) with $Q=P+1$
     * BP2 (vector mass operator) with $Q=P+1$
@@ -39,9 +42,6 @@ Here we provide a short summary:
     * BP4 (vector Laplace operator) with $Q=P+1$
     * BP5 (collocated scalar Laplace operator) with $Q=P$
     * BP6 (collocated vector Laplace operator) with $Q=P$
-* - `nek5000`
-  - * BP1 (scalar mass operator) with $Q=P+1$
-    * BP3 (scalar Laplace operator) with $Q=P+1$
 :::
 
 These are all **T-vector**-to-**T-vector** and include parallel scatter, element scatter, element evaluation kernel, element gather, and parallel gather (with the parallel gathers/scatters done externally to libCEED).

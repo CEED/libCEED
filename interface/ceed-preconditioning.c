@@ -438,7 +438,7 @@ static inline int CeedOperatorLinearAssembleAddDiagonalComposite(CeedOperator op
 }
 
 /**
-  @brief Build nonzero pattern for non-composite CeedOperator`.
+  @brief Build nonzero pattern for non-composite `CeedOperator`.
 
   Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
 
@@ -1611,7 +1611,7 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 
   The `CeedOperatorAssemblyData` holds an array with references to every active `CeedBasis` used in the `CeedOperator`.
   An array with references to the corresponding active `CeedElemRestriction` is also stored.
-  For each active `CeedBasis, the `CeedOperatorAssemblyData` holds an array of all input and output @ref CeedEvalMode for this `CeedBasis`.
+  For each active `CeedBasis`, the `CeedOperatorAssemblyData` holds an array of all input and output @ref CeedEvalMode for this `CeedBasis`.
   The `CeedOperatorAssemblyData` holds an array of offsets for indexing into the assembled `CeedQFunction` arrays to the row representing each @ref CeedEvalMode.
   The number of input columns across all active bases for the assembled `CeedQFunction` is also stored.
   Lastly, the `CeedOperatorAssembly` data holds assembled matrices representing the full action of the `CeedBasis` for all @ref CeedEvalMode.

@@ -100,13 +100,9 @@ language = "en"
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
+    "doc/README.md",
     "examples/README.md",
-    "examples/ceed/README.md",
-    "examples/fluids/README.md",
-    "examples/nek/README.md",
-    "examples/petsc/README.md",
-    "examples/solid/README.md",
-    "examples/deal.II/README.md",
+    "examples/*/README.md",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.

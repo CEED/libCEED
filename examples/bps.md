@@ -49,9 +49,9 @@ each defined for index sets $i,j \; \in \; \{1,\dots,n\}$.
 
 (laplace-operator)=
 
-## Laplace's Operator
+## Laplace Operator
 
-The Laplace's operator used in BP3-BP6 is defined via the following variational formulation, i.e., find $u \in V^p$ such that for all $v \in V^p$
+The Laplace operator used in BP3-BP6 is defined via the following variational formulation, i.e., find $u \in V^p$ such that for all $v \in V^p$
 
 $$
 a(v,u) = \langle v,f \rangle , \,

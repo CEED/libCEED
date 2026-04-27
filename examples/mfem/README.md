@@ -1,4 +1,4 @@
-## libCEED MFEM Examples
+# libCEED MFEM Examples
 
 These examples show to write libCEED operators (BP1 and BP3) within the open-source finite element library [MFEM](https://www.mfem.org/).
 
