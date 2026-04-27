@@ -277,7 +277,6 @@ program main
     integer*8 build_ctx_data(build_ctx_size)
     integer qf_build, qf_apply
     integer op_build, op_apply
-    character gallery_name*25
 
     external build_diff, apply_diff
 
