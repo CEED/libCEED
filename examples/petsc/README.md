@@ -1,8 +1,8 @@
-## libCEED + PETSc Examples
+# libCEED + PETSc Examples
 
 This page provides a description of the CEED bakeoff problem examples for the libCEED library, based on PETSc.
 
-### CEED bakeoff problems with raw mesh management - bpsraw
+## CEED bakeoff problems with raw mesh management - bpsraw
 
 This code solves the CEED bakeoff problems on a structured grid generated and referenced using only low-level communication primitives.
 
@@ -14,7 +14,7 @@ In addition to the common arguments, the following arguments may be set:
 
 - `-local`             - Target number of locally owned DoFs per process
 
-### CEED bakeoff problems with DMPlex - bps
+## CEED bakeoff problems with DMPlex - bps
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex.
 
@@ -27,7 +27,7 @@ In addition to the common arguments, the following arguments may be set:
 - `-mesh`              - Read mesh from file
 - `-cells`             - Number of cells per dimension
 
-#### Running a suite
+### Running a suite
 
 Some run-time arguments can be passed lists, which allows a single `mpiexec` invocation to run many experiments.
 For example
@@ -39,7 +39,7 @@ For example
 which will sample from the `4*4*3=48` specified combinations, each of which will run a problem-size sweep of 600, 1200, 2400, 4800, 9600, 192000 FEM nodes per MPI rank.
 The resulting log file can be read by the Python plotting scripts in `benchmarks/`.
 
-### CEED bakeoff problems with DMPlex and PCMG - multigrid
+## CEED bakeoff problems with DMPlex and PCMG - multigrid
 
 This code solves the CEED bakeoff problems on a unstructured grid using DMPlex with p-multigrid implemented in PCMG.
 
@@ -52,7 +52,7 @@ In addition to the common arguments, the following arguments may be set:
 - `-mesh`              - Read mesh from file
 - `-cells`             - Number of cells per dimension
 
-### Command line arguments
+## Command line arguments
 
 The following arguments can be specified for all of the above examples:
 
@@ -63,7 +63,7 @@ The following arguments can be specified for all of the above examples:
 - `-test`              - Testing mode (do not print unless error is large)
 - `-benchmark`         - Benchmarking mode (prints benchmark statistics)
 
-### libCEED example to compute surface area using DMPlex - area
+## libCEED example to compute surface area using DMPlex - area
 
 This example uses the mass matrix to compute the surface area of a cube or a discrete cubed-sphere, defined via DMPlex.
 
@@ -75,7 +75,7 @@ or
 
 `./area -problem sphere -ceed [ceed-resource] -petscspace_degree [degree]`
 
-#### Command line arguments
+### Command line arguments
 
 The following arguments can be specified for the area example:
 

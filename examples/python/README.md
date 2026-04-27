@@ -1,12 +1,12 @@
-## libCEED Python Examples
+# libCEED Python Examples
 
 These examples are written using libCEED's Python interface.
 
-### Tutorials
+## Tutorials
 
 These Jupyter notebooks explore the concepts of the libCEED API, including how to install the Python interface and the usage of each API object, with interactive examples.
 
-### Basic Examples
+## Basic Examples
 
 The basic libCEED C examples in the folder `/examples/ceed` are also available as Python examples.
 
