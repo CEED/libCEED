@@ -211,7 +211,10 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
           CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
-            // Full work-group barrier with local-only fence: see interp kernel comment.
+            // Full work-group barrier with local-only fence: s_buffer_1/2 are SLM
+            // (local_accessor), so local_space is sufficient and avoids the cost of
+            // a global memory fence. Do not replace with a sub-group barrier —
+            // work_group_size (= Q) can exceed the hardware sub-group size.
             work_item.barrier(sycl::access::fence_space::local_space);
 
             pre /= P;
