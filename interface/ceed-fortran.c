@@ -41,8 +41,6 @@ typedef size_t fortran_charlen_t;
 typedef int fortran_charlen_t;
 #endif
 
-#define Splice(a, b) a##b
-
 // Fortran strings are generally unterminated and the length is passed as an
 // extra argument after all the normal arguments.  Some compilers (I only know
 // of Windows) place the length argument immediately after the string parameter
@@ -51,11 +49,13 @@ typedef int fortran_charlen_t;
 // We can't just NULL-terminate the string in-place because that could overwrite
 // other strings or attempt to write to read-only memory.  This macro allocates
 // a string to hold the null-terminated version of the string that C expects.
-#define FIX_STRING(stringname)                                                                                                            \
-  char Splice(stringname, _c)[1024];                                                                                                      \
-  if (Splice(stringname, _len) > 1023) *err = CeedError(NULL, 1, "Fortran string length too long %zd", (size_t)Splice(stringname, _len)); \
-  strncpy(Splice(stringname, _c), stringname, Splice(stringname, _len));                                                                  \
-  Splice(stringname, _c)[Splice(stringname, _len)] = 0;
+#define CEED_MAX_FORTRAN_STRING_LEN 1024
+#define FIX_STRING(stringname)                                                             \
+  char stringname##_c[CEED_MAX_FORTRAN_STRING_LEN] = {'\0'};                               \
+  if (stringname##_len > CEED_MAX_FORTRAN_STRING_LEN - 1) {                                \
+    *err = CeedError(NULL, 1, "Fortran string too long: %zd", (size_t)(stringname##_len)); \
+  }                                                                                        \
+  strncpy(stringname##_c, stringname, CeedIntMin(stringname##_len, CEED_MAX_FORTRAN_STRING_LEN - 1));
 
 // -----------------------------------------------------------------------------
 // Ceed
