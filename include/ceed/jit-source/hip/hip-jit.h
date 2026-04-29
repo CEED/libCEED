@@ -13,5 +13,5 @@
 #define CeedPragmaSIMD
 #define CEED_Q_VLA 1
 
-#include "hip-chipstar.h"
+#include "hip-platform.h"
 #include "hip-types.h"

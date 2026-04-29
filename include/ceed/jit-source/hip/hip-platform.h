@@ -11,7 +11,12 @@
 // If we are using Chipstar, then we have to ensure all threads have the same workloads
 //   and hit __syncthreads() at the same places/number of times
 #ifdef __HIP_PLATFORM_SPIRV__
-#define CEED_HIP_USE_CHIPSTAR true
+#define CEED_HIP_USE_CHIPSTAR 1
+#define CEED_HIP_USE_CUDA 0
+#elif __HIP_PLATFORM_NVIDIA__
+#define CEED_HIP_USE_CHIPSTAR 0
+#define CEED_HIP_USE_CUDA 1
 #else
-#define CEED_HIP_USE_CHIPSTAR false
+#define CEED_HIP_USE_CHIPSTAR 0
+#define CEED_HIP_USE_CUDA 0
 #endif

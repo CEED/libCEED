@@ -9,7 +9,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-source/hip/hip-chipstar.h>
+#include <ceed/jit-source/hip/hip-platform.h>
 #include <ceed/jit-tools.h>
 #include <stdarg.h>
 #include <string.h>
@@ -41,6 +41,34 @@ static inline int CeedJitGetOpts_Hip(Ceed ceed, const char ***opts, int *num_opt
 
   CeedCallBackend(CeedCalloc(opts_count, opts));
   CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[0]));
+#elif CEED_HIP_USE_CUDA
+  // hipGetDeviceProperties doesn't set gcnArchName for CUDA, need to use the nvcc flag format
+  int opts_count = 4;
+
+  CeedCallBackend(CeedCalloc(opts_count, opts));
+  CeedCallBackend(CeedStringAllocCopy("-default-device", (char **)&(*opts)[0]));
+  {
+    Ceed_Hip              *ceed_data;
+    struct hipDeviceProp_t prop;
+
+    CeedCallBackend(CeedGetData(ceed, (void **)&ceed_data));
+    CeedCallHip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg =
+#if CUDA_VERSION >= 11010
+        // NVRTC used to support only virtual architectures through the option
+        // -arch, since it was only emitting PTX. It will now support actual
+        // architectures as well to emit SASS.
+        // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#dynamic-code-generation
+        "-arch=sm_"
+#else
+        "-arch=compute_"
+#endif
+        + std::to_string(prop.major) + std::to_string(prop.minor);
+
+    CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[1]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("-Dint32_t=int", (char **)&(*opts)[2]));
+  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[3]));
 #else
   int opts_count = 4;
 
@@ -112,7 +140,8 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
   // Make sure a Context exists for hiprtc
   hipFree(0);
 
-  // Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
+// Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
+#if !CEED_HIP_USE_CUDA
   {
     int runtime_version;
 
@@ -127,6 +156,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
       code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n\n";
     }
   }
+#endif
 
   // Kernel specific options, such as kernel constants
   if (num_defines > 0) {
