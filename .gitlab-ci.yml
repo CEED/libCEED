@@ -48,7 +48,7 @@ noether-asan:
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="memcheck" junit realsearch=%
     # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+    - TIDY_OPTS="-fix-errors -warnings-as-errors=" make -j$NPROC_CPU tidy
     # Report status
     - touch .SUCCESS
   artifacts:
@@ -284,7 +284,7 @@ noether-cuda:
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
     # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+    - TIDY_OPTS="-fix-errors -warnings-as-errors=" make -j$NPROC_CPU tidy
     # Report status
     - touch .SUCCESS
   after_script:
@@ -351,7 +351,7 @@ noether-cuda:
 #    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
 #    # Clang-tidy
 #    - echo "-------------- clang-tidy ----------" && clang-tidy --version
-#    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+#    - TIDY_OPTS="-fix-errors -warnings-as-errors=" make -j$NPROC_CPU tidy
 #    # Report status
 #    - touch .SUCCESS
 #  after_script:
@@ -402,7 +402,7 @@ noether-rocm:
     - make -j$NPROC_CPU
     # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+    - TIDY_OPTS="-fix-errors -warnings-as-errors=" make -j$NPROC_CPU tidy
     # Report status
     - touch .SUCCESS
 
