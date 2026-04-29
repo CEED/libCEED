@@ -12,6 +12,8 @@
 
 static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) { return (numerator + denominator - 1) / denominator; }
 
+CEED_INTERN int CeedBuildArrayConstantSize_Hip(Ceed ceed, const char *name, CeedInt length, const CeedSize *array, char **line);
+
 CEED_INTERN int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...);
 CEED_INTERN int CeedTryCompile_Hip(Ceed ceed, const char *source, bool *is_compile_good, hipModule_t *module, const CeedInt num_defines, ...);
 
