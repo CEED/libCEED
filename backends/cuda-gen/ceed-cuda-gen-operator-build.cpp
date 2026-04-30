@@ -367,11 +367,10 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       break;
     case CEED_EVAL_WEIGHT:
       break;  // No action
-      // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
+      data->use_fallback = true;
       break;  // TODO: Not implemented
-              // LCOV_EXCL_STOP
   }
   CeedCallBackend(CeedBasisDestroy(&basis));
   return CEED_ERROR_SUCCESS;
@@ -459,11 +458,10 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
           data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
           break;
         }
-        // LCOV_EXCL_START
         case CEED_RESTRICTION_ORIENTED:
         case CEED_RESTRICTION_CURL_ORIENTED:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
   } else {
@@ -511,11 +509,10 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
       case CEED_RESTRICTION_POINTS:
         data->indices.outputs[i] = (CeedInt *)rstr_data->d_offsets;
         break;
-      // LCOV_EXCL_START
       case CEED_RESTRICTION_ORIENTED:
       case CEED_RESTRICTION_CURL_ORIENTED:
+        data->use_fallback = true;
         break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
     }
   }
   CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
@@ -630,11 +627,10 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
         }
         break;
       }
-      // LCOV_EXCL_START
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL:
+        data->use_fallback = true;
         break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
     }
   } else {
     switch (eval_mode) {
@@ -692,10 +688,11 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT:
         break;  // Should not occur
+                // LCOV_EXCL_STOP
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL:
+        data->use_fallback = true;
         break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
     }
   }
   CeedCallBackend(CeedBasisDestroy(&basis));
@@ -762,11 +759,10 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
         break;
       case CEED_EVAL_WEIGHT:
         break;
-        // LCOV_EXCL_START
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL:
+        data->use_fallback = true;
         break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
     }
   }
 
@@ -815,11 +811,10 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << tab << "CeedScalar r_s" << var_suffix << "[1];\n";
           code << tab << "r_s" << var_suffix << "[0] = 1.0;\n";
           break;
-          // LCOV_EXCL_START
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
     code << "\n";
@@ -845,10 +840,11 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
+                  // LCOV_EXCL_STOP
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
 
@@ -926,11 +922,10 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << tab << "CeedScalar r_s" << var_suffix << "[1];\n";
           code << tab << "r_s" << var_suffix << "[0] = r_q" << var_suffix << "[q];\n";
           break;
-          // LCOV_EXCL_START
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
     code << "\n";
@@ -956,10 +951,11 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
+                  // LCOV_EXCL_STOP
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
   } else {
@@ -1072,10 +1068,11 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
+                  // LCOV_EXCL_STOP
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
   } else if (use_3d_slices) {
@@ -1114,10 +1111,11 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
+                  // LCOV_EXCL_STOP
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          data->use_fallback = true;
           break;  // TODO: Not implemented
-                  // LCOV_EXCL_STOP
       }
     }
   }
@@ -1222,6 +1220,13 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
                                                          op_output_fields, qf_output_fields, &max_P, &max_P_1d, &Q, &Q_1d, &max_dim, &is_all_tensor,
                                                          &use_3d_slices));
+    if (data->use_fallback) {
+      *is_good_build = false;
+      CeedCallBackend(CeedOperatorSetSetupDone(op));
+      CeedCallBackend(CeedDestroy(&ceed));
+      CeedCallBackend(CeedQFunctionDestroy(&qf));
+      return CEED_ERROR_SUCCESS;
+    }
     data->max_P_1d = is_all_tensor ? max_P_1d : max_P;
   }
   if (is_at_points) {

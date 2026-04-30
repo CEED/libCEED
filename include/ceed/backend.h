@@ -436,6 +436,7 @@ CEED_EXTERN int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyDa
 CEED_EXTERN int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool *is_update_needed);
 CEED_EXTERN int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQFunctionAssemblyData *data_copy);
 CEED_EXTERN int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_setup);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetBlockAssembling(CeedQFunctionAssemblyData data, bool is_block_assembling);
 CEED_EXTERN int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVector vec, CeedElemRestriction rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
@@ -474,7 +475,7 @@ CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *par
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
 CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                          CeedRequest *request);
-CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedInt offset, CeedVector values);
+CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector values);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,
