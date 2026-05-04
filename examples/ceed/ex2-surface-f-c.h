@@ -9,8 +9,8 @@
 
 /// libCEED Q-function for building quadrature data for a diffusion operator
 CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const long long int dim       = ((long long int *)ctx)[0];
-  const long long int space_dim = ((long long int *)ctx)[1];
+  const long dim       = ((const long *)ctx)[0];
+  const long space_dim = ((const long *)ctx)[1];
 
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights, size (Q)
