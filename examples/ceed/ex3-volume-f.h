@@ -68,8 +68,8 @@ subroutine build_mass_diff(ctx, q, dx, w, u3, u4, u5, u6, u7, u8, u9, u10, u11, 
             end do
 !           det(J) = J[0][0]*A[0][0] + J[0][1]*A[1][0] + J[0][2]*A[2][0]
             det = dx(0*3*q + 0*q + i) * A(1,1) + &
-                  dx(0*3*q + 1*q + i) * A(2,1) + &
-                  dx(0*3*q + 2*q + i) * A(3,1)
+                  dx(0*3*q + 1*q + i) * A(1,2) + &
+                  dx(0*3*q + 2*q + i) * A(1,3)
             qw = w(i) / det
 !           Mass
             qdata(0*q + i) = w(i) * det
