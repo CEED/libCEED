@@ -46,8 +46,10 @@ const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
   @ref Developer
 **/
 static int CeedChebyshevPolynomialsAtPoint(CeedScalar x, CeedInt n, CeedScalar *chebyshev_x) {
+  // Chebyshev polynomials of the first kind, 3 term recurrence: T_0(x) = 1, T_1(x) = x, T_n = 2 x T_{n-1} - T_{n-2}
+  // For more info, see e.g. https://en.wikipedia.org/wiki/Chebyshev_polynomials#Recurrence_definition
   chebyshev_x[0] = 1.0;
-  chebyshev_x[1] = 2 * x;
+  chebyshev_x[1] = x;
   for (CeedInt i = 2; i < n; i++) chebyshev_x[i] = 2 * x * chebyshev_x[i - 1] - chebyshev_x[i - 2];
   return CEED_ERROR_SUCCESS;
 }
@@ -64,17 +66,20 @@ static int CeedChebyshevPolynomialsAtPoint(CeedScalar x, CeedInt n, CeedScalar *
   @ref Developer
 **/
 static int CeedChebyshevDerivativeAtPoint(CeedScalar x, CeedInt n, CeedScalar *chebyshev_dx) {
+  // Note, these are Chebyshev polynomials of the 2nd kind, used for derivatives
+  // See e.g. https://en.wikipedia.org/wiki/Chebyshev_polynomials#Differentiation_and_integration for the recurrence
   CeedScalar chebyshev_x[3];
 
   chebyshev_x[1]  = 1.0;
   chebyshev_x[2]  = 2 * x;
   chebyshev_dx[0] = 0.0;
-  chebyshev_dx[1] = 2.0;
+  chebyshev_dx[1] = 1.0;
   for (CeedInt i = 2; i < n; i++) {
+    // dT_i/dx = i * dU_{i-1}/dx
     chebyshev_x[0]  = chebyshev_x[1];
     chebyshev_x[1]  = chebyshev_x[2];
+    chebyshev_dx[i] = i * chebyshev_x[1];
     chebyshev_x[2]  = 2 * x * chebyshev_x[1] - chebyshev_x[0];
-    chebyshev_dx[i] = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[1] - chebyshev_dx[i - 2];
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -607,7 +612,6 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       break;
     }
     case CEED_TRANSPOSE: {
-      // Note: No switch on e_mode here because only CEED_EVAL_INTERP is supported at this time
       // Arbitrary points to nodes
       CeedScalar       *chebyshev_coeffs;
       const CeedScalar *u_array, *x_array_read;
