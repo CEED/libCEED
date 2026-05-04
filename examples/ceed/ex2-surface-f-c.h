@@ -80,7 +80,7 @@ CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *
 
 /// libCEED Q-function for applying a diff operator
 CEED_QFUNCTION(apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const long long int dim = ((long long int *)ctx)[0];
+  const long dim = ((const long *)ctx)[0];
 
   // in[0], out[0] solution gradients with shape [dim, 1, Q]
   // in[1] is quadrature data with shape [num_components, Q]
