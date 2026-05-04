@@ -11,7 +11,7 @@
 // Test builds the vector [1.0, -2.0, 3.0, -4.0, 5.0, -6.0, 7.0, -8.0, 9.0, -10.0]
 // and filters it using different tolerances
 static int InitVector(CeedVector x, CeedInt len) {
-  if (len <= 0) return 0; // Nothing to set for an empty vector
+  if (len <= 0) return 0;  // Nothing to set for an empty vector
 
   CeedScalar array[len];
   for (CeedInt i = 0; i < len; i++) array[i] = (1.0 + i) * pow(-1, i);
@@ -20,28 +20,27 @@ static int InitVector(CeedVector x, CeedInt len) {
 }
 
 static int VerifyFilter(CeedVector x, CeedInt len, CeedScalar tolerance) {
-    const CeedScalar *read_array;
+  const CeedScalar *read_array;
 
-    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
-    for (CeedInt i = 0; i < len; i++) {
-      CeedScalar initial_value = (1.0 + i) * pow(-1, i);
-      CeedScalar expected_value = (fabs(initial_value) <= tolerance) ? 0.0 : initial_value;
+  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
+  for (CeedInt i = 0; i < len; i++) {
+    CeedScalar initial_value = (1.0 + i) * pow(-1, i);
+    CeedScalar expected_value = (fabs(initial_value) <= tolerance) ? 0.0 : initial_value;
 
-      if (fabs(read_array[i] - expected_value) > 1e-14) {
-        // LCOV_EXCL_START
-        printf("Error in filtered vector at index %" CeedInt_FMT ", computed: %f actual: %f\n", 
-               i, read_array[i], expected_value);
-        // LCOV_EXCL_STOP
-      }
+    if (fabs(read_array[i] - expected_value) > 1e-14) {
+      // LCOV_EXCL_START
+      printf("Error in filtered vector at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], expected_value);
+      // LCOV_EXCL_STOP
     }
-    CeedVectorRestoreArrayRead(x, &read_array);
-    return 0;
-  }
+    }
+  CeedVectorRestoreArrayRead(x, &read_array);
+  return 0;
+}
 
 int main(int argc, char **argv) {
   Ceed       ceed;
   CeedVector x;
-  CeedInt    len = 10;
+  CeedInt    len       = 10;
   CeedScalar tolerance = 1e-10; 
 
   CeedInit(argv[1], &ceed);
