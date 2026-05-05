@@ -1865,7 +1865,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; e < num_elem; elem += gridDim.x*blockDim.z) {\n";
+  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
   tab.push();
 
   // -- Compute minimum buffer space needed
