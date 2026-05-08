@@ -15,21 +15,22 @@
 template <int Q_1D>
 inline __device__ void ChebyshevPolynomialsAtPoint(const CeedScalar x, CeedScalar *chebyshev_x) {
   chebyshev_x[0] = 1.0;
-  chebyshev_x[1] = 2 * x;
+  chebyshev_x[1] = x;
   for (CeedInt i = 2; i < Q_1D; i++) chebyshev_x[i] = 2 * x * chebyshev_x[i - 1] - chebyshev_x[i - 2];
 }
 
 template <int Q_1D>
 inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar *chebyshev_dx) {
-  CeedScalar chebyshev_x[3];
+  CeedScalar chebyshev_x[2];
 
-  chebyshev_x[1]  = 1.0;
-  chebyshev_x[2]  = 2 * x;
+  chebyshev_x[0]  = 1.0;
+  chebyshev_x[1]  = 2 * x;
   chebyshev_dx[0] = 0.0;
-  chebyshev_dx[1] = 2.0;
+  chebyshev_dx[1] = 1.0;
   for (CeedInt i = 2; i < Q_1D; i++) {
-    chebyshev_x[(i + 1) % 3] = 2 * x * chebyshev_x[(i + 0) % 3] - chebyshev_x[(i + 2) % 3];
-    chebyshev_dx[i]          = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[(i + 0) % 3] - chebyshev_dx[i - 2];
+    // dT_i/dx = i * dU_{i-1}/dx
+    chebyshev_dx[i]    = i * chebyshev_x[(i + 1) % 2];
+    chebyshev_x[i % 2] = 2 * x * chebyshev_x[(i + 1) % 2] - chebyshev_x[i % 2];
   }
 }
 
