@@ -11,8 +11,8 @@
 /// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
 /// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
 CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const long long int dim       = ((long long int *)ctx)[0];
-  const long long int space_dim = ((long long int *)ctx)[1];
+  const long dim       = ((long long int *)ctx)[0];
+  const long space_dim = ((long long int *)ctx)[1];
 
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights, size (Q)
@@ -94,8 +94,8 @@ CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
 /// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
 /// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
 CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const long long int dim = ((long long int *)ctx)[0];
-  const long long int space_dim = ((long long int *)ctx)[1];
+  const long dim = ((long long int *)ctx)[0];
+  const long space_dim = ((long long int *)ctx)[1];
 
   // in[0] solution values with shape [1, Q]
   // in[1] solution gradients with shape [dim, 1, Q]
