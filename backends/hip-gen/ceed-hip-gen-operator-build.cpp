@@ -12,6 +12,7 @@
 #include <ceed/gen-tools.h>
 #include <ceed/jit-tools.h>
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -419,6 +420,9 @@ static int CeedOperatorBuildKernelRestriction_Hip_gen(std::ostringstream &code, 
   CeedRestrictionType      rstr_type = CEED_RESTRICTION_STANDARD;
   CeedElemRestriction_Hip *rstr_data;
   CeedElemRestriction      elem_rstr;
+
+  // Verify bounds
+  assert(i >= 0 && i < CEED_HIP_NUMBER_FIELDS);
 
   // Get field data
   CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_field, &elem_rstr));

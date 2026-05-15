@@ -13,6 +13,7 @@
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
 
+#include <cassert>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -391,6 +392,9 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
   CeedRestrictionType       rstr_type = CEED_RESTRICTION_STANDARD;
   CeedElemRestriction_Cuda *rstr_data;
   CeedElemRestriction       elem_rstr;
+
+  // Verify bounds
+  assert(i >= 0 && i < CEED_CUDA_NUMBER_FIELDS);
 
   // Get field data
   CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_field, &elem_rstr));
