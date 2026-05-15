@@ -836,6 +836,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
 
   CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
   CeedCheck(!is_immutable, CeedQFunctionReturnCeed(qf), CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
+  CeedCheck(qf->num_input_fields < CEED_FIELD_MAX, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Can only add %d input fields", CEED_FIELD_MAX);
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, CeedQFunctionReturnCeed(qf), CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
     CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR,
@@ -878,6 +879,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt siz
 
   CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
   CeedCheck(!is_immutable, CeedQFunctionReturnCeed(qf), CEED_ERROR_MAJOR, "CeedQFunction cannot be changed after set as immutable");
+  CeedCheck(qf->num_output_fields < CEED_FIELD_MAX, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Can only add %d output fields", CEED_FIELD_MAX);
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT, CeedQFunctionReturnCeed(qf), CEED_ERROR_DIMENSION,
             "Cannot create CeedQFunction output with CEED_EVAL_WEIGHT");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
