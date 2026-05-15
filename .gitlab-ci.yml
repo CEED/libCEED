@@ -177,7 +177,7 @@ noether-rust-qfunctions:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc GPU_CLANG=1
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GPU_CLANG=1
     - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -186,7 +186,7 @@ noether-rust-qfunctions:
     - echo "-------------- NVCC ----------------" && $NVCC --version
     - echo "-------------- Rustc ---------------" && rustc --version
     - echo "-------------- Clang++ -------------" && clang++ --version
-    - echo "-------------- GCOV ----------------" && gcov --version
+    - echo "-------------- GCOV ----------------" && gcov-14 --version
   script:
     - rm -f .SUCCESS
     # Rustup
@@ -230,14 +230,14 @@ noether-cuda:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
+    - echo "-------------- GCOV ----------------" && gcov-14 --version
     # ASAN
     - echo "-------------- ASAN ----------------"
     - export ASAN=1 AFLAGS="-fsanitize=address -fsanitize=leak" ASAN_OPTIONS=protect_shadow_gap=0
@@ -418,13 +418,13 @@ noether-float:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC= NVCC=nvcc
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC= NVCC=nvcc
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
+    - echo "-------------- GCOV ----------------" && gcov-14 --version
     # Libraries for backends
 # ROCm tests currently disabled
 # -- MAGMA from dev branch
