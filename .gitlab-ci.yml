@@ -69,13 +69,14 @@ noether-cpu:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
     # Libraries for backends
     # -- LIBXSMM 7 April 2024
     - cd .. && export XSMM_HASH=94ee71576870152feb62f3f0cf6b061d036dcdb5 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
@@ -120,7 +121,8 @@ noether-cpu:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        source job.env;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -177,7 +179,7 @@ noether-rust-qfunctions:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc CEED_USE_CLANG_CUDA=1
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_USE_CLANG_CUDA=1
     - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -185,8 +187,8 @@ noether-rust-qfunctions:
     - echo "-------------- FC ------------------" && $FC --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
     - echo "-------------- Rustc ---------------" && rustc --version
-    - echo "-------------- Clang++ -------------" && clang++ --version
-    - echo "-------------- GCOV ----------------" && gcov-14 --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
   script:
     - rm -f .SUCCESS
     # Rustup
@@ -208,7 +210,8 @@ noether-rust-qfunctions:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        source job.env;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -230,14 +233,15 @@ noether-cuda:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
-    - echo "-------------- GCOV ----------------" && gcov-14 --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
     # ASAN
     - echo "-------------- ASAN ----------------"
     - export ASAN=1 AFLAGS="-fsanitize=address -fsanitize=leak" ASAN_OPTIONS=protect_shadow_gap=0
@@ -290,7 +294,8 @@ noether-cuda:
   after_script:
     - |
       if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        source job.env;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -317,14 +322,15 @@ noether-cuda:
 #  interruptible: true
 #  before_script:
 #    # Environment
-#    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+#    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc GCOV=gcov
 #    - export NPROC_POOL=4
 #    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
 #    - echo "-------------- CC ------------------" && $CC --version
 #    - echo "-------------- CXX -----------------" && $CXX --version
 #    - echo "-------------- FC ------------------" && $FC --version
 #    - echo "-------------- HIPCC ---------------" && $HIPCC --version
-#    - echo "-------------- GCOV ----------------" && gcov --version
+#    - echo "-------------- GCOV ----------------" && $GCOV --version
+#    - echo "GCOV=$GCOV" > job.env
 #    # Libraries for backends
 #    # -- MAGMA from dev branch
 #    - echo "-------------- MAGMA ---------------"
@@ -357,7 +363,8 @@ noether-cuda:
 #  after_script:
 #    - |
 #      if [ -f .SUCCESS ]; then
-#        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+#        source job.env;
+#        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -379,14 +386,15 @@ noether-rocm:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc GCOV=gcov
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
     - echo "-------------- HIPCC ---------------" && $HIPCC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
     # Libraries for backends
     # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
@@ -418,13 +426,14 @@ noether-float:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC= NVCC=nvcc
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC= NVCC=nvcc GCOV=gcov-14
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
-    - echo "-------------- GCOV ----------------" && gcov-14 --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
     # Libraries for backends
 # ROCm tests currently disabled
 # -- MAGMA from dev branch
@@ -459,7 +468,8 @@ noether-float:
   after_script:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
-        lcov --directory . --capture --output-file coverage.info --ignore-errors source,mismatch;
+        source job.env;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
