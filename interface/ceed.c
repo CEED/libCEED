@@ -1375,15 +1375,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Note: there will always be the default root for every Ceed but all additional paths are added to the top-most parent
   CeedCall(CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault));
 
-  // By default, make cuda compile without clang, use nvrtc instead
-  // Note that this is overridden if a rust file is included (rust requires clang)
-  const char *env = getenv("GPU_CLANG");
+  // By default, make CUDA compile without Clang, use nvrtc instead
+  // Note that this is overridden if a Rust file is included (Rust requires Clang)
+  const char *cuda_clang_flag = getenv("CEED_USE_CLANG_CUDA");
+  bool        use_cuda_clang  = cuda_clang_flag && strcmp(cuda_clang_flag, "0") && strcmp(cuda_clang_flag, "false");
 
-  if (env && strcmp(env, "1") == 0) {
-    (*ceed)->cuda_compile_with_clang = true;
-  } else {
-    (*ceed)->cuda_compile_with_clang = false;
-  }
+  (*ceed)->cuda_compile_with_clang = use_cuda_clang || getenv("CEED_CLANG_CUDA_CXX");
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
