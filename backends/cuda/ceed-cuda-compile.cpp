@@ -158,7 +158,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
                using_clang ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
                            : "Compiling CUDA with NVRTC backend (without Rust QFunction support)."
                              "\nTo use the Clang backend, set the environment variable CEED_USE_CLANG_CUDA=1"
-                             "or CEED_CLANG_CUDA_CXX=my_clang++");
+                             " or CEED_CLANG_CUDA_CXX=my_clang++");
 
   // Get kernel specific options, such as kernel constants
   if (num_defines > 0) {
@@ -303,16 +303,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     Ceed_Cuda *ceed_data;
 
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    char *llvm_command = ceed_data->llvm_command;
+    char *llvm_cxx = ceed_data->llvm_cxx;
 
     // First check for user LLVM version
-    if (!llvm_command) {
+    if (!llvm_cxx) {
       const char *user_cxx = getenv("CEED_CLANG_CUDA_CXX");
       CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
 
       // Check if valid Clang
-      bool is_valid = true;
-      {
+      bool is_valid = false;
+      if (user_cxx) {
         std::string command = std::string(user_cxx) + " --version 2>&1";
 
         CeedDebug(ceed, "Checking user LLVM compiler...");
@@ -321,14 +321,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
       if (is_valid) {
         CeedDebug(ceed, "User specified LLVM compiler is valid\n");
-        CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_command));
-        llvm_command = ceed_data->llvm_command;
+        CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
+        llvm_cxx = ceed_data->llvm_cxx;
       } else {
         CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");
       }
     }
     // Next query Rust for LLVM version
-    if (!llvm_command) {
+    if (!llvm_cxx) {
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
       CeedDebug(ceed, "Attempting to detect Rust LLVM version\ncommand:\n$ %s", command.c_str());
       FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
@@ -355,7 +355,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
         CeedDebug(ceed, "Detected Rust LLVM version: %d", llvm_version);
 
         // Check if valid Clang
-        bool        is_valid = true;
+        bool        is_valid = false;
         std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
         {
           std::string command = std::string(rust_cxx) + " --version 2>&1";
@@ -366,19 +366,19 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
         if (is_valid) {
           CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
-          CeedCall(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_command));
-          llvm_command = ceed_data->llvm_command;
+          CeedCall(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_cxx));
+          llvm_cxx = ceed_data->llvm_cxx;
         }
       }
-      if (!llvm_command) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
+      if (!llvm_cxx) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
     }
     // Default to clang++
-    if (!llvm_command) {
+    if (!llvm_cxx) {
       CeedDebug(ceed, "Default LLVM compiler: clang++\n");
-      CeedCall(CeedStringAllocCopy("clang++", &ceed_data->llvm_command));
-      llvm_command = ceed_data->llvm_command;
+      CeedCall(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
+      llvm_cxx = ceed_data->llvm_cxx;
       {
-        std::string command = std::string(llvm_command) + " --version 2>&1";
+        std::string command = std::string(llvm_cxx) + " --version 2>&1";
 
         CeedDebug(ceed, "Checking default LLVM compiler...");
         CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default LLVM compiler", NULL);
@@ -387,9 +387,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     // Compile wrapper kernel
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
-    command = (llvm_command ? std::string(llvm_command) : std::string("clang++")) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) +
-              std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) +
-              "_0_source.cu -o temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll ";
+    command = std::string(llvm_cxx) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
+              " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) + "_0_source.cu -o temp/kernel_" +
+              std::to_string(build_id) + "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
     CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");

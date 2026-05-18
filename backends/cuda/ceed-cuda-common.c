@@ -42,7 +42,7 @@ int CeedDestroy_Cuda(Ceed ceed) {
 
   CeedCallBackend(CeedGetData(ceed, &data));
   if (data->cublas_handle) CeedCallCublas(ceed, cublasDestroy(data->cublas_handle));
-  CeedCallBackend(CeedFree(&data->llvm_command));
+  CeedCallBackend(CeedFree(&data->llvm_cxx));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

@@ -66,7 +66,7 @@ static const char *cublasGetErrorName(cublasStatus_t error) {
 
 typedef struct {
   int                   device_id;
-  char                 *llvm_command;
+  char                 *llvm_cxx;
   cublasHandle_t        cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;

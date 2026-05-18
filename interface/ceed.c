@@ -1378,7 +1378,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // By default, make CUDA compile without Clang, use nvrtc instead
   // Note that this is overridden if a Rust file is included (Rust requires Clang)
   const char *cuda_clang_flag = getenv("CEED_USE_CLANG_CUDA");
-  bool        use_cuda_clang  = cuda_clang_flag && !strcmp(cuda_clang_flag, "0") && !strcmp(cuda_clang_flag, "false");
+  bool        use_cuda_clang  = cuda_clang_flag && strcmp(cuda_clang_flag, "0") && strcmp(cuda_clang_flag, "false");
 
   (*ceed)->cuda_compile_with_clang = use_cuda_clang || getenv("CEED_CLANG_CUDA_CXX");
 
