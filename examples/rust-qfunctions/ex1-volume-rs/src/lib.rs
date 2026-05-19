@@ -1,6 +1,6 @@
 #![no_std]
 #![allow(internal_features)]
-#![feature(asm_experimental_arch, abi_ptx, core_intrinsics)]
+#![feature(core_intrinsics)]
 use core::ffi::c_void;
 use core::intrinsics::abort;
 use core::panic::PanicInfo;
