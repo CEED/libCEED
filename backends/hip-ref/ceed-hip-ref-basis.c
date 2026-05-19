@@ -180,9 +180,9 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
 
     if (data->moduleAtPoints) CeedCallHip(ceed, hipModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                    Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                    "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
+    CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, "basis_at_points", &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                    "BASIS_BUF_LEN", Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP",
+                                    num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
                                     max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
@@ -420,9 +420,9 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/hip/hip-ref-basis-tensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                  Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                  "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, "basis_h1_tensor", &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                  "BASIS_BUF_LEN", Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP",
+                                  num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
@@ -476,8 +476,8 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/hip/hip-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                  q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_grad, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, "basis_h1_nontensor", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                  "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_grad, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Deriv", &data->Deriv));
@@ -531,8 +531,8 @@ int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_node
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/hip/hip-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                  q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_div, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, "basis_h_div", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                  "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_div, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Deriv", &data->Deriv));
@@ -586,8 +586,8 @@ int CeedBasisCreateHcurl_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/hip/hip-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                  q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_curl, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, "basis_h_curl", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                  "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_curl, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Deriv", &data->Deriv));

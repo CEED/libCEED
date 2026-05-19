@@ -101,7 +101,7 @@ static inline int CeedJitGetOpts_Hip(Ceed ceed, const char ***opts, int *num_opt
 //------------------------------------------------------------------------------
 // Compile HIP kernel
 //------------------------------------------------------------------------------
-static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, hipModule_t *module,
+static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, const bool throw_error, bool *is_compile_good, hipModule_t *module,
                                const CeedInt num_defines, va_list args) {
   size_t             ptx_size;
   char              *ptx;
@@ -155,6 +155,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const bool throw_e
 
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug(ceed, "Name:\n  %s\n", name);
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
   if (CeedDebugFlag(ceed)) {
@@ -224,23 +225,23 @@ int CeedBuildArrayConstantSize_Hip(Ceed ceed, const char *name, CeedInt length, 
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
+int CeedCompile_Hip(Ceed ceed, const char *source, const char *name, hipModule_t *module, const CeedInt num_defines, ...) {
   bool    is_compile_good = true;
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, true, &is_compile_good, module, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, name, true, &is_compile_good, module, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedTryCompile_Hip(Ceed ceed, const char *source, bool *is_compile_good, hipModule_t *module, const CeedInt num_defines, ...) {
+int CeedTryCompile_Hip(Ceed ceed, const char *source, const char *name, bool *is_compile_good, hipModule_t *module, const CeedInt num_defines, ...) {
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, false, is_compile_good, module, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Hip(ceed, source, name, false, is_compile_good, module, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);

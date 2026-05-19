@@ -354,10 +354,10 @@ static int CeedBasisApplyNonTensorCore_Magma(CeedBasis basis, bool apply_add, Ce
         CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, weight_kernel_path, &num_file_paths, &file_paths, &basis_kernel_source));
       }
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-      CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[iN], 8, "BASIS_Q_COMP_INTERP", q_comp_interp,
-                                       "BASIS_Q_COMP_DERIV", q_comp_deriv, "BASIS_P", P, "BASIS_Q", Q, "BASIS_NB_INTERP_N", impl->NB_interp[iN],
-                                       "BASIS_NB_INTERP_T", impl->NB_interp_t[iN], "BASIS_NB_DERIV_N", impl->NB_deriv[iN], "BASIS_NB_DERIV_T",
-                                       impl->NB_deriv_t[iN]));
+      CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_nontensor", &impl->module[iN], 8, "BASIS_Q_COMP_INTERP",
+                                       q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_deriv, "BASIS_P", P, "BASIS_Q", Q, "BASIS_NB_INTERP_N",
+                                       impl->NB_interp[iN], "BASIS_NB_INTERP_T", impl->NB_interp_t[iN], "BASIS_NB_DERIV_N", impl->NB_deriv[iN],
+                                       "BASIS_NB_DERIV_T", impl->NB_deriv_t[iN]));
       CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_interp_nontensor_n", &impl->Interp[iN]));
       CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_interp_nontensor_t", &impl->InterpTranspose[iN]));
       CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_interp_nontensor_ta", &impl->InterpTransposeAdd[iN]));
@@ -587,8 +587,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
   }
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, weight_kernel_path, &num_file_paths, &file_paths, &basis_kernel_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module, 5, "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_P",
-                                   P_1d, "BASIS_Q", Q_1d, "BASIS_MAX_P_Q", CeedIntMax(P_1d, Q_1d)));
+  CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h1_tensor", &impl->module, 5, "BASIS_DIM", dim, "BASIS_NUM_COMP",
+                                   num_comp, "BASIS_P", P_1d, "BASIS_Q", Q_1d, "BASIS_MAX_P_Q", CeedIntMax(P_1d, Q_1d)));
   switch (dim) {
     case 1:
       CeedCallBackend(CeedGetKernelMagma(ceed, impl->module, "magma_interpn_1d_kernel", &impl->Interp));
@@ -683,7 +683,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h1_tensor", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
     CeedCallBackend(CeedFree(&weight_kernel_path));
     CeedCallBackend(CeedFree(&basis_kernel_source));
@@ -747,7 +747,7 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h_div", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
     CeedCallBackend(CeedFree(&weight_kernel_path));
     CeedCallBackend(CeedFree(&basis_kernel_source));
@@ -811,7 +811,7 @@ int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_n
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h_curl", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
     CeedCallBackend(CeedFree(&weight_kernel_path));
     CeedCallBackend(CeedFree(&basis_kernel_source));

@@ -1662,8 +1662,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
     bool is_compile_good = false;
 
     data->thread_1d = block_sizes[0];
-    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good, &data->module, 2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE",
-                                       block_sizes[0] * block_sizes[1] * block_sizes[2]));
+    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_") + qfunction_name).c_str(), &is_compile_good, &data->module,
+                                       2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
@@ -2140,9 +2140,9 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
     bool is_compile_good = false;
 
     data->thread_1d = block_sizes[0];
-    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good,
-                                       is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 2, "OP_T_1D", block_sizes[0],
-                                       "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
+    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_assembly_at_points") + qfunction_name).c_str(),
+                                       &is_compile_good, is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 2, "OP_T_1D",
+                                       block_sizes[0], "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, is_full ? data->module_assemble_full : data->module_assemble_diagonal, operator_name.c_str(),
@@ -2726,8 +2726,9 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
     bool is_compile_good = false;
 
     data->thread_1d = block_sizes[0];
-    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 2, "OP_T_1D", block_sizes[0],
-                                       "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
+    CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_assembly") + qfunction_name).c_str(), &is_compile_good,
+                                       &data->module_assemble_qfunction, 2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE",
+                                       block_sizes[0] * block_sizes[1] * block_sizes[2]));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, data->module_assemble_qfunction, operator_name.c_str(), &data->assemble_qfunction));

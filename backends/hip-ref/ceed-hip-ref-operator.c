@@ -1404,9 +1404,10 @@ static inline int CeedOperatorAssembleDiagonalSetupCompile_Hip(CeedOperator op, 
   CeedCallBackend(CeedBasisGetNumComponents(basis_in, &num_comp));
   if (basis_in == CEED_BASIS_NONE) num_qpts = num_nodes;
   else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
-  CeedCallHip(ceed, CeedCompile_Hip(ceed, diagonal_kernel_source, module, 8, "NUM_EVAL_MODES_IN", num_eval_modes_in, "NUM_EVAL_MODES_OUT",
-                                    num_eval_modes_out, "NUM_COMP", num_comp, "NUM_NODES", num_nodes, "NUM_QPTS", num_qpts, "USE_CEEDSIZE",
-                                    use_ceedsize_idx, "USE_POINT_BLOCK", is_point_block ? 1 : 0, "BLOCK_SIZE", num_nodes * elems_per_block));
+  CeedCallHip(ceed, CeedCompile_Hip(ceed, diagonal_kernel_source, "operator_diagonal_assembly", module, 8, "NUM_EVAL_MODES_IN", num_eval_modes_in,
+                                    "NUM_EVAL_MODES_OUT", num_eval_modes_out, "NUM_COMP", num_comp, "NUM_NODES", num_nodes, "NUM_QPTS", num_qpts,
+                                    "USE_CEEDSIZE", use_ceedsize_idx, "USE_POINT_BLOCK", is_point_block ? 1 : 0, "BLOCK_SIZE",
+                                    num_nodes * elems_per_block));
   CeedCallHip(ceed, CeedGetKernel_Hip(ceed, *module, "LinearDiagonal", is_point_block ? &diag->LinearPointBlock : &diag->LinearDiagonal));
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedBasisDestroy(&basis_in));
@@ -1625,11 +1626,11 @@ static int CeedOperatorAssembleSingleBlockSetup_Hip(CeedOperator op, CeedInt act
 
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp_in));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
-  CeedCallBackend(CeedCompile_Hip(ceed, source, &asmb->module, 11, "NUM_EVAL_MODES_IN", num_eval_modes_in, "NUM_EVAL_MODES_OUT", num_eval_modes_out,
-                                  "NUM_COMP_IN", num_comp_in, "NUM_COMP_OUT", num_comp_out, "TOTAL_NUM_COMP_OUT", num_output_components,
-                                  "NUM_NODES_IN", elem_size_in, "NUM_NODES_OUT", elem_size_out, "NUM_QPTS", num_qpts_in, "BLOCK_SIZE",
-                                  asmb->block_size_x * asmb->block_size_y * asmb->elems_per_block, "BLOCK_SIZE_Y", asmb->block_size_y, "USE_CEEDSIZE",
-                                  use_ceedsize_idx));
+  CeedCallBackend(CeedCompile_Hip(ceed, source, "operator_block_assembly", &asmb->module, 11, "NUM_EVAL_MODES_IN", num_eval_modes_in,
+                                  "NUM_EVAL_MODES_OUT", num_eval_modes_out, "NUM_COMP_IN", num_comp_in, "NUM_COMP_OUT", num_comp_out,
+                                  "TOTAL_NUM_COMP_OUT", num_output_components, "NUM_NODES_IN", elem_size_in, "NUM_NODES_OUT", elem_size_out,
+                                  "NUM_QPTS", num_qpts_in, "BLOCK_SIZE", asmb->block_size_x * asmb->block_size_y * asmb->elems_per_block,
+                                  "BLOCK_SIZE_Y", asmb->block_size_y, "USE_CEEDSIZE", use_ceedsize_idx));
   CeedCallBackend(CeedGetKernel_Hip(ceed, asmb->module, "LinearAssembleBlock", &asmb->LinearAssemble));
 
   // Load into B_in, in order that they will be used in eval_modes_in
@@ -1768,9 +1769,9 @@ static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceed
 
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp_in));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
-  CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, &asmb->module, 10, "NUM_EVAL_MODES_IN", num_eval_modes_in, "NUM_EVAL_MODES_OUT",
-                                  num_eval_modes_out, "NUM_COMP_IN", num_comp_in, "NUM_COMP_OUT", num_comp_out, "NUM_NODES_IN", elem_size_in,
-                                  "NUM_NODES_OUT", elem_size_out, "NUM_QPTS", num_qpts_in, "BLOCK_SIZE",
+  CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, "operator_assembly", &asmb->module, 10, "NUM_EVAL_MODES_IN", num_eval_modes_in,
+                                  "NUM_EVAL_MODES_OUT", num_eval_modes_out, "NUM_COMP_IN", num_comp_in, "NUM_COMP_OUT", num_comp_out, "NUM_NODES_IN",
+                                  elem_size_in, "NUM_NODES_OUT", elem_size_out, "NUM_QPTS", num_qpts_in, "BLOCK_SIZE",
                                   asmb->block_size_x * asmb->block_size_y * asmb->elems_per_block, "BLOCK_SIZE_Y", asmb->block_size_y, "USE_CEEDSIZE",
                                   use_ceedsize_idx));
   CeedCallBackend(CeedGetKernel_Hip(ceed, asmb->module, "LinearAssemble", &asmb->LinearAssemble));
