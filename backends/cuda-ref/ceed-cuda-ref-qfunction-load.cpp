@@ -106,7 +106,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   code << "}\n";
 
   // Compile kernel
-  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 0));
+  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), (std::string("qfunction_") + qfunction_name).c_str(), &data->module, 0));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;

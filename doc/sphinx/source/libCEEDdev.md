@@ -224,7 +224,7 @@ CeedInt **f;
 // Incorrect
 CeedInt a, b, c, *d, *e, **f;
 ```
-  
+
 2. Local variables should be initialized in their declaration when possible.
 3. Nearly all functions should have a return type of `int` and return a `CeedErrorType` to allow for error checking.
 4. All functions must start with a single blank line after the local variable declarations.

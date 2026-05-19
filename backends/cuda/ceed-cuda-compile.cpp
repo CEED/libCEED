@@ -140,7 +140,7 @@ using std::ifstream;
 using std::ofstream;
 using std::ostringstream;
 
-static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_error, bool *is_compile_good, CUmodule *module,
+static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name, const bool throw_error, bool *is_compile_good, CUmodule *module,
                                 const CeedInt num_defines, va_list args) {
   bool               using_clang;
   size_t             ptx_size;
@@ -183,6 +183,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
+  CeedDebug(ceed, "Name:\n  %s\n", name);
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
 
@@ -241,6 +242,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     srand(time(NULL));
     const int             build_id = rand();
     struct cudaDeviceProp prop;
+    std::string           filename_base = std::string("temp/kernel_") + std::to_string(build_id) + "_" + name;
 
     // Create temp dir if needed
     {
@@ -257,7 +259,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     }
     // Write code to temp file
     {
-      std::string filename = std::string("temp/kernel_") + std::to_string(build_id) + std::string("_0_source.cu");
+      std::string filename = filename_base + "_0_source.cu";
       FILE       *file     = fopen(filename.c_str(), "w");
 
       CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cuda-clang");
@@ -388,18 +390,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
     // Compile wrapper kernel
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
     command = std::string(llvm_cxx) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-              " --cuda-device-only -emit-llvm -S temp/kernel_" + std::to_string(build_id) + "_0_source.cu -o temp/kernel_" +
-              std::to_string(build_id) + "_1_wrapped.ll ";
+              " --cuda-device-only -emit-llvm -S " + filename_base + "_0_source.cu -o " + filename_base + "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
-    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_1_wrapped.ll").c_str(), "update JiT file permissions");
+    CeedCallSystem(ceed, (std::string("chmod 0777 ") + filename_base + "_1_wrapped.ll").c_str(), "update JiT file permissions");
 
     // Find Rust's llvm-link tool and run it
-    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) temp/kernel_" +
-              std::to_string(build_id) +
-              "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o "
-              "temp/kernel_" +
-              std::to_string(build_id) + "_2_linked.ll ";
+    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) " + filename_base +
+              "_1_wrapped.ll --ignore-non-bitcode --internalize --only-needed -S -o " + filename_base + "_2_linked.ll ";
 
     // Searches for .a files in Rust directory
     // Note: Rust crate names may not match the folder they are in
@@ -424,23 +422,19 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const bool throw_
 
     // Link, optimize, and compile final CUDA kernel
     CeedCallSystem(ceed, command.c_str(), "link C and Rust source");
-    CeedCallSystem(ceed,
-                   ("$(find $(rustup run " + std::string(rust_toolchain) +
-                    " rustc --print sysroot) -name opt) --passes internalize,inline temp/kernel_" + std::to_string(build_id) +
-                    "_2_linked.ll -o temp/kernel_" + std::to_string(build_id) + "_3_opt.bc")
-                       .c_str(),
-                   "optimize linked C and Rust source");
-    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_2_linked.ll").c_str(), "update JiT file permissions");
-    CeedCallSystem(ceed,
-                   ("$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
-                    std::to_string(prop.major) + std::to_string(prop.minor) + " temp/kernel_" + std::to_string(build_id) +
-                    "_3_opt.bc -o temp/kernel_" + std::to_string(build_id) + "_4_final.ptx")
-                       .c_str(),
-                   "compile final CUDA kernel");
-    CeedCallSystem(ceed, ("chmod 0777 temp/kernel_" + std::to_string(build_id) + "_4_final.ptx").c_str(), "update JiT file permissions");
+    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline " +
+              filename_base + "_2_linked.ll -o " + filename_base + "_3_opt.bc";
+    CeedCallSystem(ceed, command.c_str(), "optimize linked C and Rust source");
+    command = "chmod 0777 " + filename_base + "_2_linked.ll";
+    CeedCallSystem(ceed, command.c_str(), "update JiT file permissions");
+    command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" + std::to_string(prop.major) +
+              std::to_string(prop.minor) + " " + filename_base + "_3_opt.bc -o " + filename_base + "_4_final.ptx";
+    CeedCallSystem(ceed, command.c_str(), "compile final CUDA kernel");
+    command = "chmod 0777 " + filename_base + "_4_final.ptx";
+    CeedCallSystem(ceed, command.c_str(), "update JiT file permissions");
 
     // Load module from final PTX
-    ifstream      ptxfile("temp/kernel_" + std::to_string(build_id) + "_4_final.ptx");
+    ifstream      ptxfile(filename_base + "_4_final.ptx");
     ostringstream sstr;
 
     sstr << ptxfile.rdbuf();
@@ -490,23 +484,23 @@ int CeedBuildArrayConstantSize_Cuda(Ceed ceed, const char *name, CeedInt length,
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
+int CeedCompile_Cuda(Ceed ceed, const char *source, const char *name, CUmodule *module, const CeedInt num_defines, ...) {
   bool    is_compile_good = true;
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, true, &is_compile_good, module, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, name, true, &is_compile_good, module, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CUmodule *module, const CeedInt num_defines, ...) {
+int CeedTryCompile_Cuda(Ceed ceed, const char *source, const char *name, bool *is_compile_good, CUmodule *module, const CeedInt num_defines, ...) {
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, false, is_compile_good, module, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Cuda(ceed, source, name, false, is_compile_good, module, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);

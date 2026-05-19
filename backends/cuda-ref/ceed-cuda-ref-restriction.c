@@ -52,18 +52,18 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       if (!has_backend_strides) {
         CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
       }
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_STRIDE_NODES", strides[0], "RSTR_STRIDE_COMP", strides[1], "RSTR_STRIDE_ELEM",
-                                       strides[2]));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_strided", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
+                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_STRIDE_NODES", strides[0], "RSTR_STRIDE_COMP",
+                                       strides[1], "RSTR_STRIDE_ELEM", strides[2]));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->ApplyTranspose));
     } break;
     case CEED_RESTRICTION_STANDARD: {
       const char restriction_kernel_source[] = "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
 
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
-                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_standard", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
+                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE",
+                                       comp_stride, "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyTranspose));
     } break;
@@ -72,9 +72,9 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
           "// AtPoints restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-at-points.h>\n\n"
           "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
 
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
-                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_at_points", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
+                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE",
+                                       comp_stride, "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
     } break;
@@ -83,9 +83,9 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
           "// Oriented restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-oriented.h>\n\n"
           "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
 
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
-                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_oriented", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
+                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE",
+                                       comp_stride, "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyUnsignedNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedTranspose", &impl->ApplyTranspose));
@@ -95,9 +95,9 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       const char restriction_kernel_source[] =
           "// Curl oriented restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-curl-oriented.h>\n\n"
           "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
-                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
-                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_curl_oriented", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
+                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE",
+                                       comp_stride, "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedNoTranspose", &impl->ApplyUnsignedNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyUnorientedNoTranspose));

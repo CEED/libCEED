@@ -14,8 +14,9 @@ static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) { ret
 
 CEED_INTERN int CeedBuildArrayConstantSize_Cuda(Ceed ceed, const char *name, CeedInt length, const CeedSize *array, char **line);
 
-CEED_INTERN int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...);
-CEED_INTERN int CeedTryCompile_Cuda(Ceed ceed, const char *source, bool *is_compile_good, CUmodule *module, const CeedInt num_defines, ...);
+CEED_INTERN int CeedCompile_Cuda(Ceed ceed, const char *source, const char *name, CUmodule *module, const CeedInt num_defines, ...);
+CEED_INTERN int CeedTryCompile_Cuda(Ceed ceed, const char *source, const char *name, bool *is_compile_good, CUmodule *module,
+                                    const CeedInt num_defines, ...);
 
 CEED_INTERN int CeedGetKernel_Cuda(Ceed ceed, CUmodule module, const char *name, CUfunction *kernel);
 

@@ -620,9 +620,9 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
           code << tab << "// Nothing to do AtPoints\n";
         } else {
           CeedBasis_Cuda_shared *basis_data;
-          std::string            function_name = is_tensor
-                                                     ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
-                                                     : "WeightNonTensor";
+          std::string function_name = is_tensor
+                                          ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
+                                          : "WeightNonTensor";
 
           code << tab << "CeedScalar r_q" << var_suffix << "[" << (is_all_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           CeedCallBackend(CeedBasisGetData(basis, &basis_data));
@@ -1637,7 +1637,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
+    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), (std::string("operator_") + qfunction_name).c_str(), &is_compile_good,
+                                        &data->module, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
@@ -2116,8 +2117,9 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good,
-                                        is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D", T_1d));
+    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), (std::string("operator_assembly_at_points_") + qfunction_name).c_str(),
+                                        &is_compile_good, is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D",
+                                        T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, is_full ? data->module_assemble_full : data->module_assemble_diagonal, operator_name.c_str(),
@@ -2711,7 +2713,8 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), &is_compile_good, &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
+    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), (std::string("operator_assembly_") + qfunction_name).c_str(), &is_compile_good,
+                                        &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module_assemble_qfunction, operator_name.c_str(), &data->assemble_qfunction));

@@ -292,7 +292,7 @@ program main
     benchmark = 0
 
 ! Process command line arguments
-   
+
     num_args = command_argument_count()
     do i = 1, num_args
       call get_command_argument(i, arg)
