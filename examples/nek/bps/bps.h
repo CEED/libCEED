@@ -90,7 +90,7 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     const CeedScalar k[3] = {1., 2., 3.};
     const CeedScalar rho  = w[i] * (J11 * A11 + J21 * A12 + J31 * A13);
     rhs[i]                = rho * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * sin(M_PI * (c[0] + k[0] * x[i + Q * 0])) *
-                            sin(M_PI * (c[1] + k[1] * x[i + Q * 1])) * sin(M_PI * (c[2] + k[2] * x[i + Q * 2]));
+             sin(M_PI * (c[1] + k[1] * x[i + Q * 1])) * sin(M_PI * (c[2] + k[2] * x[i + Q * 2]));
   }  // End of Quadrature Point Loop
   return 0;
 }

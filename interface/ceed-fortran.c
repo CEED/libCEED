@@ -297,7 +297,7 @@ CEED_EXTERN void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, in
   }
 
   CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateStrided(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *lsize,
+  *err                                  = CeedElemRestrictionCreateStrided(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *lsize,
                                           *strides == FORTRAN_STRIDES_BACKEND ? CEED_STRIDES_BACKEND : strides, elemrestriction_);
 
   if (*err == 0) {

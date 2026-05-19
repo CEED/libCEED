@@ -998,11 +998,11 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl(CeedOperator op,
 // Single operator assembly setup
 //------------------------------------------------------------------------------
 static int CeedOperatorAssembleSingleSetup_Sycl(CeedOperator op) {
-  Ceed          ceed;
-  CeedInt       num_input_fields, num_output_fields, num_eval_mode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0, num_eval_mode_out = 0,
-                                                     num_B_out_mats_to_load = 0, size_B_out = 0, num_qpts = 0, elem_size = 0, num_elem, num_comp,
-                                                     mat_start = 0;
-  CeedEvalMode *eval_mode_in = NULL, *eval_mode_out = NULL;
+  Ceed    ceed;
+  CeedInt num_input_fields, num_output_fields, num_eval_mode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0, num_eval_mode_out = 0,
+                                               num_B_out_mats_to_load = 0, size_B_out = 0, num_qpts = 0, elem_size = 0, num_elem, num_comp,
+                                               mat_start = 0;
+  CeedEvalMode       *eval_mode_in = NULL, *eval_mode_out = NULL;
   const CeedScalar   *interp_in, *grad_in;
   CeedElemRestriction rstr_in = NULL, rstr_out = NULL;
   CeedBasis           basis_in = NULL, basis_out = NULL;

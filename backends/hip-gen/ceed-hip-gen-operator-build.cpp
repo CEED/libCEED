@@ -648,9 +648,9 @@ static int CeedOperatorBuildKernelBasis_Hip_gen(std::ostringstream &code, CeedOp
           code << tab << "// Nothing to do AtPoints\n";
         } else {
           CeedBasis_Hip_shared *basis_data;
-          std::string function_name = is_tensor
-                                          ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
-                                          : "WeightNonTensor";
+          std::string           function_name = is_tensor
+                                                    ? ((dim == 1 ? "Weight" : "WeightTensor") + std::to_string(dim) + "d" + (is_all_tensor ? "" : "Flattened"))
+                                                    : "WeightNonTensor";
 
           code << tab << "CeedScalar r_q" << var_suffix << "[" << (is_all_tensor && (dim >= 3) ? Q_name : "1") << "];\n";
           CeedCallBackend(CeedBasisGetData(basis, &basis_data));

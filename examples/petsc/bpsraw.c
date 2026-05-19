@@ -336,11 +336,11 @@ static PetscErrorCode ComputeErrorMax(OperatorApplyContext op_apply_ctx, CeedOpe
 }
 
 int main(int argc, char **argv) {
-  MPI_Comm             comm;
-  char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  double               my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt             degree, q_extra, local_nodes, local_elem, mesh_elem[3], m_nodes[3], p[3], i_rank[3], l_nodes[3], l_size, num_comp_u = 1,
-                                                                                                                                ksp_max_it_clip[2];
+  MPI_Comm comm;
+  char     ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  double   my_rt_start, my_rt, rt_min, rt_max;
+  PetscInt degree, q_extra, local_nodes, local_elem, mesh_elem[3], m_nodes[3], p[3], i_rank[3], l_nodes[3], l_size, num_comp_u = 1,
+                                                                                                                    ksp_max_it_clip[2];
   PetscScalar         *r;
   PetscBool            test_mode, benchmark_mode, write_solution;
   PetscMPIInt          size, rank;
