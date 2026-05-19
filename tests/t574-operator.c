@@ -22,14 +22,14 @@ int main(int argc, char **argv) {
   CeedInt             num_elem   = n_x * n_y;
   CeedInt             num_comp_u = 1, num_comp_p = 1;  // Must be 1
   CeedInt             num_dofs_u = (n_x * (p_u - 1) + 1) * (n_y * (p_u - 1) + 1), num_dofs_p = (n_x * (p_p - 1) + 1) * (n_y * (p_p - 1) + 1),
-          num_qpts = num_elem * q * q;
-  CeedInt    ind_x[num_elem * p_u * p_u], ind_p[num_elem * p_p * p_p];
-  CeedInt    l_size = num_comp_u * num_dofs_u + num_comp_p * num_dofs_p;
-  bool       orients_u[num_elem * p_u * p_u], orients_p[num_elem * p_p * p_p];
-  CeedInt8   curl_orients_u[3 * num_elem * p_u * p_u], curl_orients_p[3 * num_elem * p_p * p_p];
-  CeedScalar assembled_values_oriented[l_size * l_size];
-  CeedScalar assembled_values_curl_oriented[l_size * l_size];
-  CeedScalar assembled_true[l_size * l_size];
+                      num_qpts = num_elem * q * q;
+  CeedInt             ind_x[num_elem * p_u * p_u], ind_p[num_elem * p_p * p_p];
+  CeedInt             l_size = num_comp_u * num_dofs_u + num_comp_p * num_dofs_p;
+  bool                orients_u[num_elem * p_u * p_u], orients_p[num_elem * p_p * p_p];
+  CeedInt8            curl_orients_u[3 * num_elem * p_u * p_u], curl_orients_p[3 * num_elem * p_p * p_p];
+  CeedScalar          assembled_values_oriented[l_size * l_size];
+  CeedScalar          assembled_values_curl_oriented[l_size * l_size];
+  CeedScalar          assembled_true[l_size * l_size];
 
   CeedInit(argv[1], &ceed);
 
