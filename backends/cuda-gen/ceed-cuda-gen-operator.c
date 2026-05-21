@@ -517,7 +517,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/cuda/ref CeedOperator for LinearAssemblyQFunction\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-    CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op_fallback, assembled, rstr, request));
+    CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op_fallback, build_objects, assembled, rstr, request));
     return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;

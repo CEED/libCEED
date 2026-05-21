@@ -17,6 +17,7 @@ On this page we provide a summary of the main API changes, new features and exam
 - Require use of `Ceed*Destroy()` on Ceed objects returned from `Ceed*Get*()`.
 - Rename `CeedCompositeOperatorCreate()` to `CeedOperatorCreateComposite()` for uniformity.
 - Rename `CeedCompositeOperator*()` to `CeedOperatorComposite*()` for uniformity.
+- Add `build_objects` parameter to `CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback` to allow for passing uninitialized vectors and restrictions
 
 ### New features
 

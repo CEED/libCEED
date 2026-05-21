@@ -712,18 +712,19 @@ static int CeedOperatorAssembleSymbolicSingle(CeedOperator op, CeedSize offset, 
   Note: If the value of `assembled` or `rstr` passed to this function are non-`NULL` , then it is assumed that they hold valid pointers.
         These objects will be destroyed if `*assembled` or `*rstr` is the only reference to the object.
 
-  @param[in]  op         `CeedOperator` to assemble `CeedQFunction`
-  @param[in]  use_parent Boolean flag to check for fallback parent implementation
-  @param[out] assembled  `CeedVector` to store assembled `CeedQFunction` at quadrature points
-  @param[out] rstr       `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
-  @param[in]  request    Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op            `CeedOperator` to assemble `CeedQFunction`
+  @param[in]  build_objects Boolean flag indicating whether the `assembled` vector has been allocated
+  @param[in]  use_parent    Boolean flag to check for fallback parent implementation
+  @param[out] assembled     `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[out] rstr          `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
+  @param[in]  request       Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op, bool use_parent, CeedVector *assembled, CeedElemRestriction *rstr,
-                                                                 CeedRequest *request) {
+static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op, bool build_objects, bool use_parent, CeedVector *assembled,
+                                                                 CeedElemRestriction *rstr, CeedRequest *request) {
   int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector, CeedElemRestriction, CeedRequest *) = NULL;
   CeedOperator op_assemble                                                                           = NULL;
   CeedOperator op_fallback_parent                                                                    = NULL;
@@ -766,6 +767,10 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(data, false));
 
     // Copy reference from internally held copy
+    if (build_objects) {
+      *assembled = NULL;
+      *rstr      = NULL;
+    }
     CeedCall(CeedVectorReferenceCopy(assembled_vec, assembled));
     CeedCall(CeedElemRestrictionReferenceCopy(assembled_rstr, rstr));
     CeedCall(CeedVectorDestroy(&assembled_vec));
@@ -792,18 +797,19 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
   Note: If the value of `assembled` or `rstr` passed to this function are non-`NULL` , then it is assumed that they hold valid pointers.
         These objects will be destroyed if `*assembled` or `*rstr` is the only reference to the object.
 
-  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
-  @param[out] assembled `CeedVector` to store assembled `CeedQFunction` at quadrature points
-  @param[out] rstr      `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
-  @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op            `CeedOperator` to assemble `CeedQFunction`
+  @param[in]  build_objects Boolean flag indicating whether the `assembled` vector has been allocated
+  @param[out] assembled     `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[out] rstr          `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
+  @param[in]  request       Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
+int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                              CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, false, assembled, rstr, request);
+  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, build_objects, false, assembled, rstr, request);
 }
 
 /**
@@ -2325,7 +2331,8 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
   @ref User
 **/
 int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, true, assembled, rstr, request);
+  assert(assembled);
+  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, *assembled == NULL, true, assembled, rstr, request);
 }
 
 /**

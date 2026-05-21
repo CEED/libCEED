@@ -496,7 +496,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Hip_gen(CeedOperator op, bool
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back to /gpu/hip/ref CeedOperator for LinearAssembleQFunction\n");
     CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
-    CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op_fallback, assembled, rstr, request));
+    CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op_fallback, build_objects, assembled, rstr, request));
     return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;
