@@ -302,7 +302,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 
         CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
         if ((is_active && skip_active_load) || (is_collocated && !is_at_points)) {
-          code << tab << "CeedScalar *s_B" << var_suffix << " = NULL;\n";
+          code << tab << "CeedScalar *s_B" << var_suffix << " = nullptr;\n";
         } else {
           code << tab << "__shared__ CeedScalar s_B" << var_suffix << "[" << P_name << "*" << Q_name << "];\n";
           code << tab << "LoadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
@@ -341,7 +341,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 
           CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
           if ((is_active && skip_active_load) || (is_collocated && !is_at_points)) {
-            code << tab << "CeedScalar *s_B" << var_suffix << " = NULL;\n";
+            code << tab << "CeedScalar *s_B" << var_suffix << " = nullptr;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_B" << var_suffix << "[" << P_name << "*" << Q_name << "];\n";
             code << tab << "LoadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
@@ -357,7 +357,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 
           code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
         } else if (is_active && skip_active_load) {
-          code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
+          code << tab << "CeedScalar *s_G" << var_suffix << " = nullptr;\n";
         } else {
           code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << Q_name << "*" << Q_name << "];\n";
           code << tab << "LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
@@ -373,7 +373,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 
             code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
           } else if (is_active && skip_active_load) {
-            code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
+            code << tab << "CeedScalar *s_G" << var_suffix << " = nullptr;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << Q_name << "*" << Q_name << "];\n";
             code << tab << "LoadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
@@ -384,7 +384,7 @@ static int CeedOperatorBuildKernelFieldData_Hip_gen(std::ostringstream &code, Ce
 
             code << tab << "CeedScalar *s_G" << var_suffix << " = " << reuse_var << ";\n";
           } else if (is_active && skip_active_load) {
-            code << tab << "CeedScalar *s_G" << var_suffix << " = NULL;\n";
+            code << tab << "CeedScalar *s_G" << var_suffix << " = nullptr;\n";
           } else {
             code << tab << "__shared__ CeedScalar s_G" << var_suffix << "[" << P_name << "*" << Q_name << (is_tensor ? "" : "*dim")
                  << (is_tensor ? "" : var_suffix) << "];\n";
