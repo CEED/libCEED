@@ -473,8 +473,8 @@ CEED_EXTERN int CeedOperatorReference(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);
 CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent);
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
-CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
-                                                                         CeedRequest *request);
+CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, bool build_objects, CeedVector *assembled,
+                                                                         CeedElemRestriction *rstr, CeedRequest *request);
 CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector values);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
