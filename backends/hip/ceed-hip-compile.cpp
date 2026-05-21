@@ -121,13 +121,15 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
     if (runtime_version < 40400000) {
       code << "#include <hip/hip_runtime.h>\n\n";
     } else if (runtime_version < 70000000) {
-      // With ROCm 4.5, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
       code << "#include <stddef.h>\n";
+      // With ROCm 4.5+, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
       code << "#define __forceinline__ inline __attribute__((always_inline))\n";
       code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n\n";
     } else {
+      // ROCm 7 removed stddef header, so we use the internal HIP types
       code << "using __hip_internal::int32_t;\n";
       code << "using __hip_internal::int64_t;\n";
+      // With ROCm 4.5+, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
       code << "#define __forceinline__ inline __attribute__((always_inline))\n";
       code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n\n";
     }
