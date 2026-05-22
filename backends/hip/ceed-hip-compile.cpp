@@ -127,6 +127,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
       code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n\n";
     } else {
       // ROCm 7 removed stddef header, so we use the internal HIP types
+      code << "#define NULL nullptr\n";
       code << "using __hip_internal::int32_t;\n";
       code << "using __hip_internal::int64_t;\n";
       // With ROCm 4.5+, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
