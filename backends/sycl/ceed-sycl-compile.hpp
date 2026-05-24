@@ -16,6 +16,11 @@ using SyclModule_t = sycl::kernel_bundle<sycl::bundle_state::executable>;
 
 CEED_INTERN int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
                                      const std::map<std::string, CeedInt> &constants = {});
+// Build a sycl::kernel_bundle<executable> from an input bundle, with native binary caching.
+// cache_key_extra is a caller-supplied string encoding any specialization constants or other
+// runtime parameters so that different specializations get distinct cache entries.
+CEED_INTERN int CeedBuildBundleCached_Sycl(Ceed ceed, sycl::kernel_bundle<sycl::bundle_state::input> &input_bundle, SyclModule_t **sycl_module,
+                                           const std::string &cache_key_extra);
 CEED_INTERN int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel);
 
 CEED_INTERN int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel *kernel, const int grid_size, const int block_size_x, const int block_size_y,
