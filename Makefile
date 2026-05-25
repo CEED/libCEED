@@ -587,9 +587,7 @@ ifneq ($(HIP_LIB_DIR),)
   HIP_MAJOR_VERSION := $(shell $(HIP_CONFIG) --version | cut -d'.' -f1)
   ifeq ($(HIP_MAJOR_VERSION),7)
     PKG_LIBS += -lhiprtc
-    $(info $(PKG_LIBS))
   endif
-  $(info $(HIP_MAJOR_VERSION))
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += $(hip-all.c)
   libceed.cpp   += $(hip-all.cpp)
