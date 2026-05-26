@@ -639,7 +639,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
 
     // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h.h>\n";
+    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h>\n";
 
     CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h1_nontensor_weight", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
@@ -697,7 +697,7 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
 
     // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h.h>\n";
+    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h>\n";
 
     CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h_div_weight", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
@@ -755,7 +755,7 @@ int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_n
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
 
     // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h.h>\n";
+    const char basis_kernel_source[] = "// Weight basis source\n#include <ceed/jit-source/magma/magma-basis-weight-nontensor.h>\n";
 
     CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h_curl_weight", &impl->module[0], 1, "BASIS_Q", num_qpts));
     CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
