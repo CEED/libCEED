@@ -1015,7 +1015,7 @@ tidy-fix-cpp : $(libceed.cpp:%=%.tidy-fix)
 	$(call quiet,CLANG_TIDY) $(TIDY_FIX_OPTS) $^ -- $(CPPFLAGS) --std=c++11 2>&1 1>/dev/null
 
 # note, headers need to be done first
-tidy-fix : print-tidy-fix-h tidy-fix-h tidy-fix-hpp tidy-fix-c tidy-fix-cpp
+tidy-fix : tidy-fix-h tidy-fix-hpp tidy-fix-c tidy-fix-cpp
 
 # Style/Format
 CLANG_FORMAT      ?= clang-format
