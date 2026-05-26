@@ -125,8 +125,9 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
   const CeedScalar rho_div_p  = rho / P;
   const CeedScalar Y0[5]      = {P, u[0], u[1], u[2], T};
   const CeedScalar U0[5]      = {rho, rho * u[0], rho * u[1], rho * u[2], rho * e_total};
-  const CeedScalar V0[5]      = {(gamma - entropy) / (gamma - 1) - rho_div_p * (e_kinetic), rho_div_p * u[0], rho_div_p * u[1], rho_div_p * u[2],
-                                 -rho_div_p};
+  const CeedScalar V0[5]      = {
+      (gamma - entropy) / (gamma - 1) - rho_div_p * (e_kinetic), rho_div_p * u[0], rho_div_p * u[1], rho_div_p * u[2], -rho_div_p
+  };
 
   {
     CeedScalar rtol = 40 * CEED_EPSILON;

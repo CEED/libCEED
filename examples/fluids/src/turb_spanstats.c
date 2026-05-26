@@ -558,7 +558,8 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
   PetscCall(VecGetArrayRead(user_stats.Child_Stats_loc, &child_stats));
   PetscCall(VecGetArray(user_stats.Parent_Stats_loc, &parent_stats));
 
-  if (user_stats.num_comp_stats == 1) unit = MPIU_REAL;
+  if (user_stats.num_comp_stats == 1)
+    unit = MPIU_REAL;
   else {
     PetscCallMPI(MPI_Type_contiguous(user_stats.num_comp_stats, MPIU_REAL, &unit));
     PetscCallMPI(MPI_Type_commit(&unit));

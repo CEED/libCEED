@@ -52,8 +52,11 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(CeedE
   CeedInt strides[3] = {0};
 
   CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
-  if (has_backend_strides) CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
-  else CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  if (has_backend_strides) {
+    CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
+  } else {
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  }
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
@@ -198,8 +201,11 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(CeedEle
   CeedInt strides[3] = {0};
 
   CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
-  if (has_backend_strides) CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
-  else CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  if (has_backend_strides) {
+    CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
+  } else {
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  }
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {

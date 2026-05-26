@@ -27,8 +27,10 @@ static CeedScalar EvalGrad(CeedInt dim, const CeedScalar x[]) {
 static CeedScalar GetTolerance(CeedScalarType scalar_type, int dim) {
   CeedScalar tol;
   if (scalar_type == CEED_SCALAR_FP32) {
-    if (dim == 3) tol = 1.e-4;
-    else tol = 1.e-5;
+    if (dim == 3)
+      tol = 1.e-4;
+    else
+      tol = 1.e-5;
   } else {
     tol = 1.e-11;
   }

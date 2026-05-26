@@ -60,8 +60,10 @@ static PetscErrorCode CreateKSPMass(User user, ProblemData problem) {
   CeedOperator op_mass;
 
   PetscFunctionBeginUser;
-  if (problem->create_mass_operator) PetscCall(problem->create_mass_operator(user, &op_mass));
-  else PetscCall(CreateKSPMassOperator_Unstabilized(user, &op_mass));
+  if (problem->create_mass_operator)
+    PetscCall(problem->create_mass_operator(user, &op_mass));
+  else
+    PetscCall(CreateKSPMassOperator_Unstabilized(user, &op_mass));
 
   {  // -- Setup KSP for mass operator
     Mat      mat_mass;

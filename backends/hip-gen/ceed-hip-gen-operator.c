@@ -85,8 +85,11 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) data->fields.inputs[i] = input_arr;
-      else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+      if (is_active) {
+        data->fields.inputs[i] = input_arr;
+      } else {
+        CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+      }
       CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
@@ -103,8 +106,11 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) data->fields.outputs[i] = output_arr;
-      else CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
+      if (is_active) {
+        data->fields.outputs[i] = output_arr;
+      } else {
+        CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
+      }
       CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
@@ -280,8 +286,9 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
       is_run_good[i] = true;
     }
   }
-  if (is_sequential) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[0]));
-  else {
+  if (is_sequential) {
+    CeedCallHip(ceed, hipStreamSynchronize(impl->streams[0]));
+  } else {
     for (CeedInt i = 0; i < num_suboperators; i++) {
       if (impl->streams[i]) {
         if (is_run_good[i]) CeedCallHip(ceed, hipStreamSynchronize(impl->streams[i]));
@@ -357,8 +364,11 @@ static int CeedOperatorLinearAssembleQFunctionCore_Hip_gen(CeedOperator op, bool
         // Get input vector
         CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
         is_active = vec == CEED_VECTOR_ACTIVE;
-        if (is_active) data->fields.inputs[i] = NULL;
-        else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        if (is_active) {
+          data->fields.inputs[i] = NULL;
+        } else {
+          CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        }
         CeedCallBackend(CeedVectorDestroy(&vec));
       }
     }
@@ -567,8 +577,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
         // Get input vector
         CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
         is_active = vec == CEED_VECTOR_ACTIVE;
-        if (is_active) data->fields.inputs[i] = NULL;
-        else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        if (is_active) {
+          data->fields.inputs[i] = NULL;
+        } else {
+          CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        }
         CeedCallBackend(CeedVectorDestroy(&vec));
       }
     }
@@ -747,8 +760,11 @@ static int CeedOperatorAssembleSingleAtPoints_Hip_gen(CeedOperator op, CeedInt o
         // Get input vector
         CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
         is_active = vec == CEED_VECTOR_ACTIVE;
-        if (is_active) data->fields.inputs[i] = NULL;
-        else CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        if (is_active) {
+          data->fields.inputs[i] = NULL;
+        } else {
+          CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
+        }
         CeedCallBackend(CeedVectorDestroy(&vec));
       }
     }

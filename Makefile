@@ -300,15 +300,25 @@ $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(
 libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
+libceed.h := $(filter-out include/ceedf.h include/ceed/fortran.h, $(shell git ls-files 'include/**/*.h'))
+
+libceed.cpp :=
+libceed.hpp := $(shell git ls-files 'include/**/*.hpp')
 
 # Backends
 # - CPU
 ref.c          := $(sort $(wildcard backends/ref/*.c))
+ref.h          := $(sort $(wildcard backends/ref/*.h))
 blocked.c      := $(sort $(wildcard backends/blocked/*.c))
+blocked.h      := $(sort $(wildcard backends/blocked/*.h))
 ceedmemcheck.c := $(sort $(wildcard backends/memcheck/*.c))
+ceedmemcheck.h := $(sort $(wildcard backends/memcheck/*.h))
 opt.c          := $(sort $(wildcard backends/opt/*.c))
+opt.h          := $(sort $(wildcard backends/opt/*.h))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
+avx.h          := $(sort $(wildcard backends/avx/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
+xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
 # - GPU
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
@@ -321,6 +331,8 @@ cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-all.c     := interface/ceed-cuda.c $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
 cuda-all.cpp   := $(cuda.cpp) $(cuda-ref.cpp) $(cuda-gen.cpp)
 cuda-all.cu    := $(cuda-ref.cu)
+cuda-all.h     := include/ceed/cuda.h $(sort $(wildcard backends/cuda*/*.h))
+cuda-all.hpp   := $(sort $(wildcard backends/cuda*/*.hpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -332,12 +344,16 @@ hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 hip-all.c      := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
 hip-all.cpp    := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
 hip-all.hip    := $(hip-ref.hip)
+hip-all.h      := include/ceed/hip.h $(sort $(wildcard backends/hip*/*.h))
+hip-all.hpp    := $(sort $(wildcard backends/hip*/*.hpp))
 sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
 sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
 sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
 sycl-gen.cpp   := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
+magma.h        := $(sort $(wildcard backends/magma/*.h))
+magma.hpp      := $(sort $(wildcard backends/magma/*.hpp))
 
 # Tests
 tests.c := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -498,6 +514,7 @@ info-backends-all:
 libceed.c += $(ref.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
+libceed.h += $(ref.h) $(blocked.h) $(opt.h)
 
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
@@ -506,6 +523,7 @@ MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
   libceed.c += $(ceedmemcheck.c)
+  libceed.h += $(ceedmemcheck.h)
   BACKENDS_MAKE += $(MEMCHK_BACKENDS)
 endif
 
@@ -517,6 +535,7 @@ AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
   libceed.c += $(avx.c)
+  libceed.h += $(avx.h)
   BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
@@ -542,7 +561,8 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   endif
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
-  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) : CPPFLAGS += -I$(XSMM_DIR)/include
+  libceed.h += $(xsmm.h)
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include
   BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
@@ -554,13 +574,17 @@ endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(libceeds) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
   libceed.c     += $(cuda-all.c)
+  libceed.h     += $(cuda-all.h)
   libceed.cpp   += $(cuda-all.cpp)
+  libceed.hpp   += $(cuda-all.hpp)
   libceed.cu    += $(cuda-all.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
@@ -579,9 +603,9 @@ ifneq ($(HIP_LIB_DIR),)
     HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(HIP_CONFIG) -C))
     HIPCONFIG_CPPFLAGS_C := $(HIPCONFIG_CPPFLAGS)
   endif
-  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
+  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy) $(hip-all.c:%=%.tidy-fix) $(hip-all.h:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
   ifneq ($(CXX), $(HIPCC))
-    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
+    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy) $(hip-all.cpp:%=%.tidy-fix) $(hip-all.hpp:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS_C)
   endif
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l${HIP_LIB_NAME} -lhipblas
   HIP_MAJOR_VERSION := $(shell $(HIP_CONFIG) --version | cut -d'.' -f1)
@@ -590,7 +614,9 @@ ifneq ($(HIP_LIB_DIR),)
   endif
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += $(hip-all.c)
+  libceed.h     += $(hip-all.h)
   libceed.cpp   += $(hip-all.cpp)
+  libceed.hpp   += $(hip-all.hpp)
   libceed.hip   += $(hip-all.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
@@ -620,9 +646,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
+      libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+      libceed.hpp += $(magma.hpp)
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
   else  # HIP MAGMA
@@ -634,9 +662,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
+      libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      libceed.hpp += $(magma.hpp)
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -958,6 +988,35 @@ doc : doc-html
 # Linting utilities
 # ------------------------------------------------------------
 
+# Tidy-fix for hard to handle formatting fixes
+CLANG_TIDY      ?= clang-tidy
+TIDY_FIX_OPTS   ?= --quiet --header-filter='$(abspath .)/.*' --config-file=.clang-tidy-fix --format-style=file --fix
+
+# clang-tidy doesn't like the missing AD includes or the model lists
+tidy-fix-excl.h := include/ceedf.h include/ceed/deprecated.h include/ceed/fortran.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h) $(wildcard backends/ceed-backend-list*.h)
+tidy-fix-excl.h += $(wildcard include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/hip/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
+tidy-fix.h      := $(filter-out $(tidy-fix-excl.h), $(libceed.h))
+
+tidy-fix-h   : $(tidy-fix.h:%=%.tidy-fix)
+tidy-fix-hpp : $(libceed.hpp:%=%.tidy-fix)
+tidy-fix-c   : $(libceed.c:%=%.tidy-fix)
+tidy-fix-cpp : $(libceed.cpp:%=%.tidy-fix)
+
+%.h.tidy-fix : %.h
+	$(call quiet,CLANG_TIDY) $(TIDY_FIX_OPTS) $^ -- $(CPPFLAGS) --std=c11 -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\"" 2>&1 1>/dev/null
+
+%.c.tidy-fix : %.c
+	$(call quiet,CLANG_TIDY) $(TIDY_FIX_OPTS) $^ -- $(CPPFLAGS) --std=c11 -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\"" 2>&1 1>/dev/null
+
+%.hpp.tidy-fix : %.hpp
+	$(call quiet,CLANG_TIDY) $(TIDY_FIX_OPTS) $^ -- $(CPPFLAGS) --std=c++11 2>&1 1>/dev/null
+
+%.cpp.tidy-fix : %.cpp
+	$(call quiet,CLANG_TIDY) $(TIDY_FIX_OPTS) $^ -- $(CPPFLAGS) --std=c++11 2>&1 1>/dev/null
+
+# note, headers need to be done first
+tidy-fix : print-tidy-fix-h tidy-fix-h tidy-fix-hpp tidy-fix-c tidy-fix-cpp
+
 # Style/Format
 CLANG_FORMAT      ?= clang-format
 CLANG_FORMAT_OPTS += -style=file -i
@@ -969,7 +1028,8 @@ format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-
 format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
 format-c  :
-	$(CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
+	$(call quiet,CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
+	@$(MAKE) -j1 --no-print-directory --no-keep-going tidy-fix
 
 format-py :
 	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)

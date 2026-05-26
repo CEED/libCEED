@@ -160,9 +160,12 @@ int main(int argc, char **argv) {
       const char *resolved;
 
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-      else vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vec_type = VECHIP;
+      else
+        vec_type = VECSTANDARD;
     }
   }
 

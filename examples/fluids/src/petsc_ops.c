@@ -119,11 +119,15 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
   (*ctx)->Y_loc = Y_loc;
 
   // Copy libCEED objects
-  if (x_ceed) PetscCallCeed(ceed, CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed));
-  else PetscCallCeed(ceed, CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed));
+  if (x_ceed)
+    PetscCallCeed(ceed, CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed));
+  else
+    PetscCallCeed(ceed, CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed));
 
-  if (y_ceed) PetscCallCeed(ceed, CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed));
-  else PetscCallCeed(ceed, CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed));
+  if (y_ceed)
+    PetscCallCeed(ceed, CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed));
+  else
+    PetscCallCeed(ceed, CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed));
 
   PetscCallCeed(ceed, CeedOperatorReferenceCopy(op_apply, &(*ctx)->op));
   PetscCallCeed(ceed, CeedReferenceCopy(ceed, &(*ctx)->ceed));
@@ -226,8 +230,10 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
 
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
   PetscCall(PetscLogGpuTimeBegin());
-  if (use_apply_add) PetscCallCeed(ceed, CeedOperatorApplyAdd(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
-  else PetscCallCeed(ceed, CeedOperatorApply(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
+  if (use_apply_add)
+    PetscCallCeed(ceed, CeedOperatorApplyAdd(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
+  else
+    PetscCallCeed(ceed, CeedOperatorApply(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
   PetscCall(PetscLogGpuTimeEnd());
   PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
 

@@ -124,10 +124,14 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract, 
         for (CeedInt b = 0; b < B; b++) {
           rtype tqu;
 
-          if (C - c == 1) tqu = set(0.0, 0.0, 0.0, u[(a * B + b) * C + c + 0]);
-          else if (C - c == 2) tqu = set(0.0, 0.0, u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
-          else if (C - c == 3) tqu = set(0.0, u[(a * B + b) * C + c + 2], u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
-          else tqu = loadu(&u[(a * B + b) * C + c]);
+          if (C - c == 1)
+            tqu = set(0.0, 0.0, 0.0, u[(a * B + b) * C + c + 0]);
+          else if (C - c == 2)
+            tqu = set(0.0, 0.0, u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
+          else if (C - c == 3)
+            tqu = set(0.0, u[(a * B + b) * C + c + 2], u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
+          else
+            tqu = loadu(&u[(a * B + b) * C + c]);
           for (CeedInt jj = 0; jj < JJ; jj++) {  // unroll
             fmadd(vv[jj], tqu, set1(t[(j + jj) * t_stride_0 + b * t_stride_1]));
           }

@@ -268,8 +268,10 @@ static inline int CeedOperatorSetupInputs_Sycl(CeedInt num_input_fields, CeedQFu
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) {
-      if (skip_active) continue;
-      else vec = in_vec;
+      if (skip_active)
+        continue;
+      else
+        vec = in_vec;
     }
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
@@ -950,8 +952,10 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
 
   if (!elem_diag) {
     CeedCallBackend(CeedElemRestrictionCreateVector(diag_rstr, NULL, &elem_diag));
-    if (is_point_block) diag->point_block_elem_diag = elem_diag;
-    else diag->elem_diag = elem_diag;
+    if (is_point_block)
+      diag->point_block_elem_diag = elem_diag;
+    else
+      diag->elem_diag = elem_diag;
   }
   CeedCallBackend(CeedVectorSetValue(elem_diag, 0.0));
 

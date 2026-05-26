@@ -405,9 +405,13 @@ CEED_EXTERN void fCeedElemRestrictionApply(int *elemr, int *tmode, int *uvec, in
   }
 
   CeedRequest *rqst_;
-  if (*rqst == FORTRAN_REQUEST_IMMEDIATE) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == FORTRAN_REQUEST_ORDERED) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == FORTRAN_REQUEST_IMMEDIATE) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == FORTRAN_REQUEST_ORDERED) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err =
       CeedElemRestrictionApply(CeedElemRestriction_dict[*elemr], (CeedTransposeMode)*tmode, CeedVector_dict[*uvec], CeedVector_dict[*ruvec], rqst_);
@@ -430,9 +434,13 @@ CEED_EXTERN void fCeedElemRestrictionApplyBlock(int *elemr, int *block, int *tmo
   }
 
   CeedRequest *rqst_;
-  if (*rqst == FORTRAN_REQUEST_IMMEDIATE) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == FORTRAN_REQUEST_ORDERED) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == FORTRAN_REQUEST_IMMEDIATE) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == FORTRAN_REQUEST_ORDERED) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedElemRestrictionApplyBlock(CeedElemRestriction_dict[*elemr], *block, (CeedTransposeMode)*tmode, CeedVector_dict[*uvec],
                                        CeedVector_dict[*ruvec], rqst_);
@@ -1078,9 +1086,13 @@ CEED_EXTERN void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == -1) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == -2) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedOperatorLinearAssembleQFunction(CeedOperator_dict[*op], assembledvec_, rstr_, rqst_);
   if (*err) return;
@@ -1111,9 +1123,13 @@ CEED_EXTERN void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembledvec,
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == -1) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == -2) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedOperatorLinearAssembleDiagonal(CeedOperator_dict[*op], CeedVector_dict[*assembledvec], rqst_);
   if (*err) return;
@@ -1223,9 +1239,13 @@ CEED_EXTERN void fCeedOperatorCreateFDMElementInverse(int *op, int *fdminv, int 
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == -1) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == -2) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedOperatorCreateFDMElementInverse(CeedOperator_dict[*op], fdminv_, rqst_);
   if (*err) return;
@@ -1257,9 +1277,13 @@ CEED_EXTERN void fCeedOperatorApply(int *op, int *ustatevec, int *resvec, int *r
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == -1) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == -2) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedOperatorApply(CeedOperator_dict[*op], ustatevec_, resvec_, rqst_);
   if (*err) return;
@@ -1286,9 +1310,13 @@ CEED_EXTERN void fCeedOperatorApplyAdd(int *op, int *ustatevec, int *resvec, int
   }
 
   CeedRequest *rqst_;
-  if (*rqst == -1) rqst_ = CEED_REQUEST_IMMEDIATE;
-  else if (*rqst == -2) rqst_ = CEED_REQUEST_ORDERED;
-  else rqst_ = &CeedRequest_dict[CeedRequest_count];
+  if (*rqst == -1) {
+    rqst_ = CEED_REQUEST_IMMEDIATE;
+  } else if (*rqst == -2) {
+    rqst_ = CEED_REQUEST_ORDERED;
+  } else {
+    rqst_ = &CeedRequest_dict[CeedRequest_count];
+  }
 
   *err = CeedOperatorApplyAdd(CeedOperator_dict[*op], ustatevec_, resvec_, rqst_);
   if (*err) return;

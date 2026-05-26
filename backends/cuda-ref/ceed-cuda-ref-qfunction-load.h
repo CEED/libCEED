@@ -6,4 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
+#include <ceed.h>
+#include <ceed/backend.h>
+
 CEED_INTERN int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf);

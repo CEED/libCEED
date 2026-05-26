@@ -259,8 +259,10 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedScalar *c_B, c
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                        BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, d_U, r_U);
-      if (BASIS_HAS_COLLOCATED_GRAD) GradTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      else GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      if (BASIS_HAS_COLLOCATED_GRAD)
+        GradTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      else
+        GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                     BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, r_V, d_V);
     }
@@ -342,8 +344,10 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem, const CeedScala
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      if (BASIS_HAS_COLLOCATED_GRAD) GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      else GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      if (BASIS_HAS_COLLOCATED_GRAD)
+        GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      else
+        GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                         BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }
@@ -425,8 +429,10 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP * BASIS_DIM, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem,
                                                                    BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D, d_U, r_U);
-      if (BASIS_HAS_COLLOCATED_GRAD) GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
-      else GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      if (BASIS_HAS_COLLOCATED_GRAD)
+        GradTransposeTensorCollocated3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
+      else
+        GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D, BASIS_T_1D>(data, r_U, s_B, s_G, r_V);
       SumElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem,
                                                       BASIS_P_1D * BASIS_P_1D * BASIS_P_1D, r_V, d_V);
     }

@@ -148,15 +148,22 @@ int main(int argc, char **argv) {
     case CEED_MEM_DEVICE: {
       const char *resolved;
       PetscCallCeed(ceed, CeedGetResource(ceed, &resolved));
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
-      else if (strstr(resolved, "/gpu/sycl")) vec_type = VECKOKKOS;
-      else vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vec_type = VECKOKKOS;
+      else if (strstr(resolved, "/gpu/sycl"))
+        vec_type = VECKOKKOS;
+      else
+        vec_type = VECSTANDARD;
     }
   }
-  if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
-  else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
-  else mat_type = MATAIJ;
+  if (strstr(vec_type, VECCUDA))
+    mat_type = MATAIJCUSPARSE;
+  else if (strstr(vec_type, VECKOKKOS))
+    mat_type = MATAIJKOKKOS;
+  else
+    mat_type = MATAIJ;
   PetscCall(CreateDM(comm, problem, mat_type, vec_type, &dm));
   user->dm = dm;
   PetscCall(DMSetApplicationContext(dm, user));

@@ -9,8 +9,8 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/gen-tools.h>
 #include <ceed/jit-tools.h>
+#include <ceed/gen-tools.hpp>
 #include <cuda_runtime.h>
 
 #include <cassert>
@@ -220,8 +220,11 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   if (basis != CEED_BASIS_NONE) {
     CeedCallBackend(CeedBasisGetData(basis, &basis_data));
     CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-    if (is_tensor) CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-    else CeedCallBackend(CeedBasisGetNumNodes(basis, &P_1d));
+    if (is_tensor) {
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+    } else {
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P_1d));
+    }
   }
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
@@ -258,12 +261,18 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
           CeedCallBackend(CeedFree(&chebyshev_interp_1d));
         }
-        if (is_input) data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
-        else data->B.outputs[i] = basis_data->d_chebyshev_interp_1d;
+        if (is_input) {
+          data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
+        } else {
+          data->B.outputs[i] = basis_data->d_chebyshev_interp_1d;
+        }
       } else {
         // Standard quadrature
-        if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
-        else data->B.outputs[i] = basis_data->d_interp_1d;
+        if (is_input) {
+          data->B.inputs[i] = basis_data->d_interp_1d;
+        } else {
+          data->B.outputs[i] = basis_data->d_interp_1d;
+        }
       }
       if (use_previous_field && !skip_active_load) {
         std::string reuse_var = "s_B" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
@@ -296,12 +305,18 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
           CeedCallBackend(CeedFree(&chebyshev_interp_1d));
         }
-        if (is_input) data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
-        else data->B.outputs[i] = basis_data->d_chebyshev_interp_1d;
+        if (is_input) {
+          data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
+        } else {
+          data->B.outputs[i] = basis_data->d_chebyshev_interp_1d;
+        }
       } else {
         // Standard quadrature
-        if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
-        else data->B.outputs[i] = basis_data->d_interp_1d;
+        if (is_input) {
+          data->B.inputs[i] = basis_data->d_interp_1d;
+        } else {
+          data->B.outputs[i] = basis_data->d_interp_1d;
+        }
       }
       if (is_tensor) {
         if (use_previous_field && !skip_active_load) {
@@ -322,8 +337,11 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       }
       if (is_at_points) break;  // No G mat for AtPoints
       if (use_3d_slices) {
-        if (is_input) data->G.inputs[i] = basis_data->d_collo_grad_1d;
-        else data->G.outputs[i] = basis_data->d_collo_grad_1d;
+        if (is_input) {
+          data->G.inputs[i] = basis_data->d_collo_grad_1d;
+        } else {
+          data->G.outputs[i] = basis_data->d_collo_grad_1d;
+        }
         if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD && !skip_active_load) {
           std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
 
@@ -337,8 +355,11 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       } else {
         bool has_collo_grad = basis_data->d_collo_grad_1d;
 
-        if (is_input) data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
-        else data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        if (is_input) {
+          data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        } else {
+          data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        }
         if (has_collo_grad) {
           if (use_previous_field && field_reuse.eval_mode == CEED_EVAL_GRAD && !skip_active_load) {
             std::string reuse_var = "s_G" + ((field_reuse.is_input ? "_in_" : "_out_") + std::to_string(field_reuse.index));
@@ -550,8 +571,11 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
   CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   if (basis != CEED_BASIS_NONE) {
     CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-    if (is_tensor) CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-    else CeedCallBackend(CeedBasisGetNumNodes(basis, &P_1d));
+    if (is_tensor) {
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+    } else {
+      CeedCallBackend(CeedBasisGetNumNodes(basis, &P_1d));
+    }
   }
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
@@ -1252,8 +1276,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   data->dim = max_dim;
   if (is_at_points) use_3d_slices = false;
   if (Q_1d == 0) {
-    if (is_at_points) Q_1d = max_num_points;
-    else CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q_1d));
+    if (is_at_points) {
+      Q_1d = max_num_points;
+    } else {
+      CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q_1d));
+    }
   }
   if (Q == 0) Q = Q_1d;
   data->Q    = Q;

@@ -116,8 +116,11 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", tabs, size);
   fprintf(stream, "%s      EvalMode: %s\n", tabs, CeedEvalModes[eval_mode]);
   if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", tabs);
-  if (vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", tabs);
-  else if (vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", tabs);
+  if (vec == CEED_VECTOR_ACTIVE) {
+    fprintf(stream, "%s      Active vector\n", tabs);
+  } else if (vec == CEED_VECTOR_NONE) {
+    fprintf(stream, "%s      No vector\n", tabs);
+  }
 
   CeedCall(CeedVectorDestroy(&vec));
   CeedCall(CeedBasisDestroy(&basis));
@@ -965,8 +968,11 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
     }
   }
 
-  if (basis == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(rstr, &num_qpts));
-  else CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  if (basis == CEED_BASIS_NONE) {
+    CeedCall(CeedElemRestrictionGetElementSize(rstr, &num_qpts));
+  } else {
+    CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  }
   CeedCheck(op->num_qpts == 0 || num_qpts == op->num_qpts, CeedOperatorReturnCeed(op), CEED_ERROR_DIMENSION,
             "%s must correspond to the same number of quadrature points as previously added CeedBases. Found %" CeedInt_FMT
             " quadrature points but expected %" CeedInt_FMT " quadrature points.",
@@ -1911,8 +1917,11 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       CeedSize      qf_flops;
       CeedQFunction qf;
 
-      if (is_at_points) num_qpts = num_points;
-      else CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      if (is_at_points) {
+        num_qpts = num_points;
+      } else {
+        CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      }
       CeedCall(CeedOperatorGetQFunction(op, &qf));
       CeedCall(CeedQFunctionGetFlopsEstimate(qf, &qf_flops));
       CeedCall(CeedQFunctionDestroy(&qf));

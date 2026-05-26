@@ -575,7 +575,9 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
     }
     // LCOV_EXCL_STOP
     *is_good_run = false;
-  } else CeedChk_Cu(ceed, result);
+  } else {
+    CeedChk_Cu(ceed, result);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
