@@ -260,6 +260,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
 10. External functions, i.e. those used in tests or examples, must have their *declarations* prefixed with `CEED_EXTERN`.
     All other functions should have their *declarations* prefixed with `CEED_INTERN`.
     Function *definitions* should have neither.
+11. Single line `if` statements are acceptable, but if `clang-format` forces it to be on two lines or if there are any `else if` or `else` blocks, each block must be enclosed in brackets.
+    This is enforced automatically for all enabled backends via `make format`, with the exception of header files in the `include/ceed/jit-source` directory.
+    These files cannot be automatically formatted by `clang-tidy`, as they cannot be compiled as standalone sources.
 
 ## Clang-tidy
 
