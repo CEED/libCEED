@@ -66,20 +66,22 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
       const CeedScalar *b_t                = NULL;
 
       GetBasisPointer(&b_t, eval_modes_out[e_out], identity, interp_out, grad_out, div_out, curl_out);
-      if (e_out == 0 || eval_modes_out[e_out] != eval_modes_out_prev)
+      if (e_out == 0 || eval_modes_out[e_out] != eval_modes_out_prev) {
         d_out = 0;
-      else
+      } else {
         b_t = &b_t[(++d_out) * NUM_QPTS * NUM_NODES];
+      }
       eval_modes_out_prev = eval_modes_out[e_out];
 
       for (IndexType e_in = 0; e_in < NUM_EVAL_MODES_IN; e_in++) {
         const CeedScalar *b = NULL;
 
         GetBasisPointer(&b, eval_modes_in[e_in], identity, interp_in, grad_in, div_in, curl_in);
-        if (e_in == 0 || eval_modes_in[e_in] != eval_modes_in_prev)
+        if (e_in == 0 || eval_modes_in[e_in] != eval_modes_in_prev) {
           d_in = 0;
-        else
+        } else {
           b = &b[(++d_in) * NUM_QPTS * NUM_NODES];
+        }
         eval_modes_in_prev = eval_modes_in[e_in];
 
         // Each component

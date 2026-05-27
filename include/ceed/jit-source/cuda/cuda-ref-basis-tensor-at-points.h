@@ -208,10 +208,11 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-          if (d == BASIS_DIM - 1)
+          if (d == BASIS_DIM - 1) {
             out[k] += v_k;
-          else
+          } else {
             out[k] = v_k;
+          }
         }
         post *= P;
       }
@@ -291,10 +292,11 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
             CeedScalar       *out = dim_2 == BASIS_DIM - 1 ? (cur_v + p) : (dim_2 % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
-            if (dim_1 == dim_2)
+            if (dim_1 == dim_2) {
               ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
-            else
+            } else {
               ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
+            }
 
             // Contract along middle index
             for (CeedInt a = 0; a < pre; a++) {
@@ -366,10 +368,11 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
             CeedScalar       *out = dim_2 == BASIS_DIM - 1 ? s_chebyshev_coeffs : (dim_2 % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
-            if (dim_1 == dim_2)
+            if (dim_1 == dim_2) {
               ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
-            else
+            } else {
               ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
+            }
 
             // Contract along middle index
             for (CeedInt a = 0; a < pre; a++) {
@@ -405,10 +408,11 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-          if (d == BASIS_DIM - 1)
+          if (d == BASIS_DIM - 1) {
             out[k] += v_k;
-          else
+          } else {
             out[k] = v_k;
+          }
         }
         post *= P;
       }

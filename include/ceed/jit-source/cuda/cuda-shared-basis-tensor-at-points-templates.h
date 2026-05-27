@@ -221,10 +221,11 @@ inline __device__ void GradAtPoints2d(SharedData_Cuda &data, const CeedInt p, co
     __syncthreads();
     for (CeedInt dim = 0; dim < 2; dim++) {
       // Contract x direction
-      if (dim == 0)
+      if (dim == 0) {
         ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
-      else
+      } else {
         ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
+      }
       for (CeedInt i = 0; i < Q_1D; i++) {
         buffer[i] = 0.0;
         for (CeedInt j = 0; j < Q_1D; j++) {
@@ -232,10 +233,11 @@ inline __device__ void GradAtPoints2d(SharedData_Cuda &data, const CeedInt p, co
         }
       }
       // Contract y direction
-      if (dim == 1)
+      if (dim == 1) {
         ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
-      else
+      } else {
         ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+      }
       for (CeedInt i = 0; i < Q_1D; i++) {
         r_V[comp + dim * NUM_COMP] += chebyshev_x[i] * buffer[i];
       }
@@ -258,20 +260,22 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const Ceed
     __syncthreads();
     for (CeedInt dim = 0; dim < 2; dim++) {
       // Contract y direction
-      if (dim == 1)
+      if (dim == 1) {
         ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
-      else
+      } else {
         ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+      }
       const CeedScalar r_u = p < NUM_POINTS ? r_U[comp + dim * NUM_COMP] : 0.0;
 
       for (CeedInt i = 0; i < Q_1D; i++) {
         buffer[i] = chebyshev_x[i] * r_u;
       }
       // Contract x direction
-      if (dim == 0)
+      if (dim == 0) {
         ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
-      else
+      } else {
         ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
+      }
       for (CeedInt i = 0; i < Q_1D; i++) {
         // Note: shifting to avoid atomic adds
         const CeedInt ii = (i + data.t_id_y) % Q_1D;
@@ -400,10 +404,11 @@ inline __device__ void GradAtPoints3d(SharedData_Cuda &data, const CeedInt p, co
       // Gradient directions
       for (CeedInt dim = 0; dim < 3; dim++) {
         // Contract x direction
-        if (dim == 0)
+        if (dim == 0) {
           ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
-        else
+        } else {
           ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
+        }
         for (CeedInt i = 0; i < Q_1D; i++) {
           buffer[i] = 0.0;
           for (CeedInt j = 0; j < Q_1D; j++) {
@@ -411,10 +416,11 @@ inline __device__ void GradAtPoints3d(SharedData_Cuda &data, const CeedInt p, co
           }
         }
         // Contract y and z direction
-        if (dim == 1)
+        if (dim == 1) {
           ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
-        else
+        } else {
           ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+        }
         const CeedScalar zz = dim == 2 ? dz : z;
 
         for (CeedInt i = 0; i < Q_1D; i++) {
@@ -449,10 +455,11 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const Ceed
       // Gradient directions
       for (CeedInt dim = 0; dim < 3; dim++) {
         // Contract y and z direction
-        if (dim == 1)
+        if (dim == 1) {
           ChebyshevDerivativeAtPoint<Q_1D>(r_X[1], chebyshev_x);
-        else
+        } else {
           ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
+        }
         const CeedScalar zz  = dim == 2 ? dz : z;
         const CeedScalar r_u = (p < NUM_POINTS) ? r_U[comp + dim * NUM_COMP] : 0.0;
 
@@ -461,10 +468,11 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const Ceed
         }
 
         // Contract x direction
-        if (dim == 0)
+        if (dim == 0) {
           ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
-        else
+        } else {
           ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
+        }
         for (CeedInt i = 0; i < Q_1D; i++) {
           // Note: shifting to avoid atomic adds
           const CeedInt ii = (i + data.t_id_y) % Q_1D;

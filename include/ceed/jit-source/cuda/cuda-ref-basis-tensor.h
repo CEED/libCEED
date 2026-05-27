@@ -62,10 +62,11 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < P; b++) v_k += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-          if (is_transpose && d == BASIS_DIM - 1)
+          if (is_transpose && d == BASIS_DIM - 1) {
             out[k] += v_k;
-          else
+          } else {
             out[k] = v_k;
+          }
         }
         post *= Q;
       }
@@ -128,10 +129,11 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt is_transpo
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-            if (is_transpose && dim_2 == BASIS_DIM - 1)
+            if (is_transpose && dim_2 == BASIS_DIM - 1) {
               out[k] += v_k;
-            else
+            } else {
               out[k] = v_k;
+            }
           }
           post *= Q;
         }

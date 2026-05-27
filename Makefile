@@ -300,7 +300,7 @@ $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(
 libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
-libceed.h := $(filter-out include/ceedf.h include/ceed/fortran.h, $(shell git ls-files 'include/**/*.h'))
+libceed.h := $(shell git ls-files 'include/**/*.h')
 
 libceed.cpp :=
 libceed.hpp := $(shell git ls-files 'include/**/*.hpp')
@@ -993,7 +993,7 @@ CLANG_TIDY      ?= clang-tidy
 TIDY_FIX_OPTS   ?= --quiet --header-filter='$(abspath .)/.*' --config-file=.clang-tidy-fix --format-style=file --fix
 
 # clang-tidy doesn't like the missing AD includes or the model lists
-tidy-fix-excl.h := include/ceedf.h include/ceed/deprecated.h include/ceed/fortran.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h) $(wildcard backends/ceed-backend-list*.h)
+tidy-fix-excl.h := include/ceedf.h include/ceed/fortran.h include/ceed/cuda.h include/ceed/hip.h include/ceed/deprecated.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h) $(wildcard backends/ceed-backend-list*.h)
 tidy-fix-excl.h += $(wildcard include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/hip/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
 tidy-fix.h      := $(filter-out $(tidy-fix-excl.h), $(libceed.h))
 
