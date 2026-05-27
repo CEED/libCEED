@@ -554,7 +554,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
            "d.h>\n"
            "// Weight basis source\n"
            "#include <ceed/jit-source/magma/magma-basis-weight-%" CeedInt_FMT "d.h>\n",
-           num_comp, num_comp, num_comp);
+           dim, dim, dim);
 
   CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, "basis_h1_tensor", &impl->module, 5, "BASIS_DIM", dim, "BASIS_NUM_COMP",
                                    num_comp, "BASIS_P", P_1d, "BASIS_Q", Q_1d, "BASIS_MAX_P_Q", CeedIntMax(P_1d, Q_1d)));
