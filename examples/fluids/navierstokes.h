@@ -68,7 +68,8 @@ typedef enum {
 static const char *const MeshTransformTypes[] = {"NONE", "PLATEMESH", "MeshTransformType", "MESH_TRANSFORM_", NULL};
 
 static const char *const DifferentialFilterDampingFunctions[] = {
-    "NONE", "VAN_DRIEST", "MMS", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
+    "NONE", "VAN_DRIEST", "MMS", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL
+};
 
 // -----------------------------------------------------------------------------
 // Structs

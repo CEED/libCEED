@@ -1833,8 +1833,11 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
             "Cannot destroy CeedElemRestriction, a process has read access to the offset data");
 
   // Only destroy backend data once between rstr and unsigned copy
-  if ((*rstr)->rstr_base) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_base));
-  else if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
+  if ((*rstr)->rstr_base) {
+    CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_base));
+  } else if ((*rstr)->Destroy) {
+    CeedCall((*rstr)->Destroy(*rstr));
+  }
 
   CeedCall(CeedFree(&(*rstr)->strides));
   CeedCall(CeedObjectDestroy_Private(&(*rstr)->obj));

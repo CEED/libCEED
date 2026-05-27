@@ -1253,8 +1253,11 @@ int CeedInit(const char *resource, Ceed *ceed) {
     while (prefix_lev[lev_length] && prefix_lev[lev_length] != '\0') lev_length++;
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
 
-    if (lev_dis + 1 >= m) return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
-    else return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
+    if (lev_dis + 1 >= m) {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
+    } else {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
+    }
     // LCOV_EXCL_STOP
   }
 
@@ -1265,9 +1268,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler) ceed_error_handler = "abort";
-  if (!strcmp(ceed_error_handler, "exit")) (*ceed)->Error = CeedErrorExit;
-  else if (!strcmp(ceed_error_handler, "store")) (*ceed)->Error = CeedErrorStore;
-  else (*ceed)->Error = CeedErrorAbort;
+  if (!strcmp(ceed_error_handler, "exit")) {
+    (*ceed)->Error = CeedErrorExit;
+  } else if (!strcmp(ceed_error_handler, "store")) {
+    (*ceed)->Error = CeedErrorStore;
+  } else {
+    (*ceed)->Error = CeedErrorAbort;
+  }
   memcpy((*ceed)->err_msg, "No error message stored", 24);
   (*ceed)->data = NULL;
 
@@ -1405,8 +1412,11 @@ int CeedSetStream(Ceed ceed, void *handle) {
     Ceed delegate;
     CeedCall(CeedGetDelegate(ceed, &delegate));
 
-    if (delegate) CeedCall(CeedSetStream(delegate, handle));
-    else return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    if (delegate) {
+      CeedCall(CeedSetStream(delegate, handle));
+    } else {
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    }
     CeedCall(CeedDestroy(&delegate));
   }
   return CEED_ERROR_SUCCESS;

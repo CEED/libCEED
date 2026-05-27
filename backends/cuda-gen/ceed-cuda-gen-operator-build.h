@@ -6,6 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
+#include <ceed.h>
+#include <ceed/backend.h>
+
 CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_build);
 CEED_INTERN int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build);
 CEED_INTERN int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build);

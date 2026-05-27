@@ -1,0 +1,4 @@
+Checks: "-*,readability-inconsistent-declaration-parameter-name,readability-braces-around-statements"
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '1'

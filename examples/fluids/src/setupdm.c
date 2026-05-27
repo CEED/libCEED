@@ -129,7 +129,8 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData problem, SimpleBC bc, P
     PetscCall(DMSetVecType(dm_hierarchy[i + 1], vec_type));
     PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
     PetscCall(DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i + 1], &interp_next, NULL));
-    if (!i) user->interp_viz = interp_next;
+    if (!i)
+      user->interp_viz = interp_next;
     else {
       Mat C;
       PetscCall(MatMatMult(interp_next, user->interp_viz, MAT_INITIAL_MATRIX, PETSC_DECIDE, &C));

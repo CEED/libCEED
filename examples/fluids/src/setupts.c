@@ -164,7 +164,8 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   if (J_is_matceed || J_is_mffd) {
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
-  } else PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J));
+  } else
+    PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J));
 
   if (J_pre_is_matceed && J != J_pre) {
     PetscCall(MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY));

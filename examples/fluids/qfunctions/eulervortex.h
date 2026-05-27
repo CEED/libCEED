@@ -544,8 +544,10 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   }
 
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
-  if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
-  else T_inlet = P_inlet = 1.;
+  if (euler_test == 1 || euler_test == 2)
+    T_inlet = P_inlet = .4;
+  else
+    T_inlet = P_inlet = 1.;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];

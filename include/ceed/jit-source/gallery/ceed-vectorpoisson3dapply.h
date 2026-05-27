@@ -34,9 +34,11 @@ CEED_QFUNCTION(Vector3Poisson3DApply)(void *ctx, const CeedInt Q, const CeedScal
 
     // Apply Poisson Operator
     // j = direction of vg
-    for (CeedInt j = 0; j < dim; j++)
-      for (CeedInt c = 0; c < num_comp; c++)
+    for (CeedInt j = 0; j < dim; j++) {
+      for (CeedInt c = 0; c < num_comp; c++) {
         vg[j][c][i] = (ug[0][c][i] * dXdxdXdxT[0][j] + ug[1][c][i] * dXdxdXdxT[1][j] + ug[2][c][i] * dXdxdXdxT[2][j]);
+      }
+    }
   }  // End of Quadrature Point Loop
   return CEED_ERROR_SUCCESS;
 }

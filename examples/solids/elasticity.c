@@ -126,9 +126,12 @@ int main(int argc, char **argv) {
     case CEED_MEM_DEVICE: {
       const char *resolved;
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
-      else vectype = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vectype = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vectype = VECHIP;
+      else
+        vectype = VECSTANDARD;
     }
   }
   PetscCall(DMSetVecType(dm_orig, vectype));
@@ -405,8 +408,10 @@ int main(int argc, char **argv) {
   PetscCall(PetscMemcpy(res_ctx, jacob_ctx[fine_level], sizeof(*jacob_ctx[fine_level])));
   res_ctx->op = ceed_data[fine_level]->op_residual;
   res_ctx->qf = ceed_data[fine_level]->qf_residual;
-  if (app_ctx->bc_traction_count > 0) res_ctx->neumann_bcs = neumann_bcs;
-  else res_ctx->neumann_bcs = NULL;
+  if (app_ctx->bc_traction_count > 0)
+    res_ctx->neumann_bcs = neumann_bcs;
+  else
+    res_ctx->neumann_bcs = NULL;
   PetscCall(SNESSetFunction(snes, R, FormResidual_Ceed, res_ctx));
 
   // -- Prolongation/Restriction evaluation

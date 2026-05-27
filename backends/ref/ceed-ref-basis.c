@@ -32,11 +32,17 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCallBackend(CeedBasisGetTensorContract(basis, &contract));
-  if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (U != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   // Clear v if operating in transpose
-  if (apply_add) CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
-  else CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
+  if (apply_add) {
+    CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
+  } else {
+    CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
+  }
 
   if (t_mode == CEED_TRANSPOSE && !apply_add) {
     CeedSize len;

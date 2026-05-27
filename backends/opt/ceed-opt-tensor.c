@@ -43,8 +43,11 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
     for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
   }
 
-  if (C == 1) return CeedTensorContractApply_Core_Opt(contract, A, B, 1, J, t, t_mode, add, u, v);
-  else return CeedTensorContractApply_Core_Opt(contract, A, B, C, J, t, t_mode, add, u, v);
+  if (C == 1) {
+    return CeedTensorContractApply_Core_Opt(contract, A, B, 1, J, t, t_mode, add, u, v);
+  } else {
+    return CeedTensorContractApply_Core_Opt(contract, A, B, C, J, t, t_mode, add, u, v);
+  }
   return CEED_ERROR_SUCCESS;
 }
 

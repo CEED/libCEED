@@ -106,13 +106,15 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
 
-  ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC,
-                                  nullptr,  // extension specific structs
-                                  ZE_MODULE_FORMAT_IL_SPIRV,
-                                  il_binary.size(),
-                                  il_binary.data(),
-                                  " -ze-opt-large-register-file",  // flags
-                                  nullptr};                        // specialization constants
+  ze_module_desc_t lz_mod_desc = {
+      ZE_STRUCTURE_TYPE_MODULE_DESC,
+      nullptr,  // extension specific structs
+      ZE_MODULE_FORMAT_IL_SPIRV,
+      il_binary.size(),
+      il_binary.data(),
+      " -ze-opt-large-register-file",  // flags
+      nullptr
+  };  // specialization constants
 
   ze_module_handle_t           lz_module;
   ze_module_build_log_handle_t lz_log;

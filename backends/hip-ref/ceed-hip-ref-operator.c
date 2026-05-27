@@ -1219,8 +1219,11 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op) {
 
   // Basis matrices
   CeedCallBackend(CeedBasisGetNumNodes(basis_in, &num_nodes));
-  if (basis_in == CEED_BASIS_NONE) num_qpts = num_nodes;
-  else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
+  if (basis_in == CEED_BASIS_NONE) {
+    num_qpts = num_nodes;
+  } else {
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
+  }
   const CeedInt interp_bytes     = num_nodes * num_qpts * sizeof(CeedScalar);
   const CeedInt eval_modes_bytes = sizeof(CeedEvalMode);
   bool          has_eval_none    = false;
@@ -1402,8 +1405,11 @@ static inline int CeedOperatorAssembleDiagonalSetupCompile_Hip(CeedOperator op, 
 
   CeedCallBackend(CeedBasisGetNumNodes(basis_in, &num_nodes));
   CeedCallBackend(CeedBasisGetNumComponents(basis_in, &num_comp));
-  if (basis_in == CEED_BASIS_NONE) num_qpts = num_nodes;
-  else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
+  if (basis_in == CEED_BASIS_NONE) {
+    num_qpts = num_nodes;
+  } else {
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts));
+  }
   CeedCallHip(ceed, CeedCompile_Hip(ceed, diagonal_kernel_source, "operator_diagonal_assembly", module, 8, "NUM_EVAL_MODES_IN", num_eval_modes_in,
                                     "NUM_EVAL_MODES_OUT", num_eval_modes_out, "NUM_COMP", num_comp, "NUM_NODES", num_nodes, "NUM_QPTS", num_qpts,
                                     "USE_CEEDSIZE", use_ceedsize_idx, "USE_POINT_BLOCK", is_point_block ? 1 : 0, "BLOCK_SIZE",
@@ -1574,12 +1580,18 @@ static int CeedOperatorAssembleSingleBlockSetup_Hip(CeedOperator op, CeedInt act
   }
 
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr_in, &elem_size_in));
-  if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
-  else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+  if (basis_in == CEED_BASIS_NONE) {
+    num_qpts_in = elem_size_in;
+  } else {
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+  }
 
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr_out, &elem_size_out));
-  if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
-  else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+  if (basis_out == CEED_BASIS_NONE) {
+    num_qpts_out = elem_size_out;
+  } else {
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+  }
   CeedCheck(num_qpts_in == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
             "Active input and output bases must have the same number of quadrature points");
 
@@ -1695,8 +1707,11 @@ static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceed
       if (!rstr_in) CeedCallBackend(CeedElemRestrictionReferenceCopy(elem_rstr, &rstr_in));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetElementSize(rstr_in, &elem_size_in));
-      if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
-      else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+      if (basis_in == CEED_BASIS_NONE) {
+        num_qpts_in = elem_size_in;
+      } else {
+        CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+      }
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
       CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis_in, eval_mode, &q_comp));
       if (eval_mode != CEED_EVAL_WEIGHT) {
@@ -1731,8 +1746,11 @@ static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceed
       if (!rstr_out) CeedCallBackend(CeedElemRestrictionReferenceCopy(elem_rstr, &rstr_out));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetElementSize(rstr_out, &elem_size_out));
-      if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
-      else CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+      if (basis_out == CEED_BASIS_NONE) {
+        num_qpts_out = elem_size_out;
+      } else {
+        CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+      }
       CeedCheck(num_qpts_in == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
                 "Active input and output bases must have the same number of quadrature points");
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
@@ -1799,8 +1817,11 @@ static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallBackend(CeedOperatorGetBasisPointer(basis_in, eval_modes_in[i], identity, &h_B_in));
       CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis_in, eval_modes_in[i], &q_comp));
       if (q_comp > 1) {
-        if (i == 0 || eval_modes_in[i] != eval_modes_in_prev) d_in = 0;
-        else h_B_in = &h_B_in[(++d_in) * elem_size_in * num_qpts_in];
+        if (i == 0 || eval_modes_in[i] != eval_modes_in_prev) {
+          d_in = 0;
+        } else {
+          h_B_in = &h_B_in[(++d_in) * elem_size_in * num_qpts_in];
+        }
       }
       eval_modes_in_prev = eval_modes_in[i];
 
@@ -1834,8 +1855,11 @@ static int CeedOperatorAssembleSingleSetup_Hip(CeedOperator op, CeedInt use_ceed
       CeedCallBackend(CeedOperatorGetBasisPointer(basis_out, eval_modes_out[i], identity, &h_B_out));
       CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis_out, eval_modes_out[i], &q_comp));
       if (q_comp > 1) {
-        if (i == 0 || eval_modes_out[i] != eval_modes_out_prev) d_out = 0;
-        else h_B_out = &h_B_out[(++d_out) * elem_size_out * num_qpts_out];
+        if (i == 0 || eval_modes_out[i] != eval_modes_out_prev) {
+          d_out = 0;
+        } else {
+          h_B_out = &h_B_out[(++d_out) * elem_size_out * num_qpts_out];
+        }
       }
       eval_modes_out_prev = eval_modes_out[i];
 
@@ -2176,8 +2200,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[field_in], &elem_rstr));
     CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
     is_active_at_points = rstr_type == CEED_RESTRICTION_POINTS;
-    if (!is_active_at_points) CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
-    else elem_size = max_num_points;
+    if (!is_active_at_points) {
+      CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
+    } else {
+      elem_size = max_num_points;
+    }
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 

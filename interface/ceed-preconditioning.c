@@ -294,8 +294,11 @@ static inline int CeedOperatorLinearAssembleAddDiagonalSingle_Mesh(CeedOperator 
     CeedCall(CeedElemRestrictionGetNumElements(diag_elem_rstr, &num_elem));
     CeedCall(CeedBasisGetNumNodes(active_bases_in[b_in], &num_nodes));
     CeedCall(CeedBasisGetNumComponents(active_bases_in[b_in], &num_comp));
-    if (active_bases_in[b_in] == CEED_BASIS_NONE) num_qpts = num_nodes;
-    else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b_in], &num_qpts));
+    if (active_bases_in[b_in] == CEED_BASIS_NONE) {
+      num_qpts = num_nodes;
+    } else {
+      CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b_in], &num_qpts));
+    }
 
     // Construct identity matrix for basis if required
     for (CeedInt i = 0; i < num_eval_modes_in[b_in]; i++) {
@@ -324,8 +327,11 @@ static inline int CeedOperatorLinearAssembleAddDiagonalSingle_Mesh(CeedOperator 
         CeedCall(CeedOperatorGetBasisPointer(active_bases_out[b_out], eval_modes_out[b_out][e_out], identity, &B_t));
         CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_out[b_out], eval_modes_out[b_out][e_out], &q_comp_out));
         if (q_comp_out > 1) {
-          if (e_out == 0 || eval_modes_out[b_out][e_out] != eval_mode_out_prev) d_out = 0;
-          else B_t = &B_t[(++d_out) * num_qpts * num_nodes];
+          if (e_out == 0 || eval_modes_out[b_out][e_out] != eval_mode_out_prev) {
+            d_out = 0;
+          } else {
+            B_t = &B_t[(++d_out) * num_qpts * num_nodes];
+          }
         }
         eval_mode_out_prev = eval_modes_out[b_out][e_out];
 
@@ -335,8 +341,11 @@ static inline int CeedOperatorLinearAssembleAddDiagonalSingle_Mesh(CeedOperator 
           CeedCall(CeedOperatorGetBasisPointer(active_bases_in[b_in], eval_modes_in[b_in][e_in], identity, &B));
           CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_in[b_in], eval_modes_in[b_in][e_in], &q_comp_in));
           if (q_comp_in > 1) {
-            if (e_in == 0 || eval_modes_in[b_in][e_in] != eval_mode_in_prev) d_in = 0;
-            else B = &B[(++d_in) * num_qpts * num_nodes];
+            if (e_in == 0 || eval_modes_in[b_in][e_in] != eval_mode_in_prev) {
+              d_in = 0;
+            } else {
+              B = &B[(++d_in) * num_qpts * num_nodes];
+            }
           }
           eval_mode_in_prev = eval_modes_in[b_in][e_in];
 
@@ -781,8 +790,11 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleQFunctionBuildOrUpdate\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
-    else return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
+    if (op_fallback) {
+      CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
+    } else {
+      return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
+    }
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -904,8 +916,11 @@ int CeedOperatorAssembleSingleBlock(CeedOperator op, CeedInt offset, CeedInt act
     CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
-    if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
-    else CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+    if (basis_in == CEED_BASIS_NONE) {
+      num_qpts_in = elem_size_in;
+    } else {
+      CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+    }
 
     CeedCall(CeedElemRestrictionGetType(elem_rstr_in, &elem_rstr_type_in));
     if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
@@ -922,8 +937,11 @@ int CeedOperatorAssembleSingleBlock(CeedOperator op, CeedInt offset, CeedInt act
                 num_elem_in, num_elem_out);
       CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
       CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
-      if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
-      else CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+      if (basis_out == CEED_BASIS_NONE) {
+        num_qpts_out = elem_size_out;
+      } else {
+        CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+      }
       CeedCheck(num_qpts_in == num_qpts_out, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
                 "Active input and output bases must have the same number of quadrature points."
                 " Input has %" CeedInt_FMT " points; output has %" CeedInt_FMT "points.",
@@ -2020,8 +2038,11 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
   if (assembled_bases_in && !data->assembled_bases_in[0]) {
     CeedInt num_qpts;
 
-    if (data->active_bases_in[0] == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_in[0], &num_qpts));
-    else CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_in[0], &num_qpts));
+    if (data->active_bases_in[0] == CEED_BASIS_NONE) {
+      CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_in[0], &num_qpts));
+    } else {
+      CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_in[0], &num_qpts));
+    }
     for (CeedInt b = 0; b < data->num_active_bases_in; b++) {
       bool        has_eval_none = false;
       CeedInt     num_nodes;
@@ -2052,8 +2073,11 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
             CeedCall(CeedOperatorGetBasisPointer(data->active_bases_in[b], data->eval_modes_in[b][e_in], identity, &B));
             CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases_in[b], data->eval_modes_in[b][e_in], &q_comp_in));
             if (q_comp_in > 1) {
-              if (e_in == 0 || data->eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
-              else B = &B[(++d_in) * num_qpts * num_nodes];
+              if (e_in == 0 || data->eval_modes_in[b][e_in] != eval_mode_in_prev) {
+                d_in = 0;
+              } else {
+                B = &B[(++d_in) * num_qpts * num_nodes];
+              }
             }
             eval_mode_in_prev                 = data->eval_modes_in[b][e_in];
             B_in[(qq + e_in) * num_nodes + n] = B[q * num_nodes + n];
@@ -2068,8 +2092,11 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
   if (assembled_bases_out && !data->assembled_bases_out[0]) {
     CeedInt num_qpts;
 
-    if (data->active_bases_out[0] == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_out[0], &num_qpts));
-    else CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_out[0], &num_qpts));
+    if (data->active_bases_out[0] == CEED_BASIS_NONE) {
+      CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_out[0], &num_qpts));
+    } else {
+      CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_out[0], &num_qpts));
+    }
     for (CeedInt b = 0; b < data->num_active_bases_out; b++) {
       bool        has_eval_none = false;
       CeedInt     num_nodes;
@@ -2100,8 +2127,11 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
             CeedCall(CeedOperatorGetBasisPointer(data->active_bases_out[b], data->eval_modes_out[b][e_out], identity, &B));
             CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases_out[b], data->eval_modes_out[b][e_out], &q_comp_out));
             if (q_comp_out > 1) {
-              if (e_out == 0 || data->eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
-              else B = &B[(++d_out) * num_qpts * num_nodes];
+              if (e_out == 0 || data->eval_modes_out[b][e_out] != eval_mode_out_prev) {
+                d_out = 0;
+              } else {
+                B = &B[(++d_out) * num_qpts * num_nodes];
+              }
             }
             eval_mode_out_prev                  = data->eval_modes_out[b][e_out];
             B_out[(qq + e_out) * num_nodes + n] = B[q * num_nodes + n];
@@ -2260,8 +2290,11 @@ int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
 **/
 int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
   *parent = NULL;
-  if (op->op_fallback_parent) CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op->op_fallback_parent), parent));
-  else CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op), parent));
+  if (op->op_fallback_parent) {
+    CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op->op_fallback_parent), parent));
+  } else {
+    CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op), parent));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2305,8 +2338,11 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 
     CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorLinearAssembleQFunction\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
-    else return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
+    if (op_fallback) {
+      CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
+    } else {
+      return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
+    }
   }
   return CEED_ERROR_SUCCESS;
 }

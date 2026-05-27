@@ -11,6 +11,7 @@
 #define CEED_QFUNCTION_DEFS_H
 
 #ifndef CEED_RUNNING_JIT_PASS
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #endif

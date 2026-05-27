@@ -436,12 +436,16 @@ static int CeedVectorGetArrayWrite_Sycl(const CeedVector vec, const CeedMemType 
     // Select dirty array
     switch (mem_type) {
       case CEED_MEM_HOST:
-        if (impl->h_array_borrowed) impl->h_array = impl->h_array_borrowed;
-        else impl->h_array = impl->h_array_owned;
+        if (impl->h_array_borrowed)
+          impl->h_array = impl->h_array_borrowed;
+        else
+          impl->h_array = impl->h_array_owned;
         break;
       case CEED_MEM_DEVICE:
-        if (impl->d_array_borrowed) impl->d_array = impl->d_array_borrowed;
-        else impl->d_array = impl->d_array_owned;
+        if (impl->d_array_borrowed)
+          impl->d_array = impl->d_array_borrowed;
+        else
+          impl->d_array = impl->d_array_owned;
     }
   }
   return CeedVectorGetArray_Sycl(vec, mem_type, array);
@@ -488,8 +492,10 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
     } break;
   }
   // L2 norm - square root over reduced value
-  if (type == CEED_NORM_2) *norm = sqrt(*impl->reduction_norm);
-  else *norm = *impl->reduction_norm;
+  if (type == CEED_NORM_2)
+    *norm = sqrt(*impl->reduction_norm);
+  else
+    *norm = *impl->reduction_norm;
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
   return CEED_ERROR_SUCCESS;
 }

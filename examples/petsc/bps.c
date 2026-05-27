@@ -82,9 +82,12 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
       const char *resolved;
 
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-      else vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vec_type = VECHIP;
+      else
+        vec_type = VECSTANDARD;
     }
   }
   PetscCall(DMSetVecType(dm, vec_type));

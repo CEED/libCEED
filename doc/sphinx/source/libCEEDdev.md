@@ -205,6 +205,10 @@ In general, variable and function names should avoid abbreviations and err on th
 
 Also, documentation files should have one sentence per line to help make git diffs clearer and less disruptive.
 
+Single line `if` statements are acceptable, but if `clang-format` forces it to be on two lines or if there are any `else if` or `else` blocks, each block must be enclosed in brackets.
+This is enforced automatically for all enabled backends via `make format`, with the exception of header files in the `include/ceed/jit-source` directory.
+These files cannot be automatically formatted by `clang-tidy`, as they cannot be compiled as standalone sources.
+
 ## Function Conventions
 
 ### Naming

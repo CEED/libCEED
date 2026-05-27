@@ -221,8 +221,11 @@ static inline int CeedOperatorSetupInputs_Ref(CeedInt num_input_fields, CeedQFun
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) {
-      if (skip_active) continue;
-      else vec = in_vec;
+      if (skip_active) {
+        continue;
+      } else {
+        vec = in_vec;
+      }
     }
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
@@ -1435,8 +1438,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
       is_active_at_points = rstr_type == CEED_RESTRICTION_POINTS;
-      if (!is_active_at_points) CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
-      else elem_size_active = num_points;
+      if (!is_active_at_points) {
+        CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
+      } else {
+        elem_size_active = num_points;
+      }
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 
@@ -1642,8 +1648,11 @@ static int CeedOperatorAssembleSingleAtPoints_Ref(CeedOperator op, CeedInt offse
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
       is_active_at_points = rstr_type == CEED_RESTRICTION_POINTS;
-      if (!is_active_at_points) CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
-      else elem_size_active = num_points;
+      if (!is_active_at_points) {
+        CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
+      } else {
+        elem_size_active = num_points;
+      }
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 

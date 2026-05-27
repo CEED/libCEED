@@ -62,8 +62,11 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < P; b++) v_k += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-          if (is_transpose && d == BASIS_DIM - 1) out[k] += v_k;
-          else out[k] = v_k;
+          if (is_transpose && d == BASIS_DIM - 1) {
+            out[k] += v_k;
+          } else {
+            out[k] = v_k;
+          }
         }
         post *= Q;
       }
@@ -126,8 +129,11 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt is_transpo
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-            if (is_transpose && dim_2 == BASIS_DIM - 1) out[k] += v_k;
-            else out[k] = v_k;
+            if (is_transpose && dim_2 == BASIS_DIM - 1) {
+              out[k] += v_k;
+            } else {
+              out[k] = v_k;
+            }
           }
           post *= Q;
         }
@@ -191,7 +197,10 @@ __device__ void Weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d, 
 // Quadrature weights
 //------------------------------------------------------------------------------
 extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *__restrict__ v) {
-  if (BASIS_DIM == 1) Weight1d(num_elem, q_weight_1d, v);
-  else if (BASIS_DIM == 2) Weight2d(num_elem, q_weight_1d, v);
-  else if (BASIS_DIM == 3) Weight3d(num_elem, q_weight_1d, v);
+  if (BASIS_DIM == 1)
+    Weight1d(num_elem, q_weight_1d, v);
+  else if (BASIS_DIM == 2)
+    Weight2d(num_elem, q_weight_1d, v);
+  else if (BASIS_DIM == 3)
+    Weight3d(num_elem, q_weight_1d, v);
 }

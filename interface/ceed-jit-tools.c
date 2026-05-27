@@ -429,8 +429,9 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, const char
       return CEED_ERROR_SUCCESS;
     }
     // LCOV_EXCL_START
-    else
+    else {
       CeedCall(CeedFree(absolute_file_path));
+    }
     // LCOV_EXCL_STOP
   }
   // LCOV_EXCL_START

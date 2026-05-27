@@ -540,12 +540,18 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, CeedMemType mem_typ
     // Select dirty array
     switch (mem_type) {
       case CEED_MEM_HOST:
-        if (impl->h_array_borrowed) impl->h_array = impl->h_array_borrowed;
-        else impl->h_array = impl->h_array_owned;
+        if (impl->h_array_borrowed) {
+          impl->h_array = impl->h_array_borrowed;
+        } else {
+          impl->h_array = impl->h_array_owned;
+        }
         break;
       case CEED_MEM_DEVICE:
-        if (impl->d_array_borrowed) impl->d_array = impl->d_array_borrowed;
-        else impl->d_array = impl->d_array_owned;
+        if (impl->d_array_borrowed) {
+          impl->d_array = impl->d_array_borrowed;
+        } else {
+          impl->d_array = impl->d_array_owned;
+        }
     }
   }
   return CeedVectorGetArray_Hip(vec, mem_type, array);

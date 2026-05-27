@@ -99,8 +99,10 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     }
 
     // J is given by the cross product of the columns of dxdX
-    const CeedScalar J[3] = {dxdX[1][0] * dxdX[2][1] - dxdX[2][0] * dxdX[1][1], dxdX[2][0] * dxdX[0][1] - dxdX[0][0] * dxdX[2][1],
-                             dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1]};
+    const CeedScalar J[3] = {
+        dxdX[1][0] * dxdX[2][1] - dxdX[2][0] * dxdX[1][1], dxdX[2][0] * dxdX[0][1] - dxdX[0][0] * dxdX[2][1],
+        dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1]
+    };
 
     // Use the magnitude of J as our detJ (volume scaling factor)
     const CeedScalar mod_J = sqrt(J[0] * J[0] + J[1] * J[1] + J[2] * J[2]);

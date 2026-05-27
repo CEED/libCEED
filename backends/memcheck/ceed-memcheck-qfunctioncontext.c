@@ -243,8 +243,11 @@ static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
     bool is_borrowed = !!impl->data_borrowed;
 
     CeedCallBackend(data_destroy_function(is_borrowed ? impl->data_borrowed : impl->data_owned));
-    if (is_borrowed) VALGRIND_DISCARD(impl->borrowed_block_id);
-    else VALGRIND_DISCARD(impl->owned_block_id);
+    if (is_borrowed) {
+      VALGRIND_DISCARD(impl->borrowed_block_id);
+    } else {
+      VALGRIND_DISCARD(impl->owned_block_id);
+    }
   }
   // Free allocations and discard block ids
   if (impl->data_allocated) {

@@ -588,8 +588,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
 
               for (CeedInt d = 0; d < dim; d++) {
                 // ------ Tensor contract with current Chebyshev polynomial values
-                if (pass == d) CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-                else CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                if (pass == d) {
+                  CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                } else {
+                  CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                }
                 CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
                                                  d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
                 pre /= Q_1d;
@@ -653,8 +656,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
               for (CeedInt c = 0; c < num_comp; c++) tmp[0][c] = u_array[(pass * num_comp + c) * total_num_points + p];
               for (CeedInt d = 0; d < dim; d++) {
                 // ------ Tensor contract with current Chebyshev polynomial values
-                if (pass == d) CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-                else CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                if (pass == d) {
+                  CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                } else {
+                  CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                }
                 CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode,
                                                  (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1), tmp[d % 2],
                                                  d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
@@ -676,8 +682,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
 
       // -- Interpolate transpose from Chebyshev coefficients
-      if (apply_add) CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
-      else CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      if (apply_add) {
+        CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      } else {
+        CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      }
       break;
     }
   }
@@ -1374,12 +1383,18 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lamb
     p = 0;
     q = 0;
     for (CeedInt i = n - 2; i >= 0; i--) {
-      if (fabs(mat_T[i + n * (i + 1)]) < tol) q += 1;
-      else break;
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) {
+        q += 1;
+      } else {
+        break;
+      }
     }
     for (CeedInt i = 0; i < n - q - 1; i++) {
-      if (fabs(mat_T[i + n * (i + 1)]) < tol) p += 1;
-      else break;
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) {
+        p += 1;
+      } else {
+        break;
+      }
     }
     if (q == n - 1) break;  // Finished reducing
 
@@ -2406,8 +2421,11 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
             CeedInt p = (node / CeedIntPow(basis->P_1d, d)) % basis->P_1d;
             CeedInt q = (qpt / CeedIntPow(basis->Q_1d, d)) % basis->Q_1d;
 
-            if (i == d) basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->grad_1d[q * basis->P_1d + p];
-            else basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
+            if (i == d) {
+              basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->grad_1d[q * basis->P_1d + p];
+            } else {
+              basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
+            }
           }
         }
       }
