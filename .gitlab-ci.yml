@@ -255,41 +255,46 @@ noether-cuda:
     # libCEED
     - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
     - echo "-------------- libCEED -------------" && make info
-    - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
-    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - BACKENDS_GPU_FULL=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- BACKENDS_GPU_FULL --------" && echo $BACKENDS_GPU_FULL
+    - BACKENDS_GPU_PARTIAL=$(MAGMA_DIR= make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- BACKENDS_GPU_PARTIAL --------" && echo $BACKENDS_GPU_PARTIAL
     - make clean
-    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
+    # Note: Cannot build MAGMA with 'pedantic'
+    - PEDANTIC=1 MAGMA_DIR= make -k -j$NPROC_CPU -l$NPROC_CPU
     # -- libCEED only tests
     - echo "-------------- core tests ----------"
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
     # Run only operator tests for ASAN
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=t5
+    - MAGMA_DIR= make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU_PARTIAL" JUNIT_BATCH="cuda" junit search=t5
     # Rebuild without ASAN
     - unset ASAN AFLAGS ASAN_OPTIONS
     # Need to clean and run full test suite so gcda files match
     - make clean
-    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
+    # Note: Cannot build MAGMA with 'pedantic'
+    - PEDANTIC=1 MAGMA_DIR=           make -k -j$NPROC_CPU -l$NPROC_CPU
+    - PEDANTIC=  MAGMA_DIR=$MAGMA_DIR make -k -j$NPROC_CPU -l$NPROC_CPU
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU_FULL" JUNIT_BATCH="cuda" junit realsearch=%
     # Libraries for examples
     # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search="petsc fluids solids"
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU_FULL" JUNIT_BATCH="cuda" junit search="petsc fluids solids"
     # -- MFEM v4.7
     - cd .. && export MFEM_VERSION=mfem-4.7 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.7 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=mfem
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU_FULL" JUNIT_BATCH="cuda" junit search=mfem
     # -- Nek5000 v19.0
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
     - export NPROC_POOL=1
-    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=nek NEK5K_DIR=$NEK5K_DIR
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU_FULL" JUNIT_BATCH="cuda" junit search=nek NEK5K_DIR=$NEK5K_DIR
     # -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU_FULL" JUNIT_BATCH="cuda" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
     # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors -warnings-as-errors=" make -j$NPROC_CPU tidy
