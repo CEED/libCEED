@@ -467,12 +467,15 @@ PetscErrorCode MatCreateCeed(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
     MatType coo_mat_type;
 
     PetscCall(VecGetType(ctx->X_loc, &vec_type));
-    if (strstr(vec_type, VECCUDA))
+    if (strstr(vec_type, VECCUDA)) {
       coo_mat_type = MATAIJCUSPARSE;
-    else if (strstr(vec_type, VECKOKKOS))
+    } else if (strstr(vec_type, VECHIP)) {
+      coo_mat_type = MATAIJHIPSPARSE;
+    } else if (strstr(vec_type, VECKOKKOS)) {
       coo_mat_type = MATAIJKOKKOS;
-    else
+    } else {
       coo_mat_type = MATAIJ;
+    }
     PetscCall(PetscStrallocpy(coo_mat_type, &ctx->coo_mat_type));
   }
   // -- Set mat operations
