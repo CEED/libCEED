@@ -308,11 +308,10 @@ CEED_EXTERN void fCeedElemRestrictionCreate(int *ceed, int *num_elem, int *elem_
 #define fCeedElemRestrictionCreateOriented FORTRAN_NAME(ceedelemrestrictioncreateoriented, CEEDELEMRESTRICTIONCREATEORIENTED)
 CEED_EXTERN void fCeedElemRestrictionCreateOriented(int *ceed, int *num_elem, int *elem_size, int *num_comp, int *comp_stride, int *l_vec_size,
                                                     int *mem_type, int *copy_mode, const int *offsets, const bool *orients, int *rstr, int *err) {
-  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
-
   const int  *offsets_c = offsets;
   const bool *orients_c = orients;
 
+  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
   CeedCallFortran(CeedElemRestrictionCreateOriented(Ceed_dict[*ceed], *num_elem, *elem_size, *num_comp, *comp_stride, *l_vec_size,
                                                     (CeedMemType)*mem_type, (CeedCopyMode)*copy_mode, offsets_c, orients_c,
                                                     &CeedElemRestriction_dict[num_CeedElemRestriction]));
@@ -323,11 +322,10 @@ CEED_EXTERN void fCeedElemRestrictionCreateOriented(int *ceed, int *num_elem, in
 CEED_EXTERN void fCeedElemRestrictionCreateCurlOriented(int *ceed, int *num_elem, int *elem_size, int *num_comp, int *comp_stride, int *l_vec_size,
                                                         int *mem_type, int *copy_mode, const int *offsets, const int8_t *curl_orients, int *rstr,
                                                         int *err) {
-  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
-
   const int    *offsets_c      = offsets;
   const int8_t *curl_orients_c = curl_orients;
 
+  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
   CeedCallFortran(CeedElemRestrictionCreateCurlOriented(Ceed_dict[*ceed], *num_elem, *elem_size, *num_comp, *comp_stride, *l_vec_size,
                                                         (CeedMemType)*mem_type, (CeedCopyMode)*copy_mode, offsets_c, curl_orients_c,
                                                         &CeedElemRestriction_dict[num_CeedElemRestriction]));
@@ -347,10 +345,9 @@ CEED_EXTERN void fCeedElemRestrictionCreateStrided(int *ceed, int *num_elem, int
 #define fCeedElemRestrictionCreateBlocked FORTRAN_NAME(ceedelemrestrictioncreateblocked, CEEDELEMRESTRICTIONCREATEBLOCKED)
 CEED_EXTERN void fCeedElemRestrictionCreateBlocked(int *ceed, int *num_elem, int *elem_size, int *block_size, int *num_comp, int *comp_stride,
                                                    int *l_vec_size, int *mem_type, int *copy_mode, const int *offsets, int *rstr, int *err) {
-  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
-
   const int *offsets_c = offsets;
 
+  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
   CeedCallFortran(CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *num_elem, *elem_size, *block_size, *num_comp, *comp_stride, *l_vec_size,
                                                    (CeedMemType)*mem_type, (CeedCopyMode)*copy_mode, offsets_c,
                                                    &CeedElemRestriction_dict[num_CeedElemRestriction]));
@@ -361,11 +358,10 @@ CEED_EXTERN void fCeedElemRestrictionCreateBlocked(int *ceed, int *num_elem, int
 CEED_EXTERN void fCeedElemRestrictionCreateBlockedOriented(int *ceed, int *num_elem, int *elem_size, int *block_size, int *num_comp, int *comp_stride,
                                                            int *l_vec_size, int *mem_type, int *copy_mode, const int *offsets, const bool *orients,
                                                            int *rstr, int *err) {
-  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
-
   const int  *offsets_c = offsets;
   const bool *orients_c = orients;
 
+  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
   CeedCallFortran(CeedElemRestrictionCreateBlockedOriented(Ceed_dict[*ceed], *num_elem, *elem_size, *block_size, *num_comp, *comp_stride, *l_vec_size,
                                                            (CeedMemType)*mem_type, (CeedCopyMode)*copy_mode, offsets_c, orients_c,
                                                            &CeedElemRestriction_dict[num_CeedElemRestriction]));
@@ -377,11 +373,10 @@ CEED_EXTERN void fCeedElemRestrictionCreateBlockedOriented(int *ceed, int *num_e
 CEED_EXTERN void fCeedElemRestrictionCreateBlockedCurlOriented(int *ceed, int *num_elem, int *elem_size, int *block_size, int *num_comp,
                                                                int *comp_stride, int *l_vec_size, int *mem_type, int *copy_mode, const int *offsets,
                                                                const int8_t *curl_orients, int *rstr, int *err) {
-  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
-
   const int    *offsets_c      = offsets;
   const int8_t *curl_orients_c = curl_orients;
 
+  if (num_CeedElemRestriction == max_CeedElemRestriction) fCeedElemRestrictionExpandDict();
   CeedCallFortran(CeedElemRestrictionCreateBlockedCurlOriented(Ceed_dict[*ceed], *num_elem, *elem_size, *block_size, *num_comp, *comp_stride,
                                                                *l_vec_size, (CeedMemType)*mem_type, (CeedCopyMode)*copy_mode, offsets_c,
                                                                curl_orients_c, &CeedElemRestriction_dict[num_CeedElemRestriction]));
@@ -645,7 +640,9 @@ CEED_EXTERN void fCeedQFunctionContextGetData(int *ctx, int *mem_type, CeedScala
 
 #define fCeedQFunctionContextRestoreData FORTRAN_NAME(ceedqfunctioncontextrestoredata, CEEDQFUNCTIONCONTEXTRESTOREDATA)
 CEED_EXTERN void fCeedQFunctionContextRestoreData(int *ctx, CeedScalar *data, int64_t *offset, int *err) {
-  CeedCallFortran(CeedQFunctionContextRestoreData(CeedQFunctionContext_dict[*ctx], (void **)&data));
+  CeedScalar *data_c = data + *offset;
+
+  CeedCallFortran(CeedQFunctionContextRestoreData(CeedQFunctionContext_dict[*ctx], (void **)&data_c));
   *offset = 0;
 }
 
@@ -691,7 +688,7 @@ static inline void fCeedQFunctionAccept(int *qf) {
 
 // Note: Device backends are generating their own kernels from single source files, so only Host backends need to use this Fortran stub
 static int CeedQFunctionFortranStub(void *ctx, int num_qpts, const CeedScalar *const *u, CeedScalar *const *v) {
-  int                  ierr;
+  int                  ierr      = CEED_ERROR_SUCCESS;
   CeedFortranContext   ctx_data  = ctx;
   CeedQFunctionContext inner_ctx = ctx_data->inner_ctx;
   CeedScalar          *ctx_f     = NULL;
@@ -725,7 +722,6 @@ CEED_EXTERN void fCeedQFunctionCreateInterior(
 
   CeedCallFortran(CeedQFunctionCreateInterior(Ceed_dict[*ceed], *vec_length, CeedQFunctionFortranStub, source_c, qf_c));
   fCeedQFunctionAccept(qf);
-
   {
     CeedQFunctionContext ctx_c;
     CeedFortranContext   ctx_data;
@@ -875,10 +871,9 @@ static inline void fCeedOperatorAccept(int *op) {
 
 #define fCeedOperatorCreate FORTRAN_NAME(ceedoperatorcreate, CEEDOPERATORCREATE)
 CEED_EXTERN void fCeedOperatorCreate(int *ceed, int *qf, int *dqf, int *dqfT, int *op, int *err) {
-  if (num_CeedOperator == max_CeedOperator) fCeedOperatorExpandDict();
-
   CeedQFunction dqf_c = CEED_QFUNCTION_NONE, dqfT_c = CEED_QFUNCTION_NONE;
 
+  if (num_CeedOperator == max_CeedOperator) fCeedOperatorExpandDict();
   if (*dqf != FORTRAN_QFUNCTION_NONE) dqf_c = CeedQFunction_dict[*dqf];
   if (*dqfT != FORTRAN_QFUNCTION_NONE) dqfT_c = CeedQFunction_dict[*dqfT];
   CeedCallFortran(CeedOperatorCreate(Ceed_dict[*ceed], CeedQFunction_dict[*qf], dqf_c, dqfT_c, &CeedOperator_dict[num_CeedOperator]));
@@ -927,11 +922,11 @@ static inline void fCeedBasisFortranToC(int basis_f, CeedBasis *basis_c) {
 
 #define fCeedOperatorSetField FORTRAN_NAME(ceedoperatorsetfield, CEEDOPERATORSETFIELD)
 CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *rstr, int *basis, int *vec, int *err, fortran_charlen_t field_name_len) {
-  FIX_STRING(field_name);
   CeedVector          vec_c;
   CeedElemRestriction rstr_c;
   CeedBasis           basis_c;
 
+  FIX_STRING(field_name);
   fCeedVectorFortranToC(*vec, &vec_c);
   fCeedElemRestrictionFortranToC(*rstr, &rstr_c);
   fCeedBasisFortranToC(*basis, &basis_c);
@@ -995,7 +990,6 @@ CEED_EXTERN void fCeedOperatorLinearAssembleDiagonal(int *op, int *assembled_vec
 #define fCeedOperatorMultigridLevelCreate FORTRAN_NAME(ceedoperatormultigridlevelcreate, CEEDOPERATORMULTIGRIDLEVELCREATE)
 CEED_EXTERN void fCeedOperatorMultigridLevelCreate(int *op_fine, int *p_mult_fine, int *rstr_coarse, int *basis_coarse, int *op_coarse,
                                                    int *op_prolong, int *op_restrict, int *err) {
-  // Operators
   CeedOperator op_coarse_c, op_prolong_c, op_restrict_c;
 
   // C interface call
@@ -1016,7 +1010,6 @@ CEED_EXTERN void fCeedOperatorMultigridLevelCreate(int *op_fine, int *p_mult_fin
 CEED_EXTERN void fCeedOperatorMultigridLevelCreateTensorH1(int *op_fine, int *p_mult_fine, int *rstr_coarse, int *basis_coarse,
                                                            const CeedScalar *interp_c_to_f, int *op_coarse, int *op_prolong, int *op_restrict,
                                                            int *err) {
-  // Operators
   CeedOperator op_coarse_c, op_prolong_c, op_restrict_c;
 
   // C interface call
@@ -1037,7 +1030,6 @@ CEED_EXTERN void fCeedOperatorMultigridLevelCreateTensorH1(int *op_fine, int *p_
 #define fCeedOperatorMultigridLevelCreateH1 FORTRAN_NAME(ceedoperatormultigridlevelcreateh1, CEEDOPERATORMULTIGRIDLEVELCREATEH1)
 CEED_EXTERN void fCeedOperatorMultigridLevelCreateH1(int *op_fine, int *p_mult_fine, int *rstr_coarse, int *basis_coarse,
                                                      const CeedScalar *interp_c_to_f, int *op_coarse, int *op_prolong, int *op_restrict, int *err) {
-  // Operators
   CeedOperator op_coarse_c, op_prolong_c, op_restrict_c;
 
   // C interface call
