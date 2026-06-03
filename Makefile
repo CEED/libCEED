@@ -1026,7 +1026,7 @@ AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]' '*.cu'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
-format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
+format.ot := $(filter-out doc/sphinx/source/CHANGELOG.md doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
 format-c  :
 	$(call quiet,CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
