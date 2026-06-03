@@ -10,6 +10,7 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <ceed/jit-source/sycl/sycl-types.h>
+#include <ceed/jit-tools-deprecated.h>
 #include <ceed/jit-tools.h>
 
 #include <iostream>

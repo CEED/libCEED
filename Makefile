@@ -297,7 +297,7 @@ $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(
 # ------------------------------------------------------------
 
 # Interface and gallery
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-tools-deprecated.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceed.h := $(shell git ls-files 'include/**/*.h')
@@ -630,6 +630,7 @@ endif
 ifneq ($(SYCL_LIB_DIR),)
   PKG_LIBS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS)) -lze_loader
   LIBCEED_CONTAINS_CXX = 1
+  libceed.c     += interface/ceed-jit-tools-deprecated.c
   libceed.sycl  += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
   BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif

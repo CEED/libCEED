@@ -9,6 +9,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <ceed/jit-tools-deprecated.h>
 #include <ceed/jit-tools.h>
 #include <level_zero/ze_api.h>
 

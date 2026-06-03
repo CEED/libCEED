@@ -19,6 +19,8 @@ On this page we provide a summary of the main API changes, new features and exam
 - Rename `CeedCompositeOperator*()` to `CeedOperatorComposite*()` for uniformity.
 - Rust `libceed` crate: add features `shared` and `system`.
 - Rust `libceed-sys` crate: feature `static` (default) with `shared` (not default).
+- Move JiT helper functions only required by SYCL backends to `ceed/jit-tools-deprecated.h`.
+These functions will be removed when the SYCL backends are updated to reflect the improvements in the CUDA and HIP backends.
 
 ### New features
 

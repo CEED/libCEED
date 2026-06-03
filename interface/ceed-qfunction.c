@@ -318,41 +318,6 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
 }
 
 /**
-  @brief Initialize and load `CeedQFunction` source file into string buffer, including full text of local files in place of `#include "local.h"`.
-
-  The `buffer` is set to `NULL` if there is no `CeedQFunction` source file.
-
-  Note: This function may as well return a mutable buffer, but all current uses
-  do not modify it. (This is just a downside of `const` semantics with output
-  arguments instead of returns.)
-
-  Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
-
-  @param[in]  qf            `CeedQFunction`
-  @param[out] source_buffer String buffer for source file contents
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer) {
-  const char *source_path;
-
-  CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
-  *source_buffer = NULL;
-  if (source_path) {
-    Ceed  ceed;
-    char *buffer = NULL;
-
-    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, &buffer));
-    CeedCall(CeedDestroy(&ceed));
-    *source_buffer = buffer;
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the User Function for a `CeedQFunction`
 
   @param[in]  qf `CeedQFunction`
