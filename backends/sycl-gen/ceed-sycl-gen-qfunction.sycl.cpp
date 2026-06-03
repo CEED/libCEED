@@ -7,6 +7,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <ceed/jit-tools-deprecated.h>
 #include <sycl/sycl.hpp>
 #include <stdio.h>
 #include <string.h>

@@ -297,7 +297,7 @@ $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(
 # ------------------------------------------------------------
 
 # Interface and gallery
-libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
+libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/ceed-jit-tools-deprecated.c interface/ceed-jit-source-root-$(if $(for_install),default,install).c, $(wildcard interface/ceed*.c backends/weak/*.c gallery/*.c))
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceed.h := $(shell git ls-files 'include/**/*.h')
@@ -630,6 +630,7 @@ endif
 ifneq ($(SYCL_LIB_DIR),)
   PKG_LIBS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS)) -lze_loader
   LIBCEED_CONTAINS_CXX = 1
+  libceed.c     += interface/ceed-jit-tools-deprecated.c
   libceed.sycl  += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
   BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif
@@ -1025,7 +1026,7 @@ AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]' '*.cu'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
-format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
+format.ot := $(filter-out doc/sphinx/source/CHANGELOG.md doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
 format-c  :
 	$(call quiet,CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)

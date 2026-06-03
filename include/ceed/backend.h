@@ -379,7 +379,6 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input_fie
 CEED_EXTERN int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name);
 CEED_EXTERN int CeedQFunctionGetName(CeedQFunction qf, const char **name);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path);
-CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type, void *data);

@@ -562,10 +562,12 @@ int CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entri
 
   Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
 
-  @param[in]  op     `CeedOperator` to assemble nonzero pattern
-  @param[in]  offset Offset for number of entries
-  @param[out] rows   Row number for each entry
-  @param[out] cols   Column number for each entry
+  @param[in]  op            `CeedOperator` to assemble nonzero pattern
+  @param[in]  offset        Offset for number of entries
+  @param[in]  elem_rstr_in  `CeedElemRestriction` for current active input field
+  @param[in]  elem_rstr_out `CeedElemRestriction` for current active output field
+  @param[out] rows          Row number for each entry
+  @param[out] cols          Column number for each entry
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -670,7 +672,7 @@ static int CeedOperatorAssembleSymbolicSingleBlock(CeedOperator op, CeedSize off
 }
 
 /**
-  @brief Build nonzero pattern for non-composite CeedOperator`.
+  @brief Build nonzero pattern for non-composite `CeedOperator`.
 
   Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
 
@@ -829,9 +831,11 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, bo
 
   Users should generally use @ref CeedOperatorLinearAssemble().
 
-  @param[in]  op     `CeedOperator` to assemble
-  @param[in]  offset Offset for number of entries
-  @param[out] values Values to assemble into matrix
+  @param[in]  op            `CeedOperator` to assemble
+  @param[in]  offset        Offset for number of entries
+  @param[in]  active_input  Index of active input to assemble for
+  @param[in]  active_output Index of active output to assemble for
+  @param[out] values        Values to assemble into matrix
 
   @return An error code: 0 - success, otherwise - failure
 

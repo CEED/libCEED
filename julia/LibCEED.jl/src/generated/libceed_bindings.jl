@@ -1195,10 +1195,6 @@ function CeedQFunctionGetSourcePath(qf, source_path)
     ccall((:CeedQFunctionGetSourcePath, libceed), Cint, (CeedQFunction, Ptr{Ptr{Cchar}}), qf, source_path)
 end
 
-function CeedQFunctionLoadSourceToBuffer(qf, source_buffer)
-    ccall((:CeedQFunctionLoadSourceToBuffer, libceed), Cint, (CeedQFunction, Ptr{Ptr{Cchar}}), qf, source_buffer)
-end
-
 function CeedQFunctionGetUserFunction(qf, f)
     ccall((:CeedQFunctionGetUserFunction, libceed), Cint, (CeedQFunction, Ptr{CeedQFunctionUser}), qf, f)
 end

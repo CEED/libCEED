@@ -11,6 +11,5 @@
 
 #include <ceed.h>
 
-CEED_EXTERN int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid);
-CEED_EXTERN int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative_file_path);
-CEED_EXTERN int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, const char **absolute_file_path);
+CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer);
+CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer);
