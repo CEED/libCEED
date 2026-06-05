@@ -1227,7 +1227,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !std::strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
@@ -1251,7 +1251,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !std::strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
@@ -2232,7 +2232,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !std::strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
@@ -2256,7 +2256,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
         CeedCallBackend(CeedBasisGetCeed(basis, &basis_ceed));
         CeedCallBackend(CeedGetResource(basis_ceed, &resource));
         CeedCallBackend(CeedGetResourceRoot(basis_ceed, resource, ":", &resource_root));
-        has_shared_bases = has_shared_bases && !strcmp(resource_root, "/gpu/hip/shared");
+        has_shared_bases = has_shared_bases && !std::strcmp(resource_root, "/gpu/hip/shared");
         CeedCallBackend(CeedFree(&resource_root));
         CeedCallBackend(CeedDestroy(&basis_ceed));
       }
