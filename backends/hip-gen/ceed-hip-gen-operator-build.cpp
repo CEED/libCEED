@@ -2492,8 +2492,15 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   // Loop over all elements
   code << "\n" << tab << "// Element loop\n";
   code << tab << "__syncthreads();\n";
-  code << tab << "for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {\n";
+  code << tab << "#if CEED_HIP_USE_CHIPSTAR\n";
+  code << tab << "// Pad out elements so all threads hit syncthreads()\n";
+  code << tab << "const CeedInt elem_loop_bound = (gridDim.x*blockDim.z) * ceil(1.0*num_elem/(gridDim.x*blockDim.z));\n";
+  code << tab << "#else\n";
+  code << tab << "const CeedInt elem_loop_bound = num_elem;\n";
+  code << tab << "#endif\n";
+  code << tab << "for (CeedInt e = blockIdx.x*blockDim.z + threadIdx.z; e < elem_loop_bound; e += gridDim.x*blockDim.z) {\n";
   tab.push();
+  code << tab << "const CeedInt elem = e % num_elem;\n\n";
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
