@@ -2709,7 +2709,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
     // ---- Restriction
     CeedInt field_size;
 
-    code << tab << "if (e < num_elem) {\n";
+    code << tab << "if (elem < num_elem) {\n";
     tab.push();
     code << tab << "WriteLVecStandard" << (is_all_tensor ? max_dim : 1) << "d_QFAssembly<total_size_out, field_size_out_" << i << ", "
          << (is_all_tensor ? "Q_1d" : "Q") << ">(data, num_elem, elem, input_offset + s, " << offset << ", r_q_out_" << i << ", values_array);\n";
