@@ -8,5 +8,10 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <libxsmm.h>
+
+#if !LIBXSMM_VERSION_GE(2, 0, 0, 0)
+#error "LIBXSMM 2.0 or later is required"
+#endif
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedTensorContract contract);
