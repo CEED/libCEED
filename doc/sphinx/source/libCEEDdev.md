@@ -1,5 +1,6 @@
 # Developer Notes
 
+
 ## Library Design
 
 LibCEED has a single user facing API for creating and using the libCEED objects ({ref}`CeedVector`, {ref}`CeedBasis`, etc).
@@ -18,6 +19,7 @@ LibCEED generally follows a "CPU first" implementation strategy when adding new 
 If there are no performance specific considerations, it is generally recommended to include a basic CPU default implementation in `/interface/*.c`.
 Any new functions must be well documented and tested.
 Once the user facing API and the default implementation are in place and verified correct via tests, then the developer can focus on hardware specific implementations (AVX, CUDA, HIP, etc.) as necessary.
+
 
 ## Backend Inheritance
 
@@ -40,10 +42,12 @@ There are three mechanisms by which a Ceed backend can inherit implementations f
    If an unimplemented method is called, then the parent `/gpu/cuda/gen` {ref}`Ceed` object uses its fallback `/gpu/cuda/ref` {ref}`Ceed` object to create a clone of the {ref}`CeedOperator`.
    This clone {ref}`CeedOperator` is then used for the unimplemented preconditioning support methods.
 
+
 ## Backend Families
 
 There are 4 general 'families' of backend implementations.
 As internal data layouts are specific to backend families, it is generally not possible to delegate between backend families.
+
 
 ### CPU Backends
 
@@ -62,6 +66,7 @@ These backends update the `CeedTensorContract` objects using AVX intrinsics and 
 The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
 These backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool and Valgrind headers.
+
 
 ### GPU Backends
 
@@ -85,6 +90,7 @@ This kernel is compiled at runtime via NVRTC, HIPRTC, or OpenCL RTC.
 
 The `/gpu/*/magma` backends delegate to the corresponding `/gpu/cuda/ref` and `/gpu/hip/ref` backends.
 These backends provide better performance for {ref}`CeedBasis` kernels but do not have the improvements from the `/gpu/*/gen` backends for {ref}`CeedOperator`.
+
 
 ## Internal Layouts
 
@@ -110,6 +116,7 @@ There are several common layouts for L-vectors, E-vectors, and Q-vectors, detail
     Backends are free to provide the quadrature points in any order.
   - When the {ref}`CeedQFunction` field has `emode` `CEED_EVAL_GRAD`, data for quadrature point `i`, component `j`, derivative `k` can be found in the Q-vector at index `i + Q*j + Q*num_comp*k`.
   - Backend developers must take special care to ensure that the data in the Q-vectors for a field with `emode` `CEED_EVAL_NONE` is properly ordered when the backend uses different layouts for E-vectors and Q-vectors.
+
 
 ## CeedVector Array Access
 
@@ -145,6 +152,7 @@ All backends may assume that array access will conform to these guidelines:
   - Calls to {c:func}`CeedVectorGetArrayWrite` can be made on a vector in an *invalid* state.
     Data synchronization is not required for the memory location returned by {c:func}`CeedVectorGetArrayWrite`.
     The caller should assume that all data at the memory location returned by {c:func}`CeedVectorGetArrayWrite` is *invalid*.
+
 
 ## Shape
 
@@ -182,10 +190,12 @@ and
 
 are purely implicit -- one just indexes the same array using the appropriate convention.
 
+
 ## `restrict` Semantics
 
 QFunction arguments can be assumed to have `restrict` semantics.
 That is, each input and output array must reside in distinct memory without overlap.
+
 
 ## Style Guide
 
@@ -209,13 +219,18 @@ Single line `if` statements are acceptable, but if `clang-format` forces it to b
 This is enforced automatically for all enabled backends via `make format`, with the exception of header files in the `include/ceed/jit-source` directory.
 These files cannot be automatically formatted by `clang-tidy`, as they cannot be compiled as standalone sources.
 
+
 ## Function Conventions
 
+
 ### Naming
+
 All functions in the libCEED library should be prefixed by `Ceed` and generally take a `Ceed` object as its first argument.
 If a function takes, for example, a `CeedOperator` as its first argument, then it should be prefixed with `CeedOperator`.
 
+
 ### Style
+
 Functions should adhere mostly to the PETSc function style, specifically:
 
 1. All local variables of a particular type (for example, `CeedInt`) should be listed on the same line if possible; otherwise, they should be listed on adjacent lines. For example,
@@ -265,6 +280,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     All other functions should have their *declarations* prefixed with `CEED_INTERN`.
     Function *definitions* should have neither.
 
+
 ## Clang-tidy
 
 Please check your code for common issues by running
@@ -279,6 +295,7 @@ To run on a single file, use
 
 for example.
 All issues reported by `make tidy` should be fixed.
+
 
 ## Include-What-You-Use
 
@@ -299,3 +316,32 @@ The `ceed-f64.h` and `ceed-f32.h` headers should only be included in `ceed.h`.
 #include <string.h>
 #include "ceed-avx.h"
 ```
+
+
+## Updating CI
+
+There are two main types of CI for libCEED - GitHub Actions and GitLab Runners.
+
+The GitHub Actions focus on CPU based tests without any external dependencies, for the C, Fortran, Rust, Python, and Julia interfaces.
+The GitHub Actions can be updated as required by editing the appropriate `.yml` file in `.github/workflows`.
+
+The GitLab Runners focus on GPU based tests and external dependencies.
+The GitLab Runners can be updated as required by editing `.gitlab-ci.yml` and updating the dependencies installed on Noether.
+
+The following dependencies are installed on Noether:
+
+* MAGMA: `/projects/MAGMA` and `/projects/hipMAGMA`
+
+* PETSc: `/projects/petsc`
+
+* deal.II: `/projects/dealii`
+
+When managing the installed dependencies, use the `phypid` account.
+
+The following dependencies are built on the fly and cached:
+
+* LIBXSMM
+
+* Nek5000
+
+* MFEM
