@@ -28,25 +28,14 @@ typedef struct {
   CeedScalar    *W;
   Points_Cuda    points;
   
-  // -----------------------------------------------------------------------------
-  // CUDA Graph state (per-operator, framework-agnostic)
-  // -----------------------------------------------------------------------------
-  bool            graph_created;
-  bool            warmup_done;
-  cudaGraph_t     graph;
-  cudaGraphExec_t graph_instance;
-  int             graph_launches;
-  int             fallbacks;
-
-  // CEED vectors that provide stable interfaces for graph capture
-  CeedVector      persistent_input_vec;
-  CeedVector      persistent_output_vec;
-  CeedSize        persistent_input_size;
-  CeedSize        persistent_output_size;
-
-  // Captured device pointers (for validation / recapture)
-  const CeedScalar *captured_input_ptr;
-  CeedScalar       *captured_output_ptr;
+  // CUDA graph state
+  bool              graph_created;
+  bool              warmup_done;
+  cudaGraph_t       graph;
+  cudaGraphExec_t   graph_instance;
+  int               graph_launches;
+  int               fallbacks;
+  const CeedScalar *captured_input_ptr;  // device address at capture; checked before each replay
 } CeedOperator_Cuda_gen;
 
 typedef struct {
