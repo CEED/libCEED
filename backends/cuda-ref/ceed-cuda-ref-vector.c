@@ -329,7 +329,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
       // Check if we're in CUDA Graph capture mode
       enum cudaStreamCaptureStatus capture_status;
       cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
-      
+
       if (capture_status != cudaStreamCaptureStatusNone) {
         // During capture, use async memset with cudaStreamPerThread
         CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemsetAsync(impl->d_array, 0, length * sizeof(CeedScalar), cudaStreamPerThread));

@@ -11,9 +11,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
@@ -34,15 +34,21 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   if (impl->module_assemble_diagonal) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_diagonal));
   if (impl->module_assemble_qfunction) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_qfunction));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
-  
+
   if (impl->graph_created && impl->graph_launches > 0) {
     char *op_name = NULL;
-    CeedOperatorGetName(op, (const char**)&op_name);
-    printf("[CUDA Graph] Summary for operator '%s': %d graph launches, %d fallbacks\n",
-           op_name ? op_name : "unnamed", impl->graph_launches, impl->fallbacks);
+    CeedOperatorGetName(op, (const char **)&op_name);
+    printf("[CUDA Graph] Summary for operator '%s': %d graph launches, %d fallbacks\n", op_name ? op_name : "unnamed", impl->graph_launches,
+           impl->fallbacks);
   }
-  if (impl->graph_instance) { cudaGraphExecDestroy(impl->graph_instance); impl->graph_instance = NULL; }
-  if (impl->graph)          { cudaGraphDestroy(impl->graph);             impl->graph = NULL; }
+  if (impl->graph_instance) {
+    cudaGraphExecDestroy(impl->graph_instance);
+    impl->graph_instance = NULL;
+  }
+  if (impl->graph) {
+    cudaGraphDestroy(impl->graph);
+    impl->graph = NULL;
+  }
   impl->graph_created      = false;
   impl->captured_input_ptr = NULL;
 
@@ -238,9 +244,8 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
     block[2] = elems_per_block;
   }
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
-  
-  CeedCallBackend(
-      CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
+
+  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -347,11 +352,11 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   CeedCallBackend(CeedOperatorGetName(op, (const char **)&op_name));
 
   // CEED_FORCE_BASELINE=1: skip graphs, run via /gpu/cuda/ref
-  static bool force_baseline = false;
+  static bool force_baseline         = false;
   static bool force_baseline_checked = false;
   if (!force_baseline_checked) {
-    char *env_val = getenv("CEED_FORCE_BASELINE");
-    force_baseline = (env_val != NULL && strcmp(env_val, "1") == 0);
+    char *env_val          = getenv("CEED_FORCE_BASELINE");
+    force_baseline         = (env_val != NULL && strcmp(env_val, "1") == 0);
     force_baseline_checked = true;
   }
   if (force_baseline) {
@@ -362,11 +367,11 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   }
 
   // CEED_DISABLE_GRAPH=1: run suboperators directly, no capture/replay (for benchmarking).
-  static bool disable_graph = false;
+  static bool disable_graph         = false;
   static bool disable_graph_checked = false;
   if (!disable_graph_checked) {
-    char *env_val = getenv("CEED_DISABLE_GRAPH");
-    disable_graph = (env_val != NULL && strcmp(env_val, "1") == 0);
+    char *env_val         = getenv("CEED_DISABLE_GRAPH");
+    disable_graph         = (env_val != NULL && strcmp(env_val, "1") == 0);
     disable_graph_checked = true;
   }
   if (disable_graph) {
@@ -383,7 +388,6 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     }
     return CEED_ERROR_SUCCESS;
   }
-
 
   // Phase 1: first call runs directly so lazy allocations happen before capture.
   if (!impl->warmup_done) {
@@ -430,8 +434,10 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
       cudaGraph_t partial = NULL;
       err                 = cudaStreamEndCapture(capture_stream, &partial);
       if (capture_ok && (err != cudaSuccess || !partial)) capture_ok = false;
-      if (capture_ok) impl->graph = partial;
-      else if (partial) cudaGraphDestroy(partial);
+      if (capture_ok)
+        impl->graph = partial;
+      else if (partial)
+        cudaGraphDestroy(partial);
     }
 
     if (capture_ok) {
@@ -453,8 +459,10 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     impl->graph_created  = true;
     impl->graph_launches = 0;
 
-    if (capture_ok) printf("[CUDA Graph] Graph created for operator '%s'\n", op_name ? op_name : "unnamed");
-    else printf("[CUDA Graph] Capture disabled for operator '%s'; falling back to direct apply\n", op_name ? op_name : "unnamed");
+    if (capture_ok)
+      printf("[CUDA Graph] Graph created for operator '%s'\n", op_name ? op_name : "unnamed");
+    else
+      printf("[CUDA Graph] Capture disabled for operator '%s'; falling back to direct apply\n", op_name ? op_name : "unnamed");
 
     // Capture doesn't run the kernels, so apply directly to get this call's output.
     for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -526,7 +534,6 @@ use_fallback:
 
   return CEED_ERROR_SUCCESS;
 }
-
 
 //------------------------------------------------------------------------------
 // QFunction assembly
@@ -1058,7 +1065,6 @@ static int CeedOperatorAssembleSingleAtPoints_Cuda_gen(CeedOperator op, CeedInt 
   return CEED_ERROR_SUCCESS;
 }
 
-
 //------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
@@ -1070,16 +1076,15 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
-  
-  impl->graph_created            = false;
-  impl->warmup_done              = false;
-  impl->graph                    = NULL;
-  impl->graph_instance           = NULL;
-  impl->graph_launches           = 0;
-  impl->fallbacks                = 0;
-  impl->captured_input_ptr       = NULL;
 
-  
+  impl->graph_created      = false;
+  impl->warmup_done        = false;
+  impl->graph              = NULL;
+  impl->graph_instance     = NULL;
+  impl->graph_launches     = 0;
+  impl->fallbacks          = 0;
+  impl->captured_input_ptr = NULL;
+
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAddComposite", CeedOperatorApplyAddComposite_Cuda_gen));

@@ -12,7 +12,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-
 typedef struct {
   bool           use_fallback, use_assembly_fallback;
   CeedInt        dim;
@@ -27,7 +26,7 @@ typedef struct {
   Fields_Cuda    G;
   CeedScalar    *W;
   Points_Cuda    points;
-  
+
   // CUDA graph state
   bool              graph_created;
   bool              warmup_done;
