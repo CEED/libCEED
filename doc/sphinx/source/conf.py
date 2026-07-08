@@ -55,6 +55,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.rsvgconverter",
+    "sphinxext.rediraffe",
 ]
 
 # The following, if true, allows figures, tables and code-blocks to be
@@ -104,6 +105,10 @@ exclude_patterns = [
     "examples/README.md",
     "examples/*/README.md",
 ]
+
+rediraffe_redirects = {
+    "releasenotes.md": "CHANGELOG.md",
+}
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"

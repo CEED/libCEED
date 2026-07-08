@@ -17,7 +17,7 @@ The version number must be updated in
 * `Doxyfile`
 * `CITATION.cff`
 
-Additionally, the release notes in `doc/sphinx/source/releasenotes.md` should be updated.
+Additionally, review and update `CHANGELOG.md`.
 Use `git log --first-parent v0.7..` to get a sense of the pull requests that have been merged and thus might warrant emphasizing in the release notes.
 While doing this, gather a couple sentences for key features to highlight on [GitHub releases](https://github.com/CEED/libCEED/releases).
 The "Current Main" heading needs to be named for the release.
