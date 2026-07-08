@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -117,13 +117,14 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name, 
   @param[in] field        `CeedQFunction` field to view
   @param[in] field_number Number of field being viewed
   @param[in] in           true for input field, false for output
+  @param[in] tabs         Tabs to append before each new line
   @param[in] stream       Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, FILE *stream) {
+static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, const char *tabs, FILE *stream) {
   const char  *inout = in ? "Input" : "Output";
   const char  *field_name;
   CeedInt      size;
@@ -131,13 +132,42 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number
 
   CeedCall(CeedQFunctionFieldGetData(field, &field_name, &size, &eval_mode));
   fprintf(stream,
-          "    %s field %" CeedInt_FMT
-          ":\n"
-          "      Name: \"%s\"\n"
+          "%s    %s field %" CeedInt_FMT
+          ":\n%s"
+          "      Name: \"%s\"\n%s"
           "      Size: %" CeedInt_FMT
-          "\n"
+          "\n%s"
           "      EvalMode: \"%s\"\n",
-          inout, field_number, field_name, size, CeedEvalModes[eval_mode]);
+          tabs, inout, field_number, tabs, field_name, tabs, size, tabs, CeedEvalModes[eval_mode]);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `CeedQFunction` passed as a `CeedObject`
+
+  @param[in] qf     `CeedQFunction` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionView_Object(CeedObject qf, FILE *stream) {
+  CeedCall(CeedQFunctionView((CeedQFunction)qf, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedQFunction` passed as a `CeedObject`
+
+  @param[in,out] qf Address of `CeedQFunction` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionDestroy_Object(CeedObject *qf) {
+  CeedCall(CeedQFunctionDestroy((CeedQFunction *)qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -198,10 +228,10 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 
 /**
   @brief Get the name of the `CeedQFunction`.
-    Use the `name` if created via @ref `CeedQFunctionCreateInteriorByName`, otherwise return the kernel name via @ref `CeedQFunctionGetKernelName`.
+    Use the `name` if created via @ref CeedQFunctionCreateInteriorByName(), otherwise return the kernel name via @ref CeedQFunctionGetKernelName().
 
-  @param[in]  qf          `CeedQFunction`
-  @param[out] kernel_name Variable to store `CeedQFunction` name
+  @param[in]  qf   `CeedQFunction`
+  @param[out] name Variable to store `CeedQFunction` name
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -284,41 +314,6 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
   }
 
   *source_path = (char *)qf->source_path;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Initialize and load `CeedQFunction` source file into string buffer, including full text of local files in place of `#include "local.h"`.
-
-  The `buffer` is set to `NULL` if there is no `CeedQFunction` source file.
-
-  Note: This function may as well return a mutable buffer, but all current uses
-  do not modify it. (This is just a downside of `const` semantics with output
-  arguments instead of returns.)
-
-  Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
-
-  @param[in]  qf            `CeedQFunction`
-  @param[out] source_buffer String buffer for source file contents
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer) {
-  const char *source_path;
-
-  CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
-  *source_buffer = NULL;
-  if (source_path) {
-    Ceed  ceed;
-    char *buffer = NULL;
-
-    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, &buffer));
-    CeedCall(CeedDestroy(&ceed));
-    *source_buffer = buffer;
-  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -597,7 +592,7 @@ int CeedQFunctionSetImmutable(CeedQFunction qf) {
   @ref Backend
 **/
 int CeedQFunctionReference(CeedQFunction qf) {
-  qf->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)qf));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -661,8 +656,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
             "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"", source);
 
   CeedCall(CeedCalloc(1, qf));
-  CeedCall(CeedReferenceCopy(ceed, &(*qf)->ceed));
-  (*qf)->ref_count           = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedQFunctionView_Object, CeedQFunctionDestroy_Object, &(*qf)->obj));
   (*qf)->vec_length          = vec_length;
   (*qf)->is_identity         = false;
   (*qf)->is_context_writable = true;
@@ -727,7 +721,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
   @brief Create an identity `CeedQFunction`.
 
   Inputs are written into outputs in the order given.
-  This is useful for `CeedOperator that can be represented with only the action of a `CeedElemRestriction` and `CeedBasis`, such as restriction and prolongation operators for p-multigrid.
+  This is useful for `CeedOperator` that can be represented with only the action of a `CeedElemRestriction` and `CeedBasis`, such as restriction and prolongation operators for p-multigrid.
   Backends may optimize `CeedOperator` with this `CeedQFunction` to avoid the copy of input data to output fields by using the same memory location for both.
 
   @param[in]  ceed     `Ceed` object used to create the `CeedQFunction`
@@ -807,6 +801,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
 
   CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
   CeedCheck(!is_immutable, CeedQFunctionReturnCeed(qf), CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
+  CeedCheck(qf->num_input_fields < CEED_FIELD_MAX, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Can only add %d input fields", CEED_FIELD_MAX);
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, CeedQFunctionReturnCeed(qf), CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
     CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR,
@@ -849,6 +844,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt siz
 
   CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
   CeedCheck(!is_immutable, CeedQFunctionReturnCeed(qf), CEED_ERROR_MAJOR, "CeedQFunction cannot be changed after set as immutable");
+  CeedCheck(qf->num_output_fields < CEED_FIELD_MAX, CeedQFunctionReturnCeed(qf), CEED_ERROR_MINOR, "Can only add %d output fields", CEED_FIELD_MAX);
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT, CeedQFunctionReturnCeed(qf), CEED_ERROR_DIMENSION,
             "Cannot create CeedQFunction output with CEED_EVAL_WEIGHT");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
@@ -1011,6 +1007,36 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedQFunctionView() output
+
+  @param[in] qf       `CeedQFunction` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionSetNumViewTabs(CeedQFunction qf, CeedInt num_tabs) {
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)qf, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedQFunctionView() output
+
+  @param[in]  qf       `CeedQFunction` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionGetNumViewTabs(CeedQFunction qf, CeedInt *num_tabs) {
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)qf, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedQFunction`
 
   @param[in] qf     `CeedQFunction` to view
@@ -1021,20 +1047,30 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
+  char       *tabs = NULL;
   const char *name;
 
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedQFunctionGetNumViewTabs(qf, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
+
   CeedCall(CeedQFunctionGetName(qf, &name));
-  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", name);
+  fprintf(stream, "%s%sCeedQFunction - %s\n", tabs, qf->is_gallery ? "Gallery " : "User ", name);
 
-  fprintf(stream, "  %" CeedInt_FMT " input field%s:\n", qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", tabs, qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCall(CeedQFunctionFieldView(qf->input_fields[i], i, 1, stream));
+    CeedCall(CeedQFunctionFieldView(qf->input_fields[i], i, 1, tabs, stream));
   }
 
-  fprintf(stream, "  %" CeedInt_FMT " output field%s:\n", qf->num_output_fields, qf->num_output_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", tabs, qf->num_output_fields, qf->num_output_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCall(CeedQFunctionFieldView(qf->output_fields[i], i, 0, stream));
+    CeedCall(CeedQFunctionFieldView(qf->output_fields[i], i, 0, tabs, stream));
   }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1049,8 +1085,7 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   @ref Advanced
 **/
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedQFunctionReturnCeed(qf), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)qf, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1063,7 +1098,7 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
 
   @ref Advanced
 **/
-Ceed CeedQFunctionReturnCeed(CeedQFunction qf) { return qf->ceed; }
+Ceed CeedQFunctionReturnCeed(CeedQFunction qf) { return CeedObjectReturnCeed((CeedObject)qf); }
 
 /**
   @brief Apply the action of a `CeedQFunction`
@@ -1101,7 +1136,7 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v
   @ref User
 **/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
-  if (!*qf || --(*qf)->ref_count > 0) {
+  if (!*qf || CeedObjectDereference((CeedObject)*qf) > 0) {
     *qf = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -1128,7 +1163,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   CeedCall(CeedFree(&(*qf)->source_path));
   CeedCall(CeedFree(&(*qf)->gallery_name));
   CeedCall(CeedFree(&(*qf)->kernel_name));
-  CeedCall(CeedDestroy(&(*qf)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*qf)->obj));
   CeedCall(CeedFree(qf));
   return CEED_ERROR_SUCCESS;
 }

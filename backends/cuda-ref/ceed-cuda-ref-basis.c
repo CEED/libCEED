@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -33,8 +33,11 @@ static int CeedBasisApplyCore_Cuda(CeedBasis basis, bool apply_add, const CeedIn
   CeedCallBackend(CeedBasisGetData(basis, &data));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -181,9 +184,9 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
 
     if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                     Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                     "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points", &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                     "BASIS_BUF_LEN", Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP",
+                                     num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
                                      max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
@@ -193,8 +196,11 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
 
   // Get read/write access to u, v
   CeedCallBackend(CeedVectorGetArrayRead(x_ref, CEED_MEM_DEVICE, &d_x));
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -209,8 +215,8 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
       void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
       const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
-      CeedCallBackend(
-          CeedRunKernel_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size, interp_args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size,
+                                         interp_args));
     } break;
     case CEED_EVAL_GRAD: {
       void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
@@ -269,8 +275,11 @@ static int CeedBasisApplyNonTensorCore_Cuda(CeedBasis basis, bool apply_add, con
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -421,9 +430,9 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-tensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                   Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
-                                   "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_tensor", &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                   "BASIS_BUF_LEN", Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP",
+                                   num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Grad", &data->Grad));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Weight", &data->Weight));
@@ -477,8 +486,8 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                   q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_grad, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_nontensor", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                   "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_grad, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Deriv", &data->Deriv));
@@ -532,8 +541,8 @@ int CeedBasisCreateHdiv_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                   q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_div, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h_div", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                   "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_div, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Deriv", &data->Deriv));
@@ -587,8 +596,8 @@ int CeedBasisCreateHcurl_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_no
   const char basis_kernel_source[] = "// Nontensor basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_Q_COMP_INTERP",
-                                   q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_curl, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h_curl", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes,
+                                   "BASIS_Q_COMP_INTERP", q_comp_interp, "BASIS_Q_COMP_DERIV", q_comp_curl, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Deriv", &data->Deriv));

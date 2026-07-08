@@ -20,6 +20,8 @@ int main(int argc, char **argv) {
   BuildHcurl2DSimplex(q_ref, q_weight, interp, curl);
   CeedBasisCreateHcurl(ceed, CEED_TOPOLOGY_TRIANGLE, 1, p, q, interp, curl, q_ref, q_weight, &basis);
   CeedBasisView(basis, stdout);
+  CeedBasisSetNumViewTabs(basis, 1);
+  CeedBasisView(basis, stdout);
 
   CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);

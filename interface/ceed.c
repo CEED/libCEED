@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -9,6 +9,7 @@
 #include <ceed-impl.h>
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -165,13 +166,45 @@ static int CeedWorkVectorsDestroy(Ceed ceed) {
   if (!ceed->work_vectors) return CEED_ERROR_SUCCESS;
   for (CeedSize i = 0; i < ceed->work_vectors->num_vecs; i++) {
     CeedCheck(!ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " checked out but not returned");
-    ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering again
+    // Note: increase ref_count to prevent Ceed destructor from triggering again
+    CeedCall(CeedObjectReference((CeedObject)ceed));
+    CeedCall(CeedObjectReference((CeedObject)ceed));
     CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
-    ceed->ref_count -= 1;  // Note: restore ref_count
+    // Note: restore ref_count
+    CeedObjectDereference((CeedObject)ceed);
   }
   CeedCall(CeedFree(&ceed->work_vectors->is_in_use));
   CeedCall(CeedFree(&ceed->work_vectors->vecs));
   CeedCall(CeedFree(&ceed->work_vectors));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `Ceed` passed as a `CeedObject`
+
+  @param[in] ceed   `Ceed` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedView_Object(CeedObject ceed, FILE *stream) {
+  CeedCall(CeedView((Ceed)ceed, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `Ceed` passed as a `CeedObject`
+
+  @param[in,out] ceed Address of `Ceed` context to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedDestroy_Object(CeedObject *ceed) {
+  CeedCall(CeedDestroy((Ceed *)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -311,6 +344,7 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedStringAllocCopy(const char *source, char **copy) {
   size_t len = strlen(source);
+
   CeedCall(CeedCalloc(len + 1, copy));
   memcpy(*copy, source, len);
   return CEED_ERROR_SUCCESS;
@@ -624,21 +658,6 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 }
 
 /**
-  @brief Get the fallback resource for `CeedOperator`
-
-  @param[in]  ceed     `Ceed` context
-  @param[out] resource Variable to store fallback resource
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
-  *resource = (const char *)ceed->op_fallback_resource;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the fallback `Ceed` for `CeedOperator`
 
   @param[in]  ceed          `Ceed` context
@@ -649,46 +668,13 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   @ref Backend
 **/
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
-  if (ceed->has_valid_op_fallback_resource) {
+  if (ceed->op_fallback_ceed) {
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed Fallback ----------\n");
-    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s", ceed->resource, ceed, ceed->op_fallback_resource);
+    CeedDebug(ceed, "Falling back from Ceed with backend %s at address %p to Ceed with backend %s at address %p", ceed->resource, ceed,
+              ceed->op_fallback_ceed->resource, ceed->op_fallback_ceed);
   }
 
-  // Create fallback Ceed if uninitialized
-  if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
-    CeedDebug(ceed, "Creating fallback Ceed");
-
-    Ceed        fallback_ceed;
-    const char *fallback_resource;
-
-    CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
-    CeedCall(CeedInit(fallback_resource, &fallback_ceed));
-    fallback_ceed->op_fallback_parent = ceed;
-    fallback_ceed->Error              = ceed->Error;
-    ceed->op_fallback_ceed            = fallback_ceed;
-    {
-      const char **jit_source_roots;
-      CeedInt      num_jit_source_roots = 0;
-
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_jit_source_roots, &jit_source_roots));
-      for (CeedInt i = 0; i < num_jit_source_roots; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_source_roots[i]));
-      }
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &jit_source_roots));
-    }
-    {
-      const char **jit_defines;
-      CeedInt      num_jit_defines = 0;
-
-      CeedCall(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
-      for (CeedInt i = 0; i < num_jit_defines; i++) {
-        CeedCall(CeedAddJitSourceRoot(fallback_ceed, jit_defines[i]));
-      }
-      CeedCall(CeedRestoreJitDefines(ceed, &jit_defines));
-    }
-  }
   *fallback_ceed = NULL;
-  CeedDebug(ceed, "Fallback Ceed with backend %s at address %p\n", ceed->op_fallback_resource, ceed->op_fallback_ceed);
   if (ceed->op_fallback_ceed) CeedCall(CeedReferenceCopy(ceed->op_fallback_ceed, fallback_ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -696,25 +682,18 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 /**
   @brief Set the fallback resource for `CeedOperator`.
 
-  The current resource, if any, is freed by calling this function.
-  This string is freed upon the destruction of the `Ceed` context.
+  The current fallback, if any, is freed by calling this function.
 
-  @param[in,out] ceed     `Ceed` context
-  @param[in]     resource Fallback resource to set
+  @param[in,out] ceed          `Ceed` context
+  @param[in]     fallback_ceed `Ceed` context to create fallback operators
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
-  // Free old
-  CeedCall(CeedFree(&ceed->op_fallback_resource));
-
-  // Set new
-  CeedCall(CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource));
-
-  // Check validity
-  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource && ceed->resource && strcmp(ceed->op_fallback_resource, ceed->resource);
+int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed) {
+  CeedCall(CeedReferenceCopy(fallback_ceed, &ceed->op_fallback_ceed));
+  fallback_ceed->parent = ceed;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -814,7 +793,7 @@ int CeedSetData(Ceed ceed, void *data) {
   @ref Backend
 **/
 int CeedReference(Ceed ceed) {
-  ceed->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -878,9 +857,12 @@ int CeedClearWorkVectors(Ceed ceed, CeedSize min_len) {
     CeedSize vec_len;
     CeedCall(CeedVectorGetLength(ceed->work_vectors->vecs[i], &vec_len));
     if (vec_len < min_len) {
-      ceed->ref_count += 2;  // Note: increase ref_count to prevent Ceed destructor from triggering
+      // Note: increase ref_count to prevent Ceed destructor from triggering
+      CeedCall(CeedObjectReference((CeedObject)ceed));
+      CeedCall(CeedObjectReference((CeedObject)ceed));
       CeedCall(CeedVectorDestroy(&ceed->work_vectors->vecs[i]));
-      ceed->ref_count -= 1;  // Note: restore ref_count
+      // Note: restore ref_count
+      CeedObjectDereference((CeedObject)ceed);
       ceed->work_vectors->num_vecs--;
       if (ceed->work_vectors->num_vecs > 0) {
         ceed->work_vectors->vecs[i]                                 = ceed->work_vectors->vecs[ceed->work_vectors->num_vecs];
@@ -932,6 +914,8 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     }
   }
   // Long enough vector was not found
+  // Note: assert fixing bad clang-tidy assumption that num_vecs > max_vecs is ever possible
+  assert(ceed->work_vectors->num_vecs <= ceed->work_vectors->max_vecs);
   if (i == ceed->work_vectors->num_vecs) {
     if (ceed->work_vectors->max_vecs == 0) {
       ceed->work_vectors->max_vecs = 1;
@@ -944,14 +928,16 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     }
     ceed->work_vectors->num_vecs++;
     CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
-    ceed->ref_count--;  // Note: ref_count manipulation to prevent a ref-loop
+    // Note: ref_count manipulation to prevent a ref-loop
+    CeedObjectDereference((CeedObject)ceed);
     if (ceed->is_debug) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
   }
   // Return pointer to work vector
   ceed->work_vectors->is_in_use[i] = true;
   *vec                             = NULL;
   CeedCall(CeedVectorReferenceCopy(ceed->work_vectors->vecs[i], vec));
-  ceed->ref_count++;  // Note: bump ref_count to account for external access
+  // Note: bump ref_count to account for external access
+  CeedCall(CeedObjectReference((CeedObject)ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -981,7 +967,8 @@ int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec) {
       CeedCheck(ceed->work_vectors->is_in_use[i], ceed, CEED_ERROR_ACCESS, "Work vector %" CeedSize_FMT " was not checked out but is being returned");
       CeedCall(CeedVectorDestroy(vec));
       ceed->work_vectors->is_in_use[i] = false;
-      ceed->ref_count--;  // Note: reduce ref_count again to prevent a ref-loop
+      // Note: reduce ref_count again to prevent a ref-loop
+      CeedObjectDereference((CeedObject)ceed);
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -1015,6 +1002,30 @@ int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***ji
 }
 
 /**
+  @brief Retrieve list of additional Rust source roots from `Ceed` context.
+
+  Note: The caller is responsible for restoring `rust_source_roots` with @ref CeedRestoreRustSourceRoots().
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] num_source_roots Number of JiT source directories
+  @param[out] rust_source_roots Absolute paths to additional Rust source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetRustSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***rust_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *num_source_roots  = ceed_parent->num_rust_source_roots;
+  *rust_source_roots = (const char **)ceed_parent->rust_source_roots;
+  ceed_parent->num_rust_source_roots_readers++;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Restore list of additional JiT source roots from with @ref CeedGetJitSourceRoots()
 
   @param[in]  ceed             `Ceed` context
@@ -1030,6 +1041,26 @@ int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots) {
   CeedCall(CeedGetParent(ceed, &ceed_parent));
   *jit_source_roots = NULL;
   ceed_parent->num_jit_source_roots_readers--;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore list of additional Rust source roots from with @ref CeedGetJitSourceRoots()
+
+  @param[in]  ceed             `Ceed` context
+  @param[out] rust_source_roots Absolute paths to additional Rust source directories
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  *rust_source_roots = NULL;
+  ceed_parent->num_rust_source_roots_readers--;
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
@@ -1151,6 +1182,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Check for help request
   const char *help_prefix = "help";
   size_t      match_help  = 0;
+
   while (match_help < 4 && resource[match_help] == help_prefix[match_help]) match_help++;
   if (match_help == 4) {
     fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR, CEED_VERSION_MINOR, CEED_VERSION_PATCH,
@@ -1168,10 +1200,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Find best match, computed as number of matching characters from requested resource stem
   size_t stem_length = 0;
+
   while (resource[stem_length + match_help] && resource[stem_length + match_help] != ':') stem_length++;
   for (size_t i = 0; i < num_backends; i++) {
     size_t      n      = 0;
     const char *prefix = backends[i].prefix;
+
     while (prefix[n] && prefix[n] == resource[n + match_help]) n++;
     priority = backends[i].priority;
     if (n > match_len || (n == match_len && match_priority > priority)) {
@@ -1184,12 +1218,14 @@ int CeedInit(const char *resource, Ceed *ceed) {
   if (match_len <= 1 || match_len != stem_length) {
     // LCOV_EXCL_START
     size_t lev_dis   = UINT_MAX;
-    size_t lev_index = UINT_MAX, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+    size_t lev_index = num_backends, lev_priority = CEED_MAX_BACKEND_PRIORITY;
+
     for (size_t i = 0; i < num_backends; i++) {
       const char *prefix        = backends[i].prefix;
       size_t      prefix_length = strlen(backends[i].prefix);
       size_t      min_len       = (prefix_length < stem_length) ? prefix_length : stem_length;
       size_t      column[min_len + 1];
+
       for (size_t j = 0; j <= min_len; j++) column[j] = j;
       for (size_t j = 1; j <= min_len; j++) {
         column[0] = j;
@@ -1197,11 +1233,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
           size_t old_diag = column[k];
           size_t min_1    = (column[k] < column[k - 1]) ? column[k] + 1 : column[k - 1] + 1;
           size_t min_2    = last_diag + (resource[k - 1] == prefix[j - 1] ? 0 : 1);
-          column[k]       = (min_1 < min_2) ? min_1 : min_2;
-          last_diag       = old_diag;
+
+          column[k] = (min_1 < min_2) ? min_1 : min_2;
+          last_diag = old_diag;
         }
       }
       size_t n = column[min_len];
+
       priority = backends[i].priority;
       if (n < lev_dis || (n == lev_dis && lev_priority > priority)) {
         lev_dis      = n;
@@ -1211,24 +1249,34 @@ int CeedInit(const char *resource, Ceed *ceed) {
     }
     const char *prefix_lev = backends[lev_index].prefix;
     size_t      lev_length = 0;
+
     while (prefix_lev[lev_length] && prefix_lev[lev_length] != '\0') lev_length++;
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
-    if (lev_dis + 1 >= m) return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
-    else return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
+
+    if (lev_dis + 1 >= m) {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
+    } else {
+      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
+    }
     // LCOV_EXCL_STOP
   }
 
   // Setup Ceed
   CeedCall(CeedCalloc(1, ceed));
+  CeedCall(CeedObjectCreate(NULL, CeedView_Object, CeedDestroy_Object, &(*ceed)->obj));
   CeedCall(CeedCalloc(1, &(*ceed)->jit_source_roots));
+  CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
   const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
   if (!ceed_error_handler) ceed_error_handler = "abort";
-  if (!strcmp(ceed_error_handler, "exit")) (*ceed)->Error = CeedErrorExit;
-  else if (!strcmp(ceed_error_handler, "store")) (*ceed)->Error = CeedErrorStore;
-  else (*ceed)->Error = CeedErrorAbort;
+  if (!strcmp(ceed_error_handler, "exit")) {
+    (*ceed)->Error = CeedErrorExit;
+  } else if (!strcmp(ceed_error_handler, "store")) {
+    (*ceed)->Error = CeedErrorStore;
+  } else {
+    (*ceed)->Error = CeedErrorAbort;
+  }
   memcpy((*ceed)->err_msg, "No error message stored", 24);
-  (*ceed)->ref_count = 1;
-  (*ceed)->data      = NULL;
+  (*ceed)->data = NULL;
 
   // Set lookup table
   FOffset f_offsets[] = {
@@ -1265,6 +1313,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedVector, RestoreArrayRead),
       CEED_FTABLE_ENTRY(CeedVector, Norm),
       CEED_FTABLE_ENTRY(CeedVector, Scale),
+      CEED_FTABLE_ENTRY(CeedVector, Filter),
       CEED_FTABLE_ENTRY(CeedVector, AXPY),
       CEED_FTABLE_ENTRY(CeedVector, AXPBY),
       CEED_FTABLE_ENTRY(CeedVector, PointwiseMult),
@@ -1310,6 +1359,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSymbolic),
       CEED_FTABLE_ENTRY(CeedOperator, LinearAssemble),
       CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSingle),
+      CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSingleBlock),
       CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
       CEED_FTABLE_ENTRY(CeedOperator, Apply),
       CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),
@@ -1323,10 +1373,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedCalloc(sizeof(f_offsets), &(*ceed)->f_offsets));
   memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
-  // Set fallback for advanced CeedOperator functions
-  const char fallback_resource[] = "";
-  CeedCall(CeedSetOperatorFallbackResource(*ceed, fallback_resource));
-
   // Record env variables CEED_DEBUG or DBG
   (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
 
@@ -1336,6 +1382,13 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Set default JiT source root
   // Note: there will always be the default root for every Ceed but all additional paths are added to the top-most parent
   CeedCall(CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault));
+
+  // By default, make CUDA compile without Clang, use nvrtc instead
+  // Note that this is overridden if a Rust file is included (Rust requires Clang)
+  const char *cuda_clang_flag = getenv("CEED_USE_CLANG_CUDA");
+  bool        use_cuda_clang  = cuda_clang_flag && strcmp(cuda_clang_flag, "0") && strcmp(cuda_clang_flag, "false");
+
+  (*ceed)->cuda_compile_with_clang = use_cuda_clang || getenv("CEED_CLANG_CUDA_CXX");
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
@@ -1360,8 +1413,11 @@ int CeedSetStream(Ceed ceed, void *handle) {
     Ceed delegate;
     CeedCall(CeedGetDelegate(ceed, &delegate));
 
-    if (delegate) CeedCall(CeedSetStream(delegate, handle));
-    else return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    if (delegate) {
+      CeedCall(CeedSetStream(delegate, handle));
+    } else {
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    }
     CeedCall(CeedDestroy(&delegate));
   }
   return CEED_ERROR_SUCCESS;
@@ -1478,6 +1534,39 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
 }
 
 /**
+  @brief Set additional Rust source root for `Ceed` context for use in QFunction
+
+  @param[in,out] ceed            `Ceed` context
+  @param[in]     rust_source_root Absolute path to additional Rust source directory
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root) {
+  Ceed ceed_parent;
+
+  CeedCall(CeedGetParent(ceed, &ceed_parent));
+  CeedCheck(!ceed_parent->num_rust_source_roots_readers, ceed, CEED_ERROR_ACCESS, "Cannot add Rust source root, read access has not been restored");
+
+  CeedInt index       = ceed_parent->num_rust_source_roots;
+  size_t  path_length = strlen(rust_source_root);
+
+  if (ceed_parent->num_rust_source_roots == ceed_parent->max_rust_source_roots) {
+    if (ceed_parent->max_rust_source_roots == 0) ceed_parent->max_rust_source_roots = 1;
+    ceed_parent->max_rust_source_roots *= 2;
+    CeedCall(CeedRealloc(ceed_parent->max_rust_source_roots, &ceed_parent->rust_source_roots));
+  }
+  CeedCall(CeedCalloc(path_length + 1, &ceed_parent->rust_source_roots[index]));
+  memcpy(ceed_parent->rust_source_roots[index], rust_source_root, path_length);
+  ceed_parent->num_rust_source_roots++;
+  ceed_parent->cuda_compile_with_clang = true;
+  ceed->cuda_compile_with_clang        = true;
+  CeedCall(CeedDestroy(&ceed_parent));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set additional JiT compiler define for `Ceed` context
 
   @param[in,out] ceed       `Ceed` context
@@ -1509,6 +1598,36 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedView() output
+
+  @param[in] ceed     `Ceed` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetNumViewTabs(Ceed ceed, CeedInt num_tabs) {
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)ceed, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedView() output
+
+  @param[in]  ceed     `Ceed` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)ceed, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `Ceed`
 
   @param[in] ceed   `Ceed` to view
@@ -1519,15 +1638,24 @@ int CeedAddJitDefine(Ceed ceed, const char *jit_define) {
   @ref User
 **/
 int CeedView(Ceed ceed, FILE *stream) {
+  char       *tabs = NULL;
   CeedMemType mem_type;
 
   CeedCall(CeedGetPreferredMemType(ceed, &mem_type));
 
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedGetNumViewTabs(ceed, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
   fprintf(stream,
-          "Ceed\n"
-          "  Ceed Resource: %s\n"
-          "  Preferred MemType: %s\n",
-          ceed->resource, CeedMemTypes[mem_type]);
+          "%sCeed\n"
+          "%s  Ceed Resource: %s\n"
+          "%s  Preferred MemType: %s\n",
+          tabs, tabs, ceed->resource, tabs, CeedMemTypes[mem_type]);
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1541,7 +1669,7 @@ int CeedView(Ceed ceed, FILE *stream) {
   @ref User
 **/
 int CeedDestroy(Ceed *ceed) {
-  if (!*ceed || --(*ceed)->ref_count > 0) {
+  if (!*ceed || CeedObjectDereference((CeedObject)*ceed) > 0) {
     *ceed = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -1560,6 +1688,8 @@ int CeedDestroy(Ceed *ceed) {
     CeedCall(CeedFree(&(*ceed)->obj_delegates));
   }
 
+  CeedCall(CeedWorkVectorsDestroy(*ceed));
+
   if ((*ceed)->Destroy) CeedCall((*ceed)->Destroy(*ceed));
 
   for (CeedInt i = 0; i < (*ceed)->num_jit_source_roots; i++) {
@@ -1572,11 +1702,15 @@ int CeedDestroy(Ceed *ceed) {
   }
   CeedCall(CeedFree(&(*ceed)->jit_defines));
 
+  for (CeedInt i = 0; i < (*ceed)->num_rust_source_roots; i++) {
+    CeedCall(CeedFree(&(*ceed)->rust_source_roots[i]));
+  }
+  CeedCall(CeedFree(&(*ceed)->rust_source_roots));
+
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
-  CeedCall(CeedFree(&(*ceed)->op_fallback_resource));
-  CeedCall(CeedWorkVectorsDestroy(*ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*ceed)->obj));
   CeedCall(CeedFree(ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -1584,7 +1718,6 @@ int CeedDestroy(Ceed *ceed) {
 // LCOV_EXCL_START
 const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorFormat(ceed->parent, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorFormat(ceed->op_fallback_parent, format, args);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
   vsnprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, format, *args);  // NOLINT
   return ceed->err_msg;
@@ -1648,7 +1781,6 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *fu
 // LCOV_EXCL_START
 int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args) {
   if (ceed->parent) return CeedErrorStore(ceed->parent, filename, line_no, func, err_code, format, args);
-  if (ceed->op_fallback_parent) return CeedErrorStore(ceed->op_fallback_parent, filename, line_no, func, err_code, format, args);
 
   // Build message
   int len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
@@ -1728,7 +1860,6 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
 **/
 int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedGetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedGetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = ceed->err_msg;
   return CEED_ERROR_SUCCESS;
 }
@@ -1747,7 +1878,6 @@ int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
 **/
 int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   if (ceed->parent) return CeedResetErrorMessage(ceed->parent, err_msg);
-  if (ceed->op_fallback_parent) return CeedResetErrorMessage(ceed->op_fallback_parent, err_msg);
   *err_msg = NULL;
   memcpy(ceed->err_msg, "No error message stored", 24);
   return CEED_ERROR_SUCCESS;

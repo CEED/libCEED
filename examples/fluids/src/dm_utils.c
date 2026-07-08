@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -67,8 +67,8 @@ PetscErrorCode DMPlexCeedElemRestrictionCreate(Ceed ceed, DM dm, DMLabel domain_
   CeedInt *restriction_offsets_ceed = NULL;
 
   PetscFunctionBeginUser;
-  PetscCall(
-      DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &restriction_offsets_petsc));
+  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof,
+                                  &restriction_offsets_petsc));
   PetscCall(IntArrayPetscToCeed(num_elem * elem_size, &restriction_offsets_petsc, &restriction_offsets_ceed));
   PetscCallCeed(ceed, CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
                                                 restriction_offsets_ceed, restriction));
@@ -456,7 +456,7 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     if (coord_order != PETSC_DECIDE) fe_coord_order = coord_order;
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
-    PetscCall(DMSetCoordinateDisc(dm, fe_coord_new, PETSC_TRUE));
+    PetscCall(DMSetCoordinateDisc(dm, fe_coord_new, PETSC_FALSE, PETSC_TRUE));
     PetscCall(PetscFEDestroy(&fe_coord_new));
   }
   PetscFunctionReturn(PETSC_SUCCESS);

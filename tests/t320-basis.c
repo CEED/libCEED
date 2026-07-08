@@ -20,6 +20,8 @@ int main(int argc, char **argv) {
   Build2DSimplex(q_ref, q_weight, interp, grad);
   CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, p, q, interp, grad, q_ref, q_weight, &basis);
   CeedBasisView(basis, stdout);
+  CeedBasisSetNumViewTabs(basis, 1);
+  CeedBasisView(basis, stdout);
 
   CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);

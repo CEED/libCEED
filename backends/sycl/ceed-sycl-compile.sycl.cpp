@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -9,6 +9,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <ceed/jit-tools-deprecated.h>
 #include <ceed/jit-tools.h>
 #include <level_zero/ze_api.h>
 
@@ -36,7 +37,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
     oss << "#define " << name << " " << value << "\n";
   }
 
-  // libCeed definitions for Sycl Backends
+  // libCEED definitions for Sycl Backends
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, sycl_jith_path, &jit_defs_path));
   {
     char *source;
@@ -60,8 +61,26 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
 //------------------------------------------------------------------------------
 // TODO: Add architecture flags, optimization flags
 //------------------------------------------------------------------------------
-static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
+static inline int CeedJitGetFlags_Sycl(Ceed ceed, std::vector<std::string> &flags) {
   flags = {std::string("-cl-std=CL3.0"), std::string("-Dint32_t=int"), std::string("-DCEED_RUNNING_JIT_PASS=1")};
+  // Add JIT source root directories as -I include paths
+  {
+    const char **jit_source_dirs;
+    CeedInt      num_jit_source_dirs;
+
+    CeedCallBackend(CeedGetJitSourceRoots(ceed, &num_jit_source_dirs, &jit_source_dirs));
+    for (CeedInt i = 0; i < num_jit_source_dirs; i++) flags.push_back(std::string("-I") + jit_source_dirs[i]);
+    CeedCallBackend(CeedRestoreJitSourceRoots(ceed, &jit_source_dirs));
+  }
+  // Add user JIT defines as -D flags
+  {
+    const char **jit_defines;
+    CeedInt      num_jit_defines;
+
+    CeedCallBackend(CeedGetJitDefines(ceed, &num_jit_defines, &jit_defines));
+    for (CeedInt i = 0; i < num_jit_defines; i++) flags.push_back(std::string("-D") + jit_defines[i]);
+    CeedCallBackend(CeedRestoreJitDefines(ceed, &jit_defines));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -88,13 +107,15 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
 
-  ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC,
-                                  nullptr,  // extension specific structs
-                                  ZE_MODULE_FORMAT_IL_SPIRV,
-                                  il_binary.size(),
-                                  il_binary.data(),
-                                  " -ze-opt-large-register-file",  // flags
-                                  nullptr};                        // specialization constants
+  ze_module_desc_t lz_mod_desc = {
+      ZE_STRUCTURE_TYPE_MODULE_DESC,
+      nullptr,  // extension specific structs
+      ZE_MODULE_FORMAT_IL_SPIRV,
+      il_binary.size(),
+      il_binary.data(),
+      " -ze-opt-large-register-file",  // flags
+      nullptr
+  };  // specialization constants
 
   ze_module_handle_t           lz_module;
   ze_module_build_log_handle_t lz_log;
@@ -129,7 +150,7 @@ int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule
 
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedJitAddDefinitions_Sycl(ceed, kernel_source, jit_source, constants));
-  CeedCallBackend(CeedJitGetFlags_Sycl(flags));
+  CeedCallBackend(CeedJitGetFlags_Sycl(ceed, flags));
   CeedCallBackend(CeedJitCompileSource_Sycl(ceed, data->sycl_device, jit_source, il_binary, flags));
   CeedCallBackend(CeedLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
   return CEED_ERROR_SUCCESS;
@@ -157,8 +178,9 @@ int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::st
     return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to retrieve kernel from Level Zero module");
   }
 
-  *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
-      {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
+  *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>({*sycl_module, lz_kernel,
+                                                                                           sycl::ext::oneapi::level_zero::ownership::transfer},
+                                                                                          data->sycl_context));
   return CEED_ERROR_SUCCESS;
 }
 

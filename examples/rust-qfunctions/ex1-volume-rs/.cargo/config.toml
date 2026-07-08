@@ -1,0 +1,6 @@
+[target.nvptx64-nvidia-cuda]
+rustflags = [
+  "-C", "linker-plugin-lto",
+]
+[unstable]
+build-std = ["panic_abort","core", "alloc"]

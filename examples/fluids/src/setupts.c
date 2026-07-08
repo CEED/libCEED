@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -164,7 +164,8 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   if (J_is_matceed || J_is_mffd) {
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
-  } else PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J));
+  } else
+    PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J));
 
   if (J_pre_is_matceed && J != J_pre) {
     PetscCall(MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY));
@@ -207,8 +208,8 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
       PetscCall(VecZeroEntries(Q_refined_loc));
       PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc));
 
-      PetscCall(
-          PetscSNPrintf(file_path_refined, sizeof file_path_refined, "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir, step_no));
+      PetscCall(PetscSNPrintf(file_path_refined, sizeof file_path_refined, "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
+                              step_no));
 
       PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined), file_path_refined, FILE_MODE_WRITE, &viewer_refined));
       PetscCall(VecView(Q_refined_loc, viewer_refined));

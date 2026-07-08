@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other
 // CEED contributors. All Rights Reserved. See the top-level LICENSE and NOTICE
 // files for details.
 //
@@ -268,8 +268,10 @@ static inline int CeedOperatorSetupInputs_Sycl(CeedInt num_input_fields, CeedQFu
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) {
-      if (skip_active) continue;
-      else vec = in_vec;
+      if (skip_active)
+        continue;
+      else
+        vec = in_vec;
     }
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
@@ -519,8 +521,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, 
         for (CeedInt field = 0; field < size; field++) {
           q_size = (CeedSize)Q * num_elem;
           CeedCallBackend(CeedVectorCreate(ceed_parent, q_size, &active_in[num_active_in + field]));
-          CeedCallBackend(
-              CeedVectorSetArray(active_in[num_active_in + field], CEED_MEM_DEVICE, CEED_USE_POINTER, &q_vec_array[field * Q * num_elem]));
+          CeedCallBackend(CeedVectorSetArray(active_in[num_active_in + field], CEED_MEM_DEVICE, CEED_USE_POINTER,
+                                             &q_vec_array[field * Q * num_elem]));
         }
         num_active_in += size;
         CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &q_vec_array));
@@ -950,8 +952,10 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
 
   if (!elem_diag) {
     CeedCallBackend(CeedElemRestrictionCreateVector(diag_rstr, NULL, &elem_diag));
-    if (is_point_block) diag->point_block_elem_diag = elem_diag;
-    else diag->elem_diag = elem_diag;
+    if (is_point_block)
+      diag->point_block_elem_diag = elem_diag;
+    else
+      diag->elem_diag = elem_diag;
   }
   CeedCallBackend(CeedVectorSetValue(elem_diag, 0.0));
 
@@ -997,12 +1001,12 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl(CeedOperator op,
 //------------------------------------------------------------------------------
 // Single operator assembly setup
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
-  Ceed    ceed;
-  CeedInt num_input_fields, num_output_fields, num_eval_mode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0, num_eval_mode_out = 0,
-                                               num_B_out_mats_to_load = 0, size_B_out = 0, num_qpts = 0, elem_size = 0, num_elem, num_comp,
-                                               mat_start = 0;
-  CeedEvalMode       *eval_mode_in = NULL, *eval_mode_out = NULL;
+static int CeedOperatorAssembleSingleSetup_Sycl(CeedOperator op) {
+  Ceed          ceed;
+  CeedInt       num_input_fields, num_output_fields, num_eval_mode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0, num_eval_mode_out = 0,
+                                                     num_B_out_mats_to_load = 0, size_B_out = 0, num_qpts = 0, elem_size = 0, num_elem, num_comp,
+                                                     mat_start = 0;
+  CeedEvalMode *eval_mode_in = NULL, *eval_mode_out = NULL;
   const CeedScalar   *interp_in, *grad_in;
   CeedElemRestriction rstr_in = NULL, rstr_out = NULL;
   CeedBasis           basis_in = NULL, basis_out = NULL;
@@ -1337,7 +1341,7 @@ static int CeedOperatorLinearAssembleFallback_Sycl(sycl::queue &sycl_queue, cons
 // input restriction/basis per operator (could have multiple basis eval modes).
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedOperatorAssembleSingle_Sycl(CeedOperator op, CeedInt offset, CeedVector values) {
   Ceed                ceed;
   Ceed_Sycl          *sycl_data;
   CeedScalar         *values_array;
@@ -1353,7 +1357,7 @@ static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, Ceed
 
   // Setup
   if (!impl->asmb) {
-    CeedCallBackend(CeedSingleOperatorAssembleSetup_Sycl(op));
+    CeedCallBackend(CeedOperatorAssembleSingleSetup_Sycl(op));
     assert(impl->asmb != NULL);
   }
 
@@ -1395,9 +1399,9 @@ int CeedOperatorCreate_Sycl(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonal_Sycl));
-  CeedCallBackend(
-      CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal", CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssemble_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleAddPointBlockDiagonal",
+                                            CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingle_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Sycl));
   CeedCallBackend(CeedDestroy(&ceed));

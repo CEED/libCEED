@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -96,7 +96,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     // -- Get Grid anisotropy tensor
     PetscCall(GridAnisotropyTensorCalculateCollocatedVector(ceed, user, ceed_data, &elem_restr_grid_aniso, &grid_aniso_ceed, &num_comp_grid_aniso));
 
-    PetscCallCeed(ceed, CeedCompositeOperatorCreate(ceed, &op_lhs));
+    PetscCallCeed(ceed, CeedOperatorCreateComposite(ceed, &op_lhs));
     for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
       CeedQFunction       qf_lhs;
       PetscInt            num_comp_filter = diff_filter->num_field_components[i];
@@ -149,7 +149,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
       PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
 
-      PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_lhs, op_lhs_sub));
+      PetscCallCeed(ceed, CeedOperatorCompositeAddSub(op_lhs, op_lhs_sub));
       PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_filter));
       PetscCallCeed(ceed, CeedBasisDestroy(&basis_filter));
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
@@ -273,9 +273,10 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   PetscCallCeed(ceed, CeedQFunctionContextCreate(ceed, &diff_filter_qfctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(diff_filter_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*diff_filter_ctx), diff_filter_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(diff_filter_qfctx, CEED_MEM_HOST, FreeContextPetsc));
-  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(
-                          diff_filter_qfctx, "filter width scaling", offsetof(struct DifferentialFilterContext_, width_scaling),
-                          sizeof(diff_filter_ctx->width_scaling) / sizeof(diff_filter_ctx->width_scaling[0]), "Filter width scaling"));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(diff_filter_qfctx, "filter width scaling",
+                                                         offsetof(struct DifferentialFilterContext_, width_scaling),
+                                                         sizeof(diff_filter_ctx->width_scaling) / sizeof(diff_filter_ctx->width_scaling[0]),
+                                                         "Filter width scaling"));
 
   // -- Setup Operators
   PetscCall(DifferentialFilterCreateOperators(ceed, user, ceed_data, diff_filter_qfctx));

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -16,16 +16,17 @@
 static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Vector3MassApply";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt num_comp = 3;
+
   CeedCall(CeedQFunctionAddInput(qf, "u", num_comp, CEED_EVAL_INTERP));
   CeedCall(CeedQFunctionAddInput(qf, "qdata", 1, CEED_EVAL_NONE));
   CeedCall(CeedQFunctionAddOutput(qf, "v", num_comp, CEED_EVAL_INTERP));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, num_comp));
-
   return CEED_ERROR_SUCCESS;
 }
 

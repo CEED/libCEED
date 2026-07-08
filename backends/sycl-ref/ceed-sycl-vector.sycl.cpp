@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -118,7 +118,9 @@ static int CeedVectorSyncArray_Sycl(const CeedVector vec, CeedMemType mem_type) 
     case CEED_MEM_DEVICE:
       return CeedVectorSyncH2D_Sycl(vec);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -267,7 +269,9 @@ static int CeedVectorSetArray_Sycl(const CeedVector vec, const CeedMemType mem_t
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Sycl(vec, copy_mode, array);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -432,12 +436,16 @@ static int CeedVectorGetArrayWrite_Sycl(const CeedVector vec, const CeedMemType 
     // Select dirty array
     switch (mem_type) {
       case CEED_MEM_HOST:
-        if (impl->h_array_borrowed) impl->h_array = impl->h_array_borrowed;
-        else impl->h_array = impl->h_array_owned;
+        if (impl->h_array_borrowed)
+          impl->h_array = impl->h_array_borrowed;
+        else
+          impl->h_array = impl->h_array_owned;
         break;
       case CEED_MEM_DEVICE:
-        if (impl->d_array_borrowed) impl->d_array = impl->d_array_borrowed;
-        else impl->d_array = impl->d_array_owned;
+        if (impl->d_array_borrowed)
+          impl->d_array = impl->d_array_borrowed;
+        else
+          impl->d_array = impl->d_array_owned;
     }
   }
   return CeedVectorGetArray_Sycl(vec, mem_type, array);
@@ -484,8 +492,10 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
     } break;
   }
   // L2 norm - square root over reduced value
-  if (type == CEED_NORM_2) *norm = sqrt(*impl->reduction_norm);
-  else *norm = *impl->reduction_norm;
+  if (type == CEED_NORM_2)
+    *norm = sqrt(*impl->reduction_norm);
+  else
+    *norm = *impl->reduction_norm;
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
   return CEED_ERROR_SUCCESS;
 }
@@ -686,7 +696,6 @@ static int CeedVectorDestroy_Sycl(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
   CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->reduction_norm, data->sycl_context));

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -134,90 +134,97 @@ typedef struct {
 } BPData;
 
 BPData bp_options[6] = {
-    [CEED_BP1] = {.num_comp_u    = 1,
-                  .q_data_size   = 1,
-                  .q_extra       = 1,
-                  .setup_geo     = SetupMassGeo,
-                  .setup_rhs     = SetupMassRhs,
-                  .apply         = Mass,
-                  .error         = Error,
-                  .setup_geo_loc = SetupMassGeo_loc,
-                  .setup_rhs_loc = SetupMassRhs_loc,
-                  .apply_loc     = Mass_loc,
-                  .error_loc     = Error_loc,
-                  .in_mode       = CEED_EVAL_INTERP,
-                  .out_mode      = CEED_EVAL_INTERP,
-                  .q_mode        = CEED_GAUSS        },
-    [CEED_BP2] = {.num_comp_u    = 3,
-                  .q_data_size   = 1,
-                  .q_extra       = 1,
-                  .setup_geo     = SetupMassGeo,
-                  .setup_rhs     = SetupMassRhs3,
-                  .apply         = Mass3,
-                  .error         = Error3,
-                  .setup_geo_loc = SetupMassGeo_loc,
-                  .setup_rhs_loc = SetupMassRhs3_loc,
-                  .apply_loc     = Mass3_loc,
-                  .error_loc     = Error3_loc,
-                  .in_mode       = CEED_EVAL_INTERP,
-                  .out_mode      = CEED_EVAL_INTERP,
-                  .q_mode        = CEED_GAUSS        },
-    [CEED_BP3] = {.num_comp_u    = 1,
-                  .q_data_size   = 7,
-                  .q_extra       = 1,
-                  .setup_geo     = SetupDiffGeo,
-                  .setup_rhs     = SetupDiffRhs,
-                  .apply         = Diff,
-                  .error         = Error,
-                  .setup_geo_loc = SetupDiffGeo_loc,
-                  .setup_rhs_loc = SetupDiffRhs_loc,
-                  .apply_loc     = Diff_loc,
-                  .error_loc     = Error_loc,
-                  .in_mode       = CEED_EVAL_GRAD,
-                  .out_mode      = CEED_EVAL_GRAD,
-                  .q_mode        = CEED_GAUSS        },
-    [CEED_BP4] = {.num_comp_u    = 3,
-                  .q_data_size   = 7,
-                  .q_extra       = 1,
-                  .setup_geo     = SetupDiffGeo,
-                  .setup_rhs     = SetupDiffRhs3,
-                  .apply         = Diff3,
-                  .error         = Error3,
-                  .setup_geo_loc = SetupDiffGeo_loc,
-                  .setup_rhs_loc = SetupDiffRhs3_loc,
-                  .apply_loc     = Diff3_loc,
-                  .error_loc     = Error3_loc,
-                  .in_mode       = CEED_EVAL_GRAD,
-                  .out_mode      = CEED_EVAL_GRAD,
-                  .q_mode        = CEED_GAUSS        },
-    [CEED_BP5] = {.num_comp_u    = 1,
-                  .q_data_size   = 7,
-                  .q_extra       = 0,
-                  .setup_geo     = SetupDiffGeo,
-                  .setup_rhs     = SetupDiffRhs,
-                  .apply         = Diff,
-                  .error         = Error,
-                  .setup_geo_loc = SetupDiffGeo_loc,
-                  .setup_rhs_loc = SetupDiffRhs_loc,
-                  .apply_loc     = Diff_loc,
-                  .error_loc     = Error_loc,
-                  .in_mode       = CEED_EVAL_GRAD,
-                  .out_mode      = CEED_EVAL_GRAD,
-                  .q_mode        = CEED_GAUSS_LOBATTO},
-    [CEED_BP6] = {.num_comp_u    = 3,
-                  .q_data_size   = 7,
-                  .q_extra       = 0,
-                  .setup_geo     = SetupDiffGeo,
-                  .setup_rhs     = SetupDiffRhs3,
-                  .apply         = Diff3,
-                  .error         = Error3,
-                  .setup_geo_loc = SetupDiffGeo_loc,
-                  .setup_rhs_loc = SetupDiffRhs3_loc,
-                  .apply_loc     = Diff3_loc,
-                  .error_loc     = Error3_loc,
-                  .in_mode       = CEED_EVAL_GRAD,
-                  .out_mode      = CEED_EVAL_GRAD,
-                  .q_mode        = CEED_GAUSS_LOBATTO}
+    [CEED_BP1] =
+        {.num_comp_u    = 1,
+                    .q_data_size   = 1,
+                    .q_extra       = 1,
+                    .setup_geo     = SetupMassGeo,
+                    .setup_rhs     = SetupMassRhs,
+                    .apply         = Mass,
+                    .error         = Error,
+                    .setup_geo_loc = SetupMassGeo_loc,
+                    .setup_rhs_loc = SetupMassRhs_loc,
+                    .apply_loc     = Mass_loc,
+                    .error_loc     = Error_loc,
+                    .in_mode       = CEED_EVAL_INTERP,
+                    .out_mode      = CEED_EVAL_INTERP,
+                    .q_mode        = CEED_GAUSS        },
+    [CEED_BP2] =
+        {.num_comp_u    = 3,
+                    .q_data_size   = 1,
+                    .q_extra       = 1,
+                    .setup_geo     = SetupMassGeo,
+                    .setup_rhs     = SetupMassRhs3,
+                    .apply         = Mass3,
+                    .error         = Error3,
+                    .setup_geo_loc = SetupMassGeo_loc,
+                    .setup_rhs_loc = SetupMassRhs3_loc,
+                    .apply_loc     = Mass3_loc,
+                    .error_loc     = Error3_loc,
+                    .in_mode       = CEED_EVAL_INTERP,
+                    .out_mode      = CEED_EVAL_INTERP,
+                    .q_mode        = CEED_GAUSS        },
+    [CEED_BP3] =
+        {.num_comp_u    = 1,
+                    .q_data_size   = 7,
+                    .q_extra       = 1,
+                    .setup_geo     = SetupDiffGeo,
+                    .setup_rhs     = SetupDiffRhs,
+                    .apply         = Diff,
+                    .error         = Error,
+                    .setup_geo_loc = SetupDiffGeo_loc,
+                    .setup_rhs_loc = SetupDiffRhs_loc,
+                    .apply_loc     = Diff_loc,
+                    .error_loc     = Error_loc,
+                    .in_mode       = CEED_EVAL_GRAD,
+                    .out_mode      = CEED_EVAL_GRAD,
+                    .q_mode        = CEED_GAUSS        },
+    [CEED_BP4] =
+        {.num_comp_u    = 3,
+                    .q_data_size   = 7,
+                    .q_extra       = 1,
+                    .setup_geo     = SetupDiffGeo,
+                    .setup_rhs     = SetupDiffRhs3,
+                    .apply         = Diff3,
+                    .error         = Error3,
+                    .setup_geo_loc = SetupDiffGeo_loc,
+                    .setup_rhs_loc = SetupDiffRhs3_loc,
+                    .apply_loc     = Diff3_loc,
+                    .error_loc     = Error3_loc,
+                    .in_mode       = CEED_EVAL_GRAD,
+                    .out_mode      = CEED_EVAL_GRAD,
+                    .q_mode        = CEED_GAUSS        },
+    [CEED_BP5] =
+        {.num_comp_u    = 1,
+                    .q_data_size   = 7,
+                    .q_extra       = 0,
+                    .setup_geo     = SetupDiffGeo,
+                    .setup_rhs     = SetupDiffRhs,
+                    .apply         = Diff,
+                    .error         = Error,
+                    .setup_geo_loc = SetupDiffGeo_loc,
+                    .setup_rhs_loc = SetupDiffRhs_loc,
+                    .apply_loc     = Diff_loc,
+                    .error_loc     = Error_loc,
+                    .in_mode       = CEED_EVAL_GRAD,
+                    .out_mode      = CEED_EVAL_GRAD,
+                    .q_mode        = CEED_GAUSS_LOBATTO},
+    [CEED_BP6] = {
+                    .num_comp_u    = 3,
+                    .q_data_size   = 7,
+                    .q_extra       = 0,
+                    .setup_geo     = SetupDiffGeo,
+                    .setup_rhs     = SetupDiffRhs3,
+                    .apply         = Diff3,
+                    .error         = Error3,
+                    .setup_geo_loc = SetupDiffGeo_loc,
+                    .setup_rhs_loc = SetupDiffRhs3_loc,
+                    .apply_loc     = Diff3_loc,
+                    .error_loc     = Error3_loc,
+                    .in_mode       = CEED_EVAL_GRAD,
+                    .out_mode      = CEED_EVAL_GRAD,
+                    .q_mode        = CEED_GAUSS_LOBATTO
+    }
 };
 
 // This function uses libCEED to compute the action of the mass matrix
@@ -336,11 +343,11 @@ static PetscErrorCode ComputeErrorMax(OperatorApplyContext op_apply_ctx, CeedOpe
 }
 
 int main(int argc, char **argv) {
-  MPI_Comm comm;
-  char     ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  double   my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree, q_extra, local_nodes, local_elem, mesh_elem[3], m_nodes[3], p[3], i_rank[3], l_nodes[3], l_size, num_comp_u = 1,
-                                                                                                                    ksp_max_it_clip[2];
+  MPI_Comm             comm;
+  char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  double               my_rt_start, my_rt, rt_min, rt_max;
+  PetscInt             degree, q_extra, local_nodes, local_elem, mesh_elem[3], m_nodes[3], p[3], i_rank[3], l_nodes[3], l_size, num_comp_u = 1,
+                                                                                                                                ksp_max_it_clip[2];
   PetscScalar         *r;
   PetscBool            test_mode, benchmark_mode, write_solution;
   PetscMPIInt          size, rank;
@@ -385,8 +392,8 @@ int main(int argc, char **argv) {
   PetscInt two       = 2;
   ksp_max_it_clip[0] = 5;
   ksp_max_it_clip[1] = 20;
-  PetscCall(
-      PetscOptionsIntArray("-ksp_max_it_clip", "Min and max number of iterations to use during benchmarking", NULL, ksp_max_it_clip, &two, NULL));
+  PetscCall(PetscOptionsIntArray("-ksp_max_it_clip", "Min and max number of iterations to use during benchmarking", NULL, ksp_max_it_clip, &two,
+                                 NULL));
   PetscOptionsEnd();
   P = degree + 1;
   Q = P + q_extra;
@@ -405,10 +412,12 @@ int main(int argc, char **argv) {
       const char *resolved;
 
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) default_vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa")) default_vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-      else if (strstr(resolved, "/gpu/hip")) default_vec_type = VECHIP;
-      else default_vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        default_vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        default_vec_type = VECHIP;
+      else
+        default_vec_type = VECSTANDARD;
     }
   }
 
@@ -767,8 +776,8 @@ int main(int argc, char **argv) {
       }
     }
     if (!test_mode) {
-      PetscCall(
-          PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * gsize * its / rt_max, 1e-6 * gsize * its / rt_min));
+      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * gsize * its / rt_max,
+                            1e-6 * gsize * its / rt_min));
     }
   }
 

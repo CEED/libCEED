@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -561,7 +561,7 @@ impl<'a> Vector<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn view(&self) -> crate::Result<VectorView> {
+    pub fn view(&self) -> crate::Result<VectorView<'_>> {
         VectorView::new(self)
     }
 
@@ -583,7 +583,7 @@ impl<'a> Vector<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn view_mut(&mut self) -> crate::Result<VectorViewMut> {
+    pub fn view_mut(&mut self) -> crate::Result<VectorViewMut<'_>> {
         VectorViewMut::new(self)
     }
 

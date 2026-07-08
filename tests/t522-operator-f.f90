@@ -215,13 +215,13 @@
      & buhex,ceed_vector_active,err)
 
 ! Composite Operators
-      call ceedcompositeoperatorcreate(ceed,op_setup,err)
-      call ceedcompositeoperatoraddsub(op_setup,op_setuptet,err)
-      call ceedcompositeoperatoraddsub(op_setup,op_setuphex,err)
+      call ceedoperatorcreatecomposite(ceed,op_setup,err)
+      call ceedoperatorcompositeaddsub(op_setup,op_setuptet,err)
+      call ceedoperatorcompositeaddsub(op_setup,op_setuphex,err)
 
-      call ceedcompositeoperatorcreate(ceed,op_diff,err)
-      call ceedcompositeoperatoraddsub(op_diff,op_difftet,err)
-      call ceedcompositeoperatoraddsub(op_diff,op_diffhex,err)
+      call ceedoperatorcreatecomposite(ceed,op_diff,err)
+      call ceedoperatorcompositeaddsub(op_diff,op_difftet,err)
+      call ceedoperatorcompositeaddsub(op_diff,op_diffhex,err)
 
 ! Apply Setup Operator
       call ceedoperatorapply(op_setup,x,ceed_vector_none,&

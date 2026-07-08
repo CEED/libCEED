@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -87,17 +87,17 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
   @param[in] op_field     `CeedOperator` Field to view
   @param[in] qf_field     `CeedQFunction` Field (carries field name)
   @param[in] field_number Number of field being viewed
-  @param[in] sub          true indicates sub-operator, which increases indentation; false for top-level operator
-  @param[in] input        true for an input field; false for output field
+  @param[in] tabs         Tabs to append before each line
+  @param[in] is_input    `true` for an input field; `false` for output field
   @param[in] stream       Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, bool sub, bool input, FILE *stream) {
-  const char  *pre    = sub ? "  " : "";
-  const char  *in_out = input ? "Input" : "Output";
+static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, const char *tabs, bool is_input,
+                                 FILE *stream) {
+  const char  *field_type = is_input ? "Input" : "Output";
   const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
@@ -112,12 +112,15 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
           "%s    %s field %" CeedInt_FMT
           ":\n"
           "%s      Name: \"%s\"\n",
-          pre, in_out, field_number, pre, field_name);
-  fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", pre, size);
-  fprintf(stream, "%s      EvalMode: %s\n", pre, CeedEvalModes[eval_mode]);
-  if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", pre);
-  if (vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", pre);
-  else if (vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", pre);
+          tabs, field_type, field_number, tabs, field_name);
+  fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", tabs, size);
+  fprintf(stream, "%s      EvalMode: %s\n", tabs, CeedEvalModes[eval_mode]);
+  if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", tabs);
+  if (vec == CEED_VECTOR_ACTIVE) {
+    fprintf(stream, "%s      Active vector\n", tabs);
+  } else if (vec == CEED_VECTOR_NONE) {
+    fprintf(stream, "%s      No vector\n", tabs);
+  }
 
   CeedCall(CeedVectorDestroy(&vec));
   CeedCall(CeedBasisDestroy(&basis));
@@ -128,16 +131,15 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   @brief View a single `CeedOperator`
 
   @param[in] op     `CeedOperator` to view
-  @param[in] sub    Boolean flag for sub-operator
+  @param[in] tabs   Tabs to append before each new line
   @param[in] stream Stream to write; typically `stdout` or a file
 
   @return Error code: 0 - success, otherwise - failure
 
   @ref Utility
 **/
-int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
+int CeedOperatorSingleView(CeedOperator op, const char *tabs, FILE *stream) {
   bool                is_at_points;
-  const char         *pre = sub ? "  " : "";
   CeedInt             num_elem, num_qpts, total_fields = 0, num_input_fields, num_output_fields;
   CeedQFunction       qf;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
@@ -158,20 +160,49 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 
     CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
     CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_points));
-    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " max points each\n", pre, num_elem, max_points);
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " max points each\n", tabs, num_elem, max_points);
     CeedCall(CeedElemRestrictionDestroy(&rstr_points));
   } else {
-    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
+    fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", tabs, num_elem, num_qpts);
   }
-  fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", pre, total_fields, total_fields > 1 ? "s" : "");
-  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", pre, num_input_fields, num_input_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", tabs, total_fields, total_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", tabs, num_input_fields, num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCall(CeedOperatorFieldView(op_input_fields[i], qf_input_fields[i], i, sub, 1, stream));
+    CeedCall(CeedOperatorFieldView(op_input_fields[i], qf_input_fields[i], i, tabs, 1, stream));
   }
-  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", pre, num_output_fields, num_output_fields > 1 ? "s" : "");
+  fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", tabs, num_output_fields, num_output_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCall(CeedOperatorFieldView(op_output_fields[i], qf_output_fields[i], i, sub, 0, stream));
+    CeedCall(CeedOperatorFieldView(op_output_fields[i], qf_output_fields[i], i, tabs, 0, stream));
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `CeedOperator` passed as a `CeedObject`
+
+  @param[in] op     `CeedOperator` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorView_Object(CeedObject op, FILE *stream) {
+  CeedCall(CeedOperatorView((CeedOperator)op, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedOperator` passed as a `CeedObject`
+
+  @param[in,out] op Address of `CeedOperator` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedOperatorDestroy_Object(CeedObject *op) {
+  CeedCall(CeedOperatorDestroy((CeedOperator *)op));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -376,8 +407,8 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -443,8 +474,8 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -506,8 +537,8 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     CeedInt       num_sub;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCheck(num_sub == field_label->num_sub_labels, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
               "Composite operator modified after ContextFieldLabel created");
 
@@ -709,7 +740,7 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
   @ref Backend
 **/
 int CeedOperatorReference(CeedOperator op) {
-  op->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)op));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -764,8 +795,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
   CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid CeedQFunction.");
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
-  (*op)->ref_count   = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->input_size  = -1;
   (*op)->output_size = -1;
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
@@ -807,8 +837,7 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
   CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid CeedQFunction.");
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
-  (*op)->ref_count    = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->is_at_points = true;
   (*op)->input_size   = -1;
   (*op)->output_size  = -1;
@@ -831,21 +860,20 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
 
   @ref User
  */
-int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
+int CeedOperatorCreateComposite(Ceed ceed, CeedOperator *op) {
   if (!ceed->CompositeOperatorCreate) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
     if (delegate) {
-      CeedCall(CeedCompositeOperatorCreate(delegate, op));
+      CeedCall(CeedOperatorCreateComposite(delegate, op));
       CeedCall(CeedDestroy(&delegate));
       return CEED_ERROR_SUCCESS;
     }
   }
 
   CeedCall(CeedCalloc(1, op));
-  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
-  (*op)->ref_count    = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedOperatorView_Object, CeedOperatorDestroy_Object, &(*op)->obj));
   (*op)->is_composite = true;
   CeedCall(CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators));
   (*op)->input_size  = -1;
@@ -940,8 +968,11 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
     }
   }
 
-  if (basis == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(rstr, &num_qpts));
-  else CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  if (basis == CEED_BASIS_NONE) {
+    CeedCall(CeedElemRestrictionGetElementSize(rstr, &num_qpts));
+  } else {
+    CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  }
   CeedCheck(op->num_qpts == 0 || num_qpts == op->num_qpts, CeedOperatorReturnCeed(op), CEED_ERROR_DIMENSION,
             "%s must correspond to the same number of quadrature points as previously added CeedBases. Found %" CeedInt_FMT
             " quadrature points but expected %" CeedInt_FMT " quadrature points.",
@@ -1076,10 +1107,10 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
 
 /**
   @brief Get a boolean value indicating if the `CeedOperator` was created with `CeedOperatorCreateAtPoints`
-    
+
   @param[in]  op           `CeedOperator`
   @param[out] is_at_points Variable to store at points status
-  
+
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
@@ -1263,7 +1294,7 @@ int CeedOperatorFieldGetData(CeedOperatorField op_field, const char **field_name
 
   @ref User
  */
-int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) {
+int CeedOperatorCompositeAddSub(CeedOperator composite_op, CeedOperator sub_op) {
   bool is_immutable;
 
   CeedCheck(composite_op->is_composite, CeedOperatorReturnCeed(composite_op), CEED_ERROR_MINOR, "CeedOperator is not a composite operator");
@@ -1303,7 +1334,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 
   @ref Backend
 **/
-int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
+int CeedOperatorCompositeGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
   bool is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -1322,7 +1353,7 @@ int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 
   @ref Backend
 **/
-int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
+int CeedOperatorCompositeGetSubList(CeedOperator op, CeedOperator **sub_operators) {
   bool is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -1346,7 +1377,7 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 
   @ref Advanced
 **/
-int CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op) {
+int CeedOperatorCompositeGetSubByName(CeedOperator op, const char *op_name, CeedOperator *sub_op) {
   bool          is_composite;
   CeedInt       num_sub_ops;
   CeedOperator *sub_ops;
@@ -1354,14 +1385,56 @@ int CeedCompositeOperatorGetSubByName(CeedOperator op, const char *op_name, Ceed
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
   *sub_op = NULL;
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &sub_ops));
   for (CeedInt i = 0; i < num_sub_ops; i++) {
     if (sub_ops[i]->name && !strcmp(op_name, sub_ops[i]->name)) {
       *sub_op = sub_ops[i];
       return CEED_ERROR_SUCCESS;
     }
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set whether the sub-operators of the composite `CeedOperator` must be run sequentially.
+
+  Note: This value currently only affects the GPU `/gpu/cuda/gen` and `/gpu/hip/gen` backends.
+
+  @param[in] op            Composite `CeedOperator`
+  @param[in] is_sequential Flag value to set, if `true`, forces the composite `CeedOperator` to execute sequentially
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorCompositeSetSequential(CeedOperator op, bool is_sequential) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
+  op->is_sequential = is_sequential;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get whether the sub-operators of the composite `CeedOperator` must be run sequentially.
+
+  Note: This value currently only affects the GPU `/gpu/cuda/gen` and `/gpu/hip/gen` backends.
+
+  @param[in]  op            Composite `CeedOperator`
+  @param[out] is_sequential Variable to store sequential status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorCompositeIsSequential(CeedOperator op, bool *is_sequential) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
+  *is_sequential = op->is_sequential;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1386,7 +1459,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
   if (is_composite) {
     CeedInt num_suboperators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     if (!num_suboperators) {
       // Empty operator setup
       op->input_size  = 0;
@@ -1394,7 +1467,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
     } else {
       CeedOperator *sub_operators;
 
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+      CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         CeedCall(CeedOperatorCheckReady(sub_operators[i]));
       }
@@ -1448,8 +1521,8 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedSize sub_input_size, sub_output_size;
 
@@ -1516,8 +1589,8 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedCall(CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(sub_operators[i], needs_data_update));
     }
@@ -1589,30 +1662,70 @@ int CeedOperatorGetName(CeedOperator op, const char **name) {
 **/
 static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   bool        has_name, is_composite, is_at_points;
-  const char *name = NULL;
+  char       *tabs     = NULL;
+  const char *name     = NULL;
+  CeedInt     num_tabs = 0;
 
   CeedCall(CeedOperatorGetName(op, &name));
   has_name = name ? strlen(name) : false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  // Set tabs
+  CeedCall(CeedOperatorGetNumViewTabs(op, &num_tabs));
+  CeedCall(CeedCalloc(CEED_TAB_WIDTH * (num_tabs + is_composite) + 1, &tabs));
+  for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   if (is_composite) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+    fprintf(stream, "%s", tabs);
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? name : "");
-
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH; i++) tabs[CEED_TAB_WIDTH * num_tabs + i] = ' ';
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
-      fprintf(stream, "  SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
+      fprintf(stream, "%s", tabs);
+      fprintf(stream, "SubOperator%s %" CeedInt_FMT "%s%s%s\n", is_at_points ? " AtPoints" : "", i, has_name ? " - " : "",
               has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
-      if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
+      if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], tabs, stream));
     }
   } else {
+    fprintf(stream, "%s", tabs);
     fprintf(stream, "CeedOperator%s%s%s\n", is_at_points ? " AtPoints" : "", has_name ? " - " : "", has_name ? name : "");
-    if (is_full) CeedCall(CeedOperatorSingleView(op, 0, stream));
+    if (is_full) CeedCall(CeedOperatorSingleView(op, tabs, stream));
   }
+  CeedCall(CeedFree(&tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the number of tabs to indent for @ref CeedOperatorView() output
+
+  @param[in] op       `CeedOperator` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetNumViewTabs(CeedOperator op, CeedInt num_tabs) {
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)op, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedOperatorView() output
+
+  @param[in]  op       `CeedOperator` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetNumViewTabs(CeedOperator op, CeedInt *num_tabs) {
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)op, num_tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1657,8 +1770,7 @@ int CeedOperatorViewTerse(CeedOperator op, FILE *stream) {
   @ref Advanced
 **/
 int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedOperatorReturnCeed(op), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)op, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1671,7 +1783,7 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 
   @ref Advanced
 **/
-Ceed CeedOperatorReturnCeed(CeedOperator op) { return op->ceed; }
+Ceed CeedOperatorReturnCeed(CeedOperator op) { return CeedObjectReturnCeed((CeedObject)op); }
 
 /**
   @brief Get the number of elements associated with a `CeedOperator`
@@ -1729,9 +1841,9 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
   if (is_composite) {
     CeedInt num_suboperators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
     CeedOperator *sub_operators;
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
 
     // FLOPs for each suboperator
     for (CeedInt i = 0; i < num_suboperators; i++) {
@@ -1805,8 +1917,11 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       CeedSize      qf_flops;
       CeedQFunction qf;
 
-      if (is_at_points) num_qpts = num_points;
-      else CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      if (is_at_points) {
+        num_qpts = num_points;
+      } else {
+        CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      }
       CeedCall(CeedOperatorGetQFunction(op, &qf));
       CeedCall(CeedQFunctionGetFlopsEstimate(qf, &qf_flops));
       CeedCall(CeedQFunctionDestroy(&qf));
@@ -1906,8 +2021,8 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     CeedContextFieldLabel new_field_label;
 
     CeedCall(CeedCalloc(1, &new_field_label));
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     CeedCall(CeedCalloc(num_sub, &new_field_label->sub_labels));
     new_field_label->num_sub_labels = num_sub;
 
@@ -2142,7 +2257,7 @@ int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
 
-  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
@@ -2159,60 +2274,19 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
   CeedCall(CeedOperatorCheckReady(op));
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  if (is_composite) {
+  if (is_composite && op->ApplyComposite) {
     // Composite Operator
-    if (op->ApplyComposite) {
-      CeedCall(op->ApplyComposite(op, in, out, request));
-    } else {
-      CeedInt       num_suboperators;
-      CeedOperator *sub_operators;
-
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-
-      // Zero all output vectors
-      if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
-      for (CeedInt i = 0; i < num_suboperators; i++) {
-        CeedInt            num_output_fields;
-        CeedOperatorField *output_fields;
-
-        CeedCall(CeedOperatorGetFields(sub_operators[i], NULL, NULL, &num_output_fields, &output_fields));
-        for (CeedInt j = 0; j < num_output_fields; j++) {
-          CeedVector vec;
-
-          CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
-          if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
-            CeedCall(CeedVectorSetValue(vec, 0.0));
-          }
-          CeedCall(CeedVectorDestroy(&vec));
-        }
-      }
-      // ApplyAdd
-      CeedCall(CeedOperatorApplyAdd(op, in, out, request));
-    }
-  } else {
+    CeedCall(op->ApplyComposite(op, in, out, request));
+  } else if (!is_composite && op->Apply) {
     // Standard Operator
-    if (op->Apply) {
-      CeedCall(op->Apply(op, in, out, request));
-    } else {
-      CeedInt            num_output_fields;
-      CeedOperatorField *output_fields;
+    CeedCall(op->Apply(op, in, out, request));
+  } else {
+    // Standard or composite, default to zeroing out and calling ApplyAddActive
+    // Zero active output
+    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
 
-      CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
-      // Zero all output vectors
-      for (CeedInt i = 0; i < num_output_fields; i++) {
-        bool       is_active;
-        CeedVector vec;
-
-        CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
-        is_active = vec == CEED_VECTOR_ACTIVE;
-        if (is_active) vec = out;
-        if (vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
-        if (!is_active) CeedCall(CeedVectorDestroy(&vec));
-      }
-      // Apply
-      if (op->num_elem > 0) CeedCall(op->ApplyAdd(op, in, out, request));
-    }
+    // ApplyAddActive
+    CeedCall(CeedOperatorApplyAddActive(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -2222,6 +2296,10 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
 
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
+
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+  @warning This function adds into ALL outputs, including passive outputs. To only add into the active output, use `CeedOperatorApplyAddActive()`.
+  @see `CeedOperatorApplyAddActive()`
 
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
@@ -2246,8 +2324,8 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
       CeedInt       num_suboperators;
       CeedOperator *sub_operators;
 
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+      CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+      CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
       }
@@ -2255,6 +2333,73 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
   } else if (op->num_elem > 0) {
     // Standard Operator
     CeedCall(op->ApplyAdd(op, in, out, request));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Apply `CeedOperator` to a `CeedVector` and add result to output `CeedVector`. Only sums into active outputs, overwrites passive outputs.
+
+  This computes the action of the operator on the specified (active) input, yielding its (active) output.
+  All inputs and outputs must be specified using @ref CeedOperatorSetField().
+
+  @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
+
+  @param[in]  op      `CeedOperator` to apply
+  @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
+  @param[out] out     `CeedVector` to sum in result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorApplyAddActive(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorCheckReady(op));
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    // Composite Operator
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+
+    // Zero all output vectors
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedInt            num_output_fields;
+      CeedOperatorField *output_fields;
+
+      CeedCall(CeedOperatorGetFields(sub_operators[i], NULL, NULL, &num_output_fields, &output_fields));
+      for (CeedInt j = 0; j < num_output_fields; j++) {
+        CeedVector vec;
+
+        CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
+        if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+        CeedCall(CeedVectorDestroy(&vec));
+      }
+    }
+    // ApplyAdd
+    CeedCall(CeedOperatorApplyAdd(op, in, out, request));
+  } else {
+    // Standard Operator
+    CeedInt            num_output_fields;
+    CeedOperatorField *output_fields;
+
+    CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+    // Zero all output vectors
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedVector vec;
+
+      CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
+      if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+      CeedCall(CeedVectorDestroy(&vec));
+    }
+    // ApplyAdd
+    CeedCall(CeedOperatorApplyAdd(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -2278,8 +2423,8 @@ int CeedOperatorAssemblyDataStrip(CeedOperator op) {
     CeedInt       num_suboperators;
     CeedOperator *sub_operators;
 
-    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedCall(CeedQFunctionAssemblyDataDestroy(&sub_operators[i]->qf_assembled));
       CeedCall(CeedOperatorAssemblyDataDestroy(&sub_operators[i]->op_assembled));
@@ -2298,7 +2443,7 @@ int CeedOperatorAssemblyDataStrip(CeedOperator op) {
   @ref User
 **/
 int CeedOperatorDestroy(CeedOperator *op) {
-  if (!*op || --(*op)->ref_count > 0) {
+  if (!*op || CeedObjectDereference((CeedObject)*op) > 0) {
     *op = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -2366,7 +2511,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   CeedCall(CeedOperatorDestroy(&(*op)->op_fallback));
 
   CeedCall(CeedFree(&(*op)->name));
-  CeedCall(CeedDestroy(&(*op)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*op)->obj));
   CeedCall(CeedFree(op));
   return CEED_ERROR_SUCCESS;
 }

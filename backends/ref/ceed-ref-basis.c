@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -32,11 +32,17 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCallBackend(CeedBasisGetTensorContract(basis, &contract));
-  if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (U != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   // Clear v if operating in transpose
-  if (apply_add) CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
-  else CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
+  if (apply_add) {
+    CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
+  } else {
+    CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
+  }
 
   if (t_mode == CEED_TRANSPOSE && !apply_add) {
     CeedSize len;
@@ -55,7 +61,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
     switch (eval_mode) {
       // Interpolate to/from quadrature points
       case CEED_EVAL_INTERP: {
-        if (impl->has_collo_interp) {
+        if (impl->is_collocated) {
           memcpy(v, u, num_elem * num_comp * num_nodes * sizeof(u[0]));
         } else {
           CeedInt P = P_1d, Q = Q_1d;
@@ -116,15 +122,15 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           }
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(
-                contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
-                (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
-                (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
-                (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem] : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
+            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
+                                                    (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
+                                                    (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
+                                                    (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem]
+                                                                                : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
             pre /= P;
             post *= Q;
           }
-        } else if (impl->has_collo_interp) {  // Qpts collocated with nodes
+        } else if (impl->is_collocated) {  // Qpts collocated with nodes
           const CeedScalar *grad_1d;
 
           CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
@@ -285,20 +291,9 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
   CeedCallBackend(CeedCalloc(1, &impl));
-  // Check for collocated interp
-  if (Q_1d == P_1d) {
-    bool has_collocated = true;
-
-    for (CeedInt i = 0; i < P_1d; i++) {
-      has_collocated = has_collocated && (fabs(interp_1d[i + P_1d * i] - 1.0) < 1e-14);
-      for (CeedInt j = 0; j < P_1d; j++) {
-        if (j != i) has_collocated = has_collocated && (fabs(interp_1d[j + P_1d * i]) < 1e-14);
-      }
-    }
-    impl->has_collo_interp = has_collocated;
-  }
   // Calculate collocated grad
-  if (Q_1d >= P_1d && !impl->has_collo_interp) {
+  CeedCallBackend(CeedBasisIsCollocated(basis, &impl->is_collocated));
+  if (Q_1d >= P_1d && !impl->is_collocated) {
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
     CeedCallBackend(CeedBasisGetCollocatedGrad(basis, impl->collo_grad_1d));
   }
@@ -306,6 +301,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -328,6 +324,7 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -349,6 +346,7 @@ int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
@@ -370,6 +368,7 @@ int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+  CeedCallBackend(CeedTensorContractDestroy(&contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));

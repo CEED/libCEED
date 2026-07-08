@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -88,7 +88,9 @@ static inline int CeedQFunctionContextSync_Cuda(const CeedQFunctionContext ctx, 
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSyncH2D_Cuda(ctx);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -232,7 +234,9 @@ static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx, cons
     case CEED_MEM_DEVICE:
       return CeedQFunctionContextSetDataDevice_Cuda(ctx, copy_mode, data);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------

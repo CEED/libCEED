@@ -159,13 +159,13 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_diff_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
 
   // Composite Operators
-  CeedCompositeOperatorCreate(ceed, &op_setup);
-  CeedCompositeOperatorAddSub(op_setup, op_setup_tet);
-  CeedCompositeOperatorAddSub(op_setup, op_setup_hex);
+  CeedOperatorCreateComposite(ceed, &op_setup);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_tet);
+  CeedOperatorCompositeAddSub(op_setup, op_setup_hex);
 
-  CeedCompositeOperatorCreate(ceed, &op_diff);
-  CeedCompositeOperatorAddSub(op_diff, op_diff_tet);
-  CeedCompositeOperatorAddSub(op_diff, op_diff_hex);
+  CeedOperatorCreateComposite(ceed, &op_diff);
+  CeedOperatorCompositeAddSub(op_diff, op_diff_tet);
+  CeedOperatorCompositeAddSub(op_diff, op_diff_hex);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, x, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE);

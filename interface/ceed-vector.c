@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -30,6 +30,43 @@ const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 /// Indicate that no vector is applicable (i.e., for @ref CEED_EVAL_WEIGHT).
 const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
+
+/// @}
+
+/// ----------------------------------------------------------------------------
+/// CeedVector Internal Functions
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedVectorDeveloper
+/// @{
+
+/**
+  @brief View a `CeedVector` passed as a `CeedObject`
+
+  @param[in] vec    `CeedVector` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedVectorView_Object(CeedObject vec, FILE *stream) {
+  CeedCall(CeedVectorView((CeedVector)vec, "%12.8f", stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedVector` passed as a `CeedObject`
+
+  @param[in,out] vec Address of `CeedVector` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedVectorDestroy_Object(CeedObject *vec) {
+  CeedCall(CeedVectorDestroy((CeedVector *)vec));
+  return CEED_ERROR_SUCCESS;
+}
 
 /// @}
 
@@ -135,7 +172,7 @@ int CeedVectorSetData(CeedVector vec, void *data) {
   @ref Backend
 **/
 int CeedVectorReference(CeedVector vec) {
-  vec->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)vec));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -159,6 +196,7 @@ int CeedVectorReference(CeedVector vec) {
   @ref User
 **/
 int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
+  CeedCheck(length >= 0, ceed, CEED_ERROR_UNSUPPORTED, "CeedVector must have length >= 0, received %" CeedSize_FMT, length);
   if (!ceed->VectorCreate) {
     Ceed delegate;
 
@@ -170,10 +208,9 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   }
 
   CeedCall(CeedCalloc(1, vec));
-  CeedCall(CeedReferenceCopy(ceed, &(*vec)->ceed));
-  (*vec)->ref_count = 1;
-  (*vec)->length    = length;
-  (*vec)->state     = 0;
+  CeedCall(CeedObjectCreate(ceed, CeedVectorView_Object, CeedVectorDestroy_Object, &(*vec)->obj));
+  (*vec)->length = length;
+  (*vec)->state  = 0;
   CeedCall(ceed->VectorCreate(length, *vec));
   return CEED_ERROR_SUCCESS;
 }
@@ -720,11 +757,51 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 }
 
 /**
+  @brief Filters or clips a `CeedVector` using a threshold value. 
+  All entries in `x` with an absolute value less than or equal to `threshold` are set to `0.0`.
+
+  @param[in,out] x         `CeedVector` to filter
+  @param[in]     threshold clipping threshold or tolerance
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
+  bool        has_valid_array = true;
+  CeedSize    length;
+  CeedScalar *x_array = NULL;
+
+  CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
+  CeedCheck(has_valid_array, CeedVectorReturnCeed(x), CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to filter, must set data with CeedVectorSetValue or CeedVectorSetArray");
+
+  // Return early for empty vector
+  CeedCall(CeedVectorGetLength(x, &length));
+  if (length == 0) return CEED_ERROR_SUCCESS;
+
+  // Backend implementation
+  if (x->Filter) {
+    CeedCall(x->Filter(x, threshold));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Default implementation
+  CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
+  assert(x_array);
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
+    if (fabs(x_array[i]) <= threshold) x_array[i] = 0.0;
+  }
+  CeedCall(CeedVectorRestoreArray(x, &x_array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Compute `y = alpha x + y`
 
   @param[in,out] y     target `CeedVector` for sum
   @param[in]     alpha scaling factor
-  @param[in]     x     second `CeedVector`, must be different than ``y`
+  @param[in]     x     second `CeedVector`, must be different than `y`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -994,6 +1071,36 @@ int CeedVectorReciprocal(CeedVector vec) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedVectorView() output
+
+  @param[in] vec      `CeedVector` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetNumViewTabs(CeedVector vec, CeedInt num_tabs) {
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)vec, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedVectorView() output
+
+  @param[in]  vec      `CeedVector` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorGetNumViewTabs(CeedVector vec, CeedInt *num_tabs) {
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)vec, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedVector`
 
   Note: It is safe to use any unsigned values for `start` or `stop` and any nonzero integer for `step`.
@@ -1012,24 +1119,34 @@ int CeedVectorReciprocal(CeedVector vec) {
 **/
 int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream) {
   char              fmt[1024];
+  char             *tabs = NULL;
   CeedSize          length;
   const CeedScalar *x;
 
   CeedCheck(step != 0, CeedVectorReturnCeed(vec), CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedVectorGetNumViewTabs(vec, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
+  }
+
   CeedCall(CeedVectorGetLength(vec, &length));
-  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", length);
+  fprintf(stream, "%sCeedVector length %" CeedSize_FMT "\n", tabs, length);
   if (start != 0 || stop != length || step != 1) {
-    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", start, stop, step);
+    fprintf(stream, "%s  start: %" CeedSize_FMT "\n%s  stop:  %" CeedSize_FMT "\n%s  step:  %" CeedInt_FMT "\n", tabs, start, tabs, stop, tabs, step);
   }
   if (start > length) start = length;
   if (stop == -1 || stop > length) stop = length;
 
-  snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
+  snprintf(fmt, sizeof fmt, "%s  %s\n", tabs, fp_fmt ? fp_fmt : "%g");
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
   for (CeedSize i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
   CeedCall(CeedVectorRestoreArrayRead(vec, &x));
-  if (stop != length) fprintf(stream, "  ...\n");
+  if (stop != length) fprintf(stream, "%s  ...\n", tabs);
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1063,8 +1180,7 @@ int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
   @ref Advanced
 **/
 int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedVectorReturnCeed(vec), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)vec, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1077,7 +1193,7 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 
   @ref Advanced
 **/
-Ceed CeedVectorReturnCeed(CeedVector vec) { return vec->ceed; }
+Ceed CeedVectorReturnCeed(CeedVector vec) { return CeedObjectReturnCeed((CeedObject)vec); }
 
 /**
   @brief Get the length of a `CeedVector`
@@ -1104,16 +1220,15 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
-  if (!*vec || *vec == CEED_VECTOR_ACTIVE || *vec == CEED_VECTOR_NONE || --(*vec)->ref_count > 0) {
+  if (!*vec || *vec == CEED_VECTOR_ACTIVE || *vec == CEED_VECTOR_NONE || CeedObjectDereference((CeedObject)*vec) > 0) {
     *vec = NULL;
     return CEED_ERROR_SUCCESS;
   }
-  CeedCheck((*vec)->state % 2 == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
-  CeedCheck((*vec)->num_readers == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
+  CeedCheck((*vec)->state % 2 == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
+  CeedCheck((*vec)->num_readers == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
-
-  CeedCall(CeedDestroy(&(*vec)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*vec)->obj));
   CeedCall(CeedFree(vec));
   return CEED_ERROR_SUCCESS;
 }

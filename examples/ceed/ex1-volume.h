@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -14,11 +14,12 @@ struct BuildContext {
 
 /// libCEED Q-function for building quadrature data for a mass operator
 CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  struct BuildContext *build_data = (struct BuildContext *)ctx;
+
   // in[0] is Jacobians with shape [dim, dim, Q]
   // in[1] is quadrature weights with shape [1, Q]
-  const CeedScalar    *w          = in[1];
-  CeedScalar          *q_data     = out[0];
-  struct BuildContext *build_data = (struct BuildContext *)ctx;
+  const CeedScalar *w      = in[1];
+  CeedScalar       *q_data = out[0];
 
   switch (build_data->dim + 10 * build_data->space_dim) {
     case 11: {

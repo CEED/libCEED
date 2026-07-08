@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -42,6 +42,7 @@ int CeedDestroy_Cuda(Ceed ceed) {
 
   CeedCallBackend(CeedGetData(ceed, &data));
   if (data->cublas_handle) CeedCallCublas(ceed, cublasDestroy(data->cublas_handle));
+  CeedCallBackend(CeedFree(&data->llvm_cxx));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

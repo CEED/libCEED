@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -37,8 +37,11 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -80,8 +83,8 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
                                                       thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -92,8 +95,8 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
                                                       thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       }
     } break;
@@ -289,9 +292,9 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
     if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
-                                     CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
-                                     "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points));
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points_shared", &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D",
+                                     P_1d, "BASIS_T_1D", CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES",
+                                     CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAddAtPoints", &data->InterpTransposeAddAtPoints));
@@ -302,8 +305,11 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
   // Get read/write access to u, v
   CeedCallBackend(CeedVectorGetArrayRead(x_ref, CEED_MEM_DEVICE, &d_x));
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -331,8 +337,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, 1, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, 1, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 2) {
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
@@ -345,8 +351,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -357,8 +363,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAddAtPoints : data->InterpTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      interp_args));
         }
       }
     } break;
@@ -394,8 +400,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      grad_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -406,8 +412,8 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAddAtPoints : data->GradTransposeAtPoints, NULL, grid,
                                                       thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradAtPoints, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem,
+                                                      grad_args));
         }
       }
     } break;
@@ -460,8 +466,11 @@ static int CeedBasisApplyNonTensorCore_Cuda_shared(CeedBasis basis, bool apply_a
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  } else {
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  }
   if (apply_add) {
     CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
   } else {
@@ -627,18 +636,21 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   }
 
   // Compile basis kernels
+  bool       is_collocated         = false;
   const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_T_1D",
-                                   CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
-                                   "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTranspose", &data->GradTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_tensor_shared", &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                   "BASIS_T_1D", CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES",
+                                   CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
+  CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTransposeAdd" : "InterpTransposeAdd",
+                                     &data->InterpTransposeAdd));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocated" : "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTranspose" : "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "GradCollocatedTransposeAdd" : "GradTransposeAdd", &data->GradTransposeAdd));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Weight", &data->Weight));
 
   CeedCallBackend(CeedBasisSetData(basis, data));
@@ -704,8 +716,8 @@ int CeedBasisCreateH1_Cuda_shared(CeedElemTopology topo, CeedInt dim, CeedInt nu
   const char basis_kernel_source[] = "// Non-tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-nontensor.h>\n";
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_T_1D",
-                                   CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_nontensor_shared", &data->module, 5, "BASIS_Q", num_qpts, "BASIS_P",
+                                   num_nodes, "BASIS_T_1D", CeedIntMax(num_qpts, num_nodes), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));

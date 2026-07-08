@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -106,7 +106,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   code << "}\n";
 
   // Compile kernel
-  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 0));
+  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), (std::string("qfunction_") + qfunction_name).c_str(), &data->module, 0));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;

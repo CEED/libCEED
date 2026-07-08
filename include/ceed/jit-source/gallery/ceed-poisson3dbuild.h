@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -24,12 +24,14 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Compute the adjoint
     CeedScalar A[3][3];
-    for (CeedInt j = 0; j < dim; j++)
-      for (CeedInt k = 0; k < dim; k++)
+    for (CeedInt j = 0; j < dim; j++) {
+      for (CeedInt k = 0; k < dim; k++) {
         // Equivalent code with no mod operations:
         // A[k][j] = J[k+1][j+1]*J[k+2][j+2] - J[k+2][j+1]*J[k+1][j+2]
         A[k][j] = J[(k + 1) % dim][(j + 1) % dim][i] * J[(k + 2) % dim][(j + 2) % dim][i] -
                   J[(k + 2) % dim][(j + 1) % dim][i] * J[(k + 1) % dim][(j + 2) % dim][i];
+      }
+    }
 
     // Compute quadrature weight / det(J)
     const CeedScalar qw = w[i] / (J[0][0][i] * A[0][0] + J[0][1][i] * A[0][1] + J[0][2][i] * A[0][2]);
@@ -46,6 +48,5 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
     q_data[4][i] = qw * (A[0][0] * A[2][0] + A[0][1] * A[2][1] + A[0][2] * A[2][2]);
     q_data[5][i] = qw * (A[0][0] * A[1][0] + A[0][1] * A[1][1] + A[0][2] * A[1][2]);
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

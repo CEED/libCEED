@@ -1,3 +1,5 @@
+# libCEED deal.II Example
+
 An example how to write libCEED operators (BP1-BP6) within the open-source finite element library [deal.II](https://www.dealii.org/).
 As reference, operators are presented that use the native matrix-free infrastructure.
 
@@ -10,10 +12,14 @@ cmake ../ -DDEAL_II_DIR=~/path/to/dealii -DCEED_DIR=~/path/to/libceed
 make
 ```
 
-To run the executable, write:
+To run the executables, write:
 
 ```
-./bps
+./bps_cpu
+```
+
+```
+./bps_kokkos
 ```
 
 Optional command-line arguments are shown by adding the command-line argument "--help".

@@ -69,11 +69,11 @@ collection `ops`.
 """
 function create_composite_operator(c::Ceed, ops)
     ref = Ref{C.CeedOperator}()
-    C.CeedCompositeOperatorCreate(c[], ref)
+    C.CeedOperatorCreateComposite(c[], ref)
     comp_op = Operator(ref, QFunctionNone(), QFunctionNone(), QFunctionNone())
     comp_op.sub_ops = ops
     for op ∈ ops
-        C.CeedCompositeOperatorAddSub(comp_op[], op[])
+        C.CeedOperatorCompositeAddSub(comp_op[], op[])
     end
     comp_op
 end

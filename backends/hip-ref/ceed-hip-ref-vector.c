@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -115,7 +115,9 @@ static int CeedVectorSyncArray_Hip(const CeedVector vec, CeedMemType mem_type) {
     case CEED_MEM_DEVICE:
       return CeedVectorSyncH2D_Hip(vec);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -270,7 +272,9 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Hip(vec, copy_mode, array);
   }
+  // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
@@ -536,12 +540,18 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, CeedMemType mem_typ
     // Select dirty array
     switch (mem_type) {
       case CEED_MEM_HOST:
-        if (impl->h_array_borrowed) impl->h_array = impl->h_array_borrowed;
-        else impl->h_array = impl->h_array_owned;
+        if (impl->h_array_borrowed) {
+          impl->h_array = impl->h_array_borrowed;
+        } else {
+          impl->h_array = impl->h_array_owned;
+        }
         break;
       case CEED_MEM_DEVICE:
-        if (impl->d_array_borrowed) impl->d_array = impl->d_array_borrowed;
-        else impl->d_array = impl->d_array_owned;
+        if (impl->d_array_borrowed) {
+          impl->d_array = impl->d_array_borrowed;
+        } else {
+          impl->d_array = impl->d_array_owned;
+        }
     }
   }
   return CeedVectorGetArray_Hip(vec, mem_type, array);

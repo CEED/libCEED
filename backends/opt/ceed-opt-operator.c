@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -102,9 +102,11 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
           CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, block_size, num_comp, l_size, strides,
                                                                   &block_rstr[i + start_e]));
         } break;
+        // LCOV_EXCL_START
         case CEED_RESTRICTION_POINTS:
           // Empty case - won't occur
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCallBackend(CeedDestroy(&ceed_rstr));
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
@@ -410,8 +412,8 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunctio
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) vec = out_vec;
     // Restrict
-    CeedCallBackend(
-        CeedElemRestrictionApplyBlock(impl->block_rstr[i + impl->num_inputs], e / block_size, CEED_TRANSPOSE, impl->e_vecs_out[i], vec, request));
+    CeedCallBackend(CeedElemRestrictionApplyBlock(impl->block_rstr[i + impl->num_inputs], e / block_size, CEED_TRANSPOSE, impl->e_vecs_out[i], vec,
+                                                  request));
     if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
   }
   return CEED_ERROR_SUCCESS;
@@ -493,8 +495,8 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector in_vec, CeedVect
   // Loop through elements
   for (CeedInt e = 0; e < num_blocks * block_size; e += block_size) {
     // Input basis apply
-    CeedCallBackend(
-        CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, in_vec, false, e_data, impl, request));
+    CeedCallBackend(CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, in_vec, false, e_data, impl,
+                                               request));
 
     // Q function
     if (!impl->is_identity_qf) {
@@ -561,7 +563,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) {
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         qf_size_in += field_size;
       }
       CeedCallBackend(CeedVectorDestroy(&vec));
@@ -618,14 +619,26 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }
 
-  // Loop through elements
+  // Clear input QFunction buffers
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    // Clear if active input
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+
+  // Clear output vector
   CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
+
+  // Loop through elements
   for (CeedInt e = 0; e < num_blocks * block_size; e += block_size) {
     CeedCallBackend(CeedVectorGetArray(l_vec, CEED_MEM_HOST, &l_vec_array));
 
     // Input basis apply
-    CeedCallBackend(
-        CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, NULL, true, e_data, impl, request));
+    CeedCallBackend(CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, NULL, true, e_data, impl,
+                                               request));
 
     // Assemble QFunction
     for (CeedInt i = 0; i < num_input_fields; i++) {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -544,8 +544,10 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   }
 
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
-  if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
-  else T_inlet = P_inlet = 1.;
+  if (euler_test == 1 || euler_test == 2)
+    T_inlet = P_inlet = .4;
+  else
+    T_inlet = P_inlet = 1.;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];

@@ -17,8 +17,10 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
 static CeedScalar EvalGrad(CeedInt dim, const CeedScalar x[], CeedInt direction) {
   CeedScalar result = 1, center = 0.1;
   for (CeedInt d = 0; d < dim; d++) {
-    if (d == direction) result *= 1.0 / cosh(x[d] - center) / cosh(x[d] - center);
-    else result *= tanh(x[d] - center);
+    if (d == direction)
+      result *= 1.0 / cosh(x[d] - center) / cosh(x[d] - center);
+    else
+      result *= tanh(x[d] - center);
     center += 0.1;
   }
   return result;

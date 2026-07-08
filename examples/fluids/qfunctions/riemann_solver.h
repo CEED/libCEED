@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -238,9 +238,9 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(NewtonianIdeal
                                                                   StateConservative dF_side, const CeedScalar normal[3], CeedScalar u_side,
                                                                   CeedScalar du_side, CeedScalar s_side, CeedScalar ds_side, CeedScalar s_star,
                                                                   CeedScalar ds_star) {
-  CeedScalar fact  = side.U.density * (s_side - u_side) / (s_side - s_star);
-  CeedScalar dfact = (side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side)) / (s_side - s_star)  //
-                     - fact / (s_side - s_star) * (ds_side - ds_star);
+  CeedScalar fact   = side.U.density * (s_side - u_side) / (s_side - s_star);
+  CeedScalar dfact  = (side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side)) / (s_side - s_star)  //
+                      - fact / (s_side - s_star) * (ds_side - ds_star);
   CeedScalar denom  = side.U.density * (s_side - u_side);
   CeedScalar ddenom = side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side);
 
@@ -317,15 +317,15 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasCo
   // Contact wave speed; Toro (10.37)
   CeedScalar rhou_left = left.U.density * u_left, drhou_left = left.U.density * du_left + dleft.U.density * u_left;
   CeedScalar rhou_right = right.U.density * u_right, drhou_right = right.U.density * du_right + dright.U.density * u_right;
-  CeedScalar numer = right.Y.pressure - left.Y.pressure  //
-                     + rhou_left * (s_left - u_left)     //
-                     - rhou_right * (s_right - u_right);
-  CeedScalar dnumer = dright.Y.pressure - dleft.Y.pressure                                //
-                      + rhou_left * (ds_left - du_left) + drhou_left * (s_left - u_left)  //
-                      - rhou_right * (ds_right - du_right) - drhou_right * (s_right - u_right);
-  CeedScalar denom  = left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right);
-  CeedScalar ddenom = left.U.density * (ds_left - du_left) + dleft.U.density * (s_left - u_left)  //
-                      - right.U.density * (ds_right - du_right) - dright.U.density * (s_right - u_right);
+  CeedScalar numer   = right.Y.pressure - left.Y.pressure  //
+                       + rhou_left * (s_left - u_left)     //
+                       - rhou_right * (s_right - u_right);
+  CeedScalar dnumer  = dright.Y.pressure - dleft.Y.pressure                                //
+                       + rhou_left * (ds_left - du_left) + drhou_left * (s_left - u_left)  //
+                       - rhou_right * (ds_right - du_right) - drhou_right * (s_right - u_right);
+  CeedScalar denom   = left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right);
+  CeedScalar ddenom  = left.U.density * (ds_left - du_left) + dleft.U.density * (s_left - u_left)  //
+                       - right.U.density * (ds_right - du_right) - dright.U.density * (s_right - u_right);
   CeedScalar s_star  = numer / denom;
   CeedScalar ds_star = dnumer / denom - numer / Square(denom) * ddenom;
 

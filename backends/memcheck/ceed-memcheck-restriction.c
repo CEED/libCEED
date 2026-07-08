@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -52,8 +52,11 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(CeedE
   CeedInt strides[3] = {0};
 
   CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
-  if (has_backend_strides) CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
-  else CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  if (has_backend_strides) {
+    CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
+  } else {
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  }
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
@@ -198,8 +201,11 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(CeedEle
   CeedInt strides[3] = {0};
 
   CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
-  if (has_backend_strides) CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
-  else CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  if (has_backend_strides) {
+    CeedCallBackend(CeedElemRestrictionGetBackendStrides_Memcheck(rstr, strides));
+  } else {
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+  }
 
   // Apply restriction
   for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
@@ -420,8 +426,8 @@ static inline int CeedElemRestrictionApply_Memcheck_Core(CeedElemRestriction rst
     // Sum into for transpose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset,
+                                                                               uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetTranspose_Memcheck_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem,
@@ -460,8 +466,8 @@ static inline int CeedElemRestrictionApply_Memcheck_Core(CeedElemRestriction rst
     // Overwrite for notranspose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedCallBackend(
-            CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
+        CeedCallBackend(CeedElemRestrictionApplyStridedNoTranspose_Memcheck_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size,
+                                                                                 v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetNoTranspose_Memcheck_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem,
@@ -760,8 +766,8 @@ int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCopyMode copy_m
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApplyUnsigned_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApplyUnoriented_Memcheck));
   if (rstr_type == CEED_RESTRICTION_POINTS) {
-    CeedCallBackend(
-        CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement", CeedElemRestrictionApplyAtPointsInElement_Memcheck));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement",
+                                           CeedElemRestrictionApplyAtPointsInElement_Memcheck));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyBlock", CeedElemRestrictionApplyBlock_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Memcheck));

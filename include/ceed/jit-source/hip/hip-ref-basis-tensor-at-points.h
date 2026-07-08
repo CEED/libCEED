@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -15,21 +15,22 @@
 template <int Q_1D>
 inline __device__ void ChebyshevPolynomialsAtPoint(const CeedScalar x, CeedScalar *chebyshev_x) {
   chebyshev_x[0] = 1.0;
-  chebyshev_x[1] = 2 * x;
+  chebyshev_x[1] = x;
   for (CeedInt i = 2; i < Q_1D; i++) chebyshev_x[i] = 2 * x * chebyshev_x[i - 1] - chebyshev_x[i - 2];
 }
 
 template <int Q_1D>
 inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar *chebyshev_dx) {
-  CeedScalar chebyshev_x[3];
+  CeedScalar chebyshev_x[2];
 
-  chebyshev_x[1]  = 1.0;
-  chebyshev_x[2]  = 2 * x;
+  chebyshev_x[0]  = 1.0;
+  chebyshev_x[1]  = 2 * x;
   chebyshev_dx[0] = 0.0;
-  chebyshev_dx[1] = 2.0;
+  chebyshev_dx[1] = 1.0;
   for (CeedInt i = 2; i < Q_1D; i++) {
-    chebyshev_x[(i + 1) % 3] = 2 * x * chebyshev_x[(i + 0) % 3] - chebyshev_x[(i + 2) % 3];
-    chebyshev_dx[i]          = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[(i + 0) % 3] - chebyshev_dx[i - 2];
+    // dT_i/dx = i * dU_{i-1}/dx
+    chebyshev_dx[i]    = i * chebyshev_x[(i + 1) % 2];
+    chebyshev_x[i % 2] = 2 * x * chebyshev_x[(i + 1) % 2] - chebyshev_x[i % 2];
   }
 }
 
@@ -207,8 +208,11 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-          if (d == BASIS_DIM - 1) out[k] += v_k;
-          else out[k] = v_k;
+          if (d == BASIS_DIM - 1) {
+            out[k] += v_k;
+          } else {
+            out[k] = v_k;
+          }
         }
         post *= P;
       }
@@ -288,8 +292,11 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
             CeedScalar       *out = dim_2 == BASIS_DIM - 1 ? (&cur_v[p]) : (dim_2 % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
-            if (dim_1 == dim_2) ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
-            else ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
+            if (dim_1 == dim_2) {
+              ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
+            } else {
+              ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * v_stride + dim_2 * v_comp_stride + p], chebyshev_x);
+            }
 
             // Contract along middle index
             for (CeedInt a = 0; a < pre; a++) {
@@ -361,8 +368,11 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
             CeedScalar       *out = dim_2 == BASIS_DIM - 1 ? s_chebyshev_coeffs : (dim_2 % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
-            if (dim_1 == dim_2) ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
-            else ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
+            if (dim_1 == dim_2) {
+              ChebyshevDerivativeAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
+            } else {
+              ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * u_stride + dim_2 * u_comp_stride + p], chebyshev_x);
+            }
 
             // Contract along middle index
             for (CeedInt a = 0; a < pre; a++) {
@@ -398,8 +408,11 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-          if (d == BASIS_DIM - 1) out[k] += v_k;
-          else out[k] = v_k;
+          if (d == BASIS_DIM - 1) {
+            out[k] += v_k;
+          } else {
+            out[k] = v_k;
+          }
         }
         post *= P;
       }

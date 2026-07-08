@@ -137,8 +137,10 @@ static std::vector<byte> compileToSPIRV(const std::string &Source, sycl::info::d
   std::string CombinedUserArgs;
   for (auto UserArg : UserArgs) {
     if (UserArg == "") continue;
-    if (CombinedUserArgs != "") CombinedUserArgs = CombinedUserArgs + " " + UserArg;
-    else CombinedUserArgs = UserArg;
+    if (CombinedUserArgs != "")
+      CombinedUserArgs = CombinedUserArgs + " " + UserArg;
+    else
+      CombinedUserArgs = UserArg;
   }
   std::vector<const char *> Args = prepareOclocArgs(DeviceType, DeviceArch, Is64Bit, DeviceStepping, CombinedUserArgs);
 

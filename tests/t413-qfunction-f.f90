@@ -15,6 +15,8 @@
 
       call ceedqfunctionview(qf_setup,err)
       call ceedqfunctionview(qf_mass,err)
+      call ceedqfunctionsetnumviewtabs(qf_mass,1,err)
+      call ceedqfunctionview(qf_mass,err)
 
       call ceedqfunctiondestroy(qf_setup,err)
       call ceedqfunctiondestroy(qf_mass,err)

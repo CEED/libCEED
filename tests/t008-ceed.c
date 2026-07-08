@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   sprintf(help_resource, "help:%s", argv[1]);
 
   CeedInit(help_resource, &ceed);
-  CeedDestroy(&ceed);
 
+  CeedDestroy(&ceed);
   return 0;
 }

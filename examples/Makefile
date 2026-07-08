@@ -36,6 +36,9 @@ all: ceed mfem nek petsc fluids solids
 ceed:
 	make CEED_DIR=$(CEED_DIR) -C ceed all
 
+dealii:
+	$(RM) -rf deal.II/build
+
 mfem:
 	make CEED_DIR=$(CEED_DIR) MFEM_DIR=$(MFEM_DIR) -C mfem all
 
@@ -53,10 +56,12 @@ fluids:
 
 solids:
 	make CEED_DIR=$(CEED_DIR) PETSC_DIR=$(PETSC_DIR) PETSC_ARCH=$(PETSC_ARCH) -C solids all
-clean:
+
+clean: dealii
 	+make -C ceed clean
 	+make -C mfem clean
 	+make -C nek clean
+	+make -C rust-qfunctions clean
 	+make -C petsc clean
 	+make -C fluids clean
 	+make -C solids clean

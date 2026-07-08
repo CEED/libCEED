@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -221,8 +221,11 @@ static inline int CeedOperatorSetupInputs_Ref(CeedInt num_input_fields, CeedQFun
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) {
-      if (skip_active) continue;
-      else vec = in_vec;
+      if (skip_active) {
+        continue;
+      } else {
+        vec = in_vec;
+      }
     }
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
@@ -427,8 +430,8 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_NONE) {
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &size));
-        CeedCallBackend(
-            CeedVectorSetArray(impl->q_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i + num_input_fields][(CeedSize)e * Q * size]));
+        CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER,
+                                           &e_data_full[i + num_input_fields][(CeedSize)e * Q * size]));
       }
     }
 
@@ -515,7 +518,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
       // Check if active input
       if (vec == CEED_VECTOR_ACTIVE) {
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         qf_size_in += field_size;
       }
       CeedCallBackend(CeedVectorDestroy(&vec));
@@ -554,6 +556,17 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
     // Create assembled vector
     CeedCallBackend(CeedVectorCreate(ceed_parent, l_size, assembled));
   }
+
+  // Clear input QFunction buffers
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    // Clear if active input
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+
   // Clear output vector
   CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
   CeedCallBackend(CeedVectorGetArray(*assembled, CEED_MEM_HOST, &assembled_array));
@@ -564,7 +577,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
     CeedCallBackend(CeedOperatorInputBasis_Ref(e, Q, qf_input_fields, op_input_fields, num_input_fields, true, e_data_full, impl));
 
     // Assemble QFunction
-
     for (CeedInt i = 0; i < num_input_fields; i++) {
       bool       is_active;
       CeedInt    field_size;
@@ -762,8 +774,8 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
         q_size = (CeedSize)max_num_points;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
-        CeedCallBackend(
-            CeedBasisApplyAtPoints(basis, 1, &max_num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE, q_vecs[i]));
+        CeedCallBackend(CeedBasisApplyAtPoints(basis, 1, &max_num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE,
+                                               q_vecs[i]));
         CeedCallBackend(CeedBasisDestroy(&basis));
         break;
     }
@@ -936,8 +948,8 @@ static inline int CeedOperatorInputBasisAtPoints_Ref(CeedInt e, CeedInt num_poin
           CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
           CeedCallBackend(CeedVectorSetArray(impl->e_vecs_in[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data[i][(CeedSize)e * elem_size * num_comp]));
         }
-        CeedCallBackend(
-            CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_NOTRANSPOSE, eval_mode, point_coords_elem, impl->e_vecs_in[i], impl->q_vecs_in[i]));
+        CeedCallBackend(CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_NOTRANSPOSE, eval_mode, point_coords_elem, impl->e_vecs_in[i],
+                                               impl->q_vecs_in[i]));
         CeedCallBackend(CeedBasisDestroy(&basis));
         break;
       case CEED_EVAL_WEIGHT:
@@ -985,8 +997,8 @@ static inline int CeedOperatorOutputBasisAtPoints_Ref(CeedInt e, CeedInt num_poi
           CeedCallBackend(CeedBasisApplyAddAtPoints(basis, 1, &num_points, CEED_TRANSPOSE, eval_mode, point_coords_elem, impl->q_vecs_out[i],
                                                     impl->e_vecs_out[i]));
         } else {
-          CeedCallBackend(
-              CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_TRANSPOSE, eval_mode, point_coords_elem, impl->q_vecs_out[i], impl->e_vecs_out[i]));
+          CeedCallBackend(CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_TRANSPOSE, eval_mode, point_coords_elem, impl->q_vecs_out[i],
+                                                 impl->e_vecs_out[i]));
         }
         CeedCallBackend(CeedBasisDestroy(&basis));
         break;
@@ -1054,6 +1066,7 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
     // Setup points for element
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
@@ -1171,7 +1184,6 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
         }
         // Get size of active output
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         qf_size_out += field_size;
       }
       CeedCallBackend(CeedVectorDestroy(&vec));
@@ -1196,6 +1208,17 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
     // Create assembled vector
     CeedCallBackend(CeedElemRestrictionCreateVector(*rstr, assembled, NULL));
   }
+
+  // Clear input QFunction buffers
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    // Clear if active input
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+
   // Clear output vector
   CeedCallBackend(CeedVectorSetValue(*assembled, 0.0));
   CeedCallBackend(CeedVectorGetArray(*assembled, CEED_MEM_HOST, &assembled_array));
@@ -1207,6 +1230,7 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
     // Setup points for element
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, NULL,
@@ -1390,6 +1414,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
     // Setup points for element
     CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, request));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply for non-active bases
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
@@ -1413,8 +1438,11 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
       is_active_at_points = rstr_type == CEED_RESTRICTION_POINTS;
-      if (!is_active_at_points) CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
-      else elem_size_active = num_points;
+      if (!is_active_at_points) {
+        CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
+      } else {
+        elem_size_active = num_points;
+      }
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 
@@ -1527,7 +1555,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
 //------------------------------------------------------------------------------
 // Assemble Operator AtPoints
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleAtPoints_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
+static int CeedOperatorAssembleSingleAtPoints_Ref(CeedOperator op, CeedInt offset, CeedVector values) {
   CeedInt             num_points_offset = 0, num_input_fields, num_output_fields, num_elem, num_comp_active = 1;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0}, *assembled;
   Ceed                ceed;
@@ -1593,9 +1621,10 @@ static int CeedSingleOperatorAssembleAtPoints_Ref(CeedOperator op, CeedInt offse
     CeedInt num_points, e_vec_size = 0;
 
     // Setup points for element
-    CeedCallBackend(
-        CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem, CEED_REQUEST_IMMEDIATE));
+    CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(rstr_points, e, CEED_NOTRANSPOSE, point_coords, impl->point_coords_elem,
+                                                              CEED_REQUEST_IMMEDIATE));
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points));
+    if (num_points < 1) continue;
 
     // Input basis apply for non-active bases
     CeedCallBackend(CeedOperatorInputBasisAtPoints_Ref(e, num_points_offset, num_points, qf_input_fields, op_input_fields, num_input_fields, in_vec,
@@ -1619,8 +1648,11 @@ static int CeedSingleOperatorAssembleAtPoints_Ref(CeedOperator op, CeedInt offse
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
       is_active_at_points = rstr_type == CEED_RESTRICTION_POINTS;
-      if (!is_active_at_points) CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
-      else elem_size_active = num_points;
+      if (!is_active_at_points) {
+        CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size_active));
+      } else {
+        elem_size_active = num_points;
+      }
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp_active));
       CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
 
@@ -1795,10 +1827,10 @@ int CeedOperatorCreateAtPoints_Ref(CeedOperator op) {
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunctionAtPoints_Ref));
-  CeedCallBackend(
-      CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionAtPointsUpdate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate",
+                                         CeedOperatorLinearAssembleQFunctionAtPointsUpdate_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal", CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedSingleOperatorAssembleAtPoints_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingleAtPoints_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAddAtPoints_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Ref));
   CeedCallBackend(CeedDestroy(&ceed));

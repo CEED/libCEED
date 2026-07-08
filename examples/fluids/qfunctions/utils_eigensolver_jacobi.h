@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -172,8 +172,10 @@ CEED_QFUNCTION_HELPER void ApplyRot(CeedScalar *A, CeedInt N, CeedInt i, CeedInt
   for (CeedInt w = 0; w < i; w++) {                                              // 0 <= w <  i  <  j < N
     A[i * N + w] = A[w * N + i];                                                 // backup the previous value. store below diagonal (i>w)
     A[w * N + i] = rotmat_cst[0] * A[w * N + i] - rotmat_cst[1] * A[w * N + j];  // A[w][i], A[w][j] from previous iteration
-    if (i == max_idx_row[w]) max_idx_row[w] = MaxEntryRow(A, N, w);
-    else if (fabs(A[w * N + i]) > fabs(A[w * N + max_idx_row[w]])) max_idx_row[w] = i;
+    if (i == max_idx_row[w])
+      max_idx_row[w] = MaxEntryRow(A, N, w);
+    else if (fabs(A[w * N + i]) > fabs(A[w * N + max_idx_row[w]]))
+      max_idx_row[w] = i;
   }
   for (CeedInt w = i + 1; w < j; w++) {                                          // 0 <= i <  w  <  j < N
     A[w * N + i] = A[i * N + w];                                                 // backup the previous value. store below diagonal (w>i)
@@ -190,13 +192,17 @@ CEED_QFUNCTION_HELPER void ApplyRot(CeedScalar *A, CeedInt N, CeedInt i, CeedInt
   // compute A[w][j] and A[j][w] for all w!=j,considering above-diagonal elements
   for (CeedInt w = 0; w < i; w++) {                                              // 0 <=  w  <  i <  j < N
     A[w * N + j] = rotmat_cst[1] * A[i * N + w] + rotmat_cst[0] * A[w * N + j];  // A[i][w], A[w][j] from previous iteration
-    if (j == max_idx_row[w]) max_idx_row[w] = MaxEntryRow(A, N, w);
-    else if (fabs(A[w * N + j]) > fabs(A[w * N + max_idx_row[w]])) max_idx_row[w] = j;
+    if (j == max_idx_row[w])
+      max_idx_row[w] = MaxEntryRow(A, N, w);
+    else if (fabs(A[w * N + j]) > fabs(A[w * N + max_idx_row[w]]))
+      max_idx_row[w] = j;
   }
   for (CeedInt w = i + 1; w < j; w++) {                                          // 0 <= i+1 <= w <  j < N
     A[w * N + j] = rotmat_cst[1] * A[w * N + i] + rotmat_cst[0] * A[w * N + j];  // A[w][i], A[w][j] from previous iteration
-    if (j == max_idx_row[w]) max_idx_row[w] = MaxEntryRow(A, N, w);
-    else if (fabs(A[w * N + j]) > fabs(A[w * N + max_idx_row[w]])) max_idx_row[w] = j;
+    if (j == max_idx_row[w])
+      max_idx_row[w] = MaxEntryRow(A, N, w);
+    else if (fabs(A[w * N + j]) > fabs(A[w * N + max_idx_row[w]]))
+      max_idx_row[w] = j;
   }
   for (CeedInt w = j + 1; w < N; w++) {                                          // 0 <=  i  <  j <  w < N
     A[j * N + w] = rotmat_cst[1] * A[w * N + i] + rotmat_cst[0] * A[j * N + w];  // A[w][i], A[j][w] from previous iteration

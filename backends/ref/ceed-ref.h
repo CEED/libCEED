@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -33,7 +33,7 @@ typedef struct {
 
 typedef struct {
   CeedScalar *collo_grad_1d;
-  bool        has_collo_interp;
+  bool        is_collocated;
 } CeedBasis_Ref;
 
 typedef struct {

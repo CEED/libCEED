@@ -24,9 +24,12 @@ def create_argparser() -> argparse.ArgumentParser:
         help='Output mode, junit or tap',
         default=RunMode.JUNIT)
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
-    parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
+    parser.add_argument('-s', '--search', type=str, default='.*',
+                        help='Search string to filter tests, using `re` package format')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help='print details for all runs, not just failures')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -47,6 +50,8 @@ class CeedSuiteSpec(SuiteSpec):
             Path: Path to source file
         """
         prefix, rest = test.split('-', 1)
+        if prefix == 'rustqfunctions':
+            return (Path('examples') / 'rust-qfunctions' / rest).with_suffix('.c')
         if prefix == 'petsc':
             return (Path('examples') / 'petsc' / rest).with_suffix('.c')
         elif prefix == 'mfem':
@@ -60,7 +65,10 @@ class CeedSuiteSpec(SuiteSpec):
         elif prefix == 'solids':
             return (Path('examples') / 'solids' / rest).with_suffix('.c')
         elif test.startswith('ex'):
-            return (Path('examples') / 'ceed' / test).with_suffix('.c')
+            if test.endswith('-f'):
+                return (Path('examples') / 'ceed' / test).with_suffix('.f90')
+            else:
+                return (Path('examples') / 'ceed' / test).with_suffix('.c')
         elif test.endswith('-f'):
             return (Path('tests') / test).with_suffix('.f90')
         else:
@@ -102,9 +110,6 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             Optional[str]: Skip reason, or `None` if test case should not be skipped
         """
-        if contains_any(resource, ['occa']) and startswith_any(
-                test, ['t4', 't5', 'ex', 'mfem', 'nek', 'petsc', 'fluids', 'solids']):
-            return 'OCCA mode not supported'
         if test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']):
             return 'CUDA ref backend not supported'
         if test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']):
@@ -125,9 +130,7 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             Optional[str]: Skip reason, or `None` if unexpeced error
         """
-        if 'OCCA backend failed to use' in stderr:
-            return f'OCCA mode not supported'
-        elif 'Backend does not implement' in stderr:
+        if 'Backend does not implement' in stderr:
             return f'Backend does not implement'
         elif 'Can only provide HOST memory for this backend' in stderr:
             return f'Device memory not supported'
@@ -201,10 +204,12 @@ if __name__ == '__main__':
         args.mode,
         args.nproc,
         CeedSuiteSpec(),
-        args.pool_size)
+        args.pool_size,
+        search=args.search,
+        verbose=args.verbose)
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:
-        write_junit_xml(result, args.output, args.junit_batch)
+        write_junit_xml(result, args.junit_batch)
         if has_failures(result):
             sys.exit(1)

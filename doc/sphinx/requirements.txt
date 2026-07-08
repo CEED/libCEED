@@ -10,4 +10,5 @@ sphinxcontrib-katex
 sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
 sphinxext-altair
+sphinxext-rediraffe
 docutils

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -46,21 +46,21 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 #include "include/structs.h"
 
 int main(int argc, char **argv) {
-  MPI_Comm comm;
-  char     filename[PETSC_MAX_PATH_LEN], ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  double   my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt degree = 3, q_extra, *l_size, *xl_size, *g_size, dim = 3, fine_level, mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree,
-           *level_degrees;
-  PetscScalar           eps = 1.0;
-  PetscBool             test_mode, benchmark_mode, read_mesh, write_solution, simplex;
-  PetscLogStage         solve_stage;
-  PetscLogEvent         assemble_event;
-  DM                   *dm, dm_orig;
-  KSP                   ksp;
-  PC                    pc;
-  Mat                  *mat_O, *mat_pr, mat_coarse;
-  Vec                  *X, *X_loc, *mult, rhs, rhs_loc;
-  PetscMemType          mem_type;
+  MPI_Comm      comm;
+  char          filename[PETSC_MAX_PATH_LEN], ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  double        my_rt_start, my_rt, rt_min, rt_max;
+  PetscInt      degree = 3, q_extra, *l_size, *xl_size, *g_size, dim = 3, fine_level, mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree,
+                *level_degrees;
+  PetscScalar   eps = 1.0;
+  PetscBool     test_mode, benchmark_mode, read_mesh, write_solution, simplex;
+  PetscLogStage solve_stage;
+  PetscLogEvent assemble_event;
+  DM           *dm, dm_orig;
+  KSP           ksp;
+  PC            pc;
+  Mat          *mat_O, *mat_pr, mat_coarse;
+  Vec          *X, *X_loc, *mult, rhs, rhs_loc;
+  PetscMemType  mem_type;
   OperatorApplyContext *op_apply_ctx, op_error_ctx;
   ProlongRestrContext  *pr_restr_ctx;
   Ceed                  ceed;
@@ -131,10 +131,12 @@ int main(int argc, char **argv) {
       const char *resolved;
 
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-      else vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vec_type = VECHIP;
+      else
+        vec_type = VECSTANDARD;
     }
   }
   PetscCall(DMSetVecType(dm_orig, vec_type));

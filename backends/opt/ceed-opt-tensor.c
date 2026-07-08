@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -43,8 +43,11 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
     for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
   }
 
-  if (C == 1) return CeedTensorContractApply_Core_Opt(contract, A, B, 1, J, t, t_mode, add, u, v);
-  else return CeedTensorContractApply_Core_Opt(contract, A, B, C, J, t, t_mode, add, u, v);
+  if (C == 1) {
+    return CeedTensorContractApply_Core_Opt(contract, A, B, 1, J, t, t_mode, add, u, v);
+  } else {
+    return CeedTensorContractApply_Core_Opt(contract, A, B, C, J, t, t_mode, add, u, v);
+  }
   return CEED_ERROR_SUCCESS;
 }
 

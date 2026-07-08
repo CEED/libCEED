@@ -40,7 +40,6 @@ from sphinxcontrib import katex
 extensions = [
     "sphinxext_altair.altairplot",
     "breathe",
-    "hoverxref.extension",
     "sphinx_design",
     "myst_parser",
     "sphinx_rtd_theme",
@@ -56,6 +55,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.rsvgconverter",
+    "sphinxext.rediraffe",
 ]
 
 # The following, if true, allows figures, tables and code-blocks to be
@@ -101,14 +101,14 @@ language = "en"
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
+    "doc/README.md",
     "examples/README.md",
-    "examples/ceed/README.md",
-    "examples/fluids/README.md",
-    "examples/nek/README.md",
-    "examples/petsc/README.md",
-    "examples/solid/README.md",
-    "examples/deal.II/README.md",
+    "examples/*/README.md",
 ]
+
+rediraffe_redirects = {
+    "releasenotes.md": "CHANGELOG.md",
+}
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
@@ -160,13 +160,6 @@ html_sidebars = {
         "relations.html",  # needs 'show_related': True theme option to display
         "searchbox.html",
     ]
-}
-
-# hoverxref options
-hoverxref_auto_ref = True
-hoverxref_mathjax = True
-hoverxref_role_types = {
-    "ref": "modal",
 }
 
 latex_macros = r"""

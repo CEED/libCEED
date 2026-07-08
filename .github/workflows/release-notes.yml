@@ -16,13 +16,13 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Check release notes
       run: |
         git fetch origin main
         if git diff origin/main --exit-code include/ceed/*; then
           echo "No public interface changes detected"
-        elif git diff origin/main --exit-code doc/sphinx/source/releasenotes.rst; then
+        elif git diff origin/main --exit-code CHANGELOG.md; then
           echo "API changes detected, but release notes not updated"
           exit 1
         fi

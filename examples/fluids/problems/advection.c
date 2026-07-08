@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -35,7 +35,7 @@ PetscErrorCode CreateKSPMassOperator_AdvectionStabilized(User user, CeedOperator
     CeedOperatorField field;
     PetscInt          sub_op_index = 0;  // will be 0 for the volume op
 
-    PetscCallCeed(ceed, CeedCompositeOperatorGetSubList(user->op_rhs_ctx->op, &sub_ops));
+    PetscCallCeed(ceed, CeedOperatorCompositeGetSubList(user->op_rhs_ctx->op, &sub_ops));
     PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
     PetscCallCeed(ceed, CeedOperatorFieldGetData(field, NULL, &elem_restr_q, &basis_q, NULL));
 
@@ -199,8 +199,8 @@ PetscErrorCode NS_ADVECTION(ProblemData problem, DM dm, void *ctx, SimpleBC bc) 
   }
   if (wind_type == WIND_TRANSLATION && advectionic_type == ADVECTIONIC_BUBBLE_CYLINDER && wind[2] != 0.) {
     wind[2] = 0;
-    PetscCall(
-        PetscPrintf(comm, "Warning! Background wind in the z direction should be zero (-wind_translation x,x,0) with -advection_ic_type cylinder\n"));
+    PetscCall(PetscPrintf(comm,
+                          "Warning! Background wind in the z direction should be zero (-wind_translation x,x,0) with -advection_ic_type cylinder\n"));
   }
   if (stab == STAB_NONE && CtauS != 0) {
     PetscCall(PetscPrintf(comm, "Warning! Use -CtauS only with -stab su or -stab supg\n"));
@@ -298,8 +298,8 @@ PetscErrorCode PRINT_ADVECTION(User user, ProblemData problem, AppCtx app_ctx) {
         PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1]));
         break;
       case 3:
-        PetscCall(
-            PetscPrintf(comm, "    Background Wind                    : %f,%f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]));
+        PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1],
+                              setup_ctx->wind[2]));
         break;
     }
   }

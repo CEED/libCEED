@@ -15,7 +15,7 @@ precision
 libCEEDdev
 Contributing <CONTRIBUTING>
 Code of Conduct <CODE_OF_CONDUCT>
-releasenotes
+Release Notes <CHANGELOG>
 ```
 
 # Indices and tables

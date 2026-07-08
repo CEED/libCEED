@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -126,9 +126,12 @@ int main(int argc, char **argv) {
     case CEED_MEM_DEVICE: {
       const char *resolved;
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vectype = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip")) vectype = VECHIP;
-      else vectype = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vectype = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vectype = VECHIP;
+      else
+        vectype = VECSTANDARD;
     }
   }
   PetscCall(DMSetVecType(dm_orig, vectype));
@@ -405,8 +408,10 @@ int main(int argc, char **argv) {
   PetscCall(PetscMemcpy(res_ctx, jacob_ctx[fine_level], sizeof(*jacob_ctx[fine_level])));
   res_ctx->op = ceed_data[fine_level]->op_residual;
   res_ctx->qf = ceed_data[fine_level]->qf_residual;
-  if (app_ctx->bc_traction_count > 0) res_ctx->neumann_bcs = neumann_bcs;
-  else res_ctx->neumann_bcs = NULL;
+  if (app_ctx->bc_traction_count > 0)
+    res_ctx->neumann_bcs = neumann_bcs;
+  else
+    res_ctx->neumann_bcs = NULL;
   PetscCall(SNESSetFunction(snes, R, FormResidual_Ceed, res_ctx));
 
   // -- Prolongation/Restriction evaluation
@@ -507,7 +512,7 @@ int main(int argc, char **argv) {
         // ---------- Smoother KSP
         PetscCall(PCMGGetSmoother(pc, level, &ksp_smoother));
         PetscCall(KSPSetDM(ksp_smoother, level_dms[level]));
-        PetscCall(KSPSetDMActive(ksp_smoother, PETSC_FALSE));
+        PetscCall(KSPSetDMActive(ksp_smoother, KSP_DMACTIVE_ALL, PETSC_FALSE));
 
         // ---------- Chebyshev options
         PetscCall(KSPSetType(ksp_smoother, KSPCHEBYSHEV));

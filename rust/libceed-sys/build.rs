@@ -6,7 +6,7 @@ use std::process::Command;
 
 fn main() {
     let out_dir = PathBuf::from(env("OUT_DIR").unwrap());
-    let statik = env("CARGO_FEATURE_STATIC").is_some();
+    let shared = env("CARGO_FEATURE_SHARED").is_some();
     let system = env("CARGO_FEATURE_SYSTEM").is_some();
 
     let ceed_pc = if system {
@@ -14,6 +14,7 @@ fn main() {
     } else {
         // Install libceed.a or libceed.so to $OUT_DIR/lib
         let makeflags = env("CARGO_MAKEFLAGS").unwrap();
+        let optflags = env("CARGO_CEED_OPT_FLAGS").unwrap_or_else(|| "".to_string());
         let mut make = Command::new("make");
         make.arg("install")
             .arg(format!("prefix={}", out_dir.to_string_lossy()))
@@ -28,7 +29,10 @@ fn main() {
             .arg("FC=") // Don't try to find Fortran (unused library build/install)
             .env("MAKEFLAGS", makeflags)
             .current_dir("c-src");
-        if statik {
+        if optflags.len() > 0 {
+            make.env("OPT", optflags);
+        }
+        if !shared {
             make.arg("STATIC=1");
         }
         run(&mut make);
@@ -40,7 +44,7 @@ fn main() {
             .into_owned()
     };
     pkg_config::Config::new()
-        .statik(statik)
+        .statik(!shared)
         .atleast_version("0.12.0")
         .probe(&ceed_pc)
         .unwrap();

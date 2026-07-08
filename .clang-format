@@ -1,33 +1,37 @@
 BasedOnStyle: "Google"
 
-AlignAfterOpenBracket:        Align
-AlignArrayOfStructures:       Left
-AlignConsecutiveAssignments:  Consecutive
-AlignConsecutiveDeclarations: Consecutive
-AlignEscapedNewlines:         true
-AlignOperands:                Align
-AllowShortIfStatementsOnASingleLine: AllIfsAndElse
-ColumnLimit:                  150
-ReflowComments:               false
-CommentPragmas:               'TESTARGS'
-DerivePointerAlignment:       false
-IncludeBlocks:                Preserve
+
+AlignAfterOpenBracket:               true
+BreakAfterOpenBracketBracedList:     true
+BreakBeforeCloseBracketBracedList:   true
+AlignArrayOfStructures:              Left
+AlignConsecutiveAssignments:         Consecutive
+AlignConsecutiveDeclarations:        Consecutive
+AlignEscapedNewlines:                true
+AlignOperands:                       Align
+AllowShortIfStatementsOnASingleLine: WithoutElse
+ColumnLimit:                         150
+PenaltyBreakOpenParenthesis:         100
+ReflowComments:                      false
+CommentPragmas:                      'TESTARGS'
+DerivePointerAlignment:              false
+IncludeBlocks:                       Preserve
 IncludeCategories:
-  - Regex:                    '^<ceed/.*\.h>'
-    Priority:                 2
-  - Regex:                    '^<ceed.*\.h>'
-    Priority:                 1
-  - Regex:                    '^<.*/.*\.h>'
-    Priority:                 5
-  - Regex:                    '^<.*\.h>'
-    Priority:                 4
-  - Regex:                    '^<.*>'
-    Priority:                 3
-  - Regex:                    '^".*"'
-    Priority:                 6
-  - Regex:                    '.*'
-    Priority:                 7
+  - Regex:    '^<ceed/.*\.h>'
+    Priority: 2
+  - Regex:    '^<ceed.*\.h>'
+    Priority: 1
+  - Regex:    '^<.*/.*\.h>'
+    Priority: 5
+  - Regex:    '^<.*\.h>'
+    Priority: 4
+  - Regex:    '^<.*>'
+    Priority: 3
+  - Regex:    '^".*"'
+    Priority: 6
+  - Regex:    '.*'
+    Priority: 7
 PointerAlignment:             Right
-TabWidth:                     4
+IndentWidth:                  2
 UseTab:                       Never
 StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff]

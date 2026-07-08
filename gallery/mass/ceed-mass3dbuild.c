@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -16,16 +16,17 @@
 static int CeedQFunctionInit_Mass3DBuild(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Mass3DBuild";
+
   CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 3;
+
   CeedCall(CeedQFunctionAddInput(qf, "dx", dim * dim, CEED_EVAL_GRAD));
   CeedCall(CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT));
   CeedCall(CeedQFunctionAddOutput(qf, "qdata", 1, CEED_EVAL_NONE));
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 15));
-
   return CEED_ERROR_SUCCESS;
 }
 

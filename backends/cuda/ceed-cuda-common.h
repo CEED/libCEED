@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -66,6 +66,7 @@ static const char *cublasGetErrorName(cublasStatus_t error) {
 
 typedef struct {
   int                   device_id;
+  char                 *llvm_cxx;
   cublasHandle_t        cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;

@@ -19,23 +19,23 @@ CeedOperator - setup
       EvalMode: none
       No basis
       Active vector
-CeedOperator - mass
-  15 elements with 8 quadrature points each
-  3 fields
-  2 input fields:
-    Input field 0:
-      Name: "rho"
-      Size: 1
-      EvalMode: none
-      No basis
-    Input field 1:
-      Name: "u"
-      Size: 2
-      EvalMode: interpolation
-      Active vector
-  1 output field:
-    Output field 0:
-      Name: "v"
-      Size: 2
-      EvalMode: interpolation
-      Active vector
+  CeedOperator - mass
+    15 elements with 8 quadrature points each
+    3 fields
+    2 input fields:
+      Input field 0:
+        Name: "rho"
+        Size: 1
+        EvalMode: none
+        No basis
+      Input field 1:
+        Name: "u"
+        Size: 2
+        EvalMode: interpolation
+        Active vector
+    1 output field:
+      Output field 0:
+        Name: "v"
+        Size: 2
+        EvalMode: interpolation
+        Active vector

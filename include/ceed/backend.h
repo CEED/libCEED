@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -73,6 +73,10 @@
 #ifndef CeedPragmaCritical
 #define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
 #endif
+
+/// This macro provides the tab width for viewing Ceed objects.
+/// @ingroup Ceed
+#define CEED_TAB_WIDTH 2
 
 /**
   This enum supplies common colors for CeedDebug256 debugging output.
@@ -182,6 +186,11 @@ CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedStringAllocCopy(const char *source, char **copy);
 CEED_INTERN int CeedFree(void *p);
 
+CEED_INTERN int CeedObjectCreate(Ceed ceed, int (*view_function)(CeedObject, FILE *), int (*destroy_function)(CeedObject *), CeedObject obj);
+CEED_INTERN int CeedObjectReference(CeedObject obj);
+CEED_INTERN int CeedObjectDereference(CeedObject obj);
+CEED_INTERN int CeedObjectDestroy_Private(CeedObject obj);
+
 CEED_INTERN int CeedSetHostBoolArray(const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values, const bool **target_array_owned,
                                      const bool **target_array_borrowed, const bool **target_array);
 CEED_INTERN int CeedSetHostCeedInt8Array(const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values,
@@ -246,9 +255,8 @@ CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);
 CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name);
-CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
-CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource);
+CEED_EXTERN int CeedSetOperatorFallbackCeed(Ceed ceed, Ceed fallback_ceed);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
 CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void));
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
@@ -259,7 +267,9 @@ CEED_EXTERN int CeedRestoreWorkVector(Ceed ceed, CeedVector *vec);
 CEED_EXTERN int CeedClearWorkVectors(Ceed ceed, CeedSize min_len);
 CEED_EXTERN int CeedGetWorkVectorMemoryUsage(Ceed ceed, CeedScalar *usage_mb);
 CEED_EXTERN int CeedGetJitSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***jit_source_roots);
+CEED_EXTERN int CeedGetRustSourceRoots(Ceed ceed, CeedInt *num_source_roots, const char ***rust_source_roots);
 CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_roots);
+CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots);
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
 
@@ -332,6 +342,7 @@ CEED_EXTERN const char *const CeedFESpaces[];
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
+CEED_EXTERN int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
@@ -368,7 +379,6 @@ CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input_fie
 CEED_EXTERN int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name);
 CEED_EXTERN int CeedQFunctionGetName(CeedQFunction qf, const char **name);
 CEED_EXTERN int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path);
-CEED_EXTERN int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer);
 CEED_EXTERN int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f);
 CEED_EXTERN int CeedQFunctionGetContext(CeedQFunction qf, CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedQFunctionGetContextData(CeedQFunction qf, CeedMemType mem_type, void *data);
@@ -425,6 +435,7 @@ CEED_EXTERN int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyDa
 CEED_EXTERN int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool *is_update_needed);
 CEED_EXTERN int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQFunctionAssemblyData *data_copy);
 CEED_EXTERN int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_setup);
+CEED_EXTERN int CeedQFunctionAssemblyDataSetBlockAssembling(CeedQFunctionAssemblyData data, bool is_block_assembling);
 CEED_EXTERN int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVector vec, CeedElemRestriction rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
@@ -461,9 +472,9 @@ CEED_EXTERN int CeedOperatorReference(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);
 CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent);
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
-CEED_EXTERN int CeedOperatorFallbackLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
-                                                                         CeedRequest *request);
-CEED_INTERN int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values);
+CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, bool build_objects, CeedVector *assembled,
+                                                                         CeedElemRestriction *rstr, CeedRequest *request);
+CEED_INTERN int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector values);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,

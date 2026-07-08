@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other
 // CEED contributors. All Rights Reserved. See the top-level LICENSE and NOTICE
 // files for details.
 //
@@ -82,6 +82,9 @@ int CeedDestroy_Sycl(Ceed ceed) {
   Ceed_Sycl *data;
 
   CeedCallBackend(CeedGetData(ceed, &data));
+  // CeedCalloc allocates without calling constructors; explicitly run destructors
+  // before freeing so the sycl::queue destructor waits for pending GPU work.
+  data->~Ceed_Sycl();
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

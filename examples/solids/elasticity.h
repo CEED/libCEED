@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -21,6 +21,6 @@
 #include "include/utils.h"
 #include "problems/problems.h"
 
-#if PETSC_VERSION_LT(3, 23, 0)
-#error "PETSc v3.23 or later is required"
+#if PETSC_VERSION_LT(3, 25, 0)
+#error "PETSc v3.25 or later is required"
 #endif

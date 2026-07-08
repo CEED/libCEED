@@ -183,13 +183,6 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/hip/magma`           | HIP MAGMA kernels                                 | No                    |
 | `/gpu/hip/magma/det`       | HIP MAGMA kernels                                 | Yes                   |
 ||
-| **OCCA**                   |
-| `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
-| `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
-| `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
-| `/cpu/dpcpp/occa`          | OCCA backend with DPC++ kernels                   | Yes                   |
-| `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
-| `/gpu/hip/occa`            | OCCA backend with HIP kernels                     | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
 The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -207,13 +200,17 @@ This backend can be run in serial or blocked mode and defaults to running in the
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxsmm/libxsmm) package to provide vectorized CPU performance.
 If linking MKL and LIBXSMM is desired but the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be forced by setting the environment variable `MKL=1`.
-The LIBXSMM `main` development branch from 7 April 2024 or newer is required.
+The LIBXSMM version 2.0 or newer is required.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
 The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
 ROCm version 4.2 or newer is required.
+
+The `/gpu/hip/*` backends can also run on non-AMD GPUs (e.g., Intel) via [chipStar](https://github.com/CHIP-SPV/chipStar), which implements HIP on top of SPIR-V through Level Zero or OpenCL.
+To build against chipStar, set `HIP_DIR` to the chipStar install prefix (in place of `ROCM_DIR`); libCEED's Makefile detects chipStar by inspecting `hipconfig` and automatically enables the required code paths.
+At runtime, chipStar's own environment variables (e.g., `CHIP_BE=level0` or `CHIP_BE=opencl`, `CHIP_DEVICE_TYPE`, `CHIP_PLATFORM`) select the backend and device — see the chipStar documentation for details.
 
 The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
 They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
@@ -229,15 +226,6 @@ Users can specify a device for all CUDA, HIP, and MAGMA backends through adding 
 For example:
 
 > - `/gpu/cuda/gen:device_id=1`
-
-The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide cross platform performance.
-To enable the OCCA backend, the environment variable `OCCA_DIR` must point to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default, `OCCA_DIR` is set to `../occa`).
-OCCA version 1.6.0 or newer is required.
-
-Users can pass specific OCCA device properties after setting the CEED resource.
-For example:
-
-> - `"/*/occa:mode='CUDA',device_id=0"`
 
 Bit-for-bit reproducibility is important in some applications.
 However, some libCEED backends use non-deterministic operations, such as `atomicAdd` for increased performance.
@@ -417,7 +405,22 @@ If you utilize libCEED please cite:
 
 ```bibtex
 @article{libceed-joss-paper,
-  author       = {Jed Brown and Ahmad Abdelfattah and Valeria Barra and Natalie Beams and Jean Sylvain Camier and Veselin Dobrev and Yohann Dudouit and Leila Ghaffari and Tzanio Kolev and David Medina and Will Pazner and Thilina Ratnayaka and Jeremy Thompson and Stan Tomov},
+  author       = {
+    Brown, Jed and
+    Abdelfattah, Ahmad and
+    Barra, Valeria and
+    Beams, Natalie and
+    Camier, Jean-Sylvain and
+    Dobrev, Veselin and
+    Dudouit, Yohann and
+    Ghaffari, Leila and
+    Kolev, Tzanio and
+    Medina, David and
+    Pazner, Will and
+    Ratnayaka, Thilina and
+    Thompson, Jeremy L. and
+    Tomov, Stan
+  },
   title        = {{libCEED}: Fast algebra for high-order element-based discretizations},
   journal      = {Journal of Open Source Software},
   year         = {2021},
@@ -434,23 +437,25 @@ To cite the user manual:
 
 ```bibtex
 @misc{libceed-user-manual,
-  author       = {Abdelfattah, Ahmad and
-                  Barra, Valeria and
-                  Beams, Natalie and
-                  Brown, Jed and
-                  Camier, Jean-Sylvain and
-                  Dobrev, Veselin and
-                  Dudouit, Yohann and
-                  Ghaffari, Leila and
-                  Grimberg, Sebastian and
-                  Kolev, Tzanio and
-                  Medina, David and
-                  Pazner, Will and
-                  Ratnayaka, Thilina and
-                  Shakeri, Rezgar and
-                  Thompson, Jeremy L and
-                  Tomov, Stanimire and
-                  Wright III, James},
+  author       = {
+    Abdelfattah, Ahmad and
+    Barra, Valeria and
+    Beams, Natalie and
+    Brown, Jed and
+    Camier, Jean-Sylvain and
+    Dobrev, Veselin and
+    Dudouit, Yohann and
+    Ghaffari, Leila and
+    Grimberg, Sebastian and
+    Kolev, Tzanio and
+    Medina, David and
+    Pazner, Will and
+    Ratnayaka, Thilina and
+    Shakeri, Rezgar and
+    Thompson, Jeremy L. and
+    Tomov, Stanimire and
+    Wright III, James
+  },
   title        = {{libCEED} User Manual},
   month        = nov,
   year         = 2023,
@@ -463,9 +468,14 @@ To cite the user manual:
 For libCEED's Python interface please cite:
 
 ```bibtex
-@InProceedings{libceed-paper-proc-scipy-2020,
-  author    = {{V}aleria {B}arra and {J}ed {B}rown and {J}eremy {T}hompson and {Y}ohann {D}udouit},
-  title     = {{H}igh-performance operator evaluations with ease of use: lib{C}{E}{E}{D}'s {P}ython interface},
+@InProceedings{libceed-scipy,
+  author    = {
+    Barra, Valeria and
+    Brown, Jed and
+    Thompson, Jeremy L. and
+    Dudouit, Yohann
+  },
+  title     = {{H}igh-performance operator evaluations with ease of use: {libCEED}'s {P}ython interface},
   booktitle = {{P}roceedings of the 19th {P}ython in {S}cience {C}onference},
   pages     = {85 - 90},
   year      = {2020},
@@ -480,7 +490,7 @@ The BibTeX entries for these references can be found in the `doc/bib/references.
 
 The following copyright applies to each file in the CEED software suite, unless otherwise stated in the file:
 
-> Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+> Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 > All rights reserved.
 
 See files LICENSE and NOTICE for details.

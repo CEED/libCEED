@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   char     *resource_root;
-  Ceed      ceed_shared;
+  Ceed      ceed_shared, ceed_ref;
   Ceed_Hip *data;
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
@@ -34,7 +34,9 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
   CeedCallBackend(CeedDestroy(&ceed_shared));
 
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, "/gpu/hip/ref"));
+  CeedCallBackend(CeedInit("/gpu/hip/ref", &ceed_ref));
+  CeedCallBackend(CeedSetOperatorFallbackCeed(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Hip_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Hip_gen));

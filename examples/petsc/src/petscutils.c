@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -153,7 +153,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
     PetscInt num_comp_coord;
     PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, 1, q_degree, &fe_coords));
-    PetscCall(DMSetCoordinateDisc(dm, fe_coords, PETSC_TRUE));
+    PetscCall(DMSetCoordinateDisc(dm, fe_coords, PETSC_FALSE, PETSC_TRUE));
     PetscCall(PetscFEDestroy(&fe_coords));
   }
 

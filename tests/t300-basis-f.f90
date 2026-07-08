@@ -18,7 +18,10 @@
 
       call ceedbasiscreatetensorh1lagrange(ceed,1,1,4,4,ceed_gauss,b,err)
       call ceedbasisview(b,err)
+      call ceedbasissetnumviewtabs(b,1,err)
+      call ceedbasisview(b,err)
       call ceedbasisdestroy(b,err)
+
       call ceeddestroy(ceed,err)
 
       end

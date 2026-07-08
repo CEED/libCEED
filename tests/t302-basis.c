@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
       if (fabs(collocated_gradient_1d[j + p * i] - gradient_1d[j + p * i]) > 100 * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("Error in collocated gradient %f != %f\n", collocated_gradient_1d[j + p * i], gradient_1d[j + p * i]);
-        // LCOV_EXCL_START
+        // LCOV_EXCL_STOP
       }
     }
   }

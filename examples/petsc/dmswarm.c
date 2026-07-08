@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -82,10 +82,10 @@ int main(int argc, char **argv) {
   PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
 
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
-  PetscCall(
-      PetscOptionsBool("-u_petsc_swarm_view", "View XDMF of swarm values interpolated by PETSc", NULL, view_petsc_swarm, &view_petsc_swarm, NULL));
-  PetscCall(
-      PetscOptionsBool("-u_ceed_swarm_view", "View XDMF of swarm values interpolated by libCEED", NULL, view_ceed_swarm, &view_ceed_swarm, NULL));
+  PetscCall(PetscOptionsBool("-u_petsc_swarm_view", "View XDMF of swarm values interpolated by PETSc", NULL, view_petsc_swarm, &view_petsc_swarm,
+                             NULL));
+  PetscCall(PetscOptionsBool("-u_ceed_swarm_view", "View XDMF of swarm values interpolated by libCEED", NULL, view_ceed_swarm, &view_ceed_swarm,
+                             NULL));
   PetscCall(PetscOptionsEnum("-target", "Target field function", NULL, target_types, (PetscEnum)target_type, (PetscEnum *)&target_type, NULL));
   PetscCall(PetscOptionsInt("-solution_order", "Order of mesh solution space", NULL, solution_order, &solution_order, NULL));
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, mesh_order, &mesh_order, NULL));
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
       PetscFE fe_coord;
 
       PetscCall(PetscFECreateLagrange(comm, dim, dim, PETSC_FALSE, mesh_order, solution_order + q_extra, &fe_coord));
-      PetscCall(DMSetCoordinateDisc(dm_mesh, fe_coord, PETSC_TRUE));
+      PetscCall(DMSetCoordinateDisc(dm_mesh, fe_coord, PETSC_FALSE, PETSC_TRUE));
       PetscCall(PetscFEDestroy(&fe_coord));
     }
 

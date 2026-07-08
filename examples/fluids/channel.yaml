@@ -6,7 +6,7 @@ implicit: true
 ts:
   type: 'beuler'
   adapt_type: 'none'
-  dt: 5e-6
+  time_step: 5e-6
 
 q_extra: 2
 

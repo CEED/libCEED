@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors
+# Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors
 # All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 #
 # SPDX-License-Identifier: BSD-2-Clause
@@ -94,7 +94,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere dmswarm multigrid libutils.a
+	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere bpsswarm dmswarm multigrid libutils.a
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -127,10 +127,12 @@ int main(int argc, char **argv) {
       const char *resolved;
 
       CeedGetResource(ceed, &resolved);
-      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-      else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-      else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-      else vec_type = VECSTANDARD;
+      if (strstr(resolved, "/gpu/cuda"))
+        vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip"))
+        vec_type = VECHIP;
+      else
+        vec_type = VECSTANDARD;
     }
   }
   PetscCall(DMSetVecType(dm, vec_type));

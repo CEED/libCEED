@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -46,8 +46,10 @@ const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
   @ref Developer
 **/
 static int CeedChebyshevPolynomialsAtPoint(CeedScalar x, CeedInt n, CeedScalar *chebyshev_x) {
+  // Chebyshev polynomials of the first kind, 3 term recurrence: T_0(x) = 1, T_1(x) = x, T_n = 2 x T_{n-1} - T_{n-2}
+  // For more info, see e.g. https://en.wikipedia.org/wiki/Chebyshev_polynomials#Recurrence_definition
   chebyshev_x[0] = 1.0;
-  chebyshev_x[1] = 2 * x;
+  chebyshev_x[1] = x;
   for (CeedInt i = 2; i < n; i++) chebyshev_x[i] = 2 * x * chebyshev_x[i - 1] - chebyshev_x[i - 2];
   return CEED_ERROR_SUCCESS;
 }
@@ -64,17 +66,20 @@ static int CeedChebyshevPolynomialsAtPoint(CeedScalar x, CeedInt n, CeedScalar *
   @ref Developer
 **/
 static int CeedChebyshevDerivativeAtPoint(CeedScalar x, CeedInt n, CeedScalar *chebyshev_dx) {
+  // Note, these are Chebyshev polynomials of the 2nd kind, used for derivatives
+  // See e.g. https://en.wikipedia.org/wiki/Chebyshev_polynomials#Differentiation_and_integration for the recurrence
   CeedScalar chebyshev_x[3];
 
   chebyshev_x[1]  = 1.0;
   chebyshev_x[2]  = 2 * x;
   chebyshev_dx[0] = 0.0;
-  chebyshev_dx[1] = 2.0;
+  chebyshev_dx[1] = 1.0;
   for (CeedInt i = 2; i < n; i++) {
+    // dT_i/dx = i * dU_{i-1}/dx
     chebyshev_x[0]  = chebyshev_x[1];
     chebyshev_x[1]  = chebyshev_x[2];
+    chebyshev_dx[i] = i * chebyshev_x[1];
     chebyshev_x[2]  = 2 * x * chebyshev_x[1] - chebyshev_x[0];
-    chebyshev_dx[i] = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[1] - chebyshev_dx[i - 2];
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -153,26 +158,56 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s, CeedTra
   @param[in] m      Number of rows in array
   @param[in] n      Number of columns in array
   @param[in] a      Array to be viewed
+  @param[in] tabs   Tabs to append before each new line
   @param[in] stream Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, FILE *stream) {
+static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, const char *tabs, FILE *stream) {
   if (m > 1) {
-    fprintf(stream, "  %s:\n", name);
+    fprintf(stream, "%s  %s:\n", tabs, name);
   } else {
     char padded_name[12];
 
     snprintf(padded_name, 11, "%s:", name);
-    fprintf(stream, "  %-10s", padded_name);
+    fprintf(stream, "%s  %-10s", tabs, padded_name);
   }
   for (CeedInt i = 0; i < m; i++) {
-    if (m > 1) fprintf(stream, "    [%" CeedInt_FMT "]", i);
+    if (m > 1) fprintf(stream, "%s    [%" CeedInt_FMT "]", tabs, i);
     for (CeedInt j = 0; j < n; j++) fprintf(stream, fp_fmt, fabs(a[i * n + j]) > 1E-14 ? a[i * n + j] : 0);
     fputs("\n", stream);
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `CeedBasis` passed as a `CeedObject`
+
+  @param[in] basis  `CeedBasis` to view
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisView_Object(CeedObject basis, FILE *stream) {
+  CeedCall(CeedBasisView((CeedBasis)basis, stream));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Destroy a `CeedBasis` passed as a `CeedObject`
+
+  @param[in,out] basis Address of `CeedBasis` to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisDestroy_Object(CeedObject *basis) {
+  CeedCall(CeedBasisDestroy((CeedBasis *)basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -553,8 +588,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
 
               for (CeedInt d = 0; d < dim; d++) {
                 // ------ Tensor contract with current Chebyshev polynomial values
-                if (pass == d) CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-                else CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                if (pass == d) {
+                  CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                } else {
+                  CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                }
                 CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
                                                  d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
                 pre /= Q_1d;
@@ -565,9 +603,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           }
           break;
         }
+        // LCOV_EXCL_START
         default:
           // Nothing to do, excluded above
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
@@ -575,7 +615,6 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       break;
     }
     case CEED_TRANSPOSE: {
-      // Note: No switch on e_mode here because only CEED_EVAL_INTERP is supported at this time
       // Arbitrary points to nodes
       CeedScalar       *chebyshev_coeffs;
       const CeedScalar *u_array, *x_array_read;
@@ -617,8 +656,11 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
               for (CeedInt c = 0; c < num_comp; c++) tmp[0][c] = u_array[(pass * num_comp + c) * total_num_points + p];
               for (CeedInt d = 0; d < dim; d++) {
                 // ------ Tensor contract with current Chebyshev polynomial values
-                if (pass == d) CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-                else CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                if (pass == d) {
+                  CeedCall(CeedChebyshevDerivativeAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                } else {
+                  CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
+                }
                 CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode,
                                                  (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1), tmp[d % 2],
                                                  d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
@@ -629,17 +671,22 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           }
           break;
         }
+        // LCOV_EXCL_START
         default:
           // Nothing to do, excluded above
           break;
+          // LCOV_EXCL_STOP
       }
       CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
       CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
 
       // -- Interpolate transpose from Chebyshev coefficients
-      if (apply_add) CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
-      else CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      if (apply_add) {
+        CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      } else {
+        CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      }
       break;
     }
   }
@@ -683,7 +730,7 @@ int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp
   CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
   CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateH1");
 
-  CeedCall(CeedReferenceCopy(delegate, &(basis)->ceed));
+  CeedCall(CeedReferenceCopy(delegate, &(basis)->obj.ceed));
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
   CeedCall(delegate->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, basis));
   CeedCall(CeedDestroy(&delegate));
@@ -781,6 +828,32 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 }
 
 /**
+  @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+  if (basis->is_tensor_basis && (basis->Q_1d == basis->P_1d)) {
+    *is_collocated = true;
+
+    for (CeedInt i = 0; i < basis->P_1d; i++) {
+      *is_collocated = *is_collocated && (fabs(basis->interp_1d[i + basis->P_1d * i] - 1.0) < 10 * CEED_EPSILON);
+      for (CeedInt j = 0; j < basis->Q_1d; j++) {
+        if (j != i) *is_collocated = *is_collocated && (fabs(basis->interp_1d[j + basis->P_1d * i]) < 10 * CEED_EPSILON);
+      }
+    }
+  } else {
+    *is_collocated = false;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get backend data of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
@@ -820,7 +893,7 @@ int CeedBasisSetData(CeedBasis basis, void *data) {
   @ref Backend
 **/
 int CeedBasisReference(CeedBasis basis) {
-  basis->ref_count++;
+  CeedCall(CeedObjectReference((CeedObject)basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1310,12 +1383,18 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lamb
     p = 0;
     q = 0;
     for (CeedInt i = n - 2; i >= 0; i--) {
-      if (fabs(mat_T[i + n * (i + 1)]) < tol) q += 1;
-      else break;
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) {
+        q += 1;
+      } else {
+        break;
+      }
     }
     for (CeedInt i = 0; i < n - q - 1; i++) {
-      if (fabs(mat_T[i + n * (i + 1)]) < tol) p += 1;
-      else break;
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) {
+        p += 1;
+      } else {
+        break;
+      }
     }
     if (q == n - 1) break;  // Finished reducing
 
@@ -1497,8 +1576,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = true;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1636,8 +1714,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1696,8 +1773,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1757,8 +1833,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   curl_comp = (dim < 3) ? 1 : dim;
 
   CeedCall(CeedCalloc(1, basis));
-  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
-  (*basis)->ref_count       = 1;
+  CeedCall(CeedObjectCreate(ceed, CeedBasisView_Object, CeedBasisDestroy_Object, &(*basis)->obj));
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
@@ -1867,6 +1942,36 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 }
 
 /**
+  @brief Set the number of tabs to indent for @ref CeedBasisView() output
+
+  @param[in] basis    `CeedBasis` to set the number of view tabs
+  @param[in] num_tabs Number of view tabs to set
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisSetNumViewTabs(CeedBasis basis, CeedInt num_tabs) {
+  CeedCall(CeedObjectSetNumViewTabs((CeedObject)basis, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of tabs to indent for @ref CeedBasisView() output
+
+  @param[in]  basis    `CeedBasis` to get the number of view tabs
+  @param[out] num_tabs Number of view tabs
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisGetNumViewTabs(CeedBasis basis, CeedInt *num_tabs) {
+  CeedCall(CeedObjectGetNumViewTabs((CeedObject)basis, num_tabs));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief View a `CeedBasis`
 
   @param[in] basis  `CeedBasis` to view
@@ -1878,6 +1983,7 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
   bool             is_tensor_basis;
+  char            *tabs = NULL;
   CeedElemTopology topo;
   CeedFESpace      fe_space;
 
@@ -1886,14 +1992,22 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   CeedCall(CeedBasisGetTopology(basis, &topo));
   CeedCall(CeedBasisGetFESpace(basis, &fe_space));
 
-  // Print FE space and element topology of the basis
-  fprintf(stream, "CeedBasis in a %s on a %s element\n", CeedFESpaces[fe_space], CeedElemTopologies[topo]);
-  if (is_tensor_basis) {
-    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P_1d, basis->Q_1d);
-  } else {
-    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P, basis->Q);
+  {
+    CeedInt num_tabs = 0;
+
+    CeedCall(CeedBasisGetNumViewTabs(basis, &num_tabs));
+    CeedCall(CeedCalloc(CEED_TAB_WIDTH * num_tabs + 1, &tabs));
+    for (CeedInt i = 0; i < CEED_TAB_WIDTH * num_tabs; i++) tabs[i] = ' ';
   }
-  fprintf(stream, "  dimension: %" CeedInt_FMT "\n  field components: %" CeedInt_FMT "\n", basis->dim, basis->num_comp);
+
+  // Print FE space and element topology of the basis
+  fprintf(stream, "%sCeedBasis in a %s on a %s element\n", tabs, CeedFESpaces[fe_space], CeedElemTopologies[topo]);
+  if (is_tensor_basis) {
+    fprintf(stream, "%s  P: %" CeedInt_FMT "\n%s  Q: %" CeedInt_FMT "\n", tabs, basis->P_1d, tabs, basis->Q_1d);
+  } else {
+    fprintf(stream, "%s  P: %" CeedInt_FMT "\n%s  Q: %" CeedInt_FMT "\n", tabs, basis->P, tabs, basis->Q);
+  }
+  fprintf(stream, "%s  dimension: %" CeedInt_FMT "\n%s  field components: %" CeedInt_FMT "\n", tabs, basis->dim, tabs, basis->num_comp);
   // Print quadrature data, interpolation/gradient/divergence/curl of the basis
   if (is_tensor_basis) {  // tensor basis
     CeedInt           P_1d, Q_1d;
@@ -1906,10 +2020,10 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
     CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
 
-    CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, Q_1d, q_ref_1d, stream));
-    CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, Q_1d, q_weight_1d, stream));
-    CeedCall(CeedScalarView("interp1d", "\t% 12.8f", Q_1d, P_1d, interp_1d, stream));
-    CeedCall(CeedScalarView("grad1d", "\t% 12.8f", Q_1d, P_1d, grad_1d, stream));
+    CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, Q_1d, q_ref_1d, tabs, stream));
+    CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, Q_1d, q_weight_1d, tabs, stream));
+    CeedCall(CeedScalarView("interp1d", "\t% 12.8f", Q_1d, P_1d, interp_1d, tabs, stream));
+    CeedCall(CeedScalarView("grad1d", "\t% 12.8f", Q_1d, P_1d, grad_1d, tabs, stream));
   } else {  // non-tensor basis
     CeedInt           P, Q, dim, q_comp;
     const CeedScalar *q_ref, *q_weight, *interp, *grad, *div, *curl;
@@ -1924,23 +2038,24 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
     CeedCall(CeedBasisGetDiv(basis, &div));
     CeedCall(CeedBasisGetCurl(basis, &curl));
 
-    CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, Q * dim, q_ref, stream));
-    CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, Q, q_weight, stream));
+    CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, Q * dim, q_ref, tabs, stream));
+    CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, Q, q_weight, tabs, stream));
     CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp));
-    CeedCall(CeedScalarView("interp", "\t% 12.8f", q_comp * Q, P, interp, stream));
+    CeedCall(CeedScalarView("interp", "\t% 12.8f", q_comp * Q, P, interp, tabs, stream));
     if (grad) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp));
-      CeedCall(CeedScalarView("grad", "\t% 12.8f", q_comp * Q, P, grad, stream));
+      CeedCall(CeedScalarView("grad", "\t% 12.8f", q_comp * Q, P, grad, tabs, stream));
     }
     if (div) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp));
-      CeedCall(CeedScalarView("div", "\t% 12.8f", q_comp * Q, P, div, stream));
+      CeedCall(CeedScalarView("div", "\t% 12.8f", q_comp * Q, P, div, tabs, stream));
     }
     if (curl) {
       CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp));
-      CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * Q, P, curl, stream));
+      CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * Q, P, curl, tabs, stream));
     }
   }
+  CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2075,21 +2190,20 @@ int CeedBasisApplyAddAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *
   @ref Advanced
 **/
 int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
-  *ceed = NULL;
-  CeedCall(CeedReferenceCopy(CeedBasisReturnCeed(basis), ceed));
+  CeedCall(CeedObjectGetCeed((CeedObject)basis, ceed));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Return the `Ceed` associated with a `CeedBasis`
 
-  @param[in]  basis `CeedBasis`
+  @param[in] basis `CeedBasis`
 
   @return `Ceed` associated with the `basis`
 
   @ref Advanced
 **/
-Ceed CeedBasisReturnCeed(CeedBasis basis) { return basis->ceed; }
+Ceed CeedBasisReturnCeed(CeedBasis basis) { return CeedObjectReturnCeed((CeedObject)basis); }
 
 /**
   @brief Get dimension for given `CeedBasis`
@@ -2307,8 +2421,11 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
             CeedInt p = (node / CeedIntPow(basis->P_1d, d)) % basis->P_1d;
             CeedInt q = (qpt / CeedIntPow(basis->Q_1d, d)) % basis->Q_1d;
 
-            if (i == d) basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->grad_1d[q * basis->P_1d + p];
-            else basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
+            if (i == d) {
+              basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->grad_1d[q * basis->P_1d + p];
+            } else {
+              basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
+            }
           }
         }
       }
@@ -2368,7 +2485,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 }
 
 /**
-  @brief Destroy a @ref  CeedBasis
+  @brief Destroy a @ref CeedBasis
 
   @param[in,out] basis `CeedBasis` to destroy
 
@@ -2377,7 +2494,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || *basis == CEED_BASIS_NONE || --(*basis)->ref_count > 0) {
+  if (!*basis || *basis == CEED_BASIS_NONE || CeedObjectDereference((CeedObject)*basis) > 0) {
     *basis = NULL;
     return CEED_ERROR_SUCCESS;
   }
@@ -2393,7 +2510,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));
   CeedCall(CeedBasisDestroy(&(*basis)->basis_chebyshev));
-  CeedCall(CeedDestroy(&(*basis)->ceed));
+  CeedCall(CeedObjectDestroy_Private(&(*basis)->obj));
   CeedCall(CeedFree(basis));
   return CEED_ERROR_SUCCESS;
 }

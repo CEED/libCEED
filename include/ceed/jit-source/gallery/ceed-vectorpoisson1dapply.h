@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -25,6 +25,5 @@ CEED_QFUNCTION(Vector3Poisson1DApply)(void *ctx, const CeedInt Q, const CeedScal
       vg[c][i] = ug[c][i] * q_data[i];
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }

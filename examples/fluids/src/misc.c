@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -121,8 +121,10 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
   if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
       token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
-    if (token == FLUIDS_FILE_TOKEN_32) file_type = PETSC_INT32;
-    else if (token == FLUIDS_FILE_TOKEN_64) file_type = PETSC_INT64;
+    if (token == FLUIDS_FILE_TOKEN_32)
+      file_type = PETSC_INT32;
+    else if (token == FLUIDS_FILE_TOKEN_64)
+      file_type = PETSC_INT64;
     PetscCall(BinaryReadIntoInt(viewer, &file_step_number, file_type));
     PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
     if (time) *time = file_time;
@@ -133,7 +135,8 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
     PetscCall(VecGetSize(Q, &N));
     PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
     PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
-  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
+  } else
+    SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
 
   PetscCall(VecLoad(Q, viewer));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -475,9 +478,10 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS
       part_owned_dofs[1]             = gather_buffer[comm_size - 1];  // max
       part_owned_dofs[2]             = gather_buffer[median_index];   // median
       PetscReal part_owned_dof_ratio = (PetscReal)part_owned_dofs[1] / (PetscReal)part_owned_dofs[2];
-      PetscCall(PetscPrintf(
-          comm, "    Global Vector %" PetscInt_FMT "-DoF nodes          : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
-          part_owned_dofs[0] / num_comp_q, part_owned_dofs[1] / num_comp_q, part_owned_dofs[2] / num_comp_q, part_owned_dof_ratio));
+      PetscCall(PetscPrintf(comm,
+                            "    Global Vector %" PetscInt_FMT "-DoF nodes          : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                            num_comp_q, part_owned_dofs[0] / num_comp_q, part_owned_dofs[1] / num_comp_q, part_owned_dofs[2] / num_comp_q,
+                            part_owned_dof_ratio));
     }
 
     PetscCallMPI(MPI_Gather(&local_dofs, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
@@ -487,9 +491,10 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS
       part_local_dofs[1]             = gather_buffer[comm_size - 1];  // max
       part_local_dofs[2]             = gather_buffer[median_index];   // median
       PetscReal part_local_dof_ratio = (PetscReal)part_local_dofs[1] / (PetscReal)part_local_dofs[2];
-      PetscCall(PetscPrintf(
-          comm, "    Local Vector %" PetscInt_FMT "-DoF nodes           : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
-          part_local_dofs[0] / num_comp_q, part_local_dofs[1] / num_comp_q, part_local_dofs[2] / num_comp_q, part_local_dof_ratio));
+      PetscCall(PetscPrintf(comm,
+                            "    Local Vector %" PetscInt_FMT "-DoF nodes           : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                            num_comp_q, part_local_dofs[0] / num_comp_q, part_local_dofs[1] / num_comp_q, part_local_dofs[2] / num_comp_q,
+                            part_local_dof_ratio));
     }
 
     if (comm_size != 1) {
@@ -521,10 +526,11 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS
         part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
         part_boundary_dofs[2]           = gather_buffer[median_index];   // median
         PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
-        PetscCall(PetscPrintf(
-            comm, "    Ghost Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
-            num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
-            part_shared_dof_ratio));
+        PetscCall(PetscPrintf(comm,
+                              "    Ghost Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT
+                              ", %f\n",
+                              num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
+                              part_shared_dof_ratio));
       }
 
       PetscCallMPI(MPI_Gather(&num_ghost_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
@@ -545,10 +551,11 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS
         part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
         part_boundary_dofs[2]           = gather_buffer[median_index];   // median
         PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
-        PetscCall(PetscPrintf(
-            comm, "    Owned Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
-            num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
-            part_shared_dof_ratio));
+        PetscCall(PetscPrintf(comm,
+                              "    Owned Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT
+                              ", %f\n",
+                              num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
+                              part_shared_dof_ratio));
       }
 
       PetscCallMPI(MPI_Gather(&num_owned_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));

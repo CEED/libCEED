@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -97,6 +97,10 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
         const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
         CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
 
+        // Prevent race: idle work items (i >= writeLen) must not overwrite
+        // s_buffer_1 while active work items still read it from the previous comp.
+        sycl::group_barrier(work_group);
+
         for (CeedInt k = i; k < u_size; k += group_size) {
           s_buffer_1[k] = cur_u[k];
         }
@@ -105,9 +109,10 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
         CeedInt post = 1;
 
         for (CeedInt d = 0; d < dim; d++) {
-          // Use older version of sycl workgroup barrier for performance reasons
-          // Can be updated in future to align with SYCL2020 spec if performance bottleneck is removed
-          // sycl::group_barrier(work_group);
+          // Full work-group barrier with local-only fence: s_buffer_1/2 are SLM
+          // (local_accessor), so local_space is sufficient and avoids the cost of
+          // a global memory fence. Do not replace with a sub-group barrier —
+          // work_group_size (= Q) can exceed the hardware sub-group size.
           work_item.barrier(sycl::access::fence_space::local_space);
 
           pre /= P;
@@ -206,9 +211,10 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
           CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
-            // Use older version of sycl workgroup barrier for performance reasons
-            // Can be updated in future to align with SYCL2020 spec if performance bottleneck is removed
-            // sycl::group_barrier(work_group);
+            // Full work-group barrier with local-only fence: s_buffer_1/2 are SLM
+            // (local_accessor), so local_space is sufficient and avoids the cost of
+            // a global memory fence. Do not replace with a sub-group barrier —
+            // work_group_size (= Q) can exceed the hardware sub-group size.
             work_item.barrier(sycl::access::fence_space::local_space);
 
             pre /= P;
@@ -226,8 +232,10 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
               CeedScalar v_k = 0;
               for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
 
-              if (is_transpose && dim_2 == dim - 1) out[k] += v_k;
-              else out[k] = v_k;
+              if (is_transpose && dim_2 == dim - 1)
+                out[k] += v_k;
+              else
+                out[k] = v_k;
             }
 
             post *= Q;
@@ -281,8 +289,10 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   CeedCallBackend(CeedBasisGetData(basis, &impl));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE)
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
@@ -467,8 +477,10 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Get read/write access to u, v
-  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  if (u != CEED_VECTOR_NONE)
+    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else
+    CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
@@ -605,8 +617,10 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
 
-  std::vector<sycl::kernel_id> kernel_ids = {sycl::get_kernel_id<CeedBasisSyclInterp<1>>(), sycl::get_kernel_id<CeedBasisSyclInterp<0>>(),
-                                             sycl::get_kernel_id<CeedBasisSyclGrad<1>>(), sycl::get_kernel_id<CeedBasisSyclGrad<0>>()};
+  std::vector<sycl::kernel_id> kernel_ids = {
+      sycl::get_kernel_id<CeedBasisSyclInterp<1>>(), sycl::get_kernel_id<CeedBasisSyclInterp<0>>(), sycl::get_kernel_id<CeedBasisSyclGrad<1>>(),
+      sycl::get_kernel_id<CeedBasisSyclGrad<0>>()
+  };
 
   sycl::kernel_bundle<sycl::bundle_state::input> input_bundle = sycl::get_kernel_bundle<sycl::bundle_state::input>(data->sycl_context, kernel_ids);
   input_bundle.set_specialization_constant<BASIS_DIM_ID>(dim);

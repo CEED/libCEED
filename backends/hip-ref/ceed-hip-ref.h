@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -137,19 +137,21 @@ typedef struct {
 } CeedOperatorAssemble_Hip;
 
 typedef struct {
-  bool                     *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
-  uint64_t                 *input_states;  // State tracking for passive inputs
-  CeedVector               *e_vecs_in, *e_vecs_out;
-  CeedVector               *q_vecs_in, *q_vecs_out;
-  CeedInt                   num_inputs, num_outputs;
-  CeedInt                   num_active_in, num_active_out;
-  CeedInt                  *input_field_order, *output_field_order;
-  CeedSize                  max_active_e_vec_len;
-  CeedInt                   max_num_points;
-  CeedInt                  *num_points;
-  CeedVector               *qf_active_in, point_coords_elem;
-  CeedOperatorDiag_Hip     *diag;
-  CeedOperatorAssemble_Hip *asmb;
+  bool                      *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
+  uint64_t                  *input_states, points_state;  // State tracking for passive inputs
+  CeedVector                *e_vecs_in, *e_vecs_out;
+  CeedVector                *q_vecs_in, *q_vecs_out;
+  CeedInt                    num_inputs, num_outputs;
+  CeedInt                    num_active_in, num_active_out;
+  CeedInt                   *input_field_order, *output_field_order;
+  CeedSize                   max_active_e_vec_len;
+  CeedInt                    max_num_points;
+  CeedInt                   *num_points;
+  CeedVector                *qf_active_in, point_coords_elem;
+  CeedOperatorDiag_Hip      *diag;
+  CeedOperatorAssemble_Hip  *asmb;
+  CeedOperatorAssemble_Hip **asmb_blocks;
+  CeedInt                    num_blocks_in, num_blocks_out;
 } CeedOperator_Hip;
 
 CEED_INTERN int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle);

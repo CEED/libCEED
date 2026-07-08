@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2025, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2026, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -63,19 +63,25 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     for (IndexType e_out = 0; e_out < NUM_EVAL_MODES_OUT; e_out++) {
       IndexType         d_in               = 0;
       CeedEvalMode      eval_modes_in_prev = CEED_EVAL_NONE;
-      const CeedScalar *b_t                = NULL;
+      const CeedScalar *b_t                = nullptr;
 
       GetBasisPointer(&b_t, eval_modes_out[e_out], identity, interp_out, grad_out, div_out, curl_out);
-      if (e_out == 0 || eval_modes_out[e_out] != eval_modes_out_prev) d_out = 0;
-      else b_t = &b_t[(++d_out) * NUM_QPTS * NUM_NODES];
+      if (e_out == 0 || eval_modes_out[e_out] != eval_modes_out_prev) {
+        d_out = 0;
+      } else {
+        b_t = &b_t[(++d_out) * NUM_QPTS * NUM_NODES];
+      }
       eval_modes_out_prev = eval_modes_out[e_out];
 
       for (IndexType e_in = 0; e_in < NUM_EVAL_MODES_IN; e_in++) {
-        const CeedScalar *b = NULL;
+        const CeedScalar *b = nullptr;
 
         GetBasisPointer(&b, eval_modes_in[e_in], identity, interp_in, grad_in, div_in, curl_in);
-        if (e_in == 0 || eval_modes_in[e_in] != eval_modes_in_prev) d_in = 0;
-        else b = &b[(++d_in) * NUM_QPTS * NUM_NODES];
+        if (e_in == 0 || eval_modes_in[e_in] != eval_modes_in_prev) {
+          d_in = 0;
+        } else {
+          b = &b[(++d_in) * NUM_QPTS * NUM_NODES];
+        }
         eval_modes_in_prev = eval_modes_in[e_in];
 
         // Each component
