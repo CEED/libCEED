@@ -131,7 +131,7 @@ __global__ static void filterValueK(CeedScalar *__restrict__ x, CeedScalar thres
   const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
 
   if (index < size) {
-    if (fabs(x[index] <= threshold) x[index] = 0.0;
+    if (fabs(x[index]) <= threshold) x[index] = 0.0;
   }
 }
 
