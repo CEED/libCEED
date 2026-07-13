@@ -19,4 +19,7 @@
 #include "ex2-surface.h"
 #include "ex3-volume.h"
 
+#include "bps/bp1.h"
+#include "bps/common.h"
+
 // -----------------------------------------------------------------------------
