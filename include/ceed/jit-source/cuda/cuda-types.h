@@ -25,6 +25,8 @@ typedef struct {
 
 typedef struct {
   CeedInt           num_elem;
+  CeedInt           max_num_points;
+  CeedInt           coords_comp_stride;
   const CeedInt    *num_per_elem;
   const CeedInt    *indices;
   const CeedScalar *coords;
