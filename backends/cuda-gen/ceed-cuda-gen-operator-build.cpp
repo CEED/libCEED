@@ -731,7 +731,7 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
 // QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, CeedOperator_Cuda_gen *data, Tab &tab, CeedInt max_dim,
-                                                     CeedInt max_num_points, CeedInt num_input_fields, CeedOperatorField *op_input_fields,
+                                                     CeedInt num_input_fields, CeedOperatorField *op_input_fields,
                                                      CeedQFunctionField *qf_input_fields, CeedInt num_output_fields,
                                                      CeedOperatorField *op_output_fields, CeedQFunctionField *qf_output_fields,
                                                      std::string qfunction_name, CeedInt Q_1d, bool is_all_tensor, bool is_at_points,
@@ -806,7 +806,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
 
     code << tab << "// -- Coordinates\n";
     code << tab << "CeedScalar r_x[max_dim];\n";
-    code << tab << "ReadPoint<max_dim, coords_comp_stride, max_num_points>(data, elem, p, max_num_points, points.indices, points.coords, r_x);\n\n";
+    code << tab << "ReadPoint<max_dim>(data, elem, p, max_num_points, max_num_points, coords_comp_stride, points.indices, points.coords, r_x);\n\n";
 
     code << tab << "// -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -822,18 +822,18 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
       switch (eval_mode) {
         case CEED_EVAL_NONE:
           code << tab << "CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "];\n";
-          code << tab << "ReadPoint<num_comp" << var_suffix << ", comp_stride" << var_suffix
-               << ", max_num_points>(data, elem, p, max_num_points, indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
+          code << tab << "ReadPoint<num_comp" << var_suffix << ">(data, elem, p, max_num_points, max_num_points, comp_stride" << var_suffix
+               << ", indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_INTERP:
           code << tab << "CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "];\n";
-          code << tab << "InterpAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
-               << ">(data, i, r_c" << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
+          code << tab << "InterpAtPoints" << max_dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, i, r_c"
+               << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_GRAD:
           code << tab << "CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "*dim" << var_suffix << "];\n";
-          code << tab << "GradAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
-               << ">(data, i, r_c" << var_suffix << ", r_x, r_s" << var_suffix << ");\n";
+          code << tab << "GradAtPoints" << max_dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name << ">(data, i, r_c" << var_suffix
+               << ", r_x, r_s" << var_suffix << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << tab << "CeedScalar r_s" << var_suffix << "[1];\n";
@@ -1068,8 +1068,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << tab << "{\n";
           tab.push();
           code << tab << "const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n\n";
-          code << tab << "WritePoint<num_comp" << var_suffix << ", comp_stride" << var_suffix
-               << ", max_num_points>(data, elem, i, points.num_per_elem[elem], indices.outputs[" << i << "]"
+          code << tab << "WritePoint<num_comp" << var_suffix << ">(data, elem, i, max_num_points, points.num_per_elem[elem], comp_stride"
+               << var_suffix << ", indices.outputs[" << i << "]"
                << ", r_s" << var_suffix << ", d" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
@@ -1081,8 +1081,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << tab << "for (CeedInt j = 0; j < num_comp" << var_suffix << "; j++) r_s" << var_suffix << "[j] = 0.0;\n";
           tab.pop();
           code << tab << "}\n";
-          code << tab << "InterpTransposeAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
-               << ">(data, i, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
+          code << tab << "InterpTransposeAtPoints" << max_dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name
+               << ">(data, i, max_num_points, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
           break;
         case CEED_EVAL_GRAD:
           code << tab << "if (i >= points.num_per_elem[elem]) {\n";
@@ -1090,8 +1090,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
           code << tab << "for (CeedInt j = 0; j < num_comp" << var_suffix << "*dim" << var_suffix << "; j++) r_s" << var_suffix << "[j] = 0.0;\n";
           tab.pop();
           code << tab << "}\n";
-          code << tab << "GradTransposeAtPoints" << max_dim << "d<num_comp" << var_suffix << ", max_num_points, " << P_name << ", " << Q_name
-               << ">(data, i, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
+          code << tab << "GradTransposeAtPoints" << max_dim << "d<num_comp" << var_suffix << ", " << P_name << ", " << Q_name
+               << ">(data, i, max_num_points, r_s" << var_suffix << ", r_x, r_c" << var_suffix << ");\n";
           break;
           // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
@@ -1158,7 +1158,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
 extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_build) {
   bool                    is_all_tensor = true, is_all_nontensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
-  CeedInt                 Q = 0, Q_1d = 0, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
+  CeedInt                 Q = 0, Q_1d = 0, num_input_fields, num_output_fields, max_dim = 1;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
@@ -1263,21 +1263,25 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     CeedElemRestriction       rstr_points = NULL;
 
     CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
-    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &coords_comp_stride));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_points, &coords_dim));
     CeedCallBackend(CeedElemRestrictionGetData(rstr_points, &rstr_data));
     data->points.indices = (CeedInt *)rstr_data->d_offsets;
-    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
     if (max_dim == 0) max_dim = coords_dim;
-    if (Q_1d == 0) max_num_points = ceil(pow(max_num_points, 1.0 / max_dim));
+    if (Q_1d == 0) {
+      CeedInt elem_size, num_comp;
+
+      CeedCallBackend(CeedElemRestrictionGetElementSize(rstr_points, &elem_size));
+      CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_points, &num_comp));
+      Q_1d = CeedIntPow(elem_size / num_comp, 1 / max_dim);
+    }
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
   if (max_dim == 0) max_dim = 1;
   data->dim = max_dim;
   if (is_at_points) use_3d_slices = false;
   if (Q_1d == 0) {
     if (is_at_points) {
-      Q_1d = max_num_points;
+      Q_1d = 1;
     } else {
       CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q_1d));
     }
@@ -1398,8 +1402,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     code << tab << "const CeedInt Q_1d = " << Q_1d << ";\n";
   }
   if (is_at_points) {
-    code << tab << "const CeedInt max_num_points = " << max_num_points << ";\n";
-    code << tab << "const CeedInt coords_comp_stride = " << coords_comp_stride << ";\n";
+    code << tab << "const CeedInt max_num_points = points.max_num_points;\n";
+    code << tab << "const CeedInt coords_comp_stride = points.coords_comp_stride;\n";
   }
 
   // Shared data
@@ -1630,9 +1634,9 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   }
 
   // -- Q function
-  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
-                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                            Q_1d, is_all_tensor, is_at_points, use_3d_slices, false));
+  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, num_input_fields, op_input_fields, qf_input_fields,
+                                                            num_output_fields, op_output_fields, qf_output_fields, qfunction_name, Q_1d,
+                                                            is_all_tensor, is_at_points, use_3d_slices, false));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";
@@ -1686,7 +1690,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, bool is_full, bool *is_good_build) {
   bool                    is_all_tensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
-  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0, coords_comp_stride = 0;
+  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
@@ -1705,14 +1709,6 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   Q       = data->Q;
   Q_1d    = data->Q_1d;
   max_dim = data->dim;
-  {
-    CeedElemRestriction rstr_points = NULL;
-
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
-    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &coords_comp_stride));
-    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
-  }
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
@@ -1797,8 +1793,8 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 
   code << tab << "const CeedInt max_dim = " << max_dim << ";\n";
   code << tab << "const CeedInt Q_1d = " << Q_1d << ";\n";
-  code << tab << "const CeedInt max_num_points = " << max_num_points << ";\n";
-  code << tab << "const CeedInt coords_comp_stride = " << coords_comp_stride << ";\n";
+  code << tab << "const CeedInt max_num_points = points.max_num_points;\n";
+  code << tab << "const CeedInt coords_comp_stride = points.coords_comp_stride;\n";
 
   // Shared data
   code << tab << "extern __shared__ CeedScalar slice[];\n";
@@ -2056,9 +2052,9 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   }
 
   // -- Q function
-  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
-                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                            Q_1d, is_all_tensor, is_at_points, use_3d_slices, true));
+  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, num_input_fields, op_input_fields, qf_input_fields,
+                                                            num_output_fields, op_output_fields, qf_output_fields, qfunction_name, Q_1d,
+                                                            is_all_tensor, is_at_points, use_3d_slices, true));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";
@@ -2175,7 +2171,7 @@ extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator
 extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOperator op, bool *is_good_build) {
   bool                    is_all_tensor = true, is_all_nontensor = true, is_at_points = false, use_3d_slices = false;
   Ceed                    ceed;
-  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1, max_num_points = 0;
+  CeedInt                 Q, Q_1d, num_input_fields, num_output_fields, max_dim = 1;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
@@ -2673,9 +2669,9 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   }
 
   // -- Q function
-  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, max_num_points, num_input_fields, op_input_fields,
-                                                            qf_input_fields, num_output_fields, op_output_fields, qf_output_fields, qfunction_name,
-                                                            Q_1d, is_all_tensor, is_at_points, use_3d_slices, true));
+  CeedCallBackend(CeedOperatorBuildKernelQFunction_Cuda_gen(code, data, tab, max_dim, num_input_fields, op_input_fields, qf_input_fields,
+                                                            num_output_fields, op_output_fields, qf_output_fields, qfunction_name, Q_1d,
+                                                            is_all_tensor, is_at_points, use_3d_slices, true));
 
   // -- Output basis and restriction
   code << "\n" << tab << "// -- Output field basis action and restrictions\n";

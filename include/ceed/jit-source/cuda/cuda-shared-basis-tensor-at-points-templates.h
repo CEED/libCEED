@@ -41,7 +41,7 @@ inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar
 //------------------------------------------------------------------------------
 // 1D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                         CeedScalar *__restrict__ r_V) {
   CeedScalar chebyshev_x[Q_1D];
@@ -62,9 +62,9 @@ inline __device__ void InterpAtPoints1d(SharedData_Cuda &data, const CeedInt p, 
 //------------------------------------------------------------------------------
 // 1D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void InterpTransposeAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                                 CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                                 const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   CeedScalar chebyshev_x[Q_1D];
 
   ChebyshevPolynomialsAtPoint<Q_1D>(r_X[0], chebyshev_x);
@@ -73,7 +73,7 @@ inline __device__ void InterpTransposeAtPoints1d(SharedData_Cuda &data, const Ce
     if (data.t_id_x < Q_1D) data.slice[data.t_id_x] = 0.0;
     __syncthreads();
     // Contract x direction
-    if (p < NUM_POINTS) {
+    if (p < max_num_points) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         atomicAdd_block(&data.slice[comp * Q_1D + (i + data.t_id_x) % Q_1D], chebyshev_x[(i + data.t_id_x) % Q_1D] * r_U[comp]);
       }
@@ -87,7 +87,7 @@ inline __device__ void InterpTransposeAtPoints1d(SharedData_Cuda &data, const Ce
 //------------------------------------------------------------------------------
 // 1D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                       CeedScalar *__restrict__ r_V) {
   CeedScalar chebyshev_x[Q_1D];
@@ -109,9 +109,9 @@ inline __device__ void GradAtPoints1d(SharedData_Cuda &data, const CeedInt p, co
 //------------------------------------------------------------------------------
 // 1D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void GradTransposeAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                               CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeAtPoints1d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                               const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   CeedScalar chebyshev_x[Q_1D];
 
   ChebyshevDerivativeAtPoint<Q_1D>(r_X[0], chebyshev_x);
@@ -120,7 +120,7 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Cuda &data, const Ceed
     if (data.t_id_x < Q_1D) data.slice[data.t_id_x] = 0.0;
     __syncthreads();
     // Contract x direction
-    if (p < NUM_POINTS) {
+    if (p < max_num_points) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         atomicAdd_block(&data.slice[comp * Q_1D + (i + data.t_id_x) % Q_1D], chebyshev_x[(i + data.t_id_x) % Q_1D] * r_U[comp]);
       }
@@ -138,7 +138,7 @@ inline __device__ void GradTransposeAtPoints1d(SharedData_Cuda &data, const Ceed
 //------------------------------------------------------------------------------
 // 2D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                         CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
@@ -169,9 +169,9 @@ inline __device__ void InterpAtPoints2d(SharedData_Cuda &data, const CeedInt p, 
 //------------------------------------------------------------------------------
 // 2D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                                 CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                                 const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
@@ -181,7 +181,7 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const Ce
     __syncthreads();
     // Contract y direction
     ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
-    const CeedScalar r_u = p < NUM_POINTS ? r_U[comp] : 0.0;
+    const CeedScalar r_u = p < max_num_points ? r_U[comp] : 0.0;
 
     for (CeedInt i = 0; i < Q_1D; i++) {
       buffer[i] = chebyshev_x[i] * r_u;
@@ -207,7 +207,7 @@ inline __device__ void InterpTransposeAtPoints2d(SharedData_Cuda &data, const Ce
 //------------------------------------------------------------------------------
 // 2D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                       CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP * 2; i++) r_V[i] = 0.0;
@@ -248,9 +248,9 @@ inline __device__ void GradAtPoints2d(SharedData_Cuda &data, const CeedInt p, co
 //------------------------------------------------------------------------------
 // 2D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                               CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                               const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
@@ -265,7 +265,7 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const Ceed
       } else {
         ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
       }
-      const CeedScalar r_u = p < NUM_POINTS ? r_U[comp + dim * NUM_COMP] : 0.0;
+      const CeedScalar r_u = p < max_num_points ? r_U[comp + dim * NUM_COMP] : 0.0;
 
       for (CeedInt i = 0; i < Q_1D; i++) {
         buffer[i] = chebyshev_x[i] * r_u;
@@ -300,7 +300,7 @@ inline __device__ void GradTransposeAtPoints2d(SharedData_Cuda &data, const Ceed
 //------------------------------------------------------------------------------
 // 3D interpolate to points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void InterpAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                         CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP; i++) r_V[i] = 0.0;
@@ -337,9 +337,9 @@ inline __device__ void InterpAtPoints3d(SharedData_Cuda &data, const CeedInt p, 
 //------------------------------------------------------------------------------
 // 3D interpolate transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                                 CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                                 const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt k = 0; k < Q_1D; k++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
@@ -354,7 +354,7 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const Ce
       __syncthreads();
       // Contract y and z direction
       ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
-      const CeedScalar r_u = p < NUM_POINTS ? r_U[comp] : 0.0;
+      const CeedScalar r_u = p < max_num_points ? r_U[comp] : 0.0;
 
       for (CeedInt i = 0; i < Q_1D; i++) {
         buffer[i] = chebyshev_x[i] * r_u * z;
@@ -381,7 +381,7 @@ inline __device__ void InterpTransposeAtPoints3d(SharedData_Cuda &data, const Ce
 //------------------------------------------------------------------------------
 // 3D derivatives at points
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
+template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void GradAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_C, const CeedScalar *r_X,
                                       CeedScalar *__restrict__ r_V) {
   for (CeedInt i = 0; i < NUM_COMP * 3; i++) r_V[i] = 0.0;
@@ -434,9 +434,9 @@ inline __device__ void GradAtPoints3d(SharedData_Cuda &data, const CeedInt p, co
 //------------------------------------------------------------------------------
 // 3D derivatives transpose
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_POINTS, int P_1D, int Q_1D>
-inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedScalar *__restrict__ r_U, const CeedScalar *r_X,
-                                               CeedScalar *__restrict__ r_C) {
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const CeedInt p, const CeedInt max_num_points,
+                                               const CeedScalar *__restrict__ r_U, const CeedScalar *r_X, CeedScalar *__restrict__ r_C) {
   for (CeedInt k = 0; k < Q_1D; k++) {
     CeedScalar buffer[Q_1D];
     CeedScalar chebyshev_x[Q_1D];
@@ -461,7 +461,7 @@ inline __device__ void GradTransposeAtPoints3d(SharedData_Cuda &data, const Ceed
           ChebyshevPolynomialsAtPoint<Q_1D>(r_X[1], chebyshev_x);
         }
         const CeedScalar zz  = dim == 2 ? dz : z;
-        const CeedScalar r_u = (p < NUM_POINTS) ? r_U[comp + dim * NUM_COMP] : 0.0;
+        const CeedScalar r_u = (p < max_num_points) ? r_U[comp + dim * NUM_COMP] : 0.0;
 
         for (CeedInt i = 0; i < Q_1D; i++) {
           buffer[i] = chebyshev_x[i] * r_u * zz;

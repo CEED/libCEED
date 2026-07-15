@@ -20,8 +20,9 @@
 //------------------------------------------------------------------------------
 // Interp
 //------------------------------------------------------------------------------
-extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
-                                          const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
+                                          const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
+                                          const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -57,25 +58,25 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
     }
 
     // Map to points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
       if (BASIS_DIM == 1) {
-        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 2) {
-        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 3) {
-        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        InterpAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
-      WritePoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
+      WritePoint<BASIS_NUM_COMP>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, r_V, d_V);
     }
   }
 }
 
-extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
+extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
                                                    const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
                                                    const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
@@ -114,19 +115,19 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
     }
 
     // Map from points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
-      ReadPoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U, r_U);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP>(data, elem, i, max_num_points, points_per_elem[elem], 1, num_elem * max_num_points, max_num_points, d_U, r_U);
       if (BASIS_DIM == 1) {
-        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       }
     }
 
@@ -145,7 +146,7 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
   }
 }
 
-extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
+extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
                                                       const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
                                                       const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
@@ -173,19 +174,19 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
     // Map from points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
-      ReadPoint<BASIS_NUM_COMP, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U, r_U);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP>(data, elem, i, max_num_points, points_per_elem[elem], 1, num_elem * max_num_points, max_num_points, d_U, r_U);
       if (BASIS_DIM == 1) {
-        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        InterpTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       }
     }
 
@@ -207,8 +208,9 @@ extern "C" __global__ void InterpTransposeAddAtPoints(const CeedInt num_elem, co
 //------------------------------------------------------------------------------
 // Grad
 //------------------------------------------------------------------------------
-extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B, const CeedInt *__restrict__ points_per_elem,
-                                        const CeedScalar *__restrict__ d_X, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
+                                        const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
+                                        const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
   SharedData_Cuda data;
@@ -244,25 +246,25 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
     }
 
     // Map to points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
       if (BASIS_DIM == 1) {
-        GradAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 2) {
-        GradAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       } else if (BASIS_DIM == 3) {
-        GradAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
+        GradAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, r_C, r_X, r_V);
       }
-      WritePoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, r_V, d_V);
+      WritePoint<BASIS_NUM_COMP * BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, r_V, d_V);
     }
   }
 }
 
-extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
+extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
                                                  const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
                                                  const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
@@ -301,20 +303,20 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
     }
 
     // Map from points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
-      ReadPoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U,
-                                                           r_U);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP * BASIS_DIM>(data, elem, i, max_num_points, points_per_elem[elem], 1, num_elem * max_num_points, max_num_points, d_U,
+                                            r_U);
       if (BASIS_DIM == 1) {
-        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       }
     }
 
@@ -333,7 +335,7 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
   }
 }
 
-extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ c_B,
+extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ c_B,
                                                     const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ d_X,
                                                     const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
@@ -361,20 +363,20 @@ extern "C" __global__ void GradTransposeAddAtPoints(const CeedInt num_elem, cons
     for (CeedInt i = 0; i < BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1); i++) r_C[i] = 0.0;
 
     // Map from points
-    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * BASIS_NUM_PTS / (blockDim.x * blockDim.y));
+    const CeedInt point_loop_bound = (blockDim.x * blockDim.y) * ceil(1.0 * max_num_points / (blockDim.x * blockDim.y));
 
     for (CeedInt i = threadIdx.x + threadIdx.y * blockDim.x; i < point_loop_bound; i += blockDim.x * blockDim.y) {
-      const CeedInt p = i % BASIS_NUM_PTS;
+      const CeedInt p = i % max_num_points;
 
-      ReadPoint<BASIS_DIM, BASIS_NUM_PTS>(data, elem, p, BASIS_NUM_PTS, 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_X, r_X);
-      ReadPoint<BASIS_NUM_COMP * BASIS_DIM, BASIS_NUM_PTS>(data, elem, i, points_per_elem[elem], 1, num_elem * BASIS_NUM_PTS, BASIS_NUM_PTS, d_U,
-                                                           r_U);
+      ReadPoint<BASIS_DIM>(data, elem, p, max_num_points, max_num_points, 1, num_elem * max_num_points, max_num_points, d_X, r_X);
+      ReadPoint<BASIS_NUM_COMP * BASIS_DIM>(data, elem, i, max_num_points, points_per_elem[elem], 1, num_elem * max_num_points, max_num_points, d_U,
+                                            r_U);
       if (BASIS_DIM == 1) {
-        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 2) {
-        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       } else if (BASIS_DIM == 3) {
-        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_NUM_PTS, BASIS_P_1D, BASIS_Q_1D>(data, i, r_U, r_X, r_C);
+        GradTransposeAtPoints3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, i, max_num_points, r_U, r_X, r_C);
       }
     }
 

@@ -45,6 +45,10 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - OCCA backends were retired.
 - Use clang-tidy to automatically fix if-else blocks which are missing braces.
 
+### Backends
+
+- CUDA: Change the maximum number of points from a compile-time parameter to a run-time parameter to reduce the need for recompilation of at-points kernels.
+
 (v0-12)=
 
 ## v0.12 (Oct 31, 2023)

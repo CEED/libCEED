@@ -174,17 +174,20 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_at_points) {
     // Coords
-    CeedVector vec;
+    CeedVector          vec;
+    CeedElemRestriction rstr_points = NULL;
 
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &vec));
     CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &data->points.max_num_points));
+    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &data->points.coords_comp_stride));
     CeedCallBackend(CeedVectorDestroy(&vec));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
 
     // Points per elem
     if (num_elem != data->points.num_elem) {
-      CeedInt            *points_per_elem;
-      const CeedInt       num_bytes   = num_elem * sizeof(CeedInt);
-      CeedElemRestriction rstr_points = NULL;
+      CeedInt      *points_per_elem;
+      const CeedInt num_bytes = num_elem * sizeof(CeedInt);
 
       data->points.num_elem = num_elem;
       CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
@@ -608,11 +611,15 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen(CeedOperator o
 
     // Point coordinates
     {
-      CeedVector vec;
+      CeedVector          vec;
+      CeedElemRestriction rstr_points = NULL;
 
-      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &vec));
       CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+      CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &data->points.max_num_points));
+      CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &data->points.coords_comp_stride));
       CeedCallBackend(CeedVectorDestroy(&vec));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
 
       // Points per elem
       if (num_elem != data->points.num_elem) {
@@ -774,11 +781,15 @@ static int CeedOperatorAssembleSingleAtPoints_Cuda_gen(CeedOperator op, CeedInt 
 
     // Point coordinates
     {
-      CeedVector vec;
+      CeedVector          vec;
+      CeedElemRestriction rstr_points = NULL;
 
-      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &vec));
       CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
+      CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &data->points.max_num_points));
+      CeedCallBackend(CeedElemRestrictionGetCompStride(rstr_points, &data->points.coords_comp_stride));
       CeedCallBackend(CeedVectorDestroy(&vec));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
 
       // Points per elem
       if (num_elem != data->points.num_elem) {
