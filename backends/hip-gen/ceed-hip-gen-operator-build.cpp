@@ -31,34 +31,6 @@ struct FieldReuse_Hip {
 };
 
 //------------------------------------------------------------------------------
-// Calculate the block size used for launching the operator kernel
-//------------------------------------------------------------------------------
-extern "C" int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt num_elem, const CeedInt P_1d, const CeedInt Q_1d, CeedInt *block_sizes) {
-  const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-  if (dim == 1) {
-    CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
-
-    elems_per_block = elems_per_block > 0 ? elems_per_block : 1;
-    block_sizes[0]  = thread_1d;
-    block_sizes[1]  = 1;
-    block_sizes[2]  = elems_per_block;
-  } else if (dim == 2) {
-    const CeedInt elems_per_block = thread_1d < 4 ? 16 : 2;
-
-    block_sizes[0] = thread_1d;
-    block_sizes[1] = thread_1d;
-    block_sizes[2] = elems_per_block;
-  } else if (dim == 3) {
-    const CeedInt elems_per_block = thread_1d < 6 ? 4 : (thread_1d < 8 ? 2 : 1);
-
-    block_sizes[0] = thread_1d;
-    block_sizes[1] = thread_1d;
-    block_sizes[2] = elems_per_block;
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Determine type of operator
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelData_Hip_gen(Ceed ceed, CeedInt num_input_fields, CeedOperatorField *op_input_fields,
@@ -1386,8 +1358,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   code << tab << "// s_B_[in,out]_i: Interpolation matrix, shared memory\n";
   code << tab << "// s_G_[in,out]_i: Gradient matrix, shared memory\n";
   code << tab << "// -----------------------------------------------------------------------------\n";
-  code << tab << "extern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
-  code << "__global__ void " << operator_name
+  code << tab << "extern \"C\" __global__ void " << operator_name
        << "(CeedInt num_elem, void* ctx, FieldsInt_Hip indices, Fields_Hip fields, Fields_Hip B, Fields_Hip G, CeedScalar* W, Points_Hip points) {\n";
   tab.push();
 
@@ -1680,18 +1651,14 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
 
-  CeedInt block_sizes[3] = {0, 0, 0};
-  CeedInt num_elem;
-
   // Compile
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(BlockGridCalculate_Hip_gen(is_all_tensor ? max_dim : 1, num_elem, data->max_P_1d, is_all_tensor ? Q_1d : Q, block_sizes));
   {
-    bool is_compile_good = false;
+    bool          is_compile_good = false;
+    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
-    data->thread_1d = block_sizes[0];
+    data->thread_1d = T_1d;
     CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_") + qfunction_name).c_str(), &is_compile_good, &data->module,
-                                       2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
+                                       1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
@@ -2158,19 +2125,15 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
 
-  CeedInt block_sizes[3] = {0, 0, 0};
-  CeedInt num_elem;
-
   // Compile
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(BlockGridCalculate_Hip_gen(max_dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
   {
-    bool is_compile_good = false;
+    bool          is_compile_good = false;
+    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
-    data->thread_1d = block_sizes[0];
+    data->thread_1d = T_1d;
     CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_assembly_at_points") + qfunction_name).c_str(),
-                                       &is_compile_good, is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 2, "OP_T_1D",
-                                       block_sizes[0], "BLOCK_SIZE", block_sizes[0] * block_sizes[1] * block_sizes[2]));
+                                       &is_compile_good, is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D",
+                                       T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, is_full ? data->module_assemble_full : data->module_assemble_diagonal, operator_name.c_str(),
@@ -2751,19 +2714,14 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Hip_gen(CeedOperat
   code << tab << "}\n";
   code << tab << "// -----------------------------------------------------------------------------\n\n";
 
-  CeedInt block_sizes[3] = {0, 0, 0};
-  CeedInt num_elem;
-
   // Compile
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(BlockGridCalculate_Hip_gen(max_dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
   {
-    bool is_compile_good = false;
+    bool          is_compile_good = false;
+    const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
-    data->thread_1d = block_sizes[0];
+    data->thread_1d = T_1d;
     CeedCallBackend(CeedTryCompile_Hip(ceed, code.str().c_str(), (std::string("operator_assembly") + qfunction_name).c_str(), &is_compile_good,
-                                       &data->module_assemble_qfunction, 2, "OP_T_1D", block_sizes[0], "BLOCK_SIZE",
-                                       block_sizes[0] * block_sizes[1] * block_sizes[2]));
+                                       &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Hip(ceed, data->module_assemble_qfunction, operator_name.c_str(), &data->assemble_qfunction));
