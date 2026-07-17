@@ -1479,6 +1479,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode_i));
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis_i));
+    CeedCallBackend(CeedBasisIsTensor(basis_i, &is_tensor));
     for (CeedInt j = 0; (output_matrix_reuse[i].index == -1) && (j < num_input_fields); j++) {
       CeedEvalMode eval_mode_j;
       CeedBasis    basis_j;
