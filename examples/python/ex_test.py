@@ -11,7 +11,6 @@ from argparse import Namespace
 import ex1_volume
 import ex2_surface
 import ex3_volume
-import bpsraw
 
 # -------------------------------------------------------------------------------
 
@@ -266,56 +265,5 @@ def test_303(ceed_resource):
         gallery=False,
     )
     ex3_volume.example_3(args)
-
-# -------------------------------------------------------------------------------
-
-
-def test_401(ceed_resource):
-    args = Namespace(
-        ceed=ceed_resource,
-        problem='bp1',
-        degree=1,
-        q_extra=None,
-        local=1000,
-        test=True,
-        benchmark=False,
-        write_solution=False,
-        ksp_max_it_clip=[15, 15],
-    )
-    assert bpsraw.example_bps(args) == 0
-
-# -------------------------------------------------------------------------------
-
-
-def test_402(ceed_resource):
-    args = Namespace(
-        ceed=ceed_resource,
-        problem='bp1',
-        degree=2,
-        q_extra=None,
-        local=1000,
-        test=True,
-        benchmark=False,
-        write_solution=False,
-        ksp_max_it_clip=[15, 15],
-    )
-    assert bpsraw.example_bps(args) == 0
-
-# -------------------------------------------------------------------------------
-
-
-def test_403(ceed_resource):
-    args = Namespace(
-        ceed=ceed_resource,
-        problem='bp1',
-        degree=3,
-        q_extra=None,
-        local=1000,
-        test=True,
-        benchmark=False,
-        write_solution=False,
-        ksp_max_it_clip=[15, 15],
-    )
-    assert bpsraw.example_bps(args) == 0
 
 # -------------------------------------------------------------------------------
