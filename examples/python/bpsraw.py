@@ -107,7 +107,7 @@ KSP_CONVERGED_REASONS = {value: name for name, value
                          if isinstance(value, int)}
 
 
-def Split3(size, reverse=False):
+def split3(size, reverse=False):
     """Split an integer into three nearly equal factors"""
     p = [0, 0, 0]
     size_left = size
@@ -121,13 +121,13 @@ def Split3(size, reverse=False):
     return p
 
 
-def GlobalNodes(p, i_rank, degree, mesh_elem):
+def global_nodes(p, i_rank, degree, mesh_elem):
     """Number of nodes owned by the given process in each dimension"""
     return [degree * mesh_elem[d] + (1 if i_rank[d] == p[d] - 1 else 0)
             for d in range(3)]
 
 
-def GlobalStart(p, i_rank, degree, mesh_elem):
+def global_start(p, i_rank, degree, mesh_elem):
     """Index of the first node owned by the given process"""
     start = 0
     for i in range(p[0]):
@@ -135,12 +135,12 @@ def GlobalStart(p, i_rank, degree, mesh_elem):
             for k in range(p[2]):
                 if [i, j, k] == list(i_rank):
                     return start
-                m_nodes = GlobalNodes(p, (i, j, k), degree, mesh_elem)
+                m_nodes = global_nodes(p, (i, j, k), degree, mesh_elem)
                 start += m_nodes[0] * m_nodes[1] * m_nodes[2]
     return -1
 
 
-def CreateRestriction(ceed, mesh_elem, P, num_comp):
+def create_restriction(ceed, mesh_elem, P, num_comp):
     """Create an element restriction for a tensor product element"""
     num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2]
     m_nodes = [mesh_elem[d] * (P - 1) + 1 for d in range(3)]
@@ -249,7 +249,7 @@ class CeedMatCtx:
         self.l_to_g.end(self.Y_loc, Y, addv=PETSc.InsertMode.ADD, mode=PETSc.Scatter.Mode.FORWARD)
 
 
-def ComputeErrorMax(ctx, op_error, X, target, mpi_comm):
+def compute_error_max(ctx, op_error, X, target, mpi_comm):
     """Compute the maximum pointwise error against the true solution"""
     length = target.get_length()
     collocated_error = ctx.ceed.Vector(length)
@@ -326,12 +326,12 @@ def example_bps(args):
             default_vec_type = PETSc.Vec.Type.STANDARD
 
     # Determine size of process grid
-    p = Split3(size, reverse=False)
+    p = split3(size, reverse=False)
 
     # Find a nicely composite number of elements no less than local_nodes
     start = max(1, local_nodes // (degree * degree * degree))
     for local_elem in range(start, 10 ** 9):
-        mesh_elem = Split3(local_elem, reverse=True)
+        mesh_elem = split3(local_elem, reverse=True)
         if max(mesh_elem) // min(mesh_elem) <= 2:
             break
 
@@ -343,7 +343,7 @@ def example_bps(args):
         i_rank[d] = rank_left // pstride[d]
         rank_left -= i_rank[d] * pstride[d]
 
-    m_nodes = GlobalNodes(p, i_rank, degree, mesh_elem)
+    m_nodes = global_nodes(p, i_rank, degree, mesh_elem)
 
     # Setup global vector; setSizes takes (local, global), since its second positional argument is a block size
     X = PETSc.Vec().create(comm=comm)
@@ -394,8 +394,8 @@ def example_bps(args):
     g_m_nodes = np.empty((2, 2, 2), dtype=object)
     for idx in np.ndindex(g_start.shape):
         ijk_rank = [i_rank[d] + idx[d] for d in range(3)]
-        g_start[idx] = GlobalStart(p, ijk_rank, degree, mesh_elem)
-        g_m_nodes[idx] = GlobalNodes(p, ijk_rank, degree, mesh_elem)
+        g_start[idx] = global_start(p, ijk_rank, degree, mesh_elem)
+        g_m_nodes[idx] = global_nodes(p, ijk_rank, degree, mesh_elem)
 
     l_to_g_ind = np.empty(l_size, dtype=PETSc.IntType)
     l_to_g_ind_0 = np.empty(l_size, dtype=PETSc.IntType)
@@ -455,8 +455,8 @@ def example_bps(args):
     basis_x = ceed.BasisTensorH1Lagrange(dim, num_comp_x, 2, Q, bp_opts["q_mode"])
 
     # CEED restrictions
-    elem_restr_u = CreateRestriction(ceed, mesh_elem, P, num_comp_u)
-    elem_restr_x = CreateRestriction(ceed, mesh_elem, 2, dim)
+    elem_restr_u = create_restriction(ceed, mesh_elem, P, num_comp_u)
+    elem_restr_x = create_restriction(ceed, mesh_elem, 2, dim)
     num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2]
     elem_size = Q ** 3
 
@@ -625,7 +625,7 @@ def example_bps(args):
     if not test_mode and rank == 0:
         print("  Performance:")
 
-    max_error = ComputeErrorMax(ctx, op_error, X, target, mpi_comm)
+    max_error = compute_error_max(ctx, op_error, X, target, mpi_comm)
     rt_min = mpi_comm.allreduce(my_rt, op=MPI.MIN)
     rt_max = mpi_comm.allreduce(my_rt, op=MPI.MAX)
 
