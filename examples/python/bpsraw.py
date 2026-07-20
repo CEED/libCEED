@@ -51,7 +51,14 @@ BP_OPTIONS = {
 
 
 def int_pair(value):
-    """Parse a pair of comma separated integers, as PetscOptionsIntArray does"""
+    """Parse a pair of comma separated integers, as PetscOptionsIntArray does
+
+    Args:
+        value: String of two comma separated integers
+
+    Returns:
+        list: The two parsed integers
+    """
     entries = [int(entry) for entry in value.split(",")]
     if len(entries) != 2:
         raise argparse.ArgumentTypeError("expected two comma separated "
@@ -108,7 +115,15 @@ KSP_CONVERGED_REASONS = {value: name for name, value
 
 
 def split3(size, reverse=False):
-    """Split an integer into three nearly equal factors"""
+    """Split an integer into three nearly equal factors
+
+    Args:
+        size: Integer to factor
+        reverse: Assign the larger factors to the last dimensions first
+
+    Returns:
+        list: Three factors whose product is size
+    """
     p = [0, 0, 0]
     size_left = size
     for d in range(3):
@@ -122,13 +137,33 @@ def split3(size, reverse=False):
 
 
 def global_nodes(p, i_rank, degree, mesh_elem):
-    """Number of nodes owned by the given process in each dimension"""
+    """Number of nodes owned by the given process in each dimension
+
+    Args:
+        p: Process grid dimensions
+        i_rank: Coordinates of the process in the grid
+        degree: Polynomial degree
+        mesh_elem: Local elements per dimension
+
+    Returns:
+        list: Owned nodes in each of the three dimensions
+    """
     return [degree * mesh_elem[d] + (1 if i_rank[d] == p[d] - 1 else 0)
             for d in range(3)]
 
 
 def global_start(p, i_rank, degree, mesh_elem):
-    """Index of the first node owned by the given process"""
+    """Index of the first node owned by the given process
+
+    Args:
+        p: Process grid dimensions
+        i_rank: Coordinates of the process in the grid
+        degree: Polynomial degree
+        mesh_elem: Local elements per dimension
+
+    Returns:
+        int: Global index of the first owned node, or -1 if not found
+    """
     start = 0
     for i in range(p[0]):
         for j in range(p[1]):
@@ -141,7 +176,17 @@ def global_start(p, i_rank, degree, mesh_elem):
 
 
 def create_restriction(ceed, mesh_elem, P, num_comp):
-    """Create an element restriction for a tensor product element"""
+    """Create an element restriction for a tensor product element
+
+    Args:
+        ceed: libCEED context
+        mesh_elem: Local elements per dimension
+        P: Nodes per dimension per element (degree + 1)
+        num_comp: Number of components
+
+    Returns:
+        ElemRestriction: Element restriction for the local mesh
+    """
     num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2]
     m_nodes = [mesh_elem[d] * (P - 1) + 1 for d in range(3)]
 
@@ -173,6 +218,13 @@ class DeviceArray:
     """
 
     def __init__(self, pointer, size, dtype):
+        """Wrap a raw device pointer in the CUDA array interface
+
+        Args:
+            pointer: Raw CUDA device pointer
+            size: Number of elements
+            dtype: NumPy dtype of the elements
+        """
         self.__cuda_array_interface__ = {
             "shape": (size,),
             "typestr": np.dtype(dtype).str,
@@ -188,6 +240,14 @@ class CeedMatCtx:
     """
 
     def __init__(self, ceed, op_apply, l_to_g, X_loc):
+        """Set up the vectors and scatter the operator applies with
+
+        Args:
+            ceed: libCEED context
+            op_apply: libCEED operator applied in mult()
+            l_to_g: Local-to-global scatter
+            X_loc: Local vector, duplicated for input and output staging
+        """
         self.ceed = ceed
         self.op_apply = op_apply
         self.l_to_g = l_to_g
@@ -210,6 +270,14 @@ class CeedMatCtx:
         C: VecGetArrayAndMemType() + CeedVectorSetArray(CEED_USE_POINTER). petsc4py has no getArrayAndMemType,
         so the device pointer is fetched with getCUDAHandle and wrapped for libCEED; on the host, getArray()
         already returns a view of the Vec's own memory.
+
+        Args:
+            ceed_vec: CeedVector to point at the array
+            vec: PETSc Vec whose array is borrowed
+            mode: "r" for read only access, "w" for write access
+
+        Returns:
+            The CUDA handle to restore later, or None on the host
         """
         if self.on_device:
             handle = vec.getCUDAHandle(mode)
@@ -221,12 +289,24 @@ class CeedMatCtx:
         return handle
 
     def restore_ceed_array(self, vec, handle, mode):
-        """Release a device array borrowed by set_ceed_array"""
+        """Release a device array borrowed by set_ceed_array
+
+        Args:
+            vec: PETSc Vec whose array was borrowed
+            handle: CUDA handle returned by set_ceed_array, or None
+            mode: Access mode used in set_ceed_array
+        """
         if handle is not None:
             vec.restoreCUDAHandle(handle, mode)
 
     def mult(self, A, X, Y):
-        """Apply the libCEED operator to a global vector"""
+        """Apply the libCEED operator to a global vector
+
+        Args:
+            A: The PETSc Mat wrapping this context
+            X: Input global vector
+            Y: Output global vector
+        """
         # Global-to-local
         self.l_to_g.begin(X, self.X_loc, addv=PETSc.InsertMode.INSERT, mode=PETSc.Scatter.Mode.REVERSE)
         self.l_to_g.end(X, self.X_loc, addv=PETSc.InsertMode.INSERT, mode=PETSc.Scatter.Mode.REVERSE)
@@ -250,7 +330,18 @@ class CeedMatCtx:
 
 
 def compute_error_max(ctx, op_error, X, target, mpi_comm):
-    """Compute the maximum pointwise error against the true solution"""
+    """Compute the maximum pointwise error against the true solution
+
+    Args:
+        ctx: CeedMatCtx providing the ceed context and scatters
+        op_error: libCEED operator computing the pointwise error
+        X: Global solution vector
+        target: CeedVector holding the true solution
+        mpi_comm: mpi4py communicator for the reduction
+
+    Returns:
+        float: Maximum pointwise error across all processes
+    """
     length = target.get_length()
     collocated_error = ctx.ceed.Vector(length)
     collocated_error.set_value(0.0)
@@ -651,7 +742,11 @@ def example_bps(args):
 
 
 def main():
-    """Main function for the CEED BPs example"""
+    """Run the CEED BPs example on the parsed command line arguments
+
+    Returns:
+        int: 0 on success
+    """
     return example_bps(_args)
 
 
