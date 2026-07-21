@@ -125,6 +125,30 @@ extern "C" int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedS
 }
 
 //------------------------------------------------------------------------------
+// Kernel for filter
+//------------------------------------------------------------------------------
+__global__ static void filterValueK(CeedScalar *__restrict__ x, CeedScalar threshold, CeedSize size) {
+  const CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index < size) {
+    if (fabs(x[index]) <= threshold) x[index] = 0.0;
+  }
+}
+
+//------------------------------------------------------------------------------
+// Filter or clip vector components to zero if their absolute value is less than or equal to threshold on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceFilter_Cuda(CeedScalar *x_array, CeedScalar threshold, CeedSize length) {
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
+
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  filterValueK<<<grid_size, block_size>>>(x_array, threshold, length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Kernel for axpy
 //------------------------------------------------------------------------------
 __global__ static void axpyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar *__restrict__ x, CeedSize size) {

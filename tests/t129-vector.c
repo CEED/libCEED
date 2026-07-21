@@ -14,8 +14,16 @@ static int InitVector(CeedVector x, CeedInt len) {
   if (len <= 0) return 0;  // Nothing to set for an empty vector
 
   CeedScalar array[len];
+
   for (CeedInt i = 0; i < len; i++) array[i] = (1.0 + i) * pow(-1, i);
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
+  {
+    // Sync memtype to device for GPU backends
+    CeedMemType type = CEED_MEM_HOST;
+
+    CeedGetPreferredMemType(CeedVectorReturnCeed(x), &type);
+    CeedVectorSyncArray(x, type);
+  }
   return 0;
 }
 
@@ -52,13 +60,6 @@ int main(int argc, char **argv) {
   tolerance = 3.5;
   CeedVectorFilter(x, tolerance);
   VerifyFilter(x, len, tolerance);
-
-  {
-    // Sync memtype to device for GPU backends
-    CeedMemType type = CEED_MEM_HOST;
-    CeedGetPreferredMemType(ceed, &type);
-    CeedVectorSyncArray(x, type);
-  }
 
   // Test Case 2 - tolerance equal to a vector value
   InitVector(x, len);
