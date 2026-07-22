@@ -36,7 +36,16 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(const CeedQFunctionContext ct
     CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_data_owned, ctx_size));
     impl->d_data = impl->d_data_owned;
   }
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_data, impl->h_data, ctx_size, cudaMemcpyHostToDevice));
+
+  // Use async memcpy during CUDA Graph capture for compatibility
+  enum cudaStreamCaptureStatus capture_status;
+  cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+  if (capture_status != cudaStreamCaptureStatusNone) {
+    CeedCallCuda(ceed, cudaMemcpyAsync(impl->d_data, impl->h_data, ctx_size, cudaMemcpyHostToDevice, cudaStreamPerThread));
+  } else {
+    CeedCallCuda(ceed, cudaMemcpy(impl->d_data, impl->h_data, ctx_size, cudaMemcpyHostToDevice));
+  }
+
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

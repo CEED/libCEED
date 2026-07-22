@@ -11,6 +11,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../cuda/ceed-cuda-common.h"
@@ -31,7 +33,19 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   if (impl->module_assemble_full) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_full));
   if (impl->module_assemble_diagonal) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_diagonal));
   if (impl->module_assemble_qfunction) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_qfunction));
-  if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)impl->points.num_per_elem));
+  if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
+
+  if (impl->graph_instance) {
+    cudaGraphExecDestroy(impl->graph_instance);
+    impl->graph_instance = NULL;
+  }
+  if (impl->graph) {
+    cudaGraphDestroy(impl->graph);
+    impl->graph = NULL;
+  }
+  impl->graph_created      = false;
+  impl->captured_input_ptr = NULL;
+
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
@@ -284,7 +298,10 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, NULL, input_arr, output_arr, &is_run_good, request));
+  enum cudaStreamCaptureStatus capture_status;
+  cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+  CUstream stream_to_use = (capture_status != cudaStreamCaptureStatusNone) ? cudaStreamPerThread : NULL;
+  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, stream_to_use, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
 
@@ -299,7 +316,58 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   return CEED_ERROR_SUCCESS;
 }
 
-static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
+// Push passive inputs and QFunction context to device before graph replay.
+static int CeedCompositeRefreshForReplay_Cuda_gen(CeedOperator *sub_operators, CeedInt num_suboperators) {
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    bool                is_at_points;
+    CeedInt             num_input_fields, num_output_fields;
+    CeedOperatorField  *op_input_fields, *op_output_fields;
+    CeedQFunction       qf  = NULL;
+    CeedQFunctionField *qf_input_fields;
+    void               *d_c = NULL;
+
+    CeedCallBackend(CeedOperatorGetFields(sub_operators[i], &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+    CeedCallBackend(CeedOperatorGetQFunction(sub_operators[i], &qf));
+    CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, NULL));
+
+    for (CeedInt j = 0; j < num_input_fields; j++) {
+      CeedEvalMode eval_mode;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[j], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT) continue;
+      {
+        const CeedScalar *arr;
+        CeedVector        vec;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec));
+        if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
+          CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &arr));
+          CeedCallBackend(CeedVectorRestoreArrayRead(vec, &arr));
+        }
+        CeedCallBackend(CeedVectorDestroy(&vec));
+      }
+    }
+
+    CeedCallBackend(CeedOperatorIsAtPoints(sub_operators[i], &is_at_points));
+    if (is_at_points) {
+      const CeedScalar *arr;
+      CeedVector        vec;
+
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(sub_operators[i], NULL, &vec));
+      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &arr));
+      CeedCallBackend(CeedVectorRestoreArrayRead(vec, &arr));
+      CeedCallBackend(CeedVectorDestroy(&vec));
+    }
+
+    CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &d_c));
+    CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &d_c));
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+// Composite apply without CUDA graphs.
+static int CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
   bool              is_run_good[CEED_COMPOSITE_MAX] = {false}, is_sequential;
   CeedInt           num_suboperators;
   const CeedScalar *input_arr  = NULL;
@@ -330,7 +398,7 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
   CeedCallCuda(ceed, cudaDeviceSynchronize());
 
-  // Fallback on unsuccessful run
+  // Fall back to /gpu/cuda/ref for any sub-operator that couldn't run here.
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
@@ -341,6 +409,124 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     }
   }
   CeedCallBackend(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
+  Ceed                   ceed;
+  CeedOperator_Cuda_gen *impl;
+  CeedOperator          *sub_operators;
+  CeedInt                num_suboperators;
+
+  ceed = CeedOperatorReturnCeed(op);
+  CeedCall(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
+  CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+
+  if (!impl->use_graph || (input_vec == CEED_VECTOR_NONE && output_vec == CEED_VECTOR_NONE)) {
+    return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
+  }
+
+  if (!impl->warmup_done) {
+    CeedCallBackend(CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request));
+    impl->warmup_done = true;
+    return CEED_ERROR_SUCCESS;
+  }
+
+  bool need_build = !impl->graph_created;
+
+  if (!need_build && input_vec != CEED_VECTOR_NONE) {
+    const CeedScalar *in_ptr;
+
+    CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &in_ptr));
+    need_build = in_ptr != impl->captured_input_ptr;
+    CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &in_ptr));
+  }
+
+  if (need_build) {
+    const CeedScalar *input_arr      = NULL;
+    CeedScalar       *output_arr     = NULL;
+    cudaStream_t      capture_stream = cudaStreamPerThread;
+    cudaGraph_t       graph          = NULL;
+    bool              capture_ok     = true;
+    cudaError_t       err;
+
+    if (impl->graph_instance) CeedCallCuda(ceed, cudaGraphExecDestroy(impl->graph_instance));
+    if (impl->graph) CeedCallCuda(ceed, cudaGraphDestroy(impl->graph));
+    impl->graph          = NULL;
+    impl->graph_instance = NULL;
+
+    if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+    if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
+    impl->captured_input_ptr = input_arr;
+
+    err = cudaStreamBeginCapture(capture_stream, cudaStreamCaptureModeThreadLocal);
+    if (err != cudaSuccess) capture_ok = false;
+    if (capture_ok) {
+      // Still call EndCapture if capture is invalidated mid-way.
+      for (CeedInt i = 0; i < num_suboperators; i++) {
+        bool is_run_good = true;
+
+        if (CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], capture_stream, input_arr, output_arr, &is_run_good, request) || !is_run_good) {
+          capture_ok = false;
+          break;
+        }
+      }
+    }
+
+    err = cudaStreamEndCapture(capture_stream, &graph);
+    if (capture_ok && (err != cudaSuccess || !graph)) capture_ok = false;
+    if (capture_ok) {
+      impl->graph = graph;
+      if (cudaGraphInstantiate(&impl->graph_instance, impl->graph, 0) != cudaSuccess) {
+        CeedCallCuda(ceed, cudaGraphDestroy(impl->graph));
+        impl->graph = NULL;
+        capture_ok  = false;
+      }
+    } else if (graph) {
+      cudaGraphDestroy(graph);
+    }
+
+    if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
+    if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+
+    if (!capture_ok) {
+      cudaGetLastError();
+      CeedCallCuda(ceed, cudaDeviceSynchronize());
+      cudaGetLastError();
+      impl->use_graph          = false;
+      impl->graph_created      = false;
+      impl->captured_input_ptr = NULL;
+      return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
+    }
+    impl->graph_created = true;
+  }
+
+  if (input_vec != CEED_VECTOR_NONE) {
+    const CeedScalar *in_arr;
+
+    CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &in_arr));
+    CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &in_arr));
+  }
+  if (output_vec != CEED_VECTOR_NONE) {
+    CeedScalar *out_arr;
+
+    CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &out_arr));
+    CeedCallBackend(CeedVectorRestoreArray(output_vec, &out_arr));
+  }
+  CeedCallBackend(CeedCompositeRefreshForReplay_Cuda_gen(sub_operators, num_suboperators));
+
+  if (cudaGraphLaunch(impl->graph_instance, NULL) != cudaSuccess) {
+    cudaGetLastError();
+    if (impl->graph_instance) cudaGraphExecDestroy(impl->graph_instance);
+    if (impl->graph) cudaGraphDestroy(impl->graph);
+    impl->graph              = NULL;
+    impl->graph_instance     = NULL;
+    impl->graph_created      = false;
+    impl->captured_input_ptr = NULL;
+    impl->use_graph          = false;
+    return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -465,7 +651,7 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
 
     // Assemble QFunction
     void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points, &assembled_array};
-    bool  is_tensor = false;
+    bool  is_tensor;
     int   max_threads_per_block, min_grid_size, grid;
 
     CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
@@ -885,6 +1071,13 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
+
+  {
+    const char *env_val = getenv("CEED_DISABLE_GRAPH");
+
+    impl->use_graph = !(env_val && !strcmp(env_val, "1"));
+  }
+
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAddComposite", CeedOperatorApplyAddComposite_Cuda_gen));
@@ -897,6 +1090,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
                                            CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda_gen));
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleSingle", CeedOperatorAssembleSingleAtPoints_Cuda_gen));
   }
+
   if (!is_at_points) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Cuda_gen));
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate",

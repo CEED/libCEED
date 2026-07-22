@@ -10,6 +10,7 @@
 #include <ceed/backend.h>
 #include <ceed/jit-source/cuda/cuda-types.h>
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 typedef struct {
   bool           use_fallback, use_assembly_fallback;
@@ -25,6 +26,13 @@ typedef struct {
   Fields_Cuda    G;
   CeedScalar    *W;
   Points_Cuda    points;
+
+  bool              use_graph;
+  bool              graph_created;
+  bool              warmup_done;
+  cudaGraph_t       graph;
+  cudaGraphExec_t   graph_instance;
+  const CeedScalar *captured_input_ptr;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
