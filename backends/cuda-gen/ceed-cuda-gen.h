@@ -27,14 +27,12 @@ typedef struct {
   CeedScalar    *W;
   Points_Cuda    points;
 
-  // CUDA graph state
+  bool              use_graph;
   bool              graph_created;
   bool              warmup_done;
   cudaGraph_t       graph;
   cudaGraphExec_t   graph_instance;
-  int               graph_launches;
-  int               fallbacks;
-  const CeedScalar *captured_input_ptr;  // device address at capture; checked before each replay
+  const CeedScalar *captured_input_ptr;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
