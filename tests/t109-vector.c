@@ -1,6 +1,6 @@
 /// @file
-/// Test CeedVectorSetArray to remove array access
-/// \test Test CeedVectorSetArray to remove array access
+/// Test CeedVectorTakeArray to remove array access
+/// \test Test CeedVectorTakeArray to remove array access
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
