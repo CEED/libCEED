@@ -7,6 +7,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/cuda.h>
 #include <ceed/jit-source/cuda/cuda-types.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -36,11 +37,11 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
 
   if (impl->graph_instance) {
-    cudaGraphExecDestroy(impl->graph_instance);
+    CeedCallCuda(ceed, cudaGraphExecDestroy(impl->graph_instance));
     impl->graph_instance = NULL;
   }
   if (impl->graph) {
-    cudaGraphDestroy(impl->graph);
+    CeedCallCuda(ceed, cudaGraphDestroy(impl->graph));
     impl->graph = NULL;
   }
   impl->graph_created      = false;
@@ -398,7 +399,7 @@ static int CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(CeedOperator op, CeedV
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
   CeedCallCuda(ceed, cudaDeviceSynchronize());
 
-  // Fall back to /gpu/cuda/ref for any sub-operator that couldn't run here.
+  // Fall back to /gpu/cuda/ref for any sub-operator that couldn't run here
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
@@ -473,8 +474,8 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
         }
       }
     }
-
     err = cudaStreamEndCapture(capture_stream, &graph);
+    
     if (capture_ok && (err != cudaSuccess || !graph)) capture_ok = false;
     if (capture_ok) {
       impl->graph = graph;
@@ -484,7 +485,7 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
         capture_ok  = false;
       }
     } else if (graph) {
-      cudaGraphDestroy(graph);
+      CeedCallCuda(ceed, cudaGraphDestroy(graph));
     }
 
     if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
@@ -494,9 +495,9 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
       cudaGetLastError();
       CeedCallCuda(ceed, cudaDeviceSynchronize());
       cudaGetLastError();
-      impl->use_graph          = false;
       impl->graph_created      = false;
       impl->captured_input_ptr = NULL;
+      CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, false));
       return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
     }
     impl->graph_created = true;
@@ -518,13 +519,13 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
 
   if (cudaGraphLaunch(impl->graph_instance, NULL) != cudaSuccess) {
     cudaGetLastError();
-    if (impl->graph_instance) cudaGraphExecDestroy(impl->graph_instance);
-    if (impl->graph) cudaGraphDestroy(impl->graph);
+    if (impl->graph_instance) CeedCallCuda(ceed, cudaGraphExecDestroy(impl->graph_instance));
+    if (impl->graph) CeedCallCuda(ceed, cudaGraphDestroy(impl->graph));
     impl->graph              = NULL;
     impl->graph_instance     = NULL;
     impl->graph_created      = false;
     impl->captured_input_ptr = NULL;
-    impl->use_graph          = false;
+    CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, false));
     return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
   }
   return CEED_ERROR_SUCCESS;
@@ -1061,6 +1062,17 @@ static int CeedOperatorAssembleSingleAtPoints_Cuda_gen(CeedOperator op, CeedInt 
 }
 
 //------------------------------------------------------------------------------
+// Set CUDA Graph use
+//------------------------------------------------------------------------------
+static int CeedOperatorSetEnableCudaGraph_Cuda_gen(CeedOperator op, bool enable_graph) {
+  CeedOperator_Cuda_gen *impl;
+
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  impl->use_graph = enable_graph;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
@@ -1071,12 +1083,6 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
-
-  {
-    const char *env_val = getenv("CEED_DISABLE_GRAPH");
-
-    impl->use_graph = !(env_val && !strcmp(env_val, "1"));
-  }
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
@@ -1096,7 +1102,17 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate",
                                            CeedOperatorLinearAssembleQFunctionUpdate_Cuda_gen));
   }
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "SetEnableCudaGraph", CeedOperatorSetEnableCudaGraph_Cuda_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda_gen));
+
+  {
+    const char *env_val = getenv("CEED_ENABLE_CUDA_GRAPH");
+    bool        enable_graph = true;
+
+    if (env_val) enable_graph = strcmp(env_val, "0") && strcmp(env_val, "false");
+    CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, enable_graph));
+  }
+
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

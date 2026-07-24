@@ -29,3 +29,22 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
   }
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Enable or disable CUDA Graph capture/replay for a `CeedOperator`
+
+  @param[in,out] op           `CeedOperator`
+  @param[in]     enable_graph Boolean flag to enable CUDA Graph use
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetEnableCudaGraph(CeedOperator op, bool enable_graph) {
+  if (!op->SetEnableCudaGraph) {
+    CeedDebug(CeedOperatorReturnCeed(op), "Backend does not support CUDA Graphs for operators.");
+  } else {
+    CeedCall(op->SetEnableCudaGraph(op, enable_graph));
+  }
+  return CEED_ERROR_SUCCESS;
+}
