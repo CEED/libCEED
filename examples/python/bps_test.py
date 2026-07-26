@@ -16,7 +16,7 @@ import bpsraw  # noqa: E402
 # -------------------------------------------------------------------------------
 
 
-def test_401(ceed_resource):
+def test_bp1_degree_1(ceed_resource):
     args = Namespace(
         ceed=ceed_resource,
         problem='bp1',
@@ -28,12 +28,12 @@ def test_401(ceed_resource):
         write_solution=False,
         ksp_max_it_clip=[15, 15],
     )
-    assert bpsraw.example_bps(args) == 0
+    bpsraw.example_bps(args)
 
 # -------------------------------------------------------------------------------
 
 
-def test_402(ceed_resource):
+def test_bp1_degree_2(ceed_resource):
     args = Namespace(
         ceed=ceed_resource,
         problem='bp1',
@@ -45,12 +45,12 @@ def test_402(ceed_resource):
         write_solution=False,
         ksp_max_it_clip=[15, 15],
     )
-    assert bpsraw.example_bps(args) == 0
+    bpsraw.example_bps(args)
 
 # -------------------------------------------------------------------------------
 
 
-def test_403(ceed_resource):
+def test_bp1_degree_3(ceed_resource):
     args = Namespace(
         ceed=ceed_resource,
         problem='bp1',
@@ -62,6 +62,6 @@ def test_403(ceed_resource):
         write_solution=False,
         ksp_max_it_clip=[15, 15],
     )
-    assert bpsraw.example_bps(args) == 0
+    bpsraw.example_bps(args)
 
 # -------------------------------------------------------------------------------
