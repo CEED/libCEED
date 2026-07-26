@@ -288,14 +288,18 @@ class CeedMatCtx:
         ceed_vec.set_array(array, memtype=self.mem_type, cmode=libceed.USE_POINTER)
         return handle
 
-    def restore_ceed_array(self, vec, handle, mode):
-        """Release a device array borrowed by set_ceed_array
+    def restore_ceed_array(self, ceed_vec, vec, handle, mode):
+        """Release an array borrowed by set_ceed_array
+
+        C: CeedVectorTakeArray() + VecRestoreArrayAndMemType().
 
         Args:
+            ceed_vec: CeedVector the array was set on
             vec: PETSc Vec whose array was borrowed
             handle: CUDA handle returned by set_ceed_array, or None
             mode: Access mode used in set_ceed_array
         """
+        ceed_vec.take_array(self.mem_type)
         if handle is not None:
             vec.restoreCUDAHandle(handle, mode)
 
@@ -318,10 +322,9 @@ class CeedMatCtx:
         # Apply libCEED operator
         self.op_apply.apply(self.x_ceed, self.y_ceed)
 
-        # Restore arrays; the C also detaches them with CeedVectorTakeArray, which the Python bindings do not
-        # wrap, so they are rebound instead
-        self.restore_ceed_array(self.X_loc, x_handle, "r")
-        self.restore_ceed_array(self.Y_loc, y_handle, "w")
+        # Restore arrays
+        self.restore_ceed_array(self.x_ceed, self.X_loc, x_handle, "r")
+        self.restore_ceed_array(self.y_ceed, self.Y_loc, y_handle, "w")
 
         # Local-to-global
         Y.zeroEntries()
@@ -357,7 +360,7 @@ def compute_error_max(ctx, op_error, X, target, mpi_comm):
     op_error.apply(ctx.x_ceed, collocated_error)
 
     # Restore PETSc array
-    ctx.restore_ceed_array(ctx.X_loc, x_handle, "r")
+    ctx.restore_ceed_array(ctx.x_ceed, ctx.X_loc, x_handle, "r")
 
     # Reduce max error
     with collocated_error.array_read(memtype=libceed.MEM_HOST) as e:
