@@ -1131,28 +1131,36 @@ int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines) {
   @ref User
 **/
 // LCOV_EXCL_START
-int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities) {
+int CeedRegistryGetList(size_t *n, char *const **resources, CeedInt **priorities) {
+  // This will never happen, but checking for completeness
+  CeedCheck(num_backends > 0, NULL, CEED_ERROR_MAJOR, "No backends installed");
+
   *n         = 0;
   *resources = malloc(num_backends * sizeof(**resources));
-  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  CeedCheck(*resources != NULL, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   if (priorities) {
     *priorities = malloc(num_backends * sizeof(**priorities));
-    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "malloc() failure");
+    CeedCheck(*priorities != NULL, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   }
+
+  // Need chars to be writable for us but not the users
+  char **resources_writable = (char **)*resources;
+
   for (size_t i = 0; i < num_backends; i++) {
     // Only report compiled backends
     if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) {
-      *resources[i] = backends[i].prefix;
-      if (priorities) *priorities[i] = backends[i].priority;
       *n += 1;
+      resources_writable[i] = backends[i].prefix;
+      if (priorities) (*priorities)[i] = backends[i].priority;
     }
   }
-  CeedCheck(*n, NULL, CEED_ERROR_MAJOR, "No backends installed");
-  *resources = realloc(*resources, *n * sizeof(**resources));
-  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "realloc() failure");
+  // This check is needed to satisfy clang-tidy but also won't happen
+  CeedCheck(*n > 0, NULL, CEED_ERROR_MAJOR, "No backends installed");
+  *resources = realloc((char **)*resources, *n * sizeof(**resources));
+  CeedCheck(*resources != NULL, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   if (priorities) {
     *priorities = realloc(*priorities, *n * sizeof(**priorities));
-    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "realloc() failure");
+    CeedCheck(*priorities != NULL, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
 }

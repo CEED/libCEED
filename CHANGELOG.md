@@ -44,6 +44,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 
 - OCCA backends were retired.
 - Use clang-tidy to automatically fix if-else blocks which are missing braces.
+- Fixed bugs with `CeedRegistryGetList()` and clarified internals.
 
 (v0-12)=
 
