@@ -562,7 +562,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
-  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include -I$(XSMM_DIR)/include/libxsmm
   BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
