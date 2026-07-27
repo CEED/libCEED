@@ -1149,9 +1149,9 @@ int CeedRegistryGetList(size_t *n, char *const **resources, CeedInt **priorities
   for (size_t i = 0; i < num_backends; i++) {
     // Only report compiled backends
     if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) {
+      resources_writable[*n] = backends[i].prefix;
+      if (priorities) (*priorities)[*n] = backends[i].priority;
       *n += 1;
-      resources_writable[i] = backends[i].prefix;
-      if (priorities) (*priorities)[i] = backends[i].priority;
     }
   }
   // This check is needed to satisfy clang-tidy but also won't happen
