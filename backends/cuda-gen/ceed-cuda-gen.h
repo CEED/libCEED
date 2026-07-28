@@ -33,6 +33,7 @@ typedef struct {
   cudaGraph_t       graph;
   cudaGraphExec_t   graph_instance;
   const CeedScalar *captured_input_ptr;
+  CeedScalar       *captured_output_ptr;
 } CeedOperator_Cuda_gen;
 
 typedef struct {

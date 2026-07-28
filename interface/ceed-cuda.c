@@ -12,9 +12,9 @@
 #include <cuda.h>
 
 /**
-  @brief Set CUDA function pointer to evaluate action at quadrature points
+  @brief Set CUDA function pointer to evaluate action at quadrature points.
 
-  If the backend does not support `CUfunction` pointers for QFunctions, the call succeeds without effect.
+  If the backend does not support `CUfunction` pointers for QFunctions, then the call succeeds without effect.
   When unsupported, a message is emitted via `CeedDebug`.
 
   @param[in,out] qf `CeedQFunction` to set device pointer
@@ -34,9 +34,9 @@ int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
 }
 
 /**
-  @brief Enable or disable CUDA Graph capture/replay for a `CeedOperator`
+  @brief Enable or disable CUDA Graph capture/replay for a `CeedOperator`.
 
-  If the backend does not support CUDA Graphs for operators, the call succeeds without effect.
+  If the backend does not support CUDA Graphs for operators, then the call succeeds without effect.
   When unsupported, a message is emitted via `CeedDebug`.
 
   @param[in,out] op           `CeedOperator`
