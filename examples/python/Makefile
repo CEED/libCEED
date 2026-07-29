@@ -15,6 +15,6 @@ setup:
 
 TEST_OPTS ?= --ceed /cpu/self/ref/serial
 test: setup
-	$(PYTHON) -m pytest ex_test.py $(TEST_OPTS)
+	$(PYTHON) -m pytest ex_test.py bps_test.py $(TEST_OPTS)
 
 .PHONY: clean setup test
