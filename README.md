@@ -201,7 +201,7 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The `/cpu/self/sve/*` backends use vector-length-agnostic Arm SVE instructions for tensor contractions and delegate other operations to the corresponding `/cpu/self/opt/*` backend. They are built when the active compiler target supports SVE, and the resulting library must run on an SVE-capable target.
+The `/cpu/self/sve/*` backends use vector-length-agnostic Arm SVE instructions for tensor contractions and non-tensor basis operations, delegating other operations to the corresponding `/cpu/self/opt/*` backend. They are built when the active compiler target supports SVE, and the resulting library must run on an SVE-capable target.
 
 The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
 To use, run your code with Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
