@@ -45,6 +45,7 @@ XSMM_DIR ?= ../libxsmm
 # Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
 CUDA_DIR  ?=
 CUDA_ARCH ?=
+CUDA_TARGETS ?=
 
 # Often /opt/rocm, but sometimes present on machines that don't support HIP
 ROCM_DIR ?=
@@ -188,7 +189,18 @@ CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
-ifneq ($(CUDA_ARCH),)
+CUDA_TARGETS_UNKNOWN := $(filter-out sm_%,$(CUDA_TARGETS))
+CUDA_SMS := $(patsubst sm_%,%,$(filter sm_%,$(CUDA_TARGETS)))
+CUDA_SMS := $(shell printf "%s\n" $(CUDA_SMS) | sort -n)
+cuda_gencode_sm = -gencode arch=compute_$(1),code=sm_$(1)
+cuda_gencode_compute = -gencode arch=compute_$(1),code=compute_$(1)
+ifneq ($(strip $(CUDA_TARGETS)),)
+  ifneq ($(strip $(CUDA_TARGETS_UNKNOWN)),)
+    $(error Unknown CUDA target(s): $(CUDA_TARGETS_UNKNOWN); expected targets such as sm_80)
+  endif
+  NVCCFLAGS += $(foreach sm,$(CUDA_SMS),$(call cuda_gencode_sm,$(sm))) \
+    $(call cuda_gencode_compute,$(lastword $(CUDA_SMS)))
+else ifneq ($(strip $(CUDA_ARCH)),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
@@ -1049,7 +1061,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH CUDA_TARGETS MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
