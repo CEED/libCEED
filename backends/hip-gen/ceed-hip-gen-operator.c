@@ -17,6 +17,34 @@
 #include "ceed-hip-gen.h"
 
 //------------------------------------------------------------------------------
+// Calculate the block size used for launching the operator kernel
+//------------------------------------------------------------------------------
+static int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt num_elem, const CeedInt P_1d, const CeedInt Q_1d, CeedInt *block_sizes) {
+  const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+  if (dim == 1) {
+    CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
+
+    elems_per_block = elems_per_block > 0 ? elems_per_block : 1;
+    block_sizes[0]  = thread_1d;
+    block_sizes[1]  = 1;
+    block_sizes[2]  = elems_per_block;
+  } else if (dim == 2) {
+    const CeedInt elems_per_block = thread_1d < 4 ? 16 : 2;
+
+    block_sizes[0] = thread_1d;
+    block_sizes[1] = thread_1d;
+    block_sizes[2] = elems_per_block;
+  } else if (dim == 3) {
+    const CeedInt elems_per_block = thread_1d < 6 ? 4 : (thread_1d < 8 ? 2 : 1);
+
+    block_sizes[0] = thread_1d;
+    block_sizes[1] = thread_1d;
+    block_sizes[2] = elems_per_block;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
@@ -60,12 +88,14 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
   CeedQFunction          qf;
   CeedOperatorField     *op_input_fields, *op_output_fields;
   CeedOperator_Hip_gen  *data;
+  Ceed_Hip              *hip_data;
 
   // Creation of the operator
   CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, is_run_good));
   if (!(*is_run_good)) return CEED_ERROR_SUCCESS;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &hip_data));
   CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
@@ -152,38 +182,27 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
 
   // Apply operator
-  void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points};
+  void   *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points};
+  int     min_grid_size, max_threads_per_block;
+  CeedInt grid;
 
   CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
+  CeedCallHip(ceed, hipModuleOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, sizeof(CeedScalar), 0x10000));
   CeedInt block_sizes[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
 
   if (is_tensor) {
     CeedCallBackend(BlockGridCalculate_Hip_gen(data->dim, num_elem, data->max_P_1d, data->Q_1d, block_sizes));
+    grid = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
   } else {
-    CeedInt elems_per_block = 64 * data->thread_1d > 256 ? 256 / data->thread_1d : 64;
+    CeedInt elems_per_block = CeedIntMin(hip_data->device_prop.maxThreadsDim[2], CeedIntMax(max_threads_per_block / data->thread_1d, 1));
 
-    elems_per_block = elems_per_block > 0 ? elems_per_block : 1;
-    block_sizes[2]  = elems_per_block;
+    grid           = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+    block_sizes[2] = elems_per_block;
   }
-  if (data->dim == 1 || !is_tensor) {
-    CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
+  CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * sizeof(CeedScalar);
 
-    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                  is_run_good, opargs));
-  } else if (data->dim == 2) {
-    CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                  is_run_good, opargs));
-  } else if (data->dim == 3) {
-    CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                  is_run_good, opargs));
-  }
+  CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], shared_mem, is_run_good,
+                                                opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -435,37 +454,28 @@ static int CeedOperatorLinearAssembleQFunctionCore_Hip_gen(CeedOperator op, bool
     // Assemble QFunction
     bool  is_tensor = false;
     void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points, &assembled_array};
+    int   min_grid_size, max_threads_per_block;
+    CeedInt grid;
 
     CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
+    CeedCallHip(ceed, hipModuleOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->assemble_qfunction, sizeof(CeedScalar),
+                                                              0x10000));
     CeedInt block_sizes[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
 
     if (is_tensor) {
       CeedCallBackend(BlockGridCalculate_Hip_gen(data->dim, num_elem, data->max_P_1d, data->Q_1d, block_sizes));
+      grid = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
     } else {
-      CeedInt elems_per_block = 64 * data->thread_1d > 256 ? 256 / data->thread_1d : 64;
+      CeedInt elems_per_block = CeedIntMin(hip_data->device_prop.maxThreadsDim[2], CeedIntMax(max_threads_per_block / data->thread_1d, 1));
 
       elems_per_block = elems_per_block > 0 ? elems_per_block : 1;
+      grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
       block_sizes[2]  = elems_per_block;
     }
-    if (data->dim == 1 || !is_tensor) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
+    CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * sizeof(CeedScalar);
 
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_qfunction, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    } else if (data->dim == 2) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_qfunction, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    } else if (data->dim == 3) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_qfunction, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    }
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_qfunction, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
+                                                  shared_mem, &is_run_good, opargs));
 
     // Restore input arrays
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -625,30 +635,15 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip_gen(CeedOperator op
 
     // Assemble diagonal
     void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points, &assembled_array};
-
     CeedInt block_sizes[3] = {data->thread_1d, (data->dim == 1 ? 1 : data->thread_1d), -1};
 
     CeedCallBackend(BlockGridCalculate_Hip_gen(data->dim, num_elem, data->max_P_1d, data->Q_1d, block_sizes));
-    block_sizes[2] = 1;
-    if (data->dim == 1) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
 
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    } else if (data->dim == 2) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
+    CeedInt grid       = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
+    CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * sizeof(CeedScalar);
 
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    } else if (data->dim == 3) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
-                                                    sharedMem, &is_run_good, opargs));
-    }
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_diagonal, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2],
+                                                  shared_mem, &is_run_good, opargs));
     CeedCallHip(ceed, hipDeviceSynchronize());
 
     // Restore input arrays
@@ -808,32 +803,17 @@ static int CeedOperatorAssembleSingleAtPoints_Hip_gen(CeedOperator op, CeedInt o
     CeedScalar *assembled_offset_array = &assembled_array[offset];
 
     // Assemble diagonal
-    void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields,          &data->B,
-                      &data->G,          &data->W,      &data->points,  &assembled_offset_array};
-
+    void   *opargs[]       = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields,          &data->B,
+                              &data->G,          &data->W,      &data->points,  &assembled_offset_array};
     CeedInt block_sizes[3] = {data->thread_1d, (data->dim == 1 ? 1 : data->thread_1d), -1};
 
     CeedCallBackend(BlockGridCalculate_Hip_gen(data->dim, num_elem, data->max_P_1d, data->Q_1d, block_sizes));
-    block_sizes[2] = 1;
-    if (data->dim == 1) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * sizeof(CeedScalar);
 
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                    &is_run_good, opargs));
-    } else if (data->dim == 2) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
+    CeedInt grid       = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
+    CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * sizeof(CeedScalar);
 
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                    &is_run_good, opargs));
-    } else if (data->dim == 3) {
-      CeedInt grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-      CeedInt sharedMem = block_sizes[2] * data->thread_1d * data->thread_1d * sizeof(CeedScalar);
-
-      CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem,
-                                                    &is_run_good, opargs));
-    }
+    CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->assemble_full, NULL, grid, block_sizes[0], block_sizes[1], block_sizes[2], shared_mem,
+                                                  &is_run_good, opargs));
     CeedCallHip(ceed, hipDeviceSynchronize());
 
     // Restore input arrays
