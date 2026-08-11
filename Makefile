@@ -586,9 +586,9 @@ endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
-  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
-  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
