@@ -301,7 +301,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+  CeedCallCuda(CeedOperatorReturnCeed(op), cudaStreamIsCapturing(cudaStreamPerThread, &capture_status));
   stream_to_use = (capture_status != cudaStreamCaptureStatusNone) ? cudaStreamPerThread : NULL;
   CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, stream_to_use, input_arr, output_arr, &is_run_good, request));
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
