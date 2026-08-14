@@ -23,6 +23,7 @@ These functions will be removed when the SYCL backends are updated to reflect th
 
 ### New features
 
+- Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
 - Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
 - Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
 - Add `CeedVectorReturnCeed` and similar when parent `Ceed` context for a libCEED object is only needed once in a calling scope.

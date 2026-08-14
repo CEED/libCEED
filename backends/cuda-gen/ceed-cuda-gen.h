@@ -27,7 +27,7 @@ typedef struct {
   CeedScalar    *W;
   Points_Cuda    points;
 
- // Graph capture data
+  // Graph capture data
   bool              use_graph;
   bool              graph_created;
   bool              warmup_done;

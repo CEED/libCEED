@@ -327,7 +327,7 @@ static int CeedCompositeRefreshForReplay_Cuda_gen(CeedOperator *sub_operators, C
     CeedQFunction       qf  = NULL;
     CeedQFunctionField *qf_input_fields;
     void               *ctx_data = NULL;
-    
+
     CeedCallBackend(CeedOperatorGetFields(sub_operators[i], &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
     CeedCallBackend(CeedOperatorGetQFunction(sub_operators[i], &qf));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, NULL));
