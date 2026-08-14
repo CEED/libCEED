@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 
     CeedOperatorGetContextDoubleRead(op_composite, time_label, &num_values, &values);
     if (num_values != 1) printf("Incorrect number of time values, found %zu but expected 1", num_values);
-    if (values[0] != ctx_data_2.time) printf("Incorrect value found, found %f but expected %f", values[0], ctx_data_2.time);
+    if (values[0] != ctx_data_2.time) printf("Incorrect value found, found %f but expected %f\n", values[0], ctx_data_2.time);
     CeedOperatorRestoreContextDoubleRead(op_composite, time_label, &values);
   }
 

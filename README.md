@@ -62,6 +62,12 @@ $ make AVX=0
 if your compiler does not support gcc-style options, if you are cross compiling, etc.
 
 To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to your `make` invocation.
+To target one or more CUDA architectures, pass a space-separated `CUDA_TARGETS` list:
+
+```console
+$ make CUDA_DIR=/opt/cuda CUDA_TARGETS='sm_80 sm_90'
+```
+
 To enable HIP support, add `ROCM_DIR=/opt/rocm` or an appropriate directory.
 To enable SYCL support, add `SYCL_DIR=/opt/sycl` or an appropriate directory.
 Note that SYCL backends require building with oneAPI compilers as well:

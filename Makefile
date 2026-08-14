@@ -45,6 +45,7 @@ XSMM_DIR ?= ../libxsmm
 # Often /opt/cuda or /usr/local/cuda, but sometimes present on machines that don't support CUDA
 CUDA_DIR  ?=
 CUDA_ARCH ?=
+CUDA_TARGETS ?=
 
 # Often /opt/rocm, but sometimes present on machines that don't support HIP
 ROCM_DIR ?=
@@ -188,7 +189,18 @@ CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
-ifneq ($(CUDA_ARCH),)
+CUDA_TARGETS_UNKNOWN := $(filter-out sm_%,$(CUDA_TARGETS))
+CUDA_SMS := $(patsubst sm_%,%,$(filter sm_%,$(CUDA_TARGETS)))
+CUDA_SMS := $(shell printf "%s\n" $(CUDA_SMS) | sort -n)
+cuda_gencode_sm = -gencode arch=compute_$(1),code=sm_$(1)
+cuda_gencode_compute = -gencode arch=compute_$(1),code=compute_$(1)
+ifneq ($(strip $(CUDA_TARGETS)),)
+  ifneq ($(strip $(CUDA_TARGETS_UNKNOWN)),)
+    $(error Unknown CUDA target(s): $(CUDA_TARGETS_UNKNOWN); expected targets such as sm_80)
+  endif
+  NVCCFLAGS += $(foreach sm,$(CUDA_SMS),$(call cuda_gencode_sm,$(sm))) \
+    $(call cuda_gencode_compute,$(lastword $(CUDA_SMS)))
+else ifneq ($(strip $(CUDA_ARCH)),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
@@ -562,7 +574,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
-  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include -I$(XSMM_DIR)/include/libxsmm
   BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
@@ -574,9 +586,9 @@ endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
-  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
-  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include
+  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
@@ -1110,7 +1122,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH CUDA_TARGETS MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

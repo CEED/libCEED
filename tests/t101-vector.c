@@ -15,7 +15,7 @@ static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   CeedVectorGetLength(x, &len);
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
   for (CeedInt i = 0; i < len; i++) {
-    if (read_array[i] != value) printf("Error reading array[%" CeedInt_FMT "] = %f", i, (CeedScalar)read_array[i]);
+    if (read_array[i] != value) printf("Error reading array[%" CeedInt_FMT "] = %f != %f\n", i, (CeedScalar)read_array[i], value);
   }
   CeedVectorRestoreArrayRead(x, &read_array);
   return 0;

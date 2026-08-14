@@ -28,6 +28,8 @@
 
 #include "ceed-cuda-common.h"
 
+const char *CeedCudaDir = CEED_CUDA_DIR;
+
 #define CeedChk_Nvrtc(ceed, x)                                                                              \
   do {                                                                                                      \
     nvrtcResult result = static_cast<nvrtcResult>(x);                                                       \
@@ -389,8 +391,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     // Compile wrapper kernel
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
-    command = std::string(llvm_cxx) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor) +
-              " --cuda-device-only -emit-llvm -S " + filename_base + "_0_source.cu -o " + filename_base + "_1_wrapped.ll ";
+    command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) +
+              std::to_string(prop.minor) + " --cuda-device-only -emit-llvm -S " + filename_base + "_0_source.cu -o " + filename_base +
+              "_1_wrapped.ll ";
     command += opts[4];
     CeedCallSystem(ceed, command.c_str(), "JiT kernel source");
     CeedCallSystem(ceed, (std::string("chmod 0777 ") + filename_base + "_1_wrapped.ll").c_str(), "update JiT file permissions");

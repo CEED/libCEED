@@ -101,6 +101,29 @@ class Vector():
             self._pointer[0], memtype, cmode, array_pointer)
         self._ceed._check_error(err_code)
 
+    # Take Vector's data array
+    def take_array(self, memtype=MEM_HOST):
+        """Take ownership of the array set by set_array with USE_POINTER and remove the array from the Vector
+
+           Args:
+             **memtype: memory type of the array being taken, default CEED_MEM_HOST
+
+           Returns:
+             *array: array passed to set_array"""
+
+        # Setup the pointer's pointer
+        array_pointer = ffi.new("CeedScalar **")
+
+        # libCEED call
+        err_code = lib.CeedVectorTakeArray(
+            self._pointer[0], memtype, array_pointer)
+        self._ceed._check_error(err_code)
+
+        # Return array
+        array = self._array_reference
+        self._array_reference = None
+        return array
+
     # Get Vector's data array
     def get_array(self, memtype=MEM_HOST):
         """Get read/write access to a Vector via the specified memory type.

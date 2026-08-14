@@ -12,7 +12,7 @@ COMMON ?= ../../common.mk
 #       PETSC_ARCH - for example when using PETSc installed through Spack.
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
-ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
+ceed.pc  := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c11 \
@@ -21,9 +21,9 @@ CFLAGS = -std=c11 \
   $(OPT)
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
+LDFLAGS  = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDLIBS   = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
 OBJDIR := build
 SRCDIR := src

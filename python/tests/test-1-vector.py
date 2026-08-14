@@ -209,6 +209,33 @@ def test_108(ceed_resource, capsys):
     assert abs(norm - 9.) < TOL
 
 # -------------------------------------------------------------------------------
+# Test set_array and take_array
+# -------------------------------------------------------------------------------
+
+
+def test_109(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+
+    a = np.arange(0, n, dtype=ceed.scalar_type())
+    for i in range(n):
+        a[i] = -3.14 if i == 3 else 0
+    x.set_array(a, cmode=libceed.USE_POINTER)
+
+    # Verify correct array
+    a = x.take_array()
+    for i in range(n):
+        assert abs(a[i] + (3.14 if i == 3 else 0)) < TOL
+
+    # And ensure access removed in Vector
+    x.set_value(0)
+    with x.array() as b:
+        b[5] = 3.14
+    assert abs(a[5]) < TOL
+
+# -------------------------------------------------------------------------------
 # Test taking the reciprocal of a vector
 # -------------------------------------------------------------------------------
 

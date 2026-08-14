@@ -10,7 +10,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-26.04]
         compiler: [gcc]
         python-version: ['3.x']
 
@@ -19,10 +19,9 @@ jobs:
     steps:
     - name: Environment setup
       uses: actions/checkout@v5
-    - name: Python setup
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: PETSc install
+      run: |
+        sudo apt install -y python3-pip python3 libpetsc-real-dev python3-mpi4py python3-petsc4py
     - name: Python dependencies
       run: |
         pip install -r requirements.txt

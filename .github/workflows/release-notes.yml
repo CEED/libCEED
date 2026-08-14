@@ -20,7 +20,8 @@ jobs:
     - name: Check release notes
       run: |
         git fetch origin main
-        if git diff origin/main --exit-code include/ceed/*; then
+        if git diff origin/main --exit-code include/*.h && \
+           git diff origin/main --exit-code include/ceed/*.h; then
           echo "No public interface changes detected"
         elif git diff origin/main --exit-code CHANGELOG.md; then
           echo "API changes detected, but release notes not updated"

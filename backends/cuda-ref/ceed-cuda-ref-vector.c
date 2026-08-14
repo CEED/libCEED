@@ -718,6 +718,36 @@ static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
 }
 
 //------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value on the host
+//------------------------------------------------------------------------------
+static int CeedHostFilter_Cuda(CeedScalar *x_array, CeedScalar threshold, CeedSize length) {
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
+    if (fabs(x_array[i]) <= threshold) x_array[i] = 0.0;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceFilter_Cuda(CeedScalar *x_array, CeedScalar threshold, CeedSize length);
+
+//------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value
+//------------------------------------------------------------------------------
+static int CeedVectorFilter_Cuda(CeedVector vec, CeedScalar threshold) {
+  CeedSize         length;
+  CeedVector_Cuda *impl;
+
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+  // Set value for synced device/host array
+  if (impl->d_array) CeedCallBackend(CeedDeviceFilter_Cuda(impl->d_array, threshold, length));
+  if (impl->h_array) CeedCallBackend(CeedHostFilter_Cuda(impl->h_array, threshold, length));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
@@ -875,6 +905,7 @@ int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Norm", CeedVectorNorm_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal", CeedVectorReciprocal_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", CeedVectorScale_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Filter", CeedVectorFilter_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", CeedVectorAXPY_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Cuda));
