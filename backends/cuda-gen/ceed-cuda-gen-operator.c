@@ -325,7 +325,7 @@ static int CeedCompositeRefreshForReplay_Cuda_gen(CeedOperator *sub_operators, C
     bool                is_at_points;
     CeedInt             num_input_fields, num_output_fields;
     CeedOperatorField  *op_input_fields, *op_output_fields;
-    CeedQFunction       qf  = NULL;
+    CeedQFunction       qf = NULL;
     CeedQFunctionField *qf_input_fields;
     void               *ctx_data = NULL;
 
@@ -1108,7 +1108,7 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda_gen));
 
   {
-    const char *env_val = getenv("CEED_ENABLE_CUDA_GRAPH");
+    const char *env_val      = getenv("CEED_ENABLE_CUDA_GRAPH");
     bool        enable_graph = true;
 
     if (env_val) enable_graph = strcmp(env_val, "0") && strcmp(env_val, "false");
