@@ -35,7 +35,19 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add `CeedGetGitVersion()` to access the Git commit and dirty state of the repository at build time.
 - Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
 - Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends.
+- Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
+- Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
+- Add `CeedVectorReturnCeed` and similar when parent `Ceed` context for a libCEED object is only needed once in a calling scope.
+- Enable `#pragma once` for all JiT source; remove duplicate includes in JiT source string before compilation.
+- Allow user to set additional compiler options for CUDA and HIP JiT.
+Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will be used to set `-Ifoo/bar` and defines set with `CeedAddJitDefine(ceed, "foo=bar")` will be used to set `-Dfoo=bar`.
+- Added non-tensor basis support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen`.
+- Added support to code generation backends `/gpu/cuda/gen` and `/gpu/hip/gen` for operators with both tensor and non-tensor bases.
+- Add `CeedGetGitVersion()` to access the Git commit and dirty state of the repository at build time.
+- Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
+- Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends.
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
+- Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
 
 ### Examples
 
