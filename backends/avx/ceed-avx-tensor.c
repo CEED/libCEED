@@ -8,7 +8,11 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <immintrin.h>
+#include <math.h>
 #include <stdbool.h>
+#include <string.h>
+
+#include "ceed-avx.h"
 
 #ifdef CEED_SCALAR_IS_FP64
 #define rtype __m256d
@@ -254,19 +258,200 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
 }
 
 //------------------------------------------------------------------------------
-// Tensor Contract - Common Sizes
+// Even-Odd: Standard Dispatch (reused for half-contractions)
 //------------------------------------------------------------------------------
-static int CeedTensorContract_Avx_Blocked_4_8(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                                              CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  return CeedTensorContract_Avx_Blocked(contract, A, B, C, J, t, t_mode, add, u, v, 4, 8);
+static inline int CeedTensorContract_Avx_StandardDispatch(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                                          const CeedScalar *restrict t, CeedTransposeMode t_mode, const CeedInt add,
+                                                          const CeedScalar *restrict u, CeedScalar *restrict v) {
+  const CeedInt blk_size = 8;
+
+  if (C == 1) {
+    CeedTensorContract_Avx_Single(contract, A, B, C, J, t, t_mode, add, u, v, 4, 8);
+  } else {
+    if (C >= blk_size) CeedTensorContract_Avx_Blocked(contract, A, B, C, J, t, t_mode, add, u, v, 4, 8);
+    if (C % blk_size) CeedTensorContract_Avx_Remainder(contract, A, B, C, J, t, t_mode, add, u, v, 8, 8);
+  }
+  return CEED_ERROR_SUCCESS;
 }
-static int CeedTensorContract_Avx_Remainder_8_8(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                                                CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  return CeedTensorContract_Avx_Remainder(contract, A, B, C, J, t, t_mode, add, u, v, 8, 8);
+
+//------------------------------------------------------------------------------
+// Even-Odd: Symmetry Detection
+//------------------------------------------------------------------------------
+static int CeedTensorContract_Avx_DetectSymmetry(CeedInt B, CeedInt J, const CeedScalar *t, CeedTransposeMode t_mode) {
+  CeedInt t_stride_0 = B, t_stride_1 = 1;
+
+  if (t_mode == CEED_TRANSPOSE) {
+    t_stride_0 = 1;
+    t_stride_1 = J;
+  }
+
+  const CeedScalar tol = 1e-14;
+  int              sym = 0;
+
+  for (CeedInt j = 0; j < (J + 1) / 2; j++) {
+    for (CeedInt b = 0; b < (B + 1) / 2; b++) {
+      CeedScalar val      = t[j * t_stride_0 + b * t_stride_1];
+      CeedScalar mirror   = t[(J - 1 - j) * t_stride_0 + (B - 1 - b) * t_stride_1];
+      CeedScalar scale    = fabs(val) + fabs(mirror);
+      CeedScalar diff_sym = fabs(mirror - val);
+      CeedScalar diff_ant = fabs(mirror + val);
+
+      if (scale < tol) continue;
+      if (sym == 0) {
+        if (diff_sym / scale < tol) {
+          sym = 1;
+        } else if (diff_ant / scale < tol) {
+          sym = -1;
+        } else {
+          return 0;
+        }
+      } else if (sym == 1) {
+        if (diff_sym / scale >= tol) return 0;
+      } else {
+        if (diff_ant / scale >= tol) return 0;
+      }
+    }
+  }
+  return sym;
 }
-static int CeedTensorContract_Avx_Single_4_8(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                                             CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  return CeedTensorContract_Avx_Single(contract, A, B, C, J, t, t_mode, add, u, v, 4, 8);
+
+//------------------------------------------------------------------------------
+// Even-Odd: Precompute Half-Matrices
+//------------------------------------------------------------------------------
+static int CeedTensorContract_Avx_ComputeHalfMatrices(CeedInt B, CeedInt J, const CeedScalar *t, CeedTransposeMode t_mode, CeedInt B_half,
+                                                      CeedInt J_half, CeedScalar *t_even, CeedScalar *t_odd) {
+  CeedInt t_stride_0 = B, t_stride_1 = 1;
+
+  if (t_mode == CEED_TRANSPOSE) {
+    t_stride_0 = 1;
+    t_stride_1 = J;
+  }
+
+  for (CeedInt j = 0; j < J_half; j++) {
+    for (CeedInt b = 0; b < B / 2; b++) {
+      CeedScalar val         = t[j * t_stride_0 + b * t_stride_1];
+      CeedScalar mirror      = t[j * t_stride_0 + (B - 1 - b) * t_stride_1];
+      t_even[j * B_half + b] = (val + mirror) * (CeedScalar)0.5;
+      t_odd[j * B_half + b]  = (val - mirror) * (CeedScalar)0.5;
+    }
+    if (B % 2) {
+      t_even[j * B_half + B / 2] = t[j * t_stride_0 + (B / 2) * t_stride_1];
+      t_odd[j * B_half + B / 2]  = (CeedScalar)0.0;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Even-Odd: Cache Lookup and Populate
+//------------------------------------------------------------------------------
+static CeedTensorContract_Avx_CacheEntry *CeedTensorContract_Avx_CacheLookup(CeedTensorContract_Avx *data, const CeedScalar *t,
+                                                                             CeedTransposeMode t_mode, CeedInt B, CeedInt J) {
+  for (CeedInt i = 0; i < data->n_cached; i++) {
+    if (data->cache[i].t_ptr == t && data->cache[i].t_mode == t_mode && data->cache[i].B == B && data->cache[i].J == J) return &data->cache[i];
+  }
+  return NULL;
+}
+
+static int CeedTensorContract_Avx_CachePopulate(CeedTensorContract_Avx *data, const CeedScalar *t, CeedTransposeMode t_mode, CeedInt B, CeedInt J,
+                                                CeedTensorContract_Avx_CacheEntry **entry) {
+  *entry = NULL;
+  if (data->n_cached >= CEED_AVX_EVEN_ODD_CACHE_MAX) return CEED_ERROR_SUCCESS;
+
+  CeedTensorContract_Avx_CacheEntry *e = &data->cache[data->n_cached];
+
+  e->t_ptr    = t;
+  e->t_mode   = t_mode;
+  e->B        = B;
+  e->J        = J;
+  e->B_half   = (B + 1) / 2;
+  e->J_half   = (J + 1) / 2;
+  e->symmetry = CeedTensorContract_Avx_DetectSymmetry(B, J, t, t_mode);
+  e->t_even   = NULL;
+  e->t_odd    = NULL;
+
+  if (e->symmetry != 0 && B >= CEED_AVX_EVEN_ODD_MIN_DIM && J >= CEED_AVX_EVEN_ODD_MIN_DIM) {
+    CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_even));
+    CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_odd));
+    CeedTensorContract_Avx_ComputeHalfMatrices(B, J, t, t_mode, e->B_half, e->J_half, e->t_even, e->t_odd);
+  }
+
+  data->n_cached++;
+  *entry = e;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Even-Odd: Apply
+//------------------------------------------------------------------------------
+static int CeedTensorContract_Avx_EvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                          const CeedTensorContract_Avx_CacheEntry *entry, const CeedScalar *restrict u, CeedScalar *restrict v) {
+  const CeedInt B_half = entry->B_half;
+  const CeedInt J_half = entry->J_half;
+  const int     sym    = entry->symmetry;
+
+  CeedScalar u_even[A * B_half * C], u_odd[A * B_half * C];
+  CeedScalar w_even[A * J_half * C], w_odd[A * J_half * C];
+
+  memset(u_even, 0, sizeof(u_even));
+  memset(u_odd, 0, sizeof(u_odd));
+
+  // Fold input along b
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt b = 0; b < B / 2; b++) {
+      const CeedInt lo = (a * B + b) * C;
+      const CeedInt hi = (a * B + (B - 1 - b)) * C;
+      const CeedInt fo = (a * B_half + b) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        u_even[fo + c] = u[lo + c] + u[hi + c];
+        u_odd[fo + c]  = u[lo + c] - u[hi + c];
+      }
+    }
+    if (B % 2) {
+      const CeedInt mid_in  = (a * B + B / 2) * C;
+      const CeedInt mid_out = (a * B_half + B / 2) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        u_even[mid_out + c] = u[mid_in + c];
+        u_odd[mid_out + c]  = (CeedScalar)0.0;
+      }
+    }
+  }
+
+  // Half-contractions: w_e = t_e * u_e, w_o = t_o * u_o
+  memset(w_even, 0, A * J_half * C * sizeof(CeedScalar));
+  memset(w_odd, 0, A * J_half * C * sizeof(CeedScalar));
+  CeedTensorContract_Avx_StandardDispatch(contract, A, B_half, C, J_half, entry->t_even, CEED_NOTRANSPOSE, true, u_even, w_even);
+  CeedTensorContract_Avx_StandardDispatch(contract, A, B_half, C, J_half, entry->t_odd, CEED_NOTRANSPOSE, true, u_odd, w_odd);
+
+  // Unfold output along j
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt j = 0; j < J / 2; j++) {
+      const CeedInt eo   = (a * J_half + j) * C;
+      const CeedInt v_lo = (a * J + j) * C;
+      const CeedInt v_hi = (a * J + (J - 1 - j)) * C;
+
+      if (sym == 1) {
+        for (CeedInt c = 0; c < C; c++) {
+          v[v_lo + c] += w_even[eo + c] + w_odd[eo + c];
+          v[v_hi + c] += w_even[eo + c] - w_odd[eo + c];
+        }
+      } else {
+        for (CeedInt c = 0; c < C; c++) {
+          v[v_lo + c] += w_even[eo + c] + w_odd[eo + c];
+          v[v_hi + c] += -w_even[eo + c] + w_odd[eo + c];
+        }
+      }
+    }
+    if (J % 2) {
+      const CeedInt eo    = (a * J_half + J / 2) * C;
+      const CeedInt v_mid = (a * J + J / 2) * C;
+
+      for (CeedInt c = 0; c < C; c++) v[v_mid + c] += w_even[eo + c] + w_odd[eo + c];
+    }
+  }
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -274,20 +459,39 @@ static int CeedTensorContract_Avx_Single_4_8(CeedTensorContract contract, CeedIn
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                                        CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  const CeedInt blk_size = 8;
-
   if (!add) {
     for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
   }
 
-  if (C == 1) {
-    // Serial C=1 Case
-    CeedTensorContract_Avx_Single_4_8(contract, A, B, C, J, t, t_mode, true, u, v);
-  } else {
-    // Blocks of 8 columns
-    if (C >= blk_size) CeedTensorContract_Avx_Blocked_4_8(contract, A, B, C, J, t, t_mode, true, u, v);
-    // Remainder of columns
-    if (C % blk_size) CeedTensorContract_Avx_Remainder_8_8(contract, A, B, C, J, t, t_mode, true, u, v);
+  // Try even-odd path
+  CeedTensorContract_Avx *data;
+
+  CeedCallBackend(CeedTensorContractGetData(contract, &data));
+  if (data && B >= CEED_AVX_EVEN_ODD_MIN_DIM && J >= CEED_AVX_EVEN_ODD_MIN_DIM) {
+    CeedTensorContract_Avx_CacheEntry *entry = CeedTensorContract_Avx_CacheLookup(data, t, t_mode, B, J);
+
+    if (!entry) CeedCallBackend(CeedTensorContract_Avx_CachePopulate(data, t, t_mode, B, J, &entry));
+    if (entry && entry->t_even) return CeedTensorContract_Avx_EvenOdd(contract, A, B, C, J, entry, u, v);
+  }
+
+  // Standard path
+  CeedTensorContract_Avx_StandardDispatch(contract, A, B, C, J, t, t_mode, true, u, v);
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Tensor Contract Destroy
+//------------------------------------------------------------------------------
+static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
+  CeedTensorContract_Avx *data;
+
+  CeedCallBackend(CeedTensorContractGetData(contract, &data));
+  if (data) {
+    for (CeedInt i = 0; i < data->n_cached; i++) {
+      CeedCallBackend(CeedFree(&data->cache[i].t_even));
+      CeedCallBackend(CeedFree(&data->cache[i].t_odd));
+    }
+    CeedCallBackend(CeedFree(&data));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -296,7 +500,13 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, C
 // Tensor Contract Create
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Avx(CeedTensorContract contract) {
-  CeedCallBackend(CeedSetBackendFunction(CeedTensorContractReturnCeed(contract), "TensorContract", contract, "Apply", CeedTensorContractApply_Avx));
+  Ceed                    ceed = CeedTensorContractReturnCeed(contract);
+  CeedTensorContract_Avx *data;
+
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedTensorContractSetData(contract, data));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Avx));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Destroy", CeedTensorContractDestroy_Avx));
   return CEED_ERROR_SUCCESS;
 }
 

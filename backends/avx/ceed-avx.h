@@ -8,5 +8,23 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdbool.h>
+
+#define CEED_AVX_EVEN_ODD_CACHE_MAX 8
+#define CEED_AVX_EVEN_ODD_MIN_DIM 4
+
+typedef struct {
+  const CeedScalar *t_ptr;
+  CeedTransposeMode t_mode;
+  CeedInt           B, J, B_half, J_half;
+  int               symmetry;
+  CeedScalar       *t_even;
+  CeedScalar       *t_odd;
+} CeedTensorContract_Avx_CacheEntry;
+
+typedef struct {
+  CeedInt                           n_cached;
+  CeedTensorContract_Avx_CacheEntry cache[CEED_AVX_EVEN_ODD_CACHE_MAX];
+} CeedTensorContract_Avx;
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedTensorContract contract);
