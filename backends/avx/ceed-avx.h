@@ -18,7 +18,7 @@ typedef struct {
   CeedTransposeMode t_mode;
   CeedInt           B, J, B_half, J_half;
   int               symmetry;
-  bool              validated;
+  bool              is_validated;
   CeedScalar       *t_copy;
   CeedScalar       *t_even;
   CeedScalar       *t_odd;
