@@ -10,7 +10,7 @@
 #include <ceed/backend.h>
 #include <stdbool.h>
 
-#define CEED_AVX_EVEN_ODD_CACHE_MAX 8
+#define CEED_AVX_EVEN_ODD_MAX_ENTRIES 8
 #define CEED_AVX_EVEN_ODD_MIN_DIM 4
 
 typedef struct {
@@ -18,14 +18,15 @@ typedef struct {
   CeedTransposeMode t_mode;
   CeedInt           B, J, B_half, J_half;
   int               symmetry;
+  bool              validated;
   CeedScalar       *t_copy;
   CeedScalar       *t_even;
   CeedScalar       *t_odd;
-} CeedTensorContract_Avx_CacheEntry;
+} CeedTensorContract_Avx_EvenOddEntry;
 
 typedef struct {
-  CeedInt                           n_cached;
-  CeedTensorContract_Avx_CacheEntry cache[CEED_AVX_EVEN_ODD_CACHE_MAX];
+  CeedInt                              n_entries;
+  CeedTensorContract_Avx_EvenOddEntry  entries[CEED_AVX_EVEN_ODD_MAX_ENTRIES];
 } CeedTensorContract_Avx;
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedTensorContract contract);
