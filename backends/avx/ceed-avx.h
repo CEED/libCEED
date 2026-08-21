@@ -18,6 +18,7 @@ typedef struct {
   CeedTransposeMode t_mode;
   CeedInt           B, J, B_half, J_half;
   int               symmetry;
+  CeedScalar       *t_copy;
   CeedScalar       *t_even;
   CeedScalar       *t_odd;
 } CeedTensorContract_Avx_CacheEntry;

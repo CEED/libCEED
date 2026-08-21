@@ -353,6 +353,25 @@ static CeedTensorContract_Avx_CacheEntry *CeedTensorContract_Avx_CacheLookup(Cee
   return NULL;
 }
 
+// The t matrix contents may change between applies at the same pointer (e.g. operator assembly rewrites a scratch buffer in place), so the entry
+// stores a copy of t and must be refreshed whenever the contents no longer match.
+static int CeedTensorContract_Avx_CacheEntryRefresh(CeedTensorContract_Avx_CacheEntry *e, const CeedScalar *t) {
+  memcpy(e->t_copy, t, (size_t)e->B * e->J * sizeof(CeedScalar));
+  e->symmetry = CeedTensorContract_Avx_DetectSymmetry(e->B, e->J, t, e->t_mode);
+
+  if (e->symmetry != 0) {
+    if (!e->t_even) {
+      CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_even));
+      CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_odd));
+    }
+    CeedTensorContract_Avx_ComputeHalfMatrices(e->B, e->J, t, e->t_mode, e->B_half, e->J_half, e->t_even, e->t_odd);
+  } else {
+    CeedCallBackend(CeedFree(&e->t_even));
+    CeedCallBackend(CeedFree(&e->t_odd));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 static int CeedTensorContract_Avx_CachePopulate(CeedTensorContract_Avx *data, const CeedScalar *t, CeedTransposeMode t_mode, CeedInt B, CeedInt J,
                                                 CeedTensorContract_Avx_CacheEntry **entry) {
   *entry = NULL;
@@ -360,21 +379,16 @@ static int CeedTensorContract_Avx_CachePopulate(CeedTensorContract_Avx *data, co
 
   CeedTensorContract_Avx_CacheEntry *e = &data->cache[data->n_cached];
 
-  e->t_ptr    = t;
-  e->t_mode   = t_mode;
-  e->B        = B;
-  e->J        = J;
-  e->B_half   = (B + 1) / 2;
-  e->J_half   = (J + 1) / 2;
-  e->symmetry = CeedTensorContract_Avx_DetectSymmetry(B, J, t, t_mode);
-  e->t_even   = NULL;
-  e->t_odd    = NULL;
-
-  if (e->symmetry != 0 && B >= CEED_AVX_EVEN_ODD_MIN_DIM && J >= CEED_AVX_EVEN_ODD_MIN_DIM) {
-    CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_even));
-    CeedCallBackend(CeedMalloc(e->J_half * e->B_half, &e->t_odd));
-    CeedTensorContract_Avx_ComputeHalfMatrices(B, J, t, t_mode, e->B_half, e->J_half, e->t_even, e->t_odd);
-  }
+  e->t_ptr  = t;
+  e->t_mode = t_mode;
+  e->B      = B;
+  e->J      = J;
+  e->B_half = (B + 1) / 2;
+  e->J_half = (J + 1) / 2;
+  e->t_even = NULL;
+  e->t_odd  = NULL;
+  CeedCallBackend(CeedMalloc(B * J, &e->t_copy));
+  CeedCallBackend(CeedTensorContract_Avx_CacheEntryRefresh(e, t));
 
   data->n_cached++;
   *entry = e;
@@ -470,7 +484,11 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, C
   if (data && B >= CEED_AVX_EVEN_ODD_MIN_DIM && J >= CEED_AVX_EVEN_ODD_MIN_DIM) {
     CeedTensorContract_Avx_CacheEntry *entry = CeedTensorContract_Avx_CacheLookup(data, t, t_mode, B, J);
 
-    if (!entry) CeedCallBackend(CeedTensorContract_Avx_CachePopulate(data, t, t_mode, B, J, &entry));
+    if (!entry) {
+      CeedCallBackend(CeedTensorContract_Avx_CachePopulate(data, t, t_mode, B, J, &entry));
+    } else if (memcmp(entry->t_copy, t, (size_t)B * J * sizeof(CeedScalar))) {
+      CeedCallBackend(CeedTensorContract_Avx_CacheEntryRefresh(entry, t));
+    }
     if (entry && entry->t_even) return CeedTensorContract_Avx_EvenOdd(contract, A, B, C, J, entry, u, v);
   }
 
@@ -488,6 +506,7 @@ static int CeedTensorContractDestroy_Avx(CeedTensorContract contract) {
   CeedCallBackend(CeedTensorContractGetData(contract, &data));
   if (data) {
     for (CeedInt i = 0; i < data->n_cached; i++) {
+      CeedCallBackend(CeedFree(&data->cache[i].t_copy));
       CeedCallBackend(CeedFree(&data->cache[i].t_even));
       CeedCallBackend(CeedFree(&data->cache[i].t_odd));
     }
