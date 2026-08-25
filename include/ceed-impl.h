@@ -368,6 +368,7 @@ struct CeedOperator_private {
   int (*ApplyAdd)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyAddComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector, CeedRequest *);
+  int (*SetEnableCudaGraph)(CeedOperator, bool);
   int (*Destroy)(CeedOperator);
   CeedOperatorField        *input_fields;
   CeedOperatorField        *output_fields;

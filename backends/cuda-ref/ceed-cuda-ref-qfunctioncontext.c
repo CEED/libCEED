@@ -36,7 +36,9 @@ static inline int CeedQFunctionContextSyncH2D_Cuda(const CeedQFunctionContext ct
     CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_data_owned, ctx_size));
     impl->d_data = impl->d_data_owned;
   }
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_data, impl->h_data, ctx_size, cudaMemcpyHostToDevice));
+
+  CeedCallCuda(ceed, cudaMemcpyAsync(impl->d_data, impl->h_data, ctx_size, cudaMemcpyHostToDevice, cudaStreamPerThread));
+
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }

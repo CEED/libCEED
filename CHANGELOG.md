@@ -35,6 +35,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
 - Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends.
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
+- Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
 
 ### Examples
 

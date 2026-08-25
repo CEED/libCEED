@@ -57,7 +57,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
     CeedCallCuda(CeedVectorReturnCeed(vec), cudaMalloc((void **)&impl->d_array_owned, bytes));
     impl->d_array = impl->d_array_owned;
   }
-  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpy(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpyAsync(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice, cudaStreamPerThread));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -326,7 +326,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   }
   if (impl->d_array) {
     if (val == 0) {
-      CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemset(impl->d_array, 0, length * sizeof(CeedScalar)));
+      CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemsetAsync(impl->d_array, 0, length * sizeof(CeedScalar), cudaStreamPerThread));
     } else {
       CeedCallBackend(CeedDeviceSetValue_Cuda(impl->d_array, length, val));
     }
