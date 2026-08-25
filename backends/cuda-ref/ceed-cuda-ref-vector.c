@@ -57,7 +57,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
     CeedCallCuda(CeedVectorReturnCeed(vec), cudaMalloc((void **)&impl->d_array_owned, bytes));
     impl->d_array = impl->d_array_owned;
   }
-  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpy(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(CeedVectorReturnCeed(vec), cudaMemcpyAsync(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice, cudaStreamPerThread));
   return CEED_ERROR_SUCCESS;
 }
 
