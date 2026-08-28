@@ -110,6 +110,12 @@ int main(int argc, char **argv) {
     printf("Incorrect FLOP estimate computed, %ld != 16317\n", flop_estimate);
     // LCOV_EXCL_STOP
   }
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 6516) printf("Incorrect AtPoints full assembly FLOP estimate, %" CeedSize_FMT " != 6516\n", flop_estimate);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 1089) printf("Incorrect AtPoints diagonal assembly FLOP estimate, %" CeedSize_FMT " != 1089\n", flop_estimate);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 1089) printf("Incorrect AtPoints point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 1089\n", flop_estimate);
 
   CeedVectorDestroy(&x_points);
   CeedVectorDestroy(&q_data);

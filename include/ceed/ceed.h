@@ -457,13 +457,16 @@ CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator o
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                   CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entries);
+CEED_EXTERN int  CeedOperatorLinearAssembleGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
 CEED_EXTERN int  CeedOperatorCompositeGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
 CEED_EXTERN int  CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
