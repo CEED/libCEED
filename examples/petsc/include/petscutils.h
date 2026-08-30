@@ -21,6 +21,7 @@ PetscErrorCode   VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ce
 PetscErrorCode   VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode   Kershaw(DM dm_orig, PetscScalar eps);
 PetscErrorCode   SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, PetscInt num_comp_u, PetscInt topo_dim, bool enforce_bc);
+PetscErrorCode   SetupVertexDMFromDM(DM dm, DM dm_vertex, PetscInt q_extra, PetscInt num_comp_u, PetscBool enforce_bc);
 PetscErrorCode   CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
 CeedElemTopology ElemTopologyP2C(DMPolytopeType cell_type);
 PetscErrorCode   DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, PetscInt *ds_field);
