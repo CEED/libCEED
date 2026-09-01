@@ -125,10 +125,10 @@ int main(int argc, char **argv) {
   CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
   CeedOperatorGetFlopsEstimate(op_mass, &flop_estimate);
 
-  // Check apply estimate
+  // Check FLOP estimate
   if (flop_estimate != 3042) printf("Incorrect FLOP estimate computed, %" CeedSize_FMT " != 3042\n", flop_estimate);
 
-  // Check assembly estimates with stale QFunction data. Repeating the query must not update it.
+  // Check assembly FLOP estimates with stale QFunction data. Repeating the query must not update it.
   CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
   if (flop_estimate != 19416) printf("Incorrect full assembly FLOP estimate, %" CeedSize_FMT " != 19416\n", flop_estimate);
   CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
   if (flop_estimate != 3234) printf("Incorrect point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3234\n", flop_estimate);
 
-  // Assemble once with reuse enabled, then check the cached-QFunction path
+  // Check QFunction data reuse reduces FLOPs estimate on second assembly
   CeedOperatorSetQFunctionAssemblyReuse(op_mass, true);
   CeedOperatorLinearAssembleGetNumEntries(op_mass, &num_entries);
   CeedVectorCreate(ceed, num_entries, &assembled);

@@ -8,6 +8,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+- Add `CeedOperatorLinearAssembleGetFlopsEstimate`, `CeedOperatorLinearAssembleDiagonalGetFlopsEstimate`, and
+  `CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate` to estimate FLOPs for linear operator assembly.
 - Add `bool` field type for `CeedQFunctionContext` and related interfaces to use `bool` fields.
 - `CEED_BASIS_COLLOCATED` removed; users should only use `CEED_BASIS_NONE`.
 - Remove unneeded pointer for `CeedElemRestrictionGetELayout`.
