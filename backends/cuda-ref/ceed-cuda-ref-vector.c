@@ -103,9 +103,11 @@ static int CeedVectorSyncArray_Cuda(const CeedVector vec, CeedMemType mem_type) 
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSyncD2H_Cuda(vec);
+      CeedCallBackend(CeedVectorSyncD2H_Cuda(vec));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSyncH2D_Cuda(vec);
+      CeedCallBackend(CeedVectorSyncH2D_Cuda(vec));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -215,9 +217,11 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
   CeedCallBackend(CeedVectorSetAllInvalid_Cuda(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSetArrayHost_Cuda(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayHost_Cuda(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -425,7 +429,8 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec, const CeedMemType m
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Cuda(const CeedVector vec, const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -478,7 +483,8 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
         }
     }
   }
-  return CeedVectorGetArray_Cuda(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArray_Cuda(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

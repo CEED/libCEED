@@ -2149,11 +2149,13 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(CeedOperator op, bool
 }
 
 extern "C" int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Hip_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(op, false, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(op, false, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 
 extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Hip_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(op, true, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Hip_gen(op, true, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
 // Build QFunction assembly operator kernel

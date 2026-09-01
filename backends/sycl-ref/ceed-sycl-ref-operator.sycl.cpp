@@ -619,7 +619,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, 
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunction_Sycl(CeedOperator op, CeedVector *assembled, CeedElemRestriction *elem_rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, true, assembled, elem_rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Sycl(op, true, assembled, elem_rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -627,7 +628,8 @@ static int CeedOperatorLinearAssembleQFunction_Sycl(CeedOperator op, CeedVector 
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionUpdate_Sycl(CeedOperator op, CeedVector assembled, CeedElemRestriction elem_rstr,
                                                           CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, false, &assembled, &elem_rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Sycl(op, false, &assembled, &elem_rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

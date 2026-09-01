@@ -823,7 +823,8 @@ static int CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(CeedOperator op
 **/
 int CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                              CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, build_objects, false, assembled, rstr, request);
+  CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, build_objects, false, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -2372,7 +2373,8 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 **/
 int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   assert(assembled);
-  return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, *assembled == NULL, true, assembled, rstr, request);
+  CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, *assembled == NULL, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

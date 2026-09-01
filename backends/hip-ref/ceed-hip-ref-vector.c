@@ -111,9 +111,11 @@ static int CeedVectorSyncArray_Hip(const CeedVector vec, CeedMemType mem_type) {
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSyncD2H_Hip(vec);
+      CeedCallBackend(CeedVectorSyncD2H_Hip(vec));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSyncH2D_Hip(vec);
+      CeedCallBackend(CeedVectorSyncH2D_Hip(vec));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -265,12 +267,15 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
   switch (mem_type) {
     case CEED_MEM_HOST:
       if (impl->has_unified_addressing) {
-        return CeedVectorSetArrayUnifiedHostToDevice_Hip(vec, copy_mode, array);
+        CeedCallBackend(CeedVectorSetArrayUnifiedHostToDevice_Hip(vec, copy_mode, array));
+        return CEED_ERROR_SUCCESS;
       } else {
-        return CeedVectorSetArrayHost_Hip(vec, copy_mode, array);
+        CeedCallBackend(CeedVectorSetArrayHost_Hip(vec, copy_mode, array));
+        return CEED_ERROR_SUCCESS;
       }
     case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Hip(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayDevice_Hip(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -489,7 +494,8 @@ static int CeedVectorGetArrayCore_Hip(const CeedVector vec, CeedMemType mem_type
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Hip(const CeedVector vec, const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Hip(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Hip(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -554,7 +560,8 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, CeedMemType mem_typ
         }
     }
   }
-  return CeedVectorGetArray_Hip(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArray_Hip(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

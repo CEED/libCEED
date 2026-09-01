@@ -511,7 +511,8 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
       impl->captured_input_ptr  = NULL;
       impl->captured_output_ptr = NULL;
       CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, false));
-      return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
+      CeedCallBackend(CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request));
+      return CEED_ERROR_SUCCESS;
     }
     impl->graph_created = true;
   }
@@ -526,7 +527,8 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     impl->captured_input_ptr  = NULL;
     impl->captured_output_ptr = NULL;
     CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, false));
-    return CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request);
+    CeedCallBackend(CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request));
+    return CEED_ERROR_SUCCESS;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -721,11 +723,13 @@ static int CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(CeedOperator op, boo
 }
 
 static int CeedOperatorLinearAssembleQFunction_Cuda_gen(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 static int CeedOperatorLinearAssembleQFunctionUpdate_Cuda_gen(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Cuda_gen(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
