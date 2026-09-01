@@ -68,14 +68,12 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyTranspose));
     } break;
     case CEED_RESTRICTION_POINTS: {
-      const char restriction_kernel_source[] =
-          "// AtPoints restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-at-points.h>\n\n"
-          "// Standard restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-offset.h>\n";
+      const char restriction_kernel_source[] = "// AtPoints restriction source\n#include <ceed/jit-source/cuda/cuda-ref-restriction-at-points.h>\n";
 
-      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_at_points", &impl->module, 6, "RSTR_ELEM_SIZE", elem_size,
-                                       "RSTR_NUM_ELEM", num_elem, "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE",
-                                       comp_stride, "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
-      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
+      CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, "restriction_at_points", &impl->module, 5, "RSTR_NUM_ELEM", num_elem,
+                                       "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
+                                       "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
     } break;
     case CEED_RESTRICTION_ORIENTED: {
@@ -155,7 +153,15 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
 
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
       } break;
-      case CEED_RESTRICTION_POINTS:
+      case CEED_RESTRICTION_POINTS: {
+        CeedInt max_num_points;
+
+        CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr, &max_num_points));
+
+        void *args[] = {(void *)&max_num_points, &impl->d_offsets, &d_u, &d_v};
+
+        CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
+      } break;
       case CEED_RESTRICTION_STANDARD: {
         void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
@@ -201,12 +207,17 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
       } break;
       case CEED_RESTRICTION_POINTS: {
+        CeedInt max_num_points;
+
+        CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr, &max_num_points));
         if (!is_deterministic) {
-          void *args[] = {&impl->d_offsets, &impl->d_points_per_elem, &d_u, &d_v};
+          void *args[] = {(void *)&max_num_points, &impl->d_offsets, &impl->d_points_per_elem, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
         } else {
-          void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_points_per_elem, &impl->d_t_offsets, &d_u, &d_v};
+          void *args[] = {
+              (void *)&max_num_points, &impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_points_per_elem, &impl->d_t_offsets, &d_u, &d_v
+          };
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
         }

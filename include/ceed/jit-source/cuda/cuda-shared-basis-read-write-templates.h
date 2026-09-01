@@ -177,11 +177,11 @@ inline __device__ void SumElementStrided3d(SharedData_Cuda &data, const CeedInt 
 //------------------------------------------------------------------------------
 // E-vector -> single point
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_PTS>
-inline __device__ void ReadPoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem,
-                                 const CeedInt strides_point, const CeedInt strides_comp, const CeedInt strides_elem,
+template <int NUM_COMP>
+inline __device__ void ReadPoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt max_num_points,
+                                 const CeedInt points_in_elem, const CeedInt strides_point, const CeedInt strides_comp, const CeedInt strides_elem,
                                  const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
-  const CeedInt ind = (p % NUM_PTS) * strides_point + elem * strides_elem;
+  const CeedInt ind = (p % max_num_points) * strides_point + elem * strides_elem;
 
   if (p < points_in_elem) {
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -197,12 +197,12 @@ inline __device__ void ReadPoint(SharedData_Cuda &data, const CeedInt elem, cons
 //------------------------------------------------------------------------------
 // Single point -> E-vector
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int NUM_PTS>
-inline __device__ void WritePoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt points_in_elem,
-                                  const CeedInt strides_point, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v,
-                                  CeedScalar *d_v) {
+template <int NUM_COMP>
+inline __device__ void WritePoint(SharedData_Cuda &data, const CeedInt elem, const CeedInt p, const CeedInt max_num_points,
+                                  const CeedInt points_in_elem, const CeedInt strides_point, const CeedInt strides_comp, const CeedInt strides_elem,
+                                  const CeedScalar *r_v, CeedScalar *d_v) {
   if (p < points_in_elem) {
-    const CeedInt ind = (p % NUM_PTS) * strides_point + elem * strides_elem;
+    const CeedInt ind = (p % max_num_points) * strides_point + elem * strides_elem;
 
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       d_v[ind + comp * strides_comp] = r_v[comp];

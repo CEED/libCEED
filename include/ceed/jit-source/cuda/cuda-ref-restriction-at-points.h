@@ -10,26 +10,43 @@
 #include <ceed/types.h>
 
 //------------------------------------------------------------------------------
+// L-vector -> E-vector, standard (with offsets)
+//------------------------------------------------------------------------------
+extern "C" __global__ void AtPointsNoTranspose(const CeedInt max_num_points, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ u,
+                                               CeedScalar *__restrict__ v) {
+  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x; node < RSTR_NUM_ELEM * max_num_points; node += blockDim.x * gridDim.x) {
+    const CeedInt ind      = indices[node];
+    const CeedInt loc_node = node % max_num_points;
+    const CeedInt elem     = node / max_num_points;
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
+      v[loc_node + comp * max_num_points * RSTR_NUM_ELEM + elem * max_num_points] = u[ind + comp * RSTR_COMP_STRIDE];
+    }
+  }
+}
+
+//------------------------------------------------------------------------------
 // E-vector -> L-vector, standard (with offsets)
 //------------------------------------------------------------------------------
 #if !USE_DETERMINISTIC
-extern "C" __global__ void AtPointsTranspose(const CeedInt *__restrict__ indices, const CeedInt *__restrict__ points_per_elem,
-                                             const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
-  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x; node < RSTR_NUM_ELEM * RSTR_ELEM_SIZE; node += blockDim.x * gridDim.x) {
+extern "C" __global__ void AtPointsTranspose(const CeedInt max_num_points, const CeedInt *__restrict__ indices,
+                                             const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ u,
+                                             CeedScalar *__restrict__ v) {
+  for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x; node < RSTR_NUM_ELEM * max_num_points; node += blockDim.x * gridDim.x) {
     const CeedInt ind      = indices[node];
-    const CeedInt loc_node = node % RSTR_ELEM_SIZE;
-    const CeedInt elem     = node / RSTR_ELEM_SIZE;
+    const CeedInt loc_node = node % max_num_points;
+    const CeedInt elem     = node / max_num_points;
 
     if (loc_node >= points_per_elem[elem]) continue;
     for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
-      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE], u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE]);
+      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE], u[loc_node + comp * max_num_points * RSTR_NUM_ELEM + elem * max_num_points]);
     }
   }
 }
 #else
-extern "C" __global__ void AtPointsTranspose(const CeedInt *__restrict__ l_vec_indices, const CeedInt *__restrict__ t_indices,
-                                             const CeedInt *__restrict__ points_per_elem, const CeedInt *__restrict__ t_offsets,
-                                             const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+extern "C" __global__ void AtPointsTranspose(const CeedInt max_num_points, const CeedInt *__restrict__ l_vec_indices,
+                                             const CeedInt *__restrict__ t_indices, const CeedInt *__restrict__ points_per_elem,
+                                             const CeedInt *__restrict__ t_offsets, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
   CeedScalar value[RSTR_NUM_COMP];
 
   for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < RSTR_NUM_NODES; i += blockDim.x * gridDim.x) {
@@ -41,12 +58,12 @@ extern "C" __global__ void AtPointsTranspose(const CeedInt *__restrict__ l_vec_i
 
     for (CeedInt j = range_1; j < range_N; j++) {
       const CeedInt t_ind    = t_indices[j];
-      const CeedInt loc_node = t_ind % RSTR_ELEM_SIZE;
-      const CeedInt elem     = t_ind / RSTR_ELEM_SIZE;
+      const CeedInt loc_node = t_ind % max_num_points;
+      const CeedInt elem     = t_ind / max_num_points;
 
       if (loc_node >= points_per_elem[elem]) continue;
       for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
-        value[comp] += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE];
+        value[comp] += u[loc_node + comp * max_num_points * RSTR_NUM_ELEM + elem * max_num_points];
       }
     }
 

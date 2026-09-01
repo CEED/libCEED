@@ -41,7 +41,7 @@ inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar
 //------------------------------------------------------------------------------
 // Interp
 //------------------------------------------------------------------------------
-extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ chebyshev_interp_1d,
+extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ chebyshev_interp_1d,
                                           const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ coords,
                                           const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
@@ -59,9 +59,9 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
   const CeedInt P             = BASIS_P_1D;
   const CeedInt Q             = BASIS_Q_1D;
   const CeedInt u_stride      = BASIS_NUM_NODES;
-  const CeedInt v_stride      = BASIS_NUM_PTS;
+  const CeedInt v_stride      = max_num_points;
   const CeedInt u_comp_stride = num_elem * BASIS_NUM_NODES;
-  const CeedInt v_comp_stride = num_elem * BASIS_NUM_PTS;
+  const CeedInt v_comp_stride = num_elem * max_num_points;
   const CeedInt u_size        = BASIS_NUM_NODES;
 
   // Apply basis element by element
@@ -96,7 +96,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
 
       // Map to point
       __syncthreads();
-      for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
+      for (CeedInt p = threadIdx.x; p < max_num_points; p += blockDim.x) {
         pre  = BASIS_NUM_QPTS;
         post = 1;
         for (CeedInt d = 0; d < BASIS_DIM; d++) {
@@ -124,9 +124,10 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedScal
   }
 }
 
-extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ chebyshev_interp_1d,
-                                                   const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ coords,
-                                                   const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const CeedInt max_num_points,
+                                                   const CeedScalar *__restrict__ chebyshev_interp_1d, const CeedInt *__restrict__ points_per_elem,
+                                                   const CeedScalar *__restrict__ coords, const CeedScalar *__restrict__ u,
+                                                   CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 2 * BASIS_BUF_LEN + POINTS_BUFF_LEN * BASIS_Q_1D];
@@ -141,11 +142,11 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
 
   const CeedInt P             = BASIS_P_1D;
   const CeedInt Q             = BASIS_Q_1D;
-  const CeedInt u_stride      = BASIS_NUM_PTS;
+  const CeedInt u_stride      = max_num_points;
   const CeedInt v_stride      = BASIS_NUM_NODES;
-  const CeedInt u_comp_stride = num_elem * BASIS_NUM_PTS;
+  const CeedInt u_comp_stride = num_elem * max_num_points;
   const CeedInt v_comp_stride = num_elem * BASIS_NUM_NODES;
-  const CeedInt u_size        = BASIS_NUM_PTS;
+  const CeedInt u_size        = max_num_points;
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
@@ -162,7 +163,7 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
 
       // Map from point
       __syncthreads();
-      for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
+      for (CeedInt p = threadIdx.x; p < max_num_points; p += blockDim.x) {
         if (p >= points_per_elem[elem]) continue;
         pre  = 1;
         post = 1;
@@ -223,7 +224,7 @@ extern "C" __global__ void InterpTransposeAtPoints(const CeedInt num_elem, const
 //------------------------------------------------------------------------------
 // Grad
 //------------------------------------------------------------------------------
-extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ chebyshev_interp_1d,
+extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt max_num_points, const CeedScalar *__restrict__ chebyshev_interp_1d,
                                         const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ coords,
                                         const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
@@ -241,12 +242,12 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
   const CeedInt P             = BASIS_P_1D;
   const CeedInt Q             = BASIS_Q_1D;
   const CeedInt u_stride      = BASIS_NUM_NODES;
-  const CeedInt v_stride      = BASIS_NUM_PTS;
+  const CeedInt v_stride      = max_num_points;
   const CeedInt u_comp_stride = num_elem * BASIS_NUM_NODES;
-  const CeedInt v_comp_stride = num_elem * BASIS_NUM_PTS;
+  const CeedInt v_comp_stride = num_elem * max_num_points;
   const CeedInt u_size        = BASIS_NUM_NODES;
   const CeedInt u_dim_stride  = 0;
-  const CeedInt v_dim_stride  = num_elem * BASIS_NUM_PTS * BASIS_NUM_COMP;
+  const CeedInt v_dim_stride  = num_elem * max_num_points * BASIS_NUM_COMP;
 
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
@@ -279,7 +280,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
 
       // Map to point
       __syncthreads();
-      for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
+      for (CeedInt p = threadIdx.x; p < max_num_points; p += blockDim.x) {
         for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
           CeedScalar *cur_v = &v[elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride];
 
@@ -315,9 +316,10 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedScalar
   }
 }
 
-extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedScalar *__restrict__ chebyshev_interp_1d,
-                                                 const CeedInt *__restrict__ points_per_elem, const CeedScalar *__restrict__ coords,
-                                                 const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const CeedInt max_num_points,
+                                                 const CeedScalar *__restrict__ chebyshev_interp_1d, const CeedInt *__restrict__ points_per_elem,
+                                                 const CeedScalar *__restrict__ coords, const CeedScalar *__restrict__ u,
+                                                 CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 2 * BASIS_BUF_LEN + POINTS_BUFF_LEN * BASIS_Q_1D];
@@ -332,12 +334,12 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
 
   const CeedInt P             = BASIS_P_1D;
   const CeedInt Q             = BASIS_Q_1D;
-  const CeedInt u_stride      = BASIS_NUM_PTS;
+  const CeedInt u_stride      = max_num_points;
   const CeedInt v_stride      = BASIS_NUM_NODES;
-  const CeedInt u_comp_stride = num_elem * BASIS_NUM_PTS;
+  const CeedInt u_comp_stride = num_elem * max_num_points;
   const CeedInt v_comp_stride = num_elem * BASIS_NUM_NODES;
-  const CeedInt u_size        = BASIS_NUM_PTS;
-  const CeedInt u_dim_stride  = num_elem * BASIS_NUM_PTS * BASIS_NUM_COMP;
+  const CeedInt u_size        = max_num_points;
+  const CeedInt u_dim_stride  = num_elem * max_num_points * BASIS_NUM_COMP;
   const CeedInt v_dim_stride  = 0;
 
   // Apply basis element by element
@@ -354,7 +356,7 @@ extern "C" __global__ void GradTransposeAtPoints(const CeedInt num_elem, const C
 
       // Map from point
       __syncthreads();
-      for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
+      for (CeedInt p = threadIdx.x; p < max_num_points; p += blockDim.x) {
         if (p >= points_per_elem[elem]) continue;
         for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
           const CeedScalar *cur_u = &u[elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride];

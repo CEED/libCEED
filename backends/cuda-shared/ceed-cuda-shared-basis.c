@@ -214,13 +214,14 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
                                                   CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed                   ceed;
   Ceed_Cuda             *ceed_Cuda;
-  CeedInt                Q_1d, dim, num_comp, max_num_points = num_points[0];
+  CeedInt                P_1d, Q_1d, dim, num_comp, max_num_points = num_points[0];
   const CeedInt          is_transpose = t_mode == CEED_TRANSPOSE;
   const CeedScalar      *d_x, *d_u;
   CeedScalar            *d_v;
   CeedBasis_Cuda_shared *data;
 
   CeedCallBackend(CeedBasisGetData(basis, &data));
+  CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
@@ -236,6 +237,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
   // Check padded to uniform number of points per elem
   for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
+  data->num_points = max_num_points;
   {
     CeedInt  q_comp;
     CeedSize len, len_required;
@@ -266,35 +268,29 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
     }
   }
 
+  // Create interp matrix to Chebyshev coefficients, if needed
+  if (!data->d_chebyshev_interp_1d) {
+    CeedSize    interp_bytes;
+    CeedScalar *chebyshev_interp_1d;
+
+    interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
+    CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+    CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+    CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
+    CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
+    CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+  }
+
   // Build kernels if needed
-  if (data->num_points != max_num_points) {
-    CeedInt P_1d;
-
-    CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-    data->num_points = max_num_points;
-
-    // -- Create interp matrix to Chebyshev coefficients
-    if (!data->d_chebyshev_interp_1d) {
-      CeedSize    interp_bytes;
-      CeedScalar *chebyshev_interp_1d;
-
-      interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-      CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-      CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
-      CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
-      CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-      CeedCallBackend(CeedFree(&chebyshev_interp_1d));
-    }
-
+  if (!data->moduleAtPoints) {
     // -- Compile kernels
     const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor-at-points.h>\n";
     CeedInt    num_comp;
 
-    if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points_shared", &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D",
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points_shared", &data->moduleAtPoints, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D",
                                      P_1d, "BASIS_T_1D", CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES",
-                                     CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS", max_num_points));
+                                     CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAddAtPoints", &data->InterpTransposeAddAtPoints));
@@ -325,7 +321,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
 
-      void *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      void *interp_args[] = {(void *)&num_elem, (void *)&data->num_points, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
 
       if (dim == 1) {
         // avoid >512 total threads
@@ -375,7 +371,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
 
-      void *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      void *grad_args[] = {(void *)&num_elem, (void *)&data->num_points, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
 
       if (dim == 1) {
         // avoid >512 total threads

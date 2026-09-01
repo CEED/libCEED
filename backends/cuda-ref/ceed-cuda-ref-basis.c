@@ -105,7 +105,7 @@ static int CeedBasisApplyAdd_Cuda(CeedBasis basis, const CeedInt num_elem, CeedT
 static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, const CeedInt num_elem, const CeedInt *num_points,
                                            CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed              ceed;
-  CeedInt           Q_1d, dim, max_num_points = num_points[0];
+  CeedInt           P_1d, Q_1d, dim, max_num_points = num_points[0];
   const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
   const int         max_block_size = 32;
   const CeedScalar *d_x, *d_u;
@@ -114,6 +114,7 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
 
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+  CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
 
   // Weight handled separately
@@ -126,6 +127,7 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
 
   // Check padded to uniform number of points per elem
   for (CeedInt i = 1; i < num_elem; i++) max_num_points = CeedIntMax(max_num_points, num_points[i]);
+  data->num_points = max_num_points;
   {
     CeedInt  num_comp, q_comp;
     CeedSize len, len_required;
@@ -158,36 +160,30 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
     }
   }
 
+  // Create interp matrix to Chebyshev coefficients
+  if (!data->d_chebyshev_interp_1d) {
+    CeedSize    interp_bytes;
+    CeedScalar *chebyshev_interp_1d;
+
+    interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
+    CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+    CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+    CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
+    CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
+    CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+  }
+
   // Build kernels if needed
-  if (data->num_points != max_num_points) {
-    CeedInt P_1d;
-
-    CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-    data->num_points = max_num_points;
-
-    // -- Create interp matrix to Chebyshev coefficients
-    if (!data->d_chebyshev_interp_1d) {
-      CeedSize    interp_bytes;
-      CeedScalar *chebyshev_interp_1d;
-
-      interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-      CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-      CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
-      CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
-      CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-      CeedCallBackend(CeedFree(&chebyshev_interp_1d));
-    }
-
+  if (!data->moduleAtPoints) {
     // -- Compile kernels
     const char basis_kernel_source[] = "// AtPoints basis source\n#include <ceed/jit-source/cuda/cuda-ref-basis-tensor-at-points.h>\n";
     CeedInt    num_comp;
 
-    if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
     CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points", &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_at_points", &data->moduleAtPoints, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
                                      "BASIS_BUF_LEN", Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP",
-                                     num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
-                                     max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
+                                     num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "POINTS_BUFF_LEN",
+                                     CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpTransposeAtPoints", &data->InterpTransposeAtPoints));
     CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
@@ -212,15 +208,15 @@ static int CeedBasisApplyAtPointsCore_Cuda(CeedBasis basis, bool apply_add, cons
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void *interp_args[] = {(void *)&num_elem, (void *)&data->num_points, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, is_transpose ? data->InterpTransposeAtPoints : data->InterpAtPoints, num_elem, block_size,
                                          interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
-      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void *grad_args[] = {(void *)&num_elem, (void *)&data->num_points, &data->d_chebyshev_interp_1d, &data->d_points_per_elem, &d_x, &d_u, &d_v};
+      const CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, is_transpose ? data->GradTransposeAtPoints : data->GradAtPoints, num_elem, block_size, grad_args));
     } break;
