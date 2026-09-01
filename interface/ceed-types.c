@@ -54,9 +54,16 @@ const char *const CeedElemTopologies[] = {
 };
 
 const char *const CeedContextFieldTypes[] = {
-    [CEED_CONTEXT_FIELD_DOUBLE] = "double",
-    [CEED_CONTEXT_FIELD_INT32]  = "int32",
     [CEED_CONTEXT_FIELD_BOOL]   = "bool",
+    [CEED_CONTEXT_FIELD_BYTE]   = "char",
+    [CEED_CONTEXT_FIELD_INT8]   = "CeedInt8",
+    [CEED_CONTEXT_FIELD_INT]    = "CeedInt",
+    [CEED_CONTEXT_FIELD_INT32]  = "int32",
+    [CEED_CONTEXT_FIELD_INT64]  = "int64",
+    [CEED_CONTEXT_FIELD_SIZE]   = "CeedSize",
+    [CEED_CONTEXT_FIELD_SCALAR] = "CeedScalar",
+    [CEED_CONTEXT_FIELD_FLOAT]  = "float",
+    [CEED_CONTEXT_FIELD_DOUBLE] = "double",
 };
 
 const char *const CeedFESpaces[] = {

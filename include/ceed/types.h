@@ -274,12 +274,26 @@ typedef enum {
 /// Denotes type of data stored in a CeedQFunctionContext field
 /// @ingroup CeedQFunction
 typedef enum {
+  /// Byte value, C type of char
+  CEED_CONTEXT_FIELD_BYTE = 1,
+  /// CeedScalar value
+  CEED_CONTEXT_FIELD_SCALAR = 2,
+  /// Single precision value
+  CEED_CONTEXT_FIELD_FLOAT = 3,
   /// Double precision value
-  CEED_CONTEXT_FIELD_DOUBLE = 1,
+  CEED_CONTEXT_FIELD_DOUBLE = 4,
+  ///8 bit integer value
+  CEED_CONTEXT_FIELD_INT8 = 5,
+  /// CeedInt value
+  CEED_CONTEXT_FIELD_INT = 6,
   /// 32 bit integer value
-  CEED_CONTEXT_FIELD_INT32 = 2,
+  CEED_CONTEXT_FIELD_INT32 = 7,
+  /// 64 bit integer value
+  CEED_CONTEXT_FIELD_INT64 = 8,
+  /// CeedSize value
+  CEED_CONTEXT_FIELD_SIZE = 9,
   /// Boolean value
-  CEED_CONTEXT_FIELD_BOOL = 3,
+  CEED_CONTEXT_FIELD_BOOL = 10,
 } CeedContextFieldType;
 
 #endif  // CEED_QFUNCTION_DEFS_H

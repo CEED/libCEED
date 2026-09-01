@@ -1,4 +1,4 @@
-using CEnum
+using CEnum: CEnum, @cenum
 
 #! format: off
 
@@ -73,8 +73,16 @@ end
 end
 
 @cenum CeedContextFieldType::UInt32 begin
-    CEED_CONTEXT_FIELD_DOUBLE = 1
-    CEED_CONTEXT_FIELD_INT32 = 2
+    CEED_CONTEXT_FIELD_BYTE = 1
+    CEED_CONTEXT_FIELD_SCALAR = 2
+    CEED_CONTEXT_FIELD_FLOAT = 3
+    CEED_CONTEXT_FIELD_DOUBLE = 4
+    CEED_CONTEXT_FIELD_INT8 = 5
+    CEED_CONTEXT_FIELD_INT = 6
+    CEED_CONTEXT_FIELD_INT32 = 7
+    CEED_CONTEXT_FIELD_INT64 = 8
+    CEED_CONTEXT_FIELD_SIZE = 9
+    CEED_CONTEXT_FIELD_BOOL = 10
 end
 
 mutable struct Ceed_private end
@@ -121,6 +129,34 @@ mutable struct CeedOperator_private end
 
 const CeedOperator = Ptr{CeedOperator_private}
 
+mutable struct CeedObject_private end
+
+const CeedObject = Ptr{CeedObject_private}
+
+function CeedObjectView(obj, stream)
+    ccall((:CeedObjectView, libceed), Cint, (CeedObject, Ptr{Libc.FILE}), obj, stream)
+end
+
+function CeedObjectSetNumViewTabs(obj, num_tabs)
+    ccall((:CeedObjectSetNumViewTabs, libceed), Cint, (CeedObject, CeedInt), obj, num_tabs)
+end
+
+function CeedObjectGetNumViewTabs(obj, num_tabs)
+    ccall((:CeedObjectGetNumViewTabs, libceed), Cint, (CeedObject, Ptr{CeedInt}), obj, num_tabs)
+end
+
+function CeedObjectGetCeed(obj, ceed)
+    ccall((:CeedObjectGetCeed, libceed), Cint, (CeedObject, Ptr{Ceed}), obj, ceed)
+end
+
+function CeedObjectReturnCeed(obj)
+    ccall((:CeedObjectReturnCeed, libceed), Ceed, (CeedObject,), obj)
+end
+
+function CeedObjectDestroy(obj)
+    ccall((:CeedObjectDestroy, libceed), Cint, (Ptr{CeedObject},), obj)
+end
+
 function CeedRegistryGetList(n, resources, array)
     ccall((:CeedRegistryGetList, libceed), Cint, (Ptr{Csize_t}, Ptr{Ptr{Ptr{Cchar}}}, Ptr{Ptr{CeedInt}}), n, resources, array)
 end
@@ -149,6 +185,22 @@ function CeedAddJitSourceRoot(ceed, jit_source_root)
     ccall((:CeedAddJitSourceRoot, libceed), Cint, (Ceed, Ptr{Cchar}), ceed, jit_source_root)
 end
 
+function CeedAddRustSourceRoot(ceed, rust_source_root)
+    ccall((:CeedAddRustSourceRoot, libceed), Cint, (Ceed, Ptr{Cchar}), ceed, rust_source_root)
+end
+
+function CeedAddJitDefine(ceed, jit_define)
+    ccall((:CeedAddJitDefine, libceed), Cint, (Ceed, Ptr{Cchar}), ceed, jit_define)
+end
+
+function CeedSetNumViewTabs(ceed, num_tabs)
+    ccall((:CeedSetNumViewTabs, libceed), Cint, (Ceed, CeedInt), ceed, num_tabs)
+end
+
+function CeedGetNumViewTabs(ceed, num_tabs)
+    ccall((:CeedGetNumViewTabs, libceed), Cint, (Ceed, Ptr{CeedInt}), ceed, num_tabs)
+end
+
 function CeedView(ceed, stream)
     ccall((:CeedView, libceed), Cint, (Ceed, Ptr{Libc.FILE}), ceed, stream)
 end
@@ -160,20 +212,36 @@ end
 # typedef int ( * CeedErrorHandler ) ( Ceed , const char * , int , const char * , int , const char * , va_list * )
 const CeedErrorHandler = Ptr{Cvoid}
 
-function CeedSetErrorHandler(ceed, eh)
-    ccall((:CeedSetErrorHandler, libceed), Cint, (Ceed, CeedErrorHandler), ceed, eh)
+function CeedSetErrorHandler(ceed, handler)
+    ccall((:CeedSetErrorHandler, libceed), Cint, (Ceed, CeedErrorHandler), ceed, handler)
 end
 
-function CeedGetErrorMessage(arg1, err_msg)
-    ccall((:CeedGetErrorMessage, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), arg1, err_msg)
+function CeedGetErrorMessage(ceed, err_msg)
+    ccall((:CeedGetErrorMessage, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, err_msg)
 end
 
-function CeedResetErrorMessage(arg1, err_msg)
-    ccall((:CeedResetErrorMessage, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), arg1, err_msg)
+function CeedResetErrorMessage(ceed, err_msg)
+    ccall((:CeedResetErrorMessage, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, err_msg)
 end
 
 function CeedGetVersion(major, minor, patch, release)
     ccall((:CeedGetVersion, libceed), Cint, (Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Bool}), major, minor, patch, release)
+end
+
+function CeedGetGitVersion(git_version)
+    ccall((:CeedGetGitVersion, libceed), Cint, (Ptr{Ptr{Cchar}},), git_version)
+end
+
+function CeedGetBuildConfiguration(build_config)
+    ccall((:CeedGetBuildConfiguration, libceed), Cint, (Ptr{Ptr{Cchar}},), build_config)
+end
+
+function CeedSetIsClang(ceed, isClang)
+    ccall((:CeedSetIsClang, libceed), Cint, (Ceed, Bool), ceed, isClang)
+end
+
+function CeedGetIsClang(ceed, isClang)
+    ccall((:CeedGetIsClang, libceed), Cint, (Ceed, Ptr{Bool}), ceed, isClang)
 end
 
 function CeedGetScalarType(scalar_type)
@@ -196,12 +264,20 @@ function CeedVectorCopy(vec, vec_copy)
     ccall((:CeedVectorCopy, libceed), Cint, (CeedVector, CeedVector), vec, vec_copy)
 end
 
+function CeedVectorCopyStrided(vec, start, stop, step, vec_copy)
+    ccall((:CeedVectorCopyStrided, libceed), Cint, (CeedVector, CeedSize, CeedSize, CeedSize, CeedVector), vec, start, stop, step, vec_copy)
+end
+
 function CeedVectorSetArray(vec, mem_type, copy_mode, array)
     ccall((:CeedVectorSetArray, libceed), Cint, (CeedVector, CeedMemType, CeedCopyMode, Ptr{CeedScalar}), vec, mem_type, copy_mode, array)
 end
 
 function CeedVectorSetValue(vec, value)
     ccall((:CeedVectorSetValue, libceed), Cint, (CeedVector, CeedScalar), vec, value)
+end
+
+function CeedVectorSetValueStrided(vec, start, stop, step, value)
+    ccall((:CeedVectorSetValueStrided, libceed), Cint, (CeedVector, CeedSize, CeedSize, CeedSize, CeedScalar), vec, start, stop, step, value)
 end
 
 function CeedVectorSyncArray(vec, mem_type)
@@ -240,6 +316,10 @@ function CeedVectorScale(x, alpha)
     ccall((:CeedVectorScale, libceed), Cint, (CeedVector, CeedScalar), x, alpha)
 end
 
+function CeedVectorFilter(x, threshold)
+    ccall((:CeedVectorFilter, libceed), Cint, (CeedVector, CeedScalar), x, threshold)
+end
+
 function CeedVectorAXPY(y, alpha, x)
     ccall((:CeedVectorAXPY, libceed), Cint, (CeedVector, CeedScalar, CeedVector), y, alpha, x)
 end
@@ -256,6 +336,14 @@ function CeedVectorReciprocal(vec)
     ccall((:CeedVectorReciprocal, libceed), Cint, (CeedVector,), vec)
 end
 
+function CeedVectorSetNumViewTabs(vec, num_tabs)
+    ccall((:CeedVectorSetNumViewTabs, libceed), Cint, (CeedVector, CeedInt), vec, num_tabs)
+end
+
+function CeedVectorGetNumViewTabs(vec, num_tabs)
+    ccall((:CeedVectorGetNumViewTabs, libceed), Cint, (CeedVector, Ptr{CeedInt}), vec, num_tabs)
+end
+
 function CeedVectorViewRange(vec, start, stop, step, fp_fmt, stream)
     ccall((:CeedVectorViewRange, libceed), Cint, (CeedVector, CeedSize, CeedSize, CeedInt, Ptr{Cchar}, Ptr{Libc.FILE}), vec, start, stop, step, fp_fmt, stream)
 end
@@ -266,6 +354,10 @@ end
 
 function CeedVectorGetCeed(vec, ceed)
     ccall((:CeedVectorGetCeed, libceed), Cint, (CeedVector, Ptr{Ceed}), vec, ceed)
+end
+
+function CeedVectorReturnCeed(vec)
+    ccall((:CeedVectorReturnCeed, libceed), Ceed, (CeedVector,), vec)
 end
 
 function CeedVectorGetLength(vec, length)
@@ -348,6 +440,10 @@ function CeedElemRestrictionGetCeed(rstr, ceed)
     ccall((:CeedElemRestrictionGetCeed, libceed), Cint, (CeedElemRestriction, Ptr{Ceed}), rstr, ceed)
 end
 
+function CeedElemRestrictionReturnCeed(rstr)
+    ccall((:CeedElemRestrictionReturnCeed, libceed), Ceed, (CeedElemRestriction,), rstr)
+end
+
 function CeedElemRestrictionGetCompStride(rstr, comp_stride)
     ccall((:CeedElemRestrictionGetCompStride, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, comp_stride)
 end
@@ -372,8 +468,20 @@ function CeedElemRestrictionGetMaxPointsInElement(rstr, max_points)
     ccall((:CeedElemRestrictionGetMaxPointsInElement, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, max_points)
 end
 
+function CeedElemRestrictionGetMinPointsInElement(rstr, min_points)
+    ccall((:CeedElemRestrictionGetMinPointsInElement, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, min_points)
+end
+
+function CeedElemRestrictionGetMinMaxPointsInElement(rstr, min_points, max_points)
+    ccall((:CeedElemRestrictionGetMinMaxPointsInElement, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}, Ptr{CeedInt}), rstr, min_points, max_points)
+end
+
 function CeedElemRestrictionGetLVectorSize(rstr, l_size)
     ccall((:CeedElemRestrictionGetLVectorSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedSize}), rstr, l_size)
+end
+
+function CeedElemRestrictionGetEVectorSize(rstr, e_size)
+    ccall((:CeedElemRestrictionGetEVectorSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedSize}), rstr, e_size)
 end
 
 function CeedElemRestrictionGetNumComponents(rstr, num_comp)
@@ -390,6 +498,14 @@ end
 
 function CeedElemRestrictionGetMultiplicity(rstr, mult)
     ccall((:CeedElemRestrictionGetMultiplicity, libceed), Cint, (CeedElemRestriction, CeedVector), rstr, mult)
+end
+
+function CeedElemRestrictionSetNumViewTabs(rstr, num_tabs)
+    ccall((:CeedElemRestrictionSetNumViewTabs, libceed), Cint, (CeedElemRestriction, CeedInt), rstr, num_tabs)
+end
+
+function CeedElemRestrictionGetNumViewTabs(rstr, num_tabs)
+    ccall((:CeedElemRestrictionGetNumViewTabs, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, num_tabs)
 end
 
 function CeedElemRestrictionView(rstr, stream)
@@ -428,6 +544,14 @@ function CeedBasisReferenceCopy(basis, basis_copy)
     ccall((:CeedBasisReferenceCopy, libceed), Cint, (CeedBasis, Ptr{CeedBasis}), basis, basis_copy)
 end
 
+function CeedBasisSetNumViewTabs(basis, num_tabs)
+    ccall((:CeedBasisSetNumViewTabs, libceed), Cint, (CeedBasis, CeedInt), basis, num_tabs)
+end
+
+function CeedBasisGetNumViewTabs(basis, num_tabs)
+    ccall((:CeedBasisGetNumViewTabs, libceed), Cint, (CeedBasis, Ptr{CeedInt}), basis, num_tabs)
+end
+
 function CeedBasisView(basis, stream)
     ccall((:CeedBasisView, libceed), Cint, (CeedBasis, Ptr{Libc.FILE}), basis, stream)
 end
@@ -436,12 +560,24 @@ function CeedBasisApply(basis, num_elem, t_mode, eval_mode, u, v)
     ccall((:CeedBasisApply, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector), basis, num_elem, t_mode, eval_mode, u, v)
 end
 
+function CeedBasisApplyAdd(basis, num_elem, t_mode, eval_mode, u, v)
+    ccall((:CeedBasisApplyAdd, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector), basis, num_elem, t_mode, eval_mode, u, v)
+end
+
 function CeedBasisApplyAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
     ccall((:CeedBasisApplyAtPoints, libceed), Cint, (CeedBasis, CeedInt, Ptr{CeedInt}, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector), basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
 end
 
+function CeedBasisApplyAddAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
+    ccall((:CeedBasisApplyAddAtPoints, libceed), Cint, (CeedBasis, CeedInt, Ptr{CeedInt}, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector), basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
+end
+
 function CeedBasisGetCeed(basis, ceed)
     ccall((:CeedBasisGetCeed, libceed), Cint, (CeedBasis, Ptr{Ceed}), basis, ceed)
+end
+
+function CeedBasisReturnCeed(basis)
+    ccall((:CeedBasisReturnCeed, libceed), Ceed, (CeedBasis,), basis)
 end
 
 function CeedBasisGetDimension(basis, dim)
@@ -559,12 +695,24 @@ function CeedQFunctionSetUserFlopsEstimate(qf, flops)
     ccall((:CeedQFunctionSetUserFlopsEstimate, libceed), Cint, (CeedQFunction, CeedSize), qf, flops)
 end
 
+function CeedQFunctionSetNumViewTabs(qf, num_tabs)
+    ccall((:CeedQFunctionSetNumViewTabs, libceed), Cint, (CeedQFunction, CeedInt), qf, num_tabs)
+end
+
+function CeedQFunctionGetNumViewTabs(qf, num_tabs)
+    ccall((:CeedQFunctionGetNumViewTabs, libceed), Cint, (CeedQFunction, Ptr{CeedInt}), qf, num_tabs)
+end
+
 function CeedQFunctionView(qf, stream)
     ccall((:CeedQFunctionView, libceed), Cint, (CeedQFunction, Ptr{Libc.FILE}), qf, stream)
 end
 
 function CeedQFunctionGetCeed(qf, ceed)
     ccall((:CeedQFunctionGetCeed, libceed), Cint, (CeedQFunction, Ptr{Ceed}), qf, ceed)
+end
+
+function CeedQFunctionReturnCeed(qf)
+    ccall((:CeedQFunctionReturnCeed, libceed), Ceed, (CeedQFunction,), qf)
 end
 
 function CeedQFunctionApply(qf, Q, u, v)
@@ -585,6 +733,10 @@ end
 
 function CeedQFunctionFieldGetEvalMode(qf_field, eval_mode)
     ccall((:CeedQFunctionFieldGetEvalMode, libceed), Cint, (CeedQFunctionField, Ptr{CeedEvalMode}), qf_field, eval_mode)
+end
+
+function CeedQFunctionFieldGetData(qf_field, field_name, size, eval_mode)
+    ccall((:CeedQFunctionFieldGetData, libceed), Cint, (CeedQFunctionField, Ptr{Ptr{Cchar}}, Ptr{CeedInt}, Ptr{CeedEvalMode}), qf_field, field_name, size, eval_mode)
 end
 
 # typedef int ( * CeedQFunctionContextDataDestroyUser ) ( void * data )
@@ -622,12 +774,44 @@ function CeedQFunctionContextRestoreDataRead(ctx, data)
     ccall((:CeedQFunctionContextRestoreDataRead, libceed), Cint, (CeedQFunctionContext, Ptr{Cvoid}), ctx, data)
 end
 
-function CeedQFunctionContextRegisterDouble(ctx, field_name, field_offset, num_values, field_description)
-    ccall((:CeedQFunctionContextRegisterDouble, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+function CeedQFunctionContextRegisterCeedByte(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedByte, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
 end
 
-function CeedQFunctionContextRegisterInt32(ctx, field_name, field_offset, num_values, field_description)
-    ccall((:CeedQFunctionContextRegisterInt32, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+function CeedQFunctionContextRegisterCeedScalar(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedScalar, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedFloat(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedFloat, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedDouble(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedDouble, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedInt8(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedInt8, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedInt(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedInt, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedInt32(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedInt32, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedInt64(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedInt64, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedSize(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedSize, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
+end
+
+function CeedQFunctionContextRegisterCeedBoolean(ctx, field_name, field_offset, num_values, field_description)
+    ccall((:CeedQFunctionContextRegisterCeedBoolean, libceed), Cint, (CeedQFunctionContext, Ptr{Cchar}, Csize_t, Csize_t, Ptr{Cchar}), ctx, field_name, field_offset, num_values, field_description)
 end
 
 function CeedQFunctionContextGetAllFieldLabels(ctx, field_labels, num_fields)
@@ -640,6 +824,14 @@ end
 
 function CeedQFunctionContextGetContextSize(ctx, ctx_size)
     ccall((:CeedQFunctionContextGetContextSize, libceed), Cint, (CeedQFunctionContext, Ptr{Csize_t}), ctx, ctx_size)
+end
+
+function CeedQFunctionContextSetNumViewTabs(ctx, num_tabs)
+    ccall((:CeedQFunctionContextSetNumViewTabs, libceed), Cint, (CeedQFunctionContext, CeedInt), ctx, num_tabs)
+end
+
+function CeedQFunctionContextGetNumViewTabs(ctx, num_tabs)
+    ccall((:CeedQFunctionContextGetNumViewTabs, libceed), Cint, (CeedQFunctionContext, Ptr{CeedInt}), ctx, num_tabs)
 end
 
 function CeedQFunctionContextView(ctx, stream)
@@ -658,6 +850,10 @@ function CeedOperatorCreate(ceed, qf, dqf, dqfT, op)
     ccall((:CeedOperatorCreate, libceed), Cint, (Ceed, CeedQFunction, CeedQFunction, CeedQFunction, Ptr{CeedOperator}), ceed, qf, dqf, dqfT, op)
 end
 
+function CeedOperatorCreateAtPoints(ceed, qf, dqf, dqfT, op)
+    ccall((:CeedOperatorCreateAtPoints, libceed), Cint, (Ceed, CeedQFunction, CeedQFunction, CeedQFunction, Ptr{CeedOperator}), ceed, qf, dqf, dqfT, op)
+end
+
 function CeedOperatorCreateComposite(ceed, op)
     ccall((:CeedOperatorCreateComposite, libceed), Cint, (Ceed, Ptr{CeedOperator}), ceed, op)
 end
@@ -666,12 +862,24 @@ function CeedOperatorReferenceCopy(op, op_copy)
     ccall((:CeedOperatorReferenceCopy, libceed), Cint, (CeedOperator, Ptr{CeedOperator}), op, op_copy)
 end
 
-function CeedOperatorSetField(op, field_name, r, b, v)
-    ccall((:CeedOperatorSetField, libceed), Cint, (CeedOperator, Ptr{Cchar}, CeedElemRestriction, CeedBasis, CeedVector), op, field_name, r, b, v)
+function CeedOperatorSetField(op, field_name, rstr, basis, vec)
+    ccall((:CeedOperatorSetField, libceed), Cint, (CeedOperator, Ptr{Cchar}, CeedElemRestriction, CeedBasis, CeedVector), op, field_name, rstr, basis, vec)
 end
 
 function CeedOperatorGetFields(op, num_input_fields, input_fields, num_output_fields, output_fields)
     ccall((:CeedOperatorGetFields, libceed), Cint, (CeedOperator, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}, Ptr{CeedInt}, Ptr{Ptr{CeedOperatorField}}), op, num_input_fields, input_fields, num_output_fields, output_fields)
+end
+
+function CeedOperatorAtPointsSetPoints(op, rstr_points, point_coords)
+    ccall((:CeedOperatorAtPointsSetPoints, libceed), Cint, (CeedOperator, CeedElemRestriction, CeedVector), op, rstr_points, point_coords)
+end
+
+function CeedOperatorAtPointsGetPoints(op, rstr_points, point_coords)
+    ccall((:CeedOperatorAtPointsGetPoints, libceed), Cint, (CeedOperator, Ptr{CeedElemRestriction}, Ptr{CeedVector}), op, rstr_points, point_coords)
+end
+
+function CeedOperatorIsAtPoints(op, is_at_points)
+    ccall((:CeedOperatorIsAtPoints, libceed), Cint, (CeedOperator, Ptr{Bool}), op, is_at_points)
 end
 
 function CeedOperatorCompositeAddSub(composite_op, sub_op)
@@ -684,6 +892,18 @@ end
 
 function CeedOperatorCompositeGetSubList(op, sub_operators)
     ccall((:CeedOperatorCompositeGetSubList, libceed), Cint, (CeedOperator, Ptr{Ptr{CeedOperator}}), op, sub_operators)
+end
+
+function CeedOperatorCompositeGetSubByName(op, op_name, sub_op)
+    ccall((:CeedOperatorCompositeGetSubByName, libceed), Cint, (CeedOperator, Ptr{Cchar}, Ptr{CeedOperator}), op, op_name, sub_op)
+end
+
+function CeedOperatorCompositeSetSequential(op, is_sequential)
+    ccall((:CeedOperatorCompositeSetSequential, libceed), Cint, (CeedOperator, Bool), op, is_sequential)
+end
+
+function CeedOperatorCompositeIsSequential(op, is_sequential)
+    ccall((:CeedOperatorCompositeIsSequential, libceed), Cint, (CeedOperator, Ptr{Bool}), op, is_sequential)
 end
 
 function CeedOperatorCheckReady(op)
@@ -734,6 +954,10 @@ function CeedOperatorLinearAssembleSymbolic(op, num_entries, rows, cols)
     ccall((:CeedOperatorLinearAssembleSymbolic, libceed), Cint, (CeedOperator, Ptr{CeedSize}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{CeedInt}}), op, num_entries, rows, cols)
 end
 
+function CeedOperatorLinearAssembleGetNumEntries(op, num_entries)
+    ccall((:CeedOperatorLinearAssembleGetNumEntries, libceed), Cint, (CeedOperator, Ptr{CeedSize}), op, num_entries)
+end
+
 function CeedOperatorLinearAssemble(op, values)
     ccall((:CeedOperatorLinearAssemble, libceed), Cint, (CeedOperator, CeedVector), op, values)
 end
@@ -762,12 +986,32 @@ function CeedOperatorSetName(op, name)
     ccall((:CeedOperatorSetName, libceed), Cint, (CeedOperator, Ptr{Cchar}), op, name)
 end
 
+function CeedOperatorGetName(op, name)
+    ccall((:CeedOperatorGetName, libceed), Cint, (CeedOperator, Ptr{Ptr{Cchar}}), op, name)
+end
+
+function CeedOperatorSetNumViewTabs(op, num_tabs)
+    ccall((:CeedOperatorSetNumViewTabs, libceed), Cint, (CeedOperator, CeedInt), op, num_tabs)
+end
+
+function CeedOperatorGetNumViewTabs(op, num_tabs)
+    ccall((:CeedOperatorGetNumViewTabs, libceed), Cint, (CeedOperator, Ptr{CeedInt}), op, num_tabs)
+end
+
 function CeedOperatorView(op, stream)
     ccall((:CeedOperatorView, libceed), Cint, (CeedOperator, Ptr{Libc.FILE}), op, stream)
 end
 
+function CeedOperatorViewTerse(op, stream)
+    ccall((:CeedOperatorViewTerse, libceed), Cint, (CeedOperator, Ptr{Libc.FILE}), op, stream)
+end
+
 function CeedOperatorGetCeed(op, ceed)
     ccall((:CeedOperatorGetCeed, libceed), Cint, (CeedOperator, Ptr{Ceed}), op, ceed)
+end
+
+function CeedOperatorReturnCeed(op)
+    ccall((:CeedOperatorReturnCeed, libceed), Ceed, (CeedOperator,), op)
 end
 
 function CeedOperatorGetNumElements(op, num_elem)
@@ -790,28 +1034,124 @@ function CeedOperatorGetContextFieldLabel(op, field_name, field_label)
     ccall((:CeedOperatorGetContextFieldLabel, libceed), Cint, (CeedOperator, Ptr{Cchar}, Ptr{CeedContextFieldLabel}), op, field_name, field_label)
 end
 
-function CeedOperatorSetContextDouble(op, field_label, values)
-    ccall((:CeedOperatorSetContextDouble, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cdouble}), op, field_label, values)
+function CeedOperatorSetContextCeedByte(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedByte, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cchar}), op, field_label, values)
 end
 
-function CeedOperatorGetContextDoubleRead(op, field_label, num_values, values)
-    ccall((:CeedOperatorGetContextDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), op, field_label, num_values, values)
+function CeedOperatorGetContextCeedByteRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedByteRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cchar}}), op, field_label, num_values, values)
 end
 
-function CeedOperatorRestoreContextDoubleRead(op, field_label, values)
-    ccall((:CeedOperatorRestoreContextDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), op, field_label, values)
+function CeedOperatorRestoreContextCeedByteRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedByteRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cchar}}), op, field_label, values)
 end
 
-function CeedOperatorSetContextInt32(op, field_label, values)
-    ccall((:CeedOperatorSetContextInt32, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cint}), op, field_label, values)
+function CeedOperatorSetContextCeedScalar(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedScalar, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{CeedScalar}), op, field_label, values)
 end
 
-function CeedOperatorGetContextInt32Read(op, field_label, num_values, values)
-    ccall((:CeedOperatorGetContextInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cint}}), op, field_label, num_values, values)
+function CeedOperatorGetContextCeedScalarRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedScalarRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedScalar}}), op, field_label, num_values, values)
 end
 
-function CeedOperatorRestoreContextInt32Read(op, field_label, values)
-    ccall((:CeedOperatorRestoreContextInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cint}}), op, field_label, values)
+function CeedOperatorRestoreContextCeedScalarRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedScalarRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{CeedScalar}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedFloat(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedFloat, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cfloat}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedFloatRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedFloatRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cfloat}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedFloatRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedFloatRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cfloat}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedDouble(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedDouble, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cdouble}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedDoubleRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedDoubleRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedInt8(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedInt8, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{CeedInt8}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedInt8Read(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedInt8Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedInt8}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedInt8Read(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedInt8Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{CeedInt8}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedInt(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedInt, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{CeedInt}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedIntRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedIntRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedInt}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedIntRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedIntRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{CeedInt}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedInt32(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedInt32, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Int32}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedInt32Read(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Int32}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedInt32Read(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Int32}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedInt64(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedInt64, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Int64}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedInt64Read(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedInt64Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Int64}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedInt64Read(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedInt64Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Int64}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedSize(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedSize, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{CeedSize}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedSizeRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedSizeRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedSize}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedSizeRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedSizeRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{CeedSize}}), op, field_label, values)
+end
+
+function CeedOperatorSetContextCeedBoolean(op, field_label, values)
+    ccall((:CeedOperatorSetContextCeedBoolean, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Bool}), op, field_label, values)
+end
+
+function CeedOperatorGetContextCeedBooleanRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextCeedBooleanRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Bool}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextCeedBooleanRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextCeedBooleanRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Bool}}), op, field_label, values)
 end
 
 function CeedOperatorApply(op, in, out, request)
@@ -822,8 +1162,40 @@ function CeedOperatorApplyAdd(op, in, out, request)
     ccall((:CeedOperatorApplyAdd, libceed), Cint, (CeedOperator, CeedVector, CeedVector, Ptr{CeedRequest}), op, in, out, request)
 end
 
+function CeedOperatorApplyAddActive(op, in, out, request)
+    ccall((:CeedOperatorApplyAddActive, libceed), Cint, (CeedOperator, CeedVector, CeedVector, Ptr{CeedRequest}), op, in, out, request)
+end
+
+function CeedOperatorAssemblyDataStrip(op)
+    ccall((:CeedOperatorAssemblyDataStrip, libceed), Cint, (CeedOperator,), op)
+end
+
 function CeedOperatorDestroy(op)
     ccall((:CeedOperatorDestroy, libceed), Cint, (Ptr{CeedOperator},), op)
+end
+
+function CeedCompositeOperatorCreate(a, b)
+    ccall((:CeedCompositeOperatorCreate, libceed), Cint, (Ceed, Ptr{CeedOperator}), a, b)
+end
+
+function CeedCompositeOperatorAddSub(a, b)
+    ccall((:CeedCompositeOperatorAddSub, libceed), Cint, (CeedOperator, CeedOperator), a, b)
+end
+
+function CeedCompositeOperatorGetNumSub(a, b)
+    ccall((:CeedCompositeOperatorGetNumSub, libceed), Cint, (CeedOperator, Ptr{CeedInt}), a, b)
+end
+
+function CeedCompositeOperatorGetSubList(a, b)
+    ccall((:CeedCompositeOperatorGetSubList, libceed), Cint, (CeedOperator, Ptr{Ptr{CeedOperator}}), a, b)
+end
+
+function CeedCompositeOperatorGetSubByName(a, b, c)
+    ccall((:CeedCompositeOperatorGetSubByName, libceed), Cint, (CeedOperator, Ptr{Cchar}, Ptr{CeedOperator}), a, b, c)
+end
+
+function CeedCompositeOperatorGetMultiplicity(a, b, c, d)
+    ccall((:CeedCompositeOperatorGetMultiplicity, libceed), Cint, (CeedOperator, CeedInt, Ptr{CeedInt}, CeedVector), a, b, c, d)
 end
 
 function CeedOperatorGetFieldByName(op, field_name, op_field)
@@ -844,6 +1216,10 @@ end
 
 function CeedOperatorFieldGetVector(op_field, vec)
     ccall((:CeedOperatorFieldGetVector, libceed), Cint, (CeedOperatorField, Ptr{CeedVector}), op_field, vec)
+end
+
+function CeedOperatorFieldGetData(op_field, field_name, rstr, basis, vec)
+    ccall((:CeedOperatorFieldGetData, libceed), Cint, (CeedOperatorField, Ptr{Ptr{Cchar}}, Ptr{CeedElemRestriction}, Ptr{CeedBasis}, Ptr{CeedVector}), op_field, field_name, rstr, basis, vec)
 end
 
 function CeedIntPow(base, power)
@@ -890,6 +1266,10 @@ function CeedReallocArray(n, unit, p)
     ccall((:CeedReallocArray, libceed), Cint, (Csize_t, Csize_t, Ptr{Cvoid}), n, unit, p)
 end
 
+function CeedSetBackendFunctionImpl(ceed, type, object, func_name, f)
+    ccall((:CeedSetBackendFunctionImpl, libceed), Cint, (Ceed, Ptr{Cchar}, Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cvoid}), ceed, type, object, func_name, f)
+end
+
 @cenum CeedDebugColor::UInt32 begin
     CEED_DEBUG_COLOR_SUCCESS = 108
     CEED_DEBUG_COLOR_WARNING = 208
@@ -915,6 +1295,38 @@ end
 
 function CeedFree(p)
     ccall((:CeedFree, libceed), Cint, (Ptr{Cvoid},), p)
+end
+
+function CeedObjectCreate(ceed, view_function, destroy_function, obj)
+    ccall((:CeedObjectCreate, libceed), Cint, (Ceed, Ptr{Cvoid}, Ptr{Cvoid}, CeedObject), ceed, view_function, destroy_function, obj)
+end
+
+function CeedObjectReference(obj)
+    ccall((:CeedObjectReference, libceed), Cint, (CeedObject,), obj)
+end
+
+function CeedObjectDereference(obj)
+    ccall((:CeedObjectDereference, libceed), Cint, (CeedObject,), obj)
+end
+
+function CeedObjectDestroy_Private(obj)
+    ccall((:CeedObjectDestroy_Private, libceed), Cint, (CeedObject,), obj)
+end
+
+function CeedSetHostBoolArray(source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+    ccall((:CeedSetHostBoolArray, libceed), Cint, (Ptr{Bool}, CeedCopyMode, CeedSize, Ptr{Ptr{Bool}}, Ptr{Ptr{Bool}}, Ptr{Ptr{Bool}}), source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+end
+
+function CeedSetHostCeedInt8Array(source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+    ccall((:CeedSetHostCeedInt8Array, libceed), Cint, (Ptr{CeedInt8}, CeedCopyMode, CeedSize, Ptr{Ptr{CeedInt8}}, Ptr{Ptr{CeedInt8}}, Ptr{Ptr{CeedInt8}}), source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+end
+
+function CeedSetHostCeedIntArray(source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+    ccall((:CeedSetHostCeedIntArray, libceed), Cint, (Ptr{CeedInt}, CeedCopyMode, CeedSize, Ptr{Ptr{CeedInt}}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{CeedInt}}), source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+end
+
+function CeedSetHostCeedScalarArray(source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
+    ccall((:CeedSetHostCeedScalarArray, libceed), Cint, (Ptr{CeedScalar}, CeedCopyMode, CeedSize, Ptr{Ptr{CeedScalar}}, Ptr{Ptr{CeedScalar}}, Ptr{Ptr{CeedScalar}}), source_array, copy_mode, num_values, target_array_owned, target_array_borrowed, target_array)
 end
 
 function CeedRegister(prefix, init, priority)
@@ -953,24 +1365,16 @@ function CeedSetObjectDelegate(ceed, delegate, obj_name)
     ccall((:CeedSetObjectDelegate, libceed), Cint, (Ceed, Ceed, Ptr{Cchar}), ceed, delegate, obj_name)
 end
 
-function CeedGetOperatorFallbackResource(ceed, resource)
-    ccall((:CeedGetOperatorFallbackResource, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, resource)
-end
-
 function CeedGetOperatorFallbackCeed(ceed, fallback_ceed)
     ccall((:CeedGetOperatorFallbackCeed, libceed), Cint, (Ceed, Ptr{Ceed}), ceed, fallback_ceed)
 end
 
-function CeedSetOperatorFallbackResource(ceed, resource)
-    ccall((:CeedSetOperatorFallbackResource, libceed), Cint, (Ceed, Ptr{Cchar}), ceed, resource)
+function CeedSetOperatorFallbackCeed(ceed, fallback_ceed)
+    ccall((:CeedSetOperatorFallbackCeed, libceed), Cint, (Ceed, Ceed), ceed, fallback_ceed)
 end
 
 function CeedSetDeterministic(ceed, is_deterministic)
     ccall((:CeedSetDeterministic, libceed), Cint, (Ceed, Bool), ceed, is_deterministic)
-end
-
-function CeedSetBackendFunction(ceed, type, object, func_name, f)
-    ccall((:CeedSetBackendFunction, libceed), Cint, (Ceed, Ptr{Cchar}, Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cvoid}), ceed, type, object, func_name, f)
 end
 
 function CeedGetData(ceed, data)
@@ -983,6 +1387,46 @@ end
 
 function CeedReference(ceed)
     ccall((:CeedReference, libceed), Cint, (Ceed,), ceed)
+end
+
+function CeedGetWorkVector(ceed, len, vec)
+    ccall((:CeedGetWorkVector, libceed), Cint, (Ceed, CeedSize, Ptr{CeedVector}), ceed, len, vec)
+end
+
+function CeedRestoreWorkVector(ceed, vec)
+    ccall((:CeedRestoreWorkVector, libceed), Cint, (Ceed, Ptr{CeedVector}), ceed, vec)
+end
+
+function CeedClearWorkVectors(ceed, min_len)
+    ccall((:CeedClearWorkVectors, libceed), Cint, (Ceed, CeedSize), ceed, min_len)
+end
+
+function CeedGetWorkVectorMemoryUsage(ceed, usage_mb)
+    ccall((:CeedGetWorkVectorMemoryUsage, libceed), Cint, (Ceed, Ptr{CeedScalar}), ceed, usage_mb)
+end
+
+function CeedGetJitSourceRoots(ceed, num_source_roots, jit_source_roots)
+    ccall((:CeedGetJitSourceRoots, libceed), Cint, (Ceed, Ptr{CeedInt}, Ptr{Ptr{Ptr{Cchar}}}), ceed, num_source_roots, jit_source_roots)
+end
+
+function CeedGetRustSourceRoots(ceed, num_source_roots, rust_source_roots)
+    ccall((:CeedGetRustSourceRoots, libceed), Cint, (Ceed, Ptr{CeedInt}, Ptr{Ptr{Ptr{Cchar}}}), ceed, num_source_roots, rust_source_roots)
+end
+
+function CeedRestoreJitSourceRoots(ceed, jit_source_roots)
+    ccall((:CeedRestoreJitSourceRoots, libceed), Cint, (Ceed, Ptr{Ptr{Ptr{Cchar}}}), ceed, jit_source_roots)
+end
+
+function CeedRestoreRustSourceRoots(ceed, rust_source_roots)
+    ccall((:CeedRestoreRustSourceRoots, libceed), Cint, (Ceed, Ptr{Ptr{Ptr{Cchar}}}), ceed, rust_source_roots)
+end
+
+function CeedGetJitDefines(ceed, num_defines, jit_defines)
+    ccall((:CeedGetJitDefines, libceed), Cint, (Ceed, Ptr{CeedInt}, Ptr{Ptr{Ptr{Cchar}}}), ceed, num_defines, jit_defines)
+end
+
+function CeedRestoreJitDefines(ceed, jit_defines)
+    ccall((:CeedRestoreJitDefines, libceed), Cint, (Ceed, Ptr{Ptr{Ptr{Cchar}}}), ceed, jit_defines)
 end
 
 function CeedVectorHasValidArray(vec, has_valid_array)
@@ -1025,12 +1469,16 @@ function CeedElemRestrictionIsStrided(rstr, is_strided)
     ccall((:CeedElemRestrictionIsStrided, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_strided)
 end
 
-function CeedElemRestrictionIsPoints(rstr, is_points)
-    ccall((:CeedElemRestrictionIsPoints, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_points)
+function CeedElemRestrictionIsAtPoints(rstr, is_points)
+    ccall((:CeedElemRestrictionIsAtPoints, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_points)
+end
+
+function CeedElemRestrictionAtPointsAreCompatible(rstr_a, rstr_b, are_compatible)
+    ccall((:CeedElemRestrictionAtPointsAreCompatible, libceed), Cint, (CeedElemRestriction, CeedElemRestriction, Ptr{Bool}), rstr_a, rstr_b, are_compatible)
 end
 
 function CeedElemRestrictionGetStrides(rstr, strides)
-    ccall((:CeedElemRestrictionGetStrides, libceed), Cint, (CeedElemRestriction, Ptr{NTuple{3, CeedInt}}), rstr, strides)
+    ccall((:CeedElemRestrictionGetStrides, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, strides)
 end
 
 function CeedElemRestrictionHasBackendStrides(rstr, has_backend_strides)
@@ -1061,12 +1509,28 @@ function CeedElemRestrictionRestoreCurlOrientations(rstr, curl_orients)
     ccall((:CeedElemRestrictionRestoreCurlOrientations, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{CeedInt8}}), rstr, curl_orients)
 end
 
+function CeedElemRestrictionGetLLayout(rstr, layout)
+    ccall((:CeedElemRestrictionGetLLayout, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, layout)
+end
+
+function CeedElemRestrictionSetLLayout(rstr, layout)
+    ccall((:CeedElemRestrictionSetLLayout, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, layout)
+end
+
 function CeedElemRestrictionGetELayout(rstr, layout)
-    ccall((:CeedElemRestrictionGetELayout, libceed), Cint, (CeedElemRestriction, Ptr{NTuple{3, CeedInt}}), rstr, layout)
+    ccall((:CeedElemRestrictionGetELayout, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, layout)
 end
 
 function CeedElemRestrictionSetELayout(rstr, layout)
     ccall((:CeedElemRestrictionSetELayout, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, layout)
+end
+
+function CeedElemRestrictionGetAtPointsElementOffset(rstr, elem, elem_offset)
+    ccall((:CeedElemRestrictionGetAtPointsElementOffset, libceed), Cint, (CeedElemRestriction, CeedInt, Ptr{CeedSize}), rstr, elem, elem_offset)
+end
+
+function CeedElemRestrictionSetAtPointsEVectorSize(rstr, e_size)
+    ccall((:CeedElemRestrictionSetAtPointsEVectorSize, libceed), Cint, (CeedElemRestriction, CeedSize), rstr, e_size)
 end
 
 function CeedElemRestrictionGetData(rstr, data)
@@ -1095,8 +1559,16 @@ function CeedBasisGetCollocatedGrad(basis, colo_grad_1d)
     ccall((:CeedBasisGetCollocatedGrad, libceed), Cint, (CeedBasis, Ptr{CeedScalar}), basis, colo_grad_1d)
 end
 
+function CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d)
+    ccall((:CeedBasisGetChebyshevInterp1D, libceed), Cint, (CeedBasis, Ptr{CeedScalar}), basis, chebyshev_interp_1d)
+end
+
 function CeedBasisIsTensor(basis, is_tensor)
     ccall((:CeedBasisIsTensor, libceed), Cint, (CeedBasis, Ptr{Bool}), basis, is_tensor)
+end
+
+function CeedBasisIsCollocated(basis, is_collocated)
+    ccall((:CeedBasisIsCollocated, libceed), Cint, (CeedBasis, Ptr{Bool}), basis, is_collocated)
 end
 
 function CeedBasisGetData(basis, data)
@@ -1115,8 +1587,8 @@ function CeedBasisGetNumQuadratureComponents(basis, eval_mode, q_comp)
     ccall((:CeedBasisGetNumQuadratureComponents, libceed), Cint, (CeedBasis, CeedEvalMode, Ptr{CeedInt}), basis, eval_mode, q_comp)
 end
 
-function CeedBasisGetFlopsEstimate(basis, t_mode, eval_mode, flops)
-    ccall((:CeedBasisGetFlopsEstimate, libceed), Cint, (CeedBasis, CeedTransposeMode, CeedEvalMode, Ptr{CeedSize}), basis, t_mode, eval_mode, flops)
+function CeedBasisGetFlopsEstimate(basis, t_mode, eval_mode, is_at_points, num_points, flops)
+    ccall((:CeedBasisGetFlopsEstimate, libceed), Cint, (CeedBasis, CeedTransposeMode, CeedEvalMode, Bool, CeedInt, Ptr{CeedSize}), basis, t_mode, eval_mode, is_at_points, num_points, flops)
 end
 
 function CeedBasisGetFESpace(basis, fe_space)
@@ -1135,6 +1607,10 @@ function CeedBasisSetTensorContract(basis, contract)
     ccall((:CeedBasisSetTensorContract, libceed), Cint, (CeedBasis, CeedTensorContract), basis, contract)
 end
 
+function CeedBasisCreateH1Fallback(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, q_ref, q_weights, basis)
+    ccall((:CeedBasisCreateH1Fallback, libceed), Cint, (Ceed, CeedElemTopology, CeedInt, CeedInt, CeedInt, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, CeedBasis), ceed, topo, num_comp, num_nodes, nqpts, interp, grad, q_ref, q_weights, basis)
+end
+
 function CeedTensorContractCreate(ceed, contract)
     ccall((:CeedTensorContractCreate, libceed), Cint, (Ceed, Ptr{CeedTensorContract}), ceed, contract)
 end
@@ -1149,6 +1625,10 @@ end
 
 function CeedTensorContractGetCeed(contract, ceed)
     ccall((:CeedTensorContractGetCeed, libceed), Cint, (CeedTensorContract, Ptr{Ceed}), contract, ceed)
+end
+
+function CeedTensorContractReturnCeed(contract)
+    ccall((:CeedTensorContractReturnCeed, libceed), Ceed, (CeedTensorContract,), contract)
 end
 
 function CeedTensorContractGetData(contract, data)
@@ -1189,6 +1669,10 @@ end
 
 function CeedQFunctionGetKernelName(qf, kernel_name)
     ccall((:CeedQFunctionGetKernelName, libceed), Cint, (CeedQFunction, Ptr{Ptr{Cchar}}), qf, kernel_name)
+end
+
+function CeedQFunctionGetName(qf, name)
+    ccall((:CeedQFunctionGetName, libceed), Cint, (CeedQFunction, Ptr{Ptr{Cchar}}), qf, name)
 end
 
 function CeedQFunctionGetSourcePath(qf, source_path)
@@ -1239,6 +1723,14 @@ function CeedQFunctionSetData(qf, data)
     ccall((:CeedQFunctionSetData, libceed), Cint, (CeedQFunction, Ptr{Cvoid}), qf, data)
 end
 
+function CeedQFunctionIsImmutable(qf, is_immutable)
+    ccall((:CeedQFunctionIsImmutable, libceed), Cint, (CeedQFunction, Ptr{Bool}), qf, is_immutable)
+end
+
+function CeedQFunctionSetImmutable(qf)
+    ccall((:CeedQFunctionSetImmutable, libceed), Cint, (CeedQFunction,), qf)
+end
+
 function CeedQFunctionReference(qf)
     ccall((:CeedQFunctionReference, libceed), Cint, (CeedQFunction,), qf)
 end
@@ -1249,6 +1741,10 @@ end
 
 function CeedQFunctionContextGetCeed(ctx, ceed)
     ccall((:CeedQFunctionContextGetCeed, libceed), Cint, (CeedQFunctionContext, Ptr{Ceed}), ctx, ceed)
+end
+
+function CeedQFunctionContextReturnCeed(ctx)
+    ccall((:CeedQFunctionContextReturnCeed, libceed), Ceed, (CeedQFunctionContext,), ctx)
 end
 
 function CeedQFunctionContextHasValidData(ctx, has_valid_data)
@@ -1287,28 +1783,124 @@ function CeedQFunctionContextRestoreGenericRead(ctx, field_label, field_type, va
     ccall((:CeedQFunctionContextRestoreGenericRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, CeedContextFieldType, Ptr{Cvoid}), ctx, field_label, field_type, value)
 end
 
-function CeedQFunctionContextSetDouble(ctx, field_label, values)
-    ccall((:CeedQFunctionContextSetDouble, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Cdouble}), ctx, field_label, values)
+function CeedQFunctionContextSetCeedByte(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedByte, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Cchar}), ctx, field_label, values)
 end
 
-function CeedQFunctionContextGetDoubleRead(ctx, field_label, num_values, values)
-    ccall((:CeedQFunctionContextGetDoubleRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), ctx, field_label, num_values, values)
+function CeedQFunctionContextGetCeedByteRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedByteRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cchar}}), ctx, field_label, num_values, values)
 end
 
-function CeedQFunctionContextRestoreDoubleRead(ctx, field_label, values)
-    ccall((:CeedQFunctionContextRestoreDoubleRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), ctx, field_label, values)
+function CeedQFunctionContextRestoreCeedByteRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedByteRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Cchar}}), ctx, field_label, values)
 end
 
-function CeedQFunctionContextSetInt32(ctx, field_label, values)
-    ccall((:CeedQFunctionContextSetInt32, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Cint}), ctx, field_label, values)
+function CeedQFunctionContextSetCeedScalar(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedScalar, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{CeedScalar}), ctx, field_label, values)
 end
 
-function CeedQFunctionContextGetInt32Read(ctx, field_label, num_values, values)
-    ccall((:CeedQFunctionContextGetInt32Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cint}}), ctx, field_label, num_values, values)
+function CeedQFunctionContextGetCeedScalarRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedScalarRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedScalar}}), ctx, field_label, num_values, values)
 end
 
-function CeedQFunctionContextRestoreInt32Read(ctx, field_label, values)
-    ccall((:CeedQFunctionContextRestoreInt32Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Cint}}), ctx, field_label, values)
+function CeedQFunctionContextRestoreCeedScalarRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedScalarRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{CeedScalar}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedFloat(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedFloat, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Cfloat}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedFloatRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedFloatRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cfloat}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedFloatRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedFloatRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Cfloat}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedDouble(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedDouble, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Cdouble}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedDoubleRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedDoubleRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedDoubleRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedDoubleRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedInt8(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedInt8, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{CeedInt8}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedInt8Read(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedInt8Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedInt8}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedInt8Read(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedInt8Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{CeedInt8}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedInt(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedInt, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{CeedInt}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedIntRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedIntRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedInt}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedIntRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedIntRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{CeedInt}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedInt32(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedInt32, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Int32}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedInt32Read(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedInt32Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Int32}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedInt32Read(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedInt32Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Int32}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedInt64(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedInt64, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Int64}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedInt64Read(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedInt64Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Int64}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedInt64Read(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedInt64Read, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Int64}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedSize(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedSize, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{CeedSize}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedSizeRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedSizeRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{CeedSize}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedSizeRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedSizeRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{CeedSize}}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextSetCeedBoolean(ctx, field_label, values)
+    ccall((:CeedQFunctionContextSetCeedBoolean, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Bool}), ctx, field_label, values)
+end
+
+function CeedQFunctionContextGetCeedBooleanRead(ctx, field_label, num_values, values)
+    ccall((:CeedQFunctionContextGetCeedBooleanRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Bool}}), ctx, field_label, num_values, values)
+end
+
+function CeedQFunctionContextRestoreCeedBooleanRead(ctx, field_label, values)
+    ccall((:CeedQFunctionContextRestoreCeedBooleanRead, libceed), Cint, (CeedQFunctionContext, CeedContextFieldLabel, Ptr{Ptr{Bool}}), ctx, field_label, values)
 end
 
 function CeedQFunctionContextGetDataDestroy(ctx, f_mem_type, f)
@@ -1319,8 +1911,16 @@ function CeedQFunctionContextReference(ctx)
     ccall((:CeedQFunctionContextReference, libceed), Cint, (CeedQFunctionContext,), ctx)
 end
 
+function CeedOperatorGetBasisPointer(basis, eval_mode, identity, basis_ptr)
+    ccall((:CeedOperatorGetBasisPointer, libceed), Cint, (CeedBasis, CeedEvalMode, Ptr{CeedScalar}, Ptr{Ptr{CeedScalar}}), basis, eval_mode, identity, basis_ptr)
+end
+
 function CeedOperatorCreateActivePointBlockRestriction(rstr, pointblock_rstr)
     ccall((:CeedOperatorCreateActivePointBlockRestriction, libceed), Cint, (CeedElemRestriction, Ptr{CeedElemRestriction}), rstr, pointblock_rstr)
+end
+
+function CeedOperatorGetQFunctionAssemblyData(op, data)
+    ccall((:CeedOperatorGetQFunctionAssemblyData, libceed), Cint, (CeedOperator, Ptr{CeedQFunctionAssemblyData}), op, data)
 end
 
 function CeedQFunctionAssemblyDataCreate(ceed, data)
@@ -1351,6 +1951,10 @@ function CeedQFunctionAssemblyDataIsSetup(data, is_setup)
     ccall((:CeedQFunctionAssemblyDataIsSetup, libceed), Cint, (CeedQFunctionAssemblyData, Ptr{Bool}), data, is_setup)
 end
 
+function CeedQFunctionAssemblyDataSetBlockAssembling(data, is_block_assembling)
+    ccall((:CeedQFunctionAssemblyDataSetBlockAssembling, libceed), Cint, (CeedQFunctionAssemblyData, Bool), data, is_block_assembling)
+end
+
 function CeedQFunctionAssemblyDataSetObjects(data, vec, rstr)
     ccall((:CeedQFunctionAssemblyDataSetObjects, libceed), Cint, (CeedQFunctionAssemblyData, CeedVector, CeedElemRestriction), data, vec, rstr)
 end
@@ -1361,6 +1965,10 @@ end
 
 function CeedQFunctionAssemblyDataDestroy(data)
     ccall((:CeedQFunctionAssemblyDataDestroy, libceed), Cint, (Ptr{CeedQFunctionAssemblyData},), data)
+end
+
+function CeedOperatorGetOperatorAssemblyData(op, data)
+    ccall((:CeedOperatorGetOperatorAssemblyData, libceed), Cint, (CeedOperator, Ptr{CeedOperatorAssemblyData}), op, data)
 end
 
 function CeedOperatorAssemblyDataCreate(ceed, op, data)
@@ -1383,10 +1991,6 @@ function CeedOperatorAssemblyDataDestroy(data)
     ccall((:CeedOperatorAssemblyDataDestroy, libceed), Cint, (Ptr{CeedOperatorAssemblyData},), data)
 end
 
-function CeedOperatorGetOperatorAssemblyData(op, data)
-    ccall((:CeedOperatorGetOperatorAssemblyData, libceed), Cint, (CeedOperator, Ptr{CeedOperatorAssemblyData}), op, data)
-end
-
 function CeedOperatorGetActiveBasis(op, active_basis)
     ccall((:CeedOperatorGetActiveBasis, libceed), Cint, (CeedOperator, Ptr{CeedBasis}), op, active_basis)
 end
@@ -1405,6 +2009,14 @@ end
 
 function CeedOperatorGetNumArgs(op, num_args)
     ccall((:CeedOperatorGetNumArgs, libceed), Cint, (CeedOperator, Ptr{CeedInt}), op, num_args)
+end
+
+function CeedOperatorHasTensorBases(op, has_tensor_bases)
+    ccall((:CeedOperatorHasTensorBases, libceed), Cint, (CeedOperator, Ptr{Bool}), op, has_tensor_bases)
+end
+
+function CeedOperatorIsImmutable(op, is_immutable)
+    ccall((:CeedOperatorIsImmutable, libceed), Cint, (CeedOperator, Ptr{Bool}), op, is_immutable)
 end
 
 function CeedOperatorIsSetupDone(op, is_setup_done)
@@ -1443,6 +2055,14 @@ function CeedOperatorGetFallbackParentCeed(op, parent)
     ccall((:CeedOperatorGetFallbackParentCeed, libceed), Cint, (CeedOperator, Ptr{Ceed}), op, parent)
 end
 
+function CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback(op, build_objects, assembled, rstr, request)
+    ccall((:CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback, libceed), Cint, (CeedOperator, Bool, Ptr{CeedVector}, Ptr{CeedElemRestriction}, Ptr{CeedRequest}), op, build_objects, assembled, rstr, request)
+end
+
+function CeedOperatorAssembleSingle(op, offset, values)
+    ccall((:CeedOperatorAssembleSingle, libceed), Cint, (CeedOperator, CeedSize, CeedVector), op, offset, values)
+end
+
 function CeedOperatorSetSetupDone(op)
     ccall((:CeedOperatorSetSetupDone, libceed), Cint, (CeedOperator,), op)
 end
@@ -1459,6 +2079,10 @@ function CeedHouseholderApplyQ(mat_A, mat_Q, tau, t_mode, m, n, k, row, col)
     ccall((:CeedHouseholderApplyQ, libceed), Cint, (Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, CeedTransposeMode, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt), mat_A, mat_Q, tau, t_mode, m, n, k, row, col)
 end
 
+function CeedMatrixPseudoinverse(ceed, mat, m, n, mat_pinv)
+    ccall((:CeedMatrixPseudoinverse, libceed), Cint, (Ceed, Ptr{CeedScalar}, CeedInt, CeedInt, Ptr{CeedScalar}), ceed, mat, m, n, mat_pinv)
+end
+
 function CeedSymmetricSchurDecomposition(ceed, mat, lambda, n)
     ccall((:CeedSymmetricSchurDecomposition, libceed), Cint, (Ceed, Ptr{CeedScalar}, Ptr{CeedScalar}, CeedInt), ceed, mat, lambda, n)
 end
@@ -1473,6 +2097,8 @@ end
 
 # Skipping MacroDefinition: CEED_QFUNCTION_HELPER CEED_QFUNCTION_HELPER_ATTR static inline
 
+# Skipping MacroDefinition: CeedPragmaSIMD _Pragma ( "clang loop vectorize(enable)" )
+
 const CeedInt_FMT = "d"
 
 const CeedSize_FMT = "td"
@@ -1485,7 +2111,9 @@ const CEED_VERSION_MINOR = 12
 
 const CEED_VERSION_PATCH = 0
 
-const CEED_VERSION_RELEASE = true
+const CEED_VERSION_RELEASE = false
+
+# Skipping MacroDefinition: DEPRECATED ( msg ) __attribute__ ( ( deprecated ( msg ) ) )
 
 # Skipping MacroDefinition: CEED_INTERN extern CEED_VISIBILITY ( hidden )
 
@@ -1502,3 +2130,5 @@ const CEED_FIELD_MAX = 16
 # Skipping MacroDefinition: CeedPragmaOptimizeOff _Pragma ( "clang optimize off" )
 
 # Skipping MacroDefinition: CeedPragmaOptimizeOn _Pragma ( "clang optimize on" )
+
+const CEED_TAB_WIDTH = 2

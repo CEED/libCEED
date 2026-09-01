@@ -409,18 +409,46 @@ CEED_EXTERN int  CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, Ce
                                                     size_t *num_values, void *value);
 CEED_EXTERN int  CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
                                                         void *value);
-CEED_EXTERN int  CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int  CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                   const double **values);
-CEED_EXTERN int  CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int  CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values);
-CEED_EXTERN int  CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                  const int32_t **values);
-CEED_EXTERN int  CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values);
-CEED_EXTERN int  CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values);
-CEED_EXTERN int  CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                    const bool **values);
-CEED_EXTERN int  CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values);
+CEED_EXTERN int CeedQFunctionContextSetCeedByte(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, char *values);  
+CEED_EXTERN int  CeedQFunctionContextGetCeedByteRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                       const char **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedByteRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const char **values); 
+CEED_EXTERN int CeedQFunctionContextSetCeedScalar(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedScalar *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedScalarRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const CeedScalar **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedScalarRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const CeedScalar **values);
+CEED_EXTERN int CeedQFunctionContextSetCeedFloat(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, float *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedFloatRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const float **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedFloatRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const float **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                        const double **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedInt8(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedInt8 *values);    
+CEED_EXTERN int  CeedQFunctionContextGetCeedInt8Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                      const CeedInt8 **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedInt8Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const CeedInt8 **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedInt(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedInt *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedIntRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const CeedInt **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedIntRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const CeedInt **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const int32_t **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedInt64(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int64_t *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedInt64Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const int64_t **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedInt64Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int64_t **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedSize(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedSize *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedSizeRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, 
+                                                      const CeedSize **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedSizeRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const CeedSize **values);
+CEED_EXTERN int  CeedQFunctionContextSetCeedBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int  CeedQFunctionContextGetCeedBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                         const bool **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreCeedBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int  CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int  CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
