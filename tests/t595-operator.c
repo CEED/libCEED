@@ -1,6 +1,6 @@
 /// @file
-/// Test FLOP estimation for mass matrix operator at points
-/// \test Test FLOP estimation for mass matrix operator at points
+/// Test apply and assembly FLOP estimation for mass matrix operator at points
+/// \test Test apply and assembly FLOP estimation for mass matrix operator at points
 #include "t595-operator.h"
 
 #include <ceed.h>
@@ -9,10 +9,11 @@
 #include <stdlib.h>
 
 int main(int argc, char **argv) {
-  Ceed    ceed;
-  CeedInt num_elem_1d = 3, num_elem = num_elem_1d * num_elem_1d, dim = 2, p = 3, q = 5;
-  CeedInt num_nodes = (num_elem_1d * (p - 1) + 1) * (num_elem_1d * (p - 1) + 1), num_points_per_elem = 4, num_points = num_elem * num_points_per_elem;
+  Ceed                ceed;
+  CeedInt             num_elem_1d = 3, num_elem = num_elem_1d * num_elem_1d, dim = 2, p = 3, q = 5;
+  CeedInt             num_nodes = (num_elem_1d * (p - 1) + 1) * (num_elem_1d * (p - 1) + 1), num_points = 36;
   CeedSize            flop_estimate = 0;
+  CeedMemType         mem_type;
   CeedVector          x_points, q_data;
   CeedElemRestriction elem_restriction_x_points, elem_restriction_q_data, elem_restriction_u;
   CeedBasis           basis_x, basis_u;
@@ -27,21 +28,19 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[dim * num_points];
 
-    for (CeedInt e = 0; e < num_elem; e++) {
-      for (CeedInt d = 0; d < dim; d++) {
-        x_array[num_points_per_elem * (e * dim + d) + 0] = 0.25;
-        x_array[num_points_per_elem * (e * dim + d) + 1] = d == 0 ? -0.25 : 0.25;
-        x_array[num_points_per_elem * (e * dim + d) + 2] = d == 0 ? 0.25 : -0.25;
-        x_array[num_points_per_elem * (e * dim + d) + 3] = 0.25;
-      }
-    }
+    for (CeedInt i = 0; i < dim * num_points; i++) x_array[i] = 0.25;
     CeedVectorSetArray(x_points, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
   {
-    CeedInt ind_x[num_elem + 1 + num_points];
+    const CeedInt num_points_per_elem[] = {1, 2, 3, 4, 5, 6, 7, 4, 4};
+    CeedInt       ind_x[num_elem + 1 + num_points], offset = num_elem + 1;
 
-    for (CeedInt i = 0; i <= num_elem; i++) ind_x[i] = num_elem + 1 + i * num_points_per_elem;
-    for (CeedInt i = 0; i < num_points; i++) ind_x[num_elem + 1 + i] = i;
+    for (CeedInt e = 0; e < num_elem; e++) {
+      ind_x[e] = offset;
+      for (CeedInt i = 0; i < num_points_per_elem[e]; i++) ind_x[offset + i] = offset - num_elem - 1 + i;
+      offset += num_points_per_elem[e];
+    }
+    ind_x[num_elem] = offset;
     CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, dim, num_points * dim, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x,
                                       &elem_restriction_x_points);
     CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x, &elem_restriction_q_data);
@@ -102,14 +101,30 @@ int main(int argc, char **argv) {
 
   // Estimate FLOPs
   CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
+  CeedGetPreferredMemType(ceed, &mem_type);
+  // Device backends pad each element to seven points.
+  const CeedSize expected_flops_apply    = mem_type == CEED_MEM_DEVICE ? 22824 : 16317;
+  const CeedSize expected_flops_full     = mem_type == CEED_MEM_DEVICE ? 11403 : 6516;
+  const CeedSize expected_flops_diagonal = mem_type == CEED_MEM_DEVICE ? 1845 : 1089;
   CeedOperatorGetFlopsEstimate(op_mass, &flop_estimate);
 
   // Check output
-  if (flop_estimate != 16317) {
+  if (flop_estimate != expected_flops_apply) {
     // LCOV_EXCL_START
-    printf("Incorrect FLOP estimate computed, %ld != 16317\n", flop_estimate);
+    printf("Incorrect FLOP estimate computed, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate, expected_flops_apply);
     // LCOV_EXCL_STOP
   }
+  // Check assembly FLOP estimates
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != expected_flops_full)
+    printf("Incorrect AtPoints full assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate, expected_flops_full);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != expected_flops_diagonal)
+    printf("Incorrect AtPoints diagonal assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate, expected_flops_diagonal);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != expected_flops_diagonal)
+    printf("Incorrect AtPoints point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate,
+           expected_flops_diagonal);
 
   CeedVectorDestroy(&x_points);
   CeedVectorDestroy(&q_data);
