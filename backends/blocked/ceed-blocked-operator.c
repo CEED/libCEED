@@ -738,14 +738,16 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(CeedOperator o
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunction_Blocked(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Blocked(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Blocked(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionUpdate_Blocked(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Blocked(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Blocked(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

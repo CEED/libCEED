@@ -28,7 +28,8 @@ int CeedSetBackendFunctionCpp(Ceed ceed, const char *type, void *object, const c
   static_assert(std::is_same_v<int, R>, "Ceed backend functions must return int");
   // Kris: this is potentially undefined behavior by C++ standards
   auto *bf = reinterpret_cast<CeedBackendFunction>(f);
-  return CeedSetBackendFunction(ceed, type, object, fname, bf);
+  CeedCallBackend(CeedSetBackendFunction(ceed, type, object, fname, bf));
+  return CEED_ERROR_SUCCESS;
 }
 
 typedef struct {
