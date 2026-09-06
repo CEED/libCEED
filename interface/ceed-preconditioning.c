@@ -2375,7 +2375,17 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
   return CeedOperatorLinearAssembleQFunctionBuildOrUpdate_Core(op, *assembled == NULL, true, assembled, rstr, request);
 }
 
-// Estimate the work to rebuild the assembled QFunction data, without changing its state.
+/**
+  @brief Estimate FLOPs based on QFunction rebuild status without modifying internal state
+
+  @param[in]  op       `CeedOperator` to estimate FLOPs for
+  @param[in]  num_qpts Total number of quadrature points
+  @param[out] flops    Address of variable to hold FLOPs estimate
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedOperatorLinearAssembleQFunctionGetFlopsEstimate(CeedOperator op, CeedSize num_qpts, CeedSize *flops) {
   CeedInt                   num_elem, num_input_fields, num_active_inputs = 0;
   CeedQFunction             qf;
@@ -2439,6 +2449,18 @@ static int CeedOperatorLinearAssembleQFunctionGetFlopsEstimate(CeedOperator op, 
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Estimate the FLOPs required to assemble a linear `CeedOperator`
+
+  @param[in]  op             `CeedOperator` to estimate FLOPs for
+  @param[in]  is_point_block Boolean flag indicating point-block diagonal assembly
+  @param[in]  is_diagonal    Boolean flag indicating diagonal assembly
+  @param[out] flops          Address of variable to hold FLOPs estimate
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
 static int CeedOperatorLinearAssembleGetFlopsEstimate_Core(CeedOperator op, bool is_point_block, bool is_diagonal, CeedSize *flops) {
   bool     is_at_points, is_composite;
   CeedSize num_qpts_total;
@@ -2462,7 +2484,7 @@ static int CeedOperatorLinearAssembleGetFlopsEstimate_Core(CeedOperator op, bool
   }
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_at_points) {
-    CeedInt             num_elem;
+    CeedInt             num_elem, num_points;
     CeedMemType         mem_type;
     CeedElemRestriction rstr_points;
 
@@ -2470,19 +2492,12 @@ static int CeedOperatorLinearAssembleGetFlopsEstimate_Core(CeedOperator op, bool
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
     CeedCall(CeedGetPreferredMemType(CeedOperatorReturnCeed(op), &mem_type));
     if (mem_type == CEED_MEM_DEVICE) {
-      CeedInt max_points;
-
       // Device backends pad every element to the maximum number of points.
-      CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_points));
-      num_qpts_total = (CeedSize)num_elem * max_points;
+      CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &num_points));
+      num_qpts_total = (CeedSize)num_elem * num_points;
     } else {
-      num_qpts_total = 0;
-      for (CeedInt i = 0; i < num_elem; i++) {
-        CeedInt points_in_elem;
-
-        CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr_points, i, &points_in_elem));
-        num_qpts_total += points_in_elem;
-      }
+      CeedCall(CeedElemRestrictionGetNumPoints(rstr_points, &num_points));
+      num_qpts_total = num_points;
     }
     CeedCall(CeedElemRestrictionDestroy(&rstr_points));
   } else {
@@ -2571,7 +2586,8 @@ static int CeedOperatorLinearAssembleGetFlopsEstimate_Core(CeedOperator op, bool
   @ref User
 **/
 int CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
-  return CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, false, true, flops);
+  CeedCall(CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, false, true, flops));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -2587,7 +2603,8 @@ int CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(CeedOperator op, CeedSize
   @ref User
 **/
 int CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
-  return CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, true, true, flops);
+  CeedCall(CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, true, true, flops));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -2603,7 +2620,8 @@ int CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(CeedOperator op
   @ref User
 **/
 int CeedOperatorLinearAssembleGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
-  return CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, false, false, flops);
+  CeedCall(CeedOperatorLinearAssembleGetFlopsEstimate_Core(op, false, false, flops));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

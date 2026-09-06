@@ -8,8 +8,6 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
-- Add `CeedOperatorLinearAssembleGetFlopsEstimate`, `CeedOperatorLinearAssembleDiagonalGetFlopsEstimate`, and
-  `CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate` to estimate FLOPs for linear operator assembly.
 - Add `bool` field type for `CeedQFunctionContext` and related interfaces to use `bool` fields.
 - `CEED_BASIS_COLLOCATED` removed; users should only use `CEED_BASIS_NONE`.
 - Remove unneeded pointer for `CeedElemRestrictionGetELayout`.
@@ -22,6 +20,8 @@ On this page we provide a summary of the main API changes, new features and exam
 - Add `build_objects` parameter to `CeedOperatorLinearAssembleQFunctionBuildOrUpdateFallback` to allow for passing uninitialized vectors and restrictions
 - Move JiT helper functions only required by SYCL backends to `ceed/jit-tools-deprecated.h`.
 These functions will be removed when the SYCL backends are updated to reflect the improvements in the CUDA and HIP backends.
+- Add `CeedOperatorLinearAssembleGetFlopsEstimate`, `CeedOperatorLinearAssembleDiagonalGetFlopsEstimate`, and
+  `CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate` to estimate FLOPs for linear operator assembly.
 
 ### New features
 
