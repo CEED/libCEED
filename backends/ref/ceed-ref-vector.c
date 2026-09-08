@@ -87,14 +87,16 @@ static int CeedVectorGetArrayCore_Ref(CeedVector vec, CeedMemType mem_type, Ceed
 // Vector Get Array Read
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Ref(CeedVector vec, CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Vector Get Array
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArrayCore_Ref(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -106,7 +108,8 @@ static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, Cee
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   if (!impl->array) CeedCallBackend(CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-  return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

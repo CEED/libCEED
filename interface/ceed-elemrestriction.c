@@ -1615,7 +1615,8 @@ int CeedElemRestrictionGetMinMaxPointsInElement(CeedElemRestriction rstr, CeedIn
   @see CeedElemRestrictionGetMinMaxPointsInElement()
 **/
 int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
-  return CeedElemRestrictionGetMinMaxPointsInElement(rstr, NULL, max_points);
+  CeedCall(CeedElemRestrictionGetMinMaxPointsInElement(rstr, NULL, max_points));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1631,7 +1632,8 @@ int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *
   @see CeedElemRestrictionGetMinMaxPointsInElement()
 **/
 int CeedElemRestrictionGetMinPointsInElement(CeedElemRestriction rstr, CeedInt *min_points) {
-  return CeedElemRestrictionGetMinMaxPointsInElement(rstr, min_points, NULL);
+  CeedCall(CeedElemRestrictionGetMinMaxPointsInElement(rstr, min_points, NULL));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

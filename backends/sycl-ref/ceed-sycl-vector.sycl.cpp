@@ -114,9 +114,11 @@ static int CeedVectorSyncArray_Sycl(const CeedVector vec, CeedMemType mem_type) 
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSyncD2H_Sycl(vec);
+      CeedCallBackend(CeedVectorSyncD2H_Sycl(vec));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSyncH2D_Sycl(vec);
+      CeedCallBackend(CeedVectorSyncH2D_Sycl(vec));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -265,9 +267,11 @@ static int CeedVectorSetArray_Sycl(const CeedVector vec, const CeedMemType mem_t
   CeedCallBackend(CeedVectorSetAllInvalid_Sycl(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSetArrayHost_Sycl(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayHost_Sycl(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Sycl(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayDevice_Sycl(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -397,7 +401,8 @@ static int CeedVectorGetArrayCore_Sycl(const CeedVector vec, const CeedMemType m
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Sycl(const CeedVector vec, const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Sycl(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Sycl(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -448,7 +453,8 @@ static int CeedVectorGetArrayWrite_Sycl(const CeedVector vec, const CeedMemType 
           impl->d_array = impl->d_array_owned;
     }
   }
-  return CeedVectorGetArray_Sycl(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArray_Sycl(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

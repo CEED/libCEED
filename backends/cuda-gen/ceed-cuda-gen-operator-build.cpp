@@ -2162,11 +2162,13 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 }
 
 extern "C" int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, false, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, false, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 
 extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, true, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, true, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

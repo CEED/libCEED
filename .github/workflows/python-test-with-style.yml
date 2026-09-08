@@ -21,6 +21,7 @@ jobs:
       uses: actions/checkout@v5
     - name: PETSc install
       run: |
+        sudo apt-get update
         sudo apt install -y python3-pip python3 libpetsc-real-dev python3-mpi4py python3-petsc4py
     - name: Python dependencies
       run: |
