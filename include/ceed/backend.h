@@ -357,8 +357,12 @@ CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, Ceed
                                           const CeedScalar *interp, const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights,
                                           CeedBasis basis);
 
+/// Smallest contraction dimension worth splitting with the even-odd decomposition.
+/// Below this the fold and unfold cost more than the halved contraction saves, and the extra rounding is not worth paying for.
+#define CEED_EVEN_ODD_MIN_DIM 4
+
 CEED_EXTERN int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **interp_1d_even,
-                                                        const CeedScalar **interp_1d_odd);
+                                                         const CeedScalar **interp_1d_odd);
 CEED_EXTERN int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **grad_1d_even,
                                                        const CeedScalar **grad_1d_odd);
 
