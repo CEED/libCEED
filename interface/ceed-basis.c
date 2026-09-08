@@ -788,8 +788,10 @@ static int CeedBasisDetectSymmetry(CeedInt num_rows, CeedInt num_cols, const Cee
   const CeedScalar tolerance = 100 * CEED_EPSILON;
 
   *symmetry_type = CEED_SYMMETRY_UNKNOWN;
+  // The map (row, col) -> (num_rows - 1 - row, num_cols - 1 - col) pairs up every entry, so sweeping the top half of the rows over all columns
+  // visits each pair at least once. A middle row, when num_rows is odd, revisits its own pairs, which is harmless.
   for (CeedInt row = 0; row < (num_rows + 1) / 2; row++) {
-    for (CeedInt col = 0; col < (num_cols + 1) / 2; col++) {
+    for (CeedInt col = 0; col < num_cols; col++) {
       CeedScalar value              = matrix[row * num_cols + col];
       CeedScalar mirror_value       = matrix[(num_rows - 1 - row) * num_cols + (num_cols - 1 - col)];
       CeedScalar scale              = fabs(value) + fabs(mirror_value);
