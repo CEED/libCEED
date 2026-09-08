@@ -357,9 +357,18 @@ CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, Ceed
                                           const CeedScalar *interp, const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights,
                                           CeedBasis basis);
 
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **interp_1d_even,
+                                                        const CeedScalar **interp_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **grad_1d_even,
+                                                       const CeedScalar **grad_1d_odd);
+
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                          CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractApplyEvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                                const CeedScalar *__restrict__ t_even, const CeedScalar *__restrict__ t_odd,
+                                                CeedSymmetryType symmetry_type, CeedTransposeMode t_mode, const CeedInt add,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int  CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
                                                 const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
                                                 const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
