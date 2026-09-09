@@ -99,11 +99,13 @@ static int CeedBasisApplyCore_Sve(CeedBasis basis, bool apply_add, CeedInt num_e
 }
 
 static int CeedBasisApply_Sve(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U, CeedVector V) {
-  return CeedBasisApplyCore_Sve(basis, false, num_elem, t_mode, eval_mode, U, V);
+  CeedCallBackend(CeedBasisApplyCore_Sve(basis, false, num_elem, t_mode, eval_mode, U, V));
+  return CEED_ERROR_SUCCESS;
 }
 
 static int CeedBasisApplyAdd_Sve(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U, CeedVector V) {
-  return CeedBasisApplyCore_Sve(basis, true, num_elem, t_mode, eval_mode, U, V);
+  CeedCallBackend(CeedBasisApplyCore_Sve(basis, true, num_elem, t_mode, eval_mode, U, V));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -127,17 +129,20 @@ static int CeedBasisCreate_Sve(CeedBasis basis) {
 
 int CeedBasisCreateH1_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                           const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreate_Sve(basis);
+  CeedCallBackend(CeedBasisCreate_Sve(basis));
+  return CEED_ERROR_SUCCESS;
 }
 
 int CeedBasisCreateHdiv_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *div,
                             const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreate_Sve(basis);
+  CeedCallBackend(CeedBasisCreate_Sve(basis));
+  return CEED_ERROR_SUCCESS;
 }
 
 int CeedBasisCreateHcurl_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                              const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreate_Sve(basis);
+  CeedCallBackend(CeedBasisCreate_Sve(basis));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

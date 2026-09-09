@@ -22,6 +22,12 @@
 #include <arm_sve.h>
 #endif
 
+#if defined(__clang__)
+#define CEED_TEST_SCALAR_ORACLE __attribute__((optnone))
+#else
+#define CEED_TEST_SCALAR_ORACLE
+#endif
+
 typedef struct {
   CeedInt A, B, C, J;
 } TensorCase;
@@ -82,11 +88,13 @@ static CeedInt GetVectorLength(void) {
 #endif
 }
 
-static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMode t_mode, CeedInt add) {
-  const CeedSize t_size = (CeedSize)test.B * test.J, u_size = (CeedSize)test.A * test.B * test.C;
-  const CeedSize v_size = (CeedSize)test.A * test.J * test.C;
-  GuardedArray   u = {0}, v = {0};
-  CeedScalar    *t = malloc(t_size * sizeof(*t)), *expected = malloc(v_size * sizeof(*expected));
+// Keep the scalar oracle independent of Clang's scalable-vector lowering when QEMU varies the runtime SVE vector length.
+CEED_TEST_SCALAR_ORACLE static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMode t_mode, CeedInt add) {
+  const CeedSize             t_size = (CeedSize)test.B * test.J, u_size = (CeedSize)test.A * test.B * test.C;
+  const CeedSize             v_size = (CeedSize)test.A * test.J * test.C;
+  GuardedArray               u = {0}, v = {0};
+  CeedScalar                *t = malloc(t_size * sizeof(*t)), *expected = malloc(v_size * sizeof(*expected));
+  const volatile CeedScalar *t_ref = t, *u_ref = u.data;
 
   if (!t || !expected || GuardedArrayCreate(u_size, &u) || GuardedArrayCreate(v_size, &v)) {
     free(t);
@@ -95,9 +103,12 @@ static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMo
     GuardedArrayDestroy(&v);
     return 1;
   }
+  u_ref = u.data;
   for (CeedSize i = 0; i < t_size; i++) t[i] = (CeedScalar)(((CeedInt)(7 * i % 17) - 8) / 16.0);
   for (CeedSize i = 0; i < u_size; i++) u.data[i] = (CeedScalar)(((CeedInt)(5 * i % 19) - 9) / 32.0);
-  for (CeedSize i = 0; i < v_size; i++) v.data[i] = (CeedScalar)(((CeedInt)(3 * i % 11) - 5) / 8.0);
+  for (CeedSize i = 0; i < v_size; i++) {
+    v.data[i] = add ? (CeedScalar)(((CeedInt)(3 * i % 11) - 5) / 8.0) : (CeedScalar)NAN;
+  }
 
   for (CeedInt a = 0; a < test.A; a++) {
     for (CeedInt j = 0; j < test.J; j++) {
@@ -108,7 +119,7 @@ static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMo
         for (CeedInt b = 0; b < test.B; b++) {
           const CeedSize t_index = t_mode == CEED_TRANSPOSE ? (CeedSize)b * test.J + j : (CeedSize)j * test.B + b;
 
-          value += t[t_index] * u.data[((CeedSize)a * test.B + b) * test.C + c];
+          value += t_ref[t_index] * u_ref[((CeedSize)a * test.B + b) * test.C + c];
         }
         expected[index] = value;
       }
@@ -120,7 +131,7 @@ static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMo
     for (CeedSize i = 0; i < v_size; i++) {
       const CeedScalar tolerance = 100 * CEED_EPSILON * (test.B + 1) * (1 + fabs(expected[i]));
 
-      if (fabs(v.data[i] - expected[i]) > tolerance) {
+      if (!isfinite(v.data[i]) || fabs(v.data[i] - expected[i]) > tolerance) {
         printf("Error in tensor contraction at index %" CeedSize_FMT ": %g != %g\n", i, (double)v.data[i], (double)expected[i]);
         failed = 1;
         break;
@@ -137,21 +148,24 @@ static int RunCase(CeedTensorContract contract, TensorCase test, CeedTransposeMo
 int main(int argc, char **argv) {
   Ceed               ceed;
   CeedTensorContract contract;
-  volatile CeedInt   vector_length = GetVectorLength();
+  const CeedInt      vector_length = GetVectorLength();
   TensorCase         tests[]       = {
-      {1, 1, 1, 1},
-      {2, 3, 1, 4},
-      {3, 4, 1, 2},
-      {2, 5, 1, 5},
-      {4, 2, 1, 3},
-      {1, 7, 1, 6},
+      {1, 1, 1,                     1 },
+      {2, 3, vector_length - 1,     4 },
+      {3, 4, vector_length,         2 },
+      {2, 5, vector_length + 1,     5 },
+      {4, 2, 2 * vector_length - 1, 3 },
+      {2, 7, 2 * vector_length,     6 },
+      {3, 3, 2 * vector_length + 1, 7 },
+      {1, 6, 3 * vector_length - 1, 8 },
+      {2, 5, 3 * vector_length,     9 },
+      {3, 4, 3 * vector_length + 1, 10},
+      {2, 7, 4 * vector_length - 1, 11},
+      {1, 6, 4 * vector_length,     12},
+      {3, 5, 4 * vector_length + 1, 13},
+      {2, 3, 8 * vector_length - 1, 14},
+      {1, 7, 8 * vector_length + 1, 15},
   };
-
-  tests[1].C = vector_length - 1;
-  tests[2].C = vector_length;
-  tests[3].C = vector_length + 1;
-  tests[4].C = 2 * vector_length - 1;
-  tests[5].C = 4 * vector_length - 1;
 
   CeedInit(argv[1], &ceed);
   CeedTensorContractCreate(ceed, &contract);
