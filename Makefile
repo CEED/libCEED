@@ -1045,33 +1045,35 @@ format-c  :
 	@$(MAKE) -j1 --no-print-directory --no-keep-going tidy-fix
 
 format-py :
-	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
+	$(call quiet,AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
-format-ot:
-	@$(SED) -r 's/\s+$$//' -i $(format.ot)
+format-ot :
+	@$(call quiet,SED) -r 's/\s+$$//' -i $(format.ot)
 
-format    : format-c format-py format-ot
-
-# Vermin - python version requirements
-VERMIN            ?= vermin
-VERMIN_OPTS       += -t=3.8- --violations
-
-vermin    :
-	$(VERMIN) $(VERMIN_OPTS) $(format.py)
+format : format-c format-py format-ot
 
 # Tidy
 CLANG_TIDY ?= clang-tidy
 
-%.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
-
+%.c.tidy  : %.c
+	$(call quiet,CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include
+	$(call quiet,CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include
 
 tidy-c   : $(libceed.c:%=%.tidy)
 tidy-cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy-c tidy-cpp
+
+# Combined
+lint : format tidy
+
+# Vermin - python version requirements
+VERMIN      ?= vermin
+VERMIN_OPTS += -t=3.8- --violations
+
+vermin :
+	$(VERMIN) $(VERMIN_OPTS) $(format.py)
 
 # Include-What-You-Use
 ifneq ($(wildcard ../iwyu/*),)
