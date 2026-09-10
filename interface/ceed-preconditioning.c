@@ -2484,20 +2484,20 @@ static int CeedOperatorLinearAssembleGetFlopsEstimate_Core(CeedOperator op, bool
   }
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_at_points) {
-    CeedInt             num_elem, num_points;
     CeedMemType         mem_type;
     CeedElemRestriction rstr_points;
 
     CeedCall(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
     CeedCall(CeedGetPreferredMemType(CeedOperatorReturnCeed(op), &mem_type));
     if (mem_type == CEED_MEM_DEVICE) {
+      CeedInt num_elem, num_points;
+
       // Device backends pad every element to the maximum number of points.
+      CeedCall(CeedOperatorGetNumElements(op, &num_elem));
       CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &num_points));
       num_qpts_total = (CeedSize)num_elem * num_points;
     } else {
-      CeedCall(CeedElemRestrictionGetNumPoints(rstr_points, &num_points));
-      num_qpts_total = num_points;
+      CeedCall(CeedElemRestrictionGetNumPoints(rstr_points, &num_qpts_total));
     }
     CeedCall(CeedElemRestrictionDestroy(&rstr_points));
   } else {
