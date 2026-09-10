@@ -1,6 +1,6 @@
 /// @file
-/// Test non-tensor basis dispatch boundaries
-/// \test Test non-tensor basis dispatch boundaries
+/// Test delegated non-tensor basis application across contraction boundaries
+/// \test Test delegated non-tensor basis application across contraction boundaries
 //TESTARGS(only="cpu") {ceed_resource}
 
 #include <ceed.h>

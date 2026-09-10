@@ -28,9 +28,6 @@ static int CeedInit_Sve(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Sve));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Sve));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv", CeedBasisCreateHdiv_Sve));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHcurl", CeedBasisCreateHcurl_Sve));
   return CEED_ERROR_SUCCESS;
 }
 

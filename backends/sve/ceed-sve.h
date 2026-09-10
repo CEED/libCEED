@@ -10,9 +10,3 @@
 #include <ceed/backend.h>
 
 CEED_INTERN int CeedTensorContractCreate_Sve(CeedTensorContract contract);
-CEED_INTERN int CeedBasisCreateH1_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
-                                      const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
-CEED_INTERN int CeedBasisCreateHdiv_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
-                                        const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
-CEED_INTERN int CeedBasisCreateHcurl_Sve(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
-                                         const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);

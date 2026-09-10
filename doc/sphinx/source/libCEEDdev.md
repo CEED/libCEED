@@ -62,7 +62,6 @@ This reduced the memory required to utilize this backend significantly.
 
 The `/cpu/self/avx/*`, `/cpu/self/sve/*`, and `/cpu/self/xsmm/*` backends delegate to the corresponding `/cpu/self/opt/*` backends.
 These backends update the `CeedTensorContract` objects using AVX intrinsics, vector-length-agnostic Arm SVE intrinsics, and libXSMM functions, respectively.
-The SVE backends also use their tensor contraction for non-tensor basis application.
 
 The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
