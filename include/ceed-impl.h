@@ -226,6 +226,12 @@ struct CeedBasis_private {
   CeedScalar *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
   CeedScalar *grad;      /* row-major matrix of shape [dim * Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
   CeedScalar *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedSymmetryType interp_1d_symmetry_type; /* centro-symmetry type of interp_1d (computed lazily) */
+  CeedScalar      *interp_1d_even;          /* even half-matrix for interp_1d, shape [(Q1d+1)/2, (P1d+1)/2] */
+  CeedScalar      *interp_1d_odd;           /* odd half-matrix for interp_1d */
+  CeedSymmetryType grad_1d_symmetry_type;   /* centro-symmetry type of grad_1d (computed lazily) */
+  CeedScalar      *grad_1d_even;            /* even half-matrix for grad_1d */
+  CeedScalar      *grad_1d_odd;             /* odd half-matrix for grad_1d */
   CeedScalar *div; /* row-major matrix of shape [Q, P] expressing the divergence of basis functions at quadrature points for H(div) discretizations */
   CeedScalar *curl; /* row-major matrix of shape [curl_dim * Q, P], curl_dim = 1 if dim < 3 else dim, expressing the curl of basis functions at
                        quadrature points for H(curl) discretizations */

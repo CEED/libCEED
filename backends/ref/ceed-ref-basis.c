@@ -14,6 +14,15 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
+// Even-odd decomposition is only worth using on a centro-symmetric matrix that is
+// large enough for the halved contraction to outweigh the fold and unfold.
+//------------------------------------------------------------------------------
+static inline bool CeedBasisUseEvenOdd_Ref(CeedSymmetryType symmetry_type, CeedInt B, CeedInt J) {
+  return (symmetry_type == CEED_SYMMETRY_SYMMETRIC || symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC) && B >= CEED_EVEN_ODD_MIN_DIM &&
+         J >= CEED_EVEN_ODD_MIN_DIM;
+}
+
+//------------------------------------------------------------------------------
 // Basis Apply
 //------------------------------------------------------------------------------
 static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U,
@@ -58,6 +67,13 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
 
     CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
     CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+
+    CeedSymmetryType  interp_symmetry, grad_symmetry;
+    const CeedScalar *interp_1d_even = NULL, *interp_1d_odd = NULL;
+    const CeedScalar *grad_1d_even = NULL, *grad_1d_odd = NULL;
+
+    CeedCallBackend(CeedBasisGetEvenOddDecompositionInterp1D(basis, &interp_symmetry, &interp_1d_even, &interp_1d_odd));
+    CeedCallBackend(CeedBasisGetEvenOddDecompositionGrad1D(basis, &grad_symmetry, &grad_1d_even, &grad_1d_odd));
     switch (eval_mode) {
       // Interpolate to/from quadrature points
       case CEED_EVAL_INTERP: {
@@ -76,8 +92,13 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
 
           CeedCallBackend(CeedBasisGetInterp1D(basis, &interp_1d));
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, interp_1d, t_mode, add && (d == dim - 1), d == 0 ? u : tmp[d % 2],
-                                                    d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            if (CeedBasisUseEvenOdd_Ref(interp_symmetry, P, Q)) {
+              CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, interp_1d_even, interp_1d_odd, interp_symmetry, t_mode,
+                                                             add && (d == dim - 1), d == 0 ? u : tmp[d % 2], d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            } else {
+              CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, interp_1d, t_mode, add && (d == dim - 1), d == 0 ? u : tmp[d % 2],
+                                                      d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            }
             pre /= P;
             post *= Q;
           }
@@ -139,9 +160,15 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
 
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
-                                                    t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
-                                                    t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
+            if (CeedBasisUseEvenOdd_Ref(grad_symmetry, P, Q)) {
+              CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, grad_1d_even, grad_1d_odd, grad_symmetry, t_mode,
+                                                             add && (d > 0), t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
+                                                             t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
+            } else {
+              CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
+                                                      t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
+                                                      t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
+            }
             pre /= P;
             post *= Q;
           }
@@ -161,10 +188,19 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
             CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
 
             for (CeedInt d = 0; d < dim; d++) {
-              CeedCallBackend(CeedTensorContractApply(
-                  contract, pre, P, post, Q, (p == d) ? grad_1d : interp_1d, t_mode, add && (d == dim - 1),
-                  (d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : &u[p * num_comp * num_qpts * num_elem]) : tmp[d % 2]),
-                  (d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : &v[p * num_comp * num_qpts * num_elem]) : tmp[(d + 1) % 2])));
+              const CeedScalar *t_matrix       = (p == d) ? grad_1d : interp_1d;
+              CeedSymmetryType  current_sym    = (p == d) ? grad_symmetry : interp_symmetry;
+              const CeedScalar *current_t_even = (p == d) ? grad_1d_even : interp_1d_even;
+              const CeedScalar *current_t_odd  = (p == d) ? grad_1d_odd : interp_1d_odd;
+              const CeedScalar *in             = d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : &u[p * num_comp * num_qpts * num_elem]) : tmp[d % 2];
+              CeedScalar       *out = d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : &v[p * num_comp * num_qpts * num_elem]) : tmp[(d + 1) % 2];
+
+              if (CeedBasisUseEvenOdd_Ref(current_sym, P, Q)) {
+                CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, current_t_even, current_t_odd, current_sym, t_mode,
+                                                               add && (d == dim - 1), in, out));
+              } else {
+                CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, t_matrix, t_mode, add && (d == dim - 1), in, out));
+              }
               pre /= P;
               post *= Q;
             }
