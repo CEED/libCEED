@@ -14,7 +14,7 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
-// Basis Apply
+// Basis Apply H1
 //------------------------------------------------------------------------------
 static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U,
                                   CeedVector V) {
