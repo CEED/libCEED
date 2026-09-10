@@ -13,32 +13,6 @@
 #include <petsc.h>
 
 // -----------------------------------------------------------------------------
-// PETSc Operator Structs
-// -----------------------------------------------------------------------------
-
-// Data for PETSc Matshell
-typedef struct OperatorApplyContext_ *OperatorApplyContext;
-struct OperatorApplyContext_ {
-  MPI_Comm     comm;
-  DM           dm;
-  Vec          X_loc, Y_loc, diag;
-  CeedVector   x_ceed, y_ceed;
-  CeedOperator op;
-  Ceed         ceed;
-};
-
-// Data for PETSc Prolong/Restrict Matshells
-typedef struct ProlongRestrContext_ *ProlongRestrContext;
-struct ProlongRestrContext_ {
-  MPI_Comm     comm;
-  DM           dmc, dmf;
-  Vec          loc_vec_c, loc_vec_f, mult_vec;
-  CeedVector   ceed_vec_c, ceed_vec_f;
-  CeedOperator op_prolong, op_restrict;
-  Ceed         ceed;
-};
-
-// -----------------------------------------------------------------------------
 // libCEED Data Structs
 // -----------------------------------------------------------------------------
 
@@ -52,6 +26,18 @@ struct CeedData_ {
   CeedOperator        op_apply, op_restrict, op_prolong;
   CeedVector          q_data, x_ceed, y_ceed;
   CeedInt             q_data_size;
+};
+
+// libCEED data struct for BDDC
+typedef struct CeedDataBDDC_ *CeedDataBDDC;
+struct CeedDataBDDC_ {
+  CeedBasis           basis_Pi, basis_Pi_r;
+  CeedInt             strides[3];
+  CeedElemRestriction elem_restr_Pi, elem_restr_Pi_r, elem_restr_r;
+  CeedOperator        op_Pi_r, op_r_Pi, op_Pi_Pi, op_r_r, op_r_r_inv, op_inject_Pi, op_inject_Pi_r, op_inject_r, op_restrict_Pi, op_restrict_Pi_r,
+      op_restrict_r;
+  CeedVector x_ceed, y_ceed, x_Pi_ceed, y_Pi_ceed, x_Pi_r_ceed, y_Pi_r_ceed, x_r_ceed, y_r_ceed, z_r_ceed, mult_ceed, mask_r_ceed, mask_Gamma_ceed,
+      mask_I_ceed;
 };
 
 // BP specific data
@@ -91,4 +77,43 @@ struct RunParams_ {
   PetscMPIInt   ranks_per_node;
   BPType        bp_choice;
   PetscLogStage solve_stage;
+};
+
+// -----------------------------------------------------------------------------
+// PETSc Operator Structs
+// -----------------------------------------------------------------------------
+
+// Data for PETSc Matshell
+typedef struct OperatorApplyContext_ *OperatorApplyContext;
+struct OperatorApplyContext_ {
+  MPI_Comm     comm;
+  DM           dm;
+  Vec          X_loc, Y_loc, diag;
+  CeedVector   x_ceed, y_ceed;
+  CeedOperator op;
+  Ceed         ceed;
+};
+
+// Data for PETSc Prolong/Restrict Matshells
+typedef struct ProlongRestrContext_ *ProlongRestrContext;
+struct ProlongRestrContext_ {
+  MPI_Comm     comm;
+  DM           dmc, dmf;
+  Vec          loc_vec_c, loc_vec_f, mult_vec;
+  CeedVector   ceed_vec_c, ceed_vec_f;
+  CeedOperator op_prolong, op_restrict;
+  Ceed         ceed;
+};
+
+// Data for PETSc PCshell
+typedef struct BDDCApplyContext_ *BDDCApplyContext;
+struct BDDCApplyContext_ {
+  MPI_Comm     comm;
+  DM           dm, dm_Pi;
+  SNES         snes_Pi, snes_Pi_r;
+  KSP          ksp_S_Pi, ksp_S_Pi_r;
+  Mat          mat_S_Pi, mat_S_Pi_r;
+  Vec          X_loc, Y_loc, X_Pi, Y_Pi, X_Pi_loc, Y_Pi_loc, X_Pi_r_loc, Y_Pi_r_loc;
+  PetscBool    is_harmonic;
+  CeedDataBDDC ceed_data_bddc;
 };
