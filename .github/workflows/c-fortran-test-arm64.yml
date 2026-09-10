@@ -67,10 +67,14 @@ jobs:
         EOF
         ${{ matrix.compiler }} -O2 -march=armv8-a+sve build/sve-vector-length.c -o build/sve-vector-length
         for vq in 1 2 3 4 16; do
-          bits=$(qemu-aarch64 -cpu max,sve-max-vq=$vq build/sve-vector-length)
+          cpu="max,sve-max-vq=$vq,sve-default-vector-length=$((16 * vq))"
+          bits=$(qemu-aarch64 -cpu "$cpu" build/sve-vector-length)
+          echo "vq=$vq bits=$bits"
           test "$bits" -eq "$((128 * vq))"
           for resource in /cpu/self/sve/serial /cpu/self/sve/blocked; do
-            qemu-aarch64 -cpu max,sve-max-vq=$vq build/t366-tensor "$resource"
-            qemu-aarch64 -cpu max,sve-max-vq=$vq build/t367-basis "$resource"
+            echo "vq=$vq resource=$resource test=t366"
+            qemu-aarch64 -cpu "$cpu" build/t366-tensor "$resource"
+            echo "vq=$vq resource=$resource test=t367"
+            qemu-aarch64 -cpu "$cpu" build/t367-basis "$resource"
           done
         done
