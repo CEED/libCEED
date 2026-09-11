@@ -61,7 +61,7 @@ static inline int CeedJitGetOpts_Cpu(Ceed ceed, const char ***opts, int *num_opt
   // TODO: Revert
   // CeedCallBackend(CeedStringAllocCopy("-march=native", (char **)&(*opts)[0]));
   // CeedCallBackend(CeedStringAllocCopy("-O3", (char **)&(*opts)[1]));
-  CeedCallBackend(CeedStringAllocCopy("-g1", (char **)&(*opts)[0]));
+  CeedCallBackend(CeedStringAllocCopy("-g", (char **)&(*opts)[0]));
   CeedCallBackend(CeedStringAllocCopy("-O0", (char **)&(*opts)[1]));
 
   // Additional include dirs
