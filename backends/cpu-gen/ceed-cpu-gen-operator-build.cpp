@@ -709,7 +709,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   std::uniform_int_distribution<CeedInt> dist(1000000000);
   const CeedInt                          build_id = dist(gen);
 
-  CeedCallBackend(CeedQFunctionGetName(qf, &qfunction_name));
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
   operator_name = "CeedCpuGenOperator_" + std::string(qfunction_name) + "_" + std::to_string(build_id);
 
   // Open function body
