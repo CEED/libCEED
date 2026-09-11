@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -701,10 +702,15 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
 
   // Get QFunction name
-  std::string operator_name;
+  std::string                operator_name;
+  std::random_device         r;
+  std::default_random_engine gen(r());
+  // Place lower bound for uniformity of ids
+  std::uniform_int_distribution<CeedInt> dist(1000000000);
+  const CeedInt                          build_id = dist(gen);
 
   CeedCallBackend(CeedQFunctionGetName(qf, &qfunction_name));
-  operator_name = "CeedCpuGenOperator_" + std::string(qfunction_name);
+  operator_name = "CeedCpuGenOperator_" + std::string(qfunction_name) + "_" + std::to_string(build_id);
 
   // Open function body
   code << tab << "// Operator function\n";
