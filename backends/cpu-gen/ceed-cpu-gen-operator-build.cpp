@@ -414,7 +414,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     if (eval_mode == CEED_EVAL_WEIGHT) {
       // Handled separately
     } else if (eval_mode != CEED_EVAL_NONE) {
-      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * Q * block_size] = {0};\n";
+      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * num_comp" << var_suffix << " * Q * block_size] = {0};\n";
     } else {
       code << tab << "CeedScalar *q_vec" << var_suffix << " = e_vec" << var_suffix << ";\n";
     }
@@ -677,6 +677,17 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   code << tab << "// Ceed object templates\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-restriction-templates.h>\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-basis-templates.h>\n\n";
+
+  code << "\n" << tab << "#undef CEED_Q_VLA\n";
+  if (is_at_points) {
+    // TODO: fix this
+    code << tab << "#define CEED_Q_VLA 1\n\n";
+  } else {
+    CeedInt Q;
+
+    CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
+    code << tab << "#define CEED_Q_VLA " << Q * block_size << "\n\n";
+  }
 
   // Add user QFunction source
   {
