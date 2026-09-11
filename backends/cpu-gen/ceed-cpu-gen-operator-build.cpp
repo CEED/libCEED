@@ -458,7 +458,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
         code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
-        code << tab << "CeedCall(CeedBasis_Apply_Weight_NonTensor<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << "));\n";
+        code << tab << "CeedCall(CeedBasis_Apply_Weight_Tensor_1D<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << "));\n";
       } else if (eval_mode != CEED_EVAL_NONE) {
         code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", "
              << P_name << ", Q>(inputs[" << i << "].";
