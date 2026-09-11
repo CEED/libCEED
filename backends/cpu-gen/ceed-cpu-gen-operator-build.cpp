@@ -33,7 +33,7 @@ static int CeedOperatorBuildKernelFieldData_Cpu_Gen(std::ostringstream &code, Ce
   CeedElemRestriction elem_rstr;
   CeedBasis           basis;
 
-  assert(i < CEED_FIELD_MAX);
+  assert(i >= 0 && i < CEED_FIELD_MAX);
 
   CeedCallBackend(CeedQFunctionFieldGetName(qf_field, &field_name));
   code << tab << "// ---- " << (is_input ? "Input" : "Output") << " Field " << i << ": " << field_name << "\n";
@@ -95,7 +95,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
   CeedRestrictionType rstr_type = CEED_RESTRICTION_STANDARD;
   CeedElemRestriction elem_rstr;
 
-  assert(i < CEED_FIELD_MAX);
+  assert(i >= 0 && i < CEED_FIELD_MAX);
   assert(!is_input || field_input_buffer != NULL);
 
   // Label
@@ -388,7 +388,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
   CeedInt             dim = 0, elem_size = 0, num_comp = 0, P_1d = 0;
   CeedElemRestriction elem_rstr;
 
-  assert(i < CEED_FIELD_MAX);
+  assert(i >= 0 && i < CEED_FIELD_MAX);
 
   // Label
   if (!is_input) {
