@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -142,9 +143,12 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
 
   {
-    srand(time(NULL));
-    const int   build_id      = rand();
-    std::string filename_base = std::string("temp/function_") + std::to_string(build_id) + "_" + name;
+    std::random_device         r;
+    std::default_random_engine gen(r());
+    // Place lower bound for uniformity of ids
+    std::uniform_int_distribution<CeedInt> dist(1000000000);
+    const CeedInt                          build_id      = dist(gen);
+    std::string                            filename_base = std::string("temp/function_") + std::to_string(build_id) + "_" + name;
 
     // Create temp dir if needed
     {
@@ -212,7 +216,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     }
 
     // Compile wrapper kernel
-    std::string command = std::string(cxx) + " -shared -fPIC";
+    std::string command = std::string(cxx) + " -shared -fPIC -rdynamic";
 
     for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
     command += " " + filename_base + ".cpp -o " + filename_base + ".so";
@@ -221,7 +225,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
     // Load function from object file
     CeedDebug(ceed, (std::string("Loading object file: ") + filename_base + ".so").c_str());
-    *handle          = dlopen((filename_base + ".so").c_str(), RTLD_NOW);
+    *handle          = dlopen((filename_base + ".so").c_str(), RTLD_NOW | RTLD_LOCAL);
     *is_compile_good = *handle != NULL;
 
     // Check load
