@@ -58,9 +58,9 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
 
   // Try to run kernel
   if (!impl->use_fallback) {
-    void                        *ctx = NULL;
-    const CeedScalar            *input_arr;
-    CeedScalar                  *output_arr;
+    void                        *ctx        = NULL;
+    const CeedScalar            *input_arr  = NULL;
+    CeedScalar                  *output_arr = NULL;
     CeedInt                      num_input_fields, num_output_fields;
     CeedOperatorField           *op_input_fields, *op_output_fields;
     CeedQFunction                qf;
