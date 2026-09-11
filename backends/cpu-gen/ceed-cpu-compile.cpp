@@ -192,7 +192,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       if (is_valid) {
         CeedDebug(ceed, "User specified JiT compiler is valid\n");
-        CeedCall(CeedStringAllocCopy(cxx, &ceed_data->cxx));
+        CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->cxx));
         cxx = ceed_data->cxx;
       } else {
         CeedDebug(ceed, "Could not invoke user specified JiT compiler\n");
@@ -229,7 +229,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       void *function;
 
       CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
-      function         = dlsym(*handle, name);
+      function         = (void *)dlsym(*handle, name);
       *is_compile_good = function != NULL;
     }
 
