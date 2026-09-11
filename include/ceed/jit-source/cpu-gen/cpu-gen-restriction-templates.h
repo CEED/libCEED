@@ -7,7 +7,10 @@
 
 /// @file
 /// Internal header for CPU JiT backend ElemRestriction templates
+#pragma once
+
 #include <ceed/types.h>
+#include "cpu-gen-utils.h"
 
 #include <math.h>
 
@@ -70,10 +73,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_Offset(const CeedInt bl
     for (CeedSize i = 0; i < ELEM_SIZE * BLK_SIZE; i += BLK_SIZE) {
       // Iteration bound set to discard padding elements
       for (CeedSize j = i; j < i + CeedIntMin(BLK_SIZE, NUM_ELEM - e); j++) {
-        CeedScalar vv_loc;
-
-        vv_loc = uu[ELEM_SIZE * (k * BLK_SIZE) + j];
-        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc;
+        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += uu[ELEM_SIZE * (k * BLK_SIZE) + j];
       }
     }
   }
@@ -91,7 +91,9 @@ static inline int CeedElemRestriction_Apply_NoTranspose_Oriented(const CeedInt b
 
   for (CeedSize k = 0; k < NUM_COMP; k++) {
     CeedPragmaSIMD for (CeedSize i = 0; i < ELEM_SIZE * BLK_SIZE; i++) {
-      vv[ELEM_SIZE * (k * BLK_SIZE) + i] = uu[offsets[i + e * ELEM_SIZE] + k * COMP_STRIDE] * (orients[i + e * ELEM_SIZE] ? -1.0 : 1.0);
+      const CeedScalar orient = orients[i + e * ELEM_SIZE] ? -1.0 : 1.0;
+
+      vv[ELEM_SIZE * (k * BLK_SIZE) + i] = orient * uu[offsets[i + e * ELEM_SIZE] + k * COMP_STRIDE];
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -106,10 +108,9 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_Oriented(const CeedInt 
     for (CeedSize i = 0; i < ELEM_SIZE * BLK_SIZE; i += BLK_SIZE) {
       // Iteration bound set to discard padding elements
       for (CeedSize j = i; j < i + CeedIntMin(BLK_SIZE, NUM_ELEM - e); j++) {
-        CeedScalar vv_loc;
+        const CeedScalar orient = orients[j + e * ELEM_SIZE] ? -1.0 : 1.0;
 
-        vv_loc = uu[ELEM_SIZE * (k * BLK_SIZE) + j] * (orients[j + e * ELEM_SIZE] ? -1.0 : 1.0);
-        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc;
+        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += orient * uu[ELEM_SIZE * (k * BLK_SIZE) + j];
       }
     }
   }

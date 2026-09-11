@@ -7,6 +7,8 @@
 
 /// @file
 /// Internal header for CPU JiT utilities
+#pragma once
+
 #include <ceed/types.h>
 
 #define CeedCall(...)        \
@@ -15,16 +17,6 @@
     if (ierr_) return ierr_; \
   } while (0)
 
-static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
-  CeedInt result = 1;
-  while (power) {
-    if (power & 1) result *= base;
-    power >>= 1;
-    base *= base;
-  }
-  return result;
-}
+constexpr CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
 
-static inline CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
-
-static inline CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
+constexpr CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
