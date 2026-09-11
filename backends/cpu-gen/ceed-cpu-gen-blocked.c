@@ -41,7 +41,7 @@ static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cpu_Gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Cpu_Gen));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreateAtPoints", CeedOperatorCreate_Cpu_Gen));
+  // CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreateAtPoints", CeedOperatorCreate_Cpu_Gen));
 
   // Set block size
   CeedCallBackend(CeedCalloc(1, &data));

@@ -113,7 +113,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
   // Create blockend restriction
-  if (elem_rstr != CEED_ELEMRESTRICTION_NONE && block_size != 1 && (field_input_buffer && field_input_buffer[i] == i)) {
+  if (elem_rstr != CEED_ELEMRESTRICTION_NONE && block_size != 1 && (!is_input || (field_input_buffer && field_input_buffer[i] == i))) {
     CeedSize            l_size;
     CeedInt             num_elem, comp_stride;
     Ceed                ceed;
@@ -663,9 +663,6 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
-  // TODO: Remove
-  code << tab << "#include <stdio.h>\n";
-
   // Load utils
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-utils.h>\n\n";
 
@@ -852,10 +849,6 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   code << tab << "for (CeedInt block = 0; block < num_blocks; block++) {\n";
   tab.push();
 
-  // TODO: Remove
-  code << tab << "printf(\"-- block %d\\n\", block);\n";
-  code << tab << "fflush(stdout);\n";
-
   // AtPoints data
   if (is_at_points) {
   }
@@ -865,39 +858,21 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedInt field = input_field_order[i];
 
-    // TODO: Remove
-    code << tab << "printf(\"---- field " << field << "\\n\");\n";
-    code << tab << "printf(\"------ restriction\\n\");\n";
-    code << tab << "fflush(stdout);\n";
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cpu_Gen(code, data, tab, field, field_rstr_in_buffer, op_input_fields[field],
                                                                qf_input_fields[field], true, block_size));
-    code << tab << "printf(\"------ basis\\n\");\n";
-    code << tab << "fflush(stdout);\n";
     CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, field, op_input_fields[field], qf_input_fields[field], true, is_at_points));
   }
   code << tab << "\n";
 
   // Apply QFunction
-  // TODO: Remove
-  code << tab << "printf(\"---- before qf\\n\");\n";
-  code << tab << "fflush(stdout);\n";
-
   code << tab << "// -- QFunction\n";
   CeedCallBackend(CeedOperatorBuildKernelQFunction_Cpu_Gen(code, data, tab, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
                                                            op_output_fields, qf_output_fields, qfunction_name, is_at_points));
-  // TODO: Remove
-  code << tab << "printf(\"---- after qf\\n\");\n";
 
   // Apply ElemRestrictions Transpose
   code << tab << "// -- Output Bases and ElemRestrictions\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    // TODO: Remove
-    code << tab << "printf(\"---- field " << i << "\\n\");\n";
-    code << tab << "printf(\"------ basis\\n\");\n";
-    code << tab << "fflush(stdout);\n";
     CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, i, op_output_fields[i], qf_output_fields[i], false, is_at_points));
-    code << tab << "printf(\"------ restriction\\n\");\n";
-    code << tab << "fflush(stdout);\n";
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cpu_Gen(code, data, tab, i, NULL, op_output_fields[i], qf_output_fields[i], false,
                                                                block_size));
   }

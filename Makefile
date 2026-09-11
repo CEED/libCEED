@@ -260,7 +260,7 @@ libceed.a := $(LIBDIR)/libceed.a
 libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
 CEED_LIBS = -lceed
 libceeds = $(libceed)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/gen/serial /gpu/self/gen/blocked
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/gen/serial /cpu/self/gen/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
 
 
