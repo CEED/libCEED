@@ -32,6 +32,8 @@ static int CeedOperatorBuildKernelFieldData_Cpu_Gen(std::ostringstream &code, Ce
   CeedElemRestriction elem_rstr;
   CeedBasis           basis;
 
+  assert(i < CEED_FIELD_MAX);
+
   CeedCallBackend(CeedQFunctionFieldGetName(qf_field, &field_name));
   code << tab << "// ---- " << (is_input ? "Input" : "Output") << " Field " << i << ": " << field_name << "\n";
 
@@ -91,6 +93,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
   CeedInt             elem_size = 0, num_comp = 0;
   CeedRestrictionType rstr_type = CEED_RESTRICTION_STANDARD;
   CeedElemRestriction elem_rstr;
+
+  assert(i < CEED_FIELD_MAX);
+  assert(!is_input || field_input_buffer != NULL);
 
   // Label
   if (is_input) {
@@ -189,10 +194,10 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
     } else if (eval_mode != CEED_EVAL_WEIGHT) {
       if (rstr_type == CEED_RESTRICTION_POINTS) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
-        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_points * block_size];\n";
+        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_points * block_size] = {0};\n";
       } else if (eval_mode == CEED_EVAL_NONE) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
-        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * elem_size" << var_suffix << " * block_size];\n";
+        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * elem_size" << var_suffix << " * block_size] = {0};\n";
       } else {
         // Otherwise we're using the scratch space
         code << tab << "CeedScalar *e_vec" << var_suffix << " = e_vec_scratch;\n";
@@ -376,6 +381,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
   CeedInt             dim = 0, elem_size = 0, num_comp = 0, P_1d = 0;
   CeedElemRestriction elem_rstr;
 
+  assert(i < CEED_FIELD_MAX);
+
   // Label
   if (!is_input) {
     const char *field_name;
@@ -407,7 +414,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     if (eval_mode == CEED_EVAL_WEIGHT) {
       // Handled separately
     } else if (eval_mode != CEED_EVAL_NONE) {
-      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * Q * block_size];\n";
+      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * Q * block_size] = {0};\n";
     } else {
       code << tab << "CeedScalar *q_vec" << var_suffix << " = e_vec" << var_suffix << ";\n";
     }
@@ -433,12 +440,12 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         } break;
         case CEED_EVAL_WEIGHT: {
           if (is_at_points) {
-            code << tab << "CeedScalar q_vec" << var_suffix << "[max_points * block_size];\n";
+            code << tab << "CeedScalar q_vec" << var_suffix << "[max_points * block_size] = {0};\n";
             code << tab << "CeedCall(CeedBasis_Apply_Weight_AtPoints<block_size, max_points>(q_vec" << var_suffix << "));\n";
           } else {
             std::string name = "Tensor_" + std::to_string(dim) + "D";
 
-            code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size];\n";
+            code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
             code << tab << "CeedCall(CeedBasis_Apply_Weight_" << name << "<block_size, Q_1d>(inputs[" << i << "].weights, q_vec" << var_suffix
                  << "));\n";
           }
@@ -450,7 +457,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       }
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
-        code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size];\n";
+        code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
         code << tab << "CeedCall(CeedBasis_Apply_Weight_NonTensor<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << "));\n";
       } else if (eval_mode != CEED_EVAL_NONE) {
         code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", "
@@ -580,7 +587,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     case CEED_EVAL_CURL: {
       const CeedScalar **ptr = is_input ? &data->inputs[i].curl : &data->outputs[i].curl;
 
-      CeedCallBackend(CeedBasisGetDiv(basis, ptr));
+      CeedCallBackend(CeedBasisGetCurl(basis, ptr));
     } break;
   }
   CeedCallBackend(CeedBasisDestroy(&basis));
