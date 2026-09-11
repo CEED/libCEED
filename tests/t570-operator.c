@@ -1,6 +1,6 @@
 /// @file
-/// Test full assembly of an identity operator (see t509)
-/// \test Test full assembly of an identity operator
+/// Test full assembly and FLOP estimation of an identity operator (see t509)
+/// \test Test full assembly and FLOP estimation of an identity operator
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -45,6 +45,34 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_identity, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_identity);
   CeedOperatorSetField(op_identity, "input", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_identity, "output", elem_restriction_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+
+  // Estimate assembly FLOPs with a basis-none active output
+  {
+    CeedSize flop_estimate;
+
+    CeedQFunctionSetUserFlopsEstimate(qf_identity, 0);
+    CeedOperatorLinearAssembleGetFlopsEstimate(op_identity, &flop_estimate);
+    if (flop_estimate != 11520) printf("Incorrect full assembly FLOP estimate, %" CeedSize_FMT " != 11520\n", flop_estimate);
+  }
+  {
+    CeedOperator  op_identity_none;
+    CeedQFunction qf_identity_none;
+    CeedSize      flop_estimate;
+
+    CeedQFunctionCreateIdentity(ceed, 1, CEED_EVAL_NONE, CEED_EVAL_NONE, &qf_identity_none);
+    CeedQFunctionSetUserFlopsEstimate(qf_identity_none, 0);
+    CeedOperatorCreate(ceed, qf_identity_none, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_identity_none);
+    CeedOperatorSetField(op_identity_none, "input", elem_restriction_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_identity_none, "output", elem_restriction_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+    CeedOperatorLinearAssembleGetFlopsEstimate(op_identity_none, &flop_estimate);
+    if (flop_estimate != 17280) printf("Incorrect basis-none full assembly FLOP estimate, %" CeedSize_FMT " != 17280\n", flop_estimate);
+    CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_identity_none, &flop_estimate);
+    if (flop_estimate != 3000) printf("Incorrect basis-none diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3000\n", flop_estimate);
+    CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_identity_none, &flop_estimate);
+    if (flop_estimate != 3000) printf("Incorrect basis-none point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3000\n", flop_estimate);
+    CeedOperatorDestroy(&op_identity_none);
+    CeedQFunctionDestroy(&qf_identity_none);
+  }
 
   // Fully assemble operator
   CeedSize   num_entries;
