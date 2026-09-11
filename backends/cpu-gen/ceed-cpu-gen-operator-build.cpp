@@ -337,20 +337,22 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
     }
   }
   // Reference backend data
+  if (elem_rstr != CEED_ELEMRESTRICTION_NONE) {
   if (is_input) {
-    CeedElemRestriction_Ref ref_data;
+      CeedElemRestriction_Ref *ref_data;
 
     CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &ref_data));
-    data->inputs[i].offsets      = ref_data.offsets;
-    data->inputs[i].orients      = ref_data.orients;
-    data->inputs[i].curl_orients = ref_data.curl_orients;
+      data->inputs[i].offsets      = ref_data->offsets;
+      data->inputs[i].orients      = ref_data->orients;
+      data->inputs[i].curl_orients = ref_data->curl_orients;
   } else {
-    CeedElemRestriction_Ref ref_data;
+      CeedElemRestriction_Ref *ref_data;
 
     CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &ref_data));
-    data->outputs[i].offsets      = ref_data.offsets;
-    data->outputs[i].orients      = ref_data.orients;
-    data->outputs[i].curl_orients = ref_data.curl_orients;
+      data->outputs[i].offsets      = ref_data->offsets;
+      data->outputs[i].orients      = ref_data->orients;
+      data->outputs[i].curl_orients = ref_data->curl_orients;
+    }
   }
   CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   return CEED_ERROR_SUCCESS;
