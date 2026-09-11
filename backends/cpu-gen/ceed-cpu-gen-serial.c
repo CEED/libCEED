@@ -35,7 +35,7 @@ static int CeedInit_Cpu_Gen_Serial(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
-  CeedCallBackend(CeedInit("/cpu/self/opt/blocked", &ceed_ref));
+  CeedCallBackend(CeedInit("/cpu/self/opt/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
   CeedCallBackend(CeedDestroy(&ceed_ref));
 
