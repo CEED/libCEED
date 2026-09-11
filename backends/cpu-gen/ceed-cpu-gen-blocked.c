@@ -19,6 +19,7 @@ static int CeedDestroy_Cpu_Gen(Ceed ceed) {
   Ceed_Cpu_Gen *data;
 
   CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedFree(&data->cxx));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

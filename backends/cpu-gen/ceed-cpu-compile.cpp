@@ -232,7 +232,10 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       function         = (void *)dlsym(*handle, name);
       *is_compile_good = function != NULL;
     }
-
+    for (CeedInt i = 0; i < num_opts; i++) {
+      CeedCall(CeedFree(&opts[i]));
+    }
+    CeedCall(CeedFree(&opts));
     if (!*is_compile_good) {
       // LCOV_EXCL_START
       if (throw_error) {
