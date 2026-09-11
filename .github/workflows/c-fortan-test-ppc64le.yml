@@ -36,5 +36,5 @@ jobs:
           apt-get install -y python3
           uname -a
           make info
-          make -j
-          make prove -j search="t5 ex"
+          make -j4
+          make -j4 PROVE_OPTS=-j4 prove
