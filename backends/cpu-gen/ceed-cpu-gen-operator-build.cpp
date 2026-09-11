@@ -229,10 +229,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
           code << tab << "{\n";
           tab.push();
-          code << tab << "constexpr CeedInt comp_stride = " << comp_stride << ";\n";
+          code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
           code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-               << ", num_elem, comp_stride>(block, inputs[" << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix << "));\n";
+               << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix
+               << "));\n";
           tab.pop();
           code << tab << "}\n";
           break;
@@ -241,10 +242,12 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           CeedInt comp_stride;
 
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+          code << tab << "{\n";
+          tab.push();
           code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
           code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-               << ", num_elem, comp_stride " << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].orients, inputs[" << i
+               << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].orients, inputs[" << i
                << "].l_vec, e_vec" << var_suffix << "));\n";
           tab.pop();
           code << tab << "}\n";
@@ -256,11 +259,13 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
           code << tab << "{\n";
           tab.push();
-          code << tab << "constexpr CeedInt comp_stride = " << comp_stride << ";\n";
+          code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
           code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size"
-               << var_suffix << ", num_elem, comp_stride " << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i
+               << var_suffix << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i
                << "].curl_orients, inputs[" << i << "].l_vec, e_vec" << var_suffix << "));\n";
+          tab.pop();
+          code << tab << "}\n";
           break;
         }
         case CEED_RESTRICTION_POINTS: {
@@ -298,10 +303,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << tab << "{\n";
         tab.push();
-        code << tab << "constexpr CeedInt comp_stride = " << comp_stride << ";\n";
+        code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
         code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-             << ", num_elem, comp_stride>(block, outputs[" << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i << "].l_vec));\n";
+             << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i
+             << "].l_vec));\n";
         tab.pop();
         code << tab << "}\n";
         break;
@@ -312,11 +318,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << tab << "{\n";
         tab.push();
-        code << tab << "constexpr CeedInt comp_stride = " << comp_stride << ";\n";
+        code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
         code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-             << ", num_elem, comp_stride>(block, outputs[" << i << "].offsets, outputs[" << i << "].orients, e_vec" << var_suffix << ", outputs[" << i
-             << "].l_vec));\n";
+             << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, outputs[" << i << "].orients, e_vec" << var_suffix
+             << ", outputs[" << i << "].l_vec));\n";
         tab.pop();
         code << tab << "}\n";
         break;
@@ -327,11 +333,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << tab << "{\n";
         tab.push();
-        code << tab << "constexpr CeedInt comp_stride = " << comp_stride << ";\n";
+        code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
         code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size"
-             << var_suffix << ", num_elem, comp_stride>(block, outputs[" << i << "].offsets, outputs[" << i << "].curl_orients, e_vec" << var_suffix
-             << ", outputs[" << i << "].l_vec));\n";
+             << var_suffix << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, outputs[" << i
+             << "].curl_orients, e_vec" << var_suffix << ", outputs[" << i << "].l_vec));\n";
         tab.pop();
         code << tab << "}\n";
         break;
