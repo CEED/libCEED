@@ -17,40 +17,8 @@
 //------------------------------------------------------------------------------
 
 template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
-static inline int TensorContract_Apply_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
-  const CeedInt t_stride_0 = B, t_stride_1 = 1;
-
-  for (CeedInt a = 0; a < A; a++) {
-    for (CeedInt b = 0; b < B; b++) {
-      for (CeedInt j = 0; j < J; j++) {
-        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
-
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] = tq * u[(a * B + b) * C + c];
-      }
-    }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
-static inline int TensorContract_Apply_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
-  const CeedInt t_stride_0 = 1, t_stride_1 = J;
-
-  for (CeedInt a = 0; a < A; a++) {
-    for (CeedInt b = 0; b < B; b++) {
-      for (CeedInt j = 0; j < J; j++) {
-        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
-
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] = tq * u[(a * B + b) * C + c];
-      }
-    }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
-static inline int TensorContract_ApplyAdd_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
-  const CeedInt t_stride_0 = 1, t_stride_1 = J;
+static inline int TensorContract_ApplyAdd_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  constexpr CeedInt t_stride_0 = B, t_stride_1 = 1;
 
   for (CeedInt a = 0; a < A; a++) {
     for (CeedInt b = 0; b < B; b++) {
@@ -61,6 +29,38 @@ static inline int TensorContract_ApplyAdd_Transpose(const CeedScalar *t, const C
       }
     }
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
+static inline int TensorContract_Apply_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
+
+  CeedCall(TensorContract_ApplyAdd_NoTranspose<A, B, C, J>(t, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
+static inline int TensorContract_ApplyAdd_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  constexpr CeedInt t_stride_0 = 1, t_stride_1 = J;
+
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt b = 0; b < B; b++) {
+      for (CeedInt j = 0; j < J; j++) {
+        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+
+        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
+static inline int TensorContract_Apply_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
+
+  CeedCall(TensorContract_ApplyAdd_Transpose<A, B, C, J>(t, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
