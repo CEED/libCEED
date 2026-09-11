@@ -614,7 +614,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   // Setup input array
   code << tab << "// ---- QFunction outputs\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar q_vec_out_" << i << "[num_q_comp_out_" << i << " * Q * block_size];\n";
+    code << tab << "CeedScalar q_vec_out_" << i << "[num_q_comp_out_" << i << " * num_comp_out_" << i << " * Q * block_size];\n";
   }
   code << tab << "CeedScalar* q_vecs_out[" << num_output_fields << "] = {\n";
   tab.push();
@@ -866,7 +866,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "constexpr CeedInt max_e_vec_buffer_size = " << max_rstr_buffer_size << ";\n";
-  code << tab << "CeedScalar e_vec_scratch[max_e_vec_buffer_size * block_size];\n\n";
+  code << tab << "CeedScalar e_vec_scratch[max_e_vec_buffer_size * block_size] = {0};\n\n";
 
   // Loop over blocks
   code << tab << "// Loop over blocks\n";
