@@ -19,7 +19,7 @@ typedef struct {
 typedef struct {
   bool                    use_fallback;
   void                   *handle;
-  const char             *op_function_name;
+  char                   *op_function_name;
   CeedElemRestriction     inputs_block_elem_rstr[CEED_FIELD_MAX];
   CeedElemRestriction     outputs_block_elem_rstr[CEED_FIELD_MAX];
   InputFieldData_Cpu_Gen  inputs[CEED_FIELD_MAX];

@@ -7,5 +7,6 @@
 
 /// @file
 /// Internal header for CPU backend macro and type definitions for JiT source
+#pragma once
 
 #include "cpu-gen-types.h"
