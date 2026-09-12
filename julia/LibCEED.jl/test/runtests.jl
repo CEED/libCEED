@@ -37,7 +37,7 @@ else
         end
 
         @testset "Ceed" begin
-            res = "//cpu/self/ref/serial"
+            res = "/cpu/self/ref/serial"
             c = Ceed(res)
             @test isdeterministic(c)
             @test getresource(c) == res
@@ -51,7 +51,7 @@ else
         end
 
         @testset "Context" begin
-            res = "//cpu/self/opt"
+            res = "/cpu/self/opt"
             c = Ceed(res)
             data = zeros(CeedScalar, 3)
             ctx = Context(c, data)
