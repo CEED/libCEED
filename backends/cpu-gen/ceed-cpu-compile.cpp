@@ -143,12 +143,8 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
 
   {
-    std::random_device         r;
-    std::default_random_engine gen(r());
-    // Place lower bound for uniformity of ids
-    std::uniform_int_distribution<CeedInt> dist(1000000000);
-    const CeedInt                          build_id      = dist(gen);
-    std::string                            filename_base = std::string("temp/function_") + std::to_string(build_id) + "_" + name;
+    // Create filename with path and 'function_' prefix
+    std::string filename_base = std::string("temp/function_") + name;
 
     // Create temp dir if needed
     {

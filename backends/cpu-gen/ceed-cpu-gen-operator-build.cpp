@@ -17,6 +17,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include "ceed-cpu-compile.h"
 #include "ceed-cpu-gen.h"
@@ -717,14 +718,9 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
   // Get QFunction name
   std::string                operator_name;
-  std::random_device         r;
-  std::default_random_engine gen(r());
-  // Place lower bound for uniformity of ids
-  std::uniform_int_distribution<CeedInt> dist(1000000000);
-  const CeedInt                          build_id = dist(gen);
 
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
-  operator_name = "CeedCpuGenOperator_" + std::string(qfunction_name) + "_" + std::to_string(build_id);
+  operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen_";
 
   // Open function body
   code << tab << "// Operator function\n";
@@ -925,6 +921,20 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // Close function body
   tab.pop();
   code << tab << "}\n\n";
+
+  // Compute key
+  {
+    std::size_t hash = std::hash<std::string>{}(code.str());
+
+    // Wrapper function with hash
+    code << tab << "extern \"C\" int CeedOperator_" << hash << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
+    tab.push();
+    code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
+    code << tab << "return CEED_ERROR_SUCCESS;\n";
+    tab.pop();
+    code << tab << "}\n\n";
+    operator_name = "CeedOperator_" + std::to_string(hash);
+  }
 
   // Compile
   {
