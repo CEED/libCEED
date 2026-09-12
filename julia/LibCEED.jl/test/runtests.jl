@@ -94,7 +94,7 @@ else
             @test summarystr(v) == "$n-element CeedVector"
             @test sprint(show, v) == @witharray_read(a = v, sprint(show, a))
             io = IOBuffer()
-            summary(io, v)f
+            summary(io, v)
             println(io, ":")
             @witharray_read(a = v, Base.print_array(io, a))
             s1 = String(take!(io))
