@@ -929,7 +929,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     std::size_t hash = std::hash<std::string>{}(code.str());
 
     // Wrapper function with hash
-    code << tab << "extern \"C\" int CeedOperator_" << hash
+    code << tab << "static inline int CeedOperator_" << hash
          << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
     code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
