@@ -260,7 +260,7 @@ libceed.a := $(LIBDIR)/libceed.a
 libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
 CEED_LIBS = -lceed
 libceeds = $(libceed)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/gen/serial /cpu/self/gen/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
 
 
@@ -331,6 +331,9 @@ avx.c          := $(sort $(wildcard backends/avx/*.c))
 avx.h          := $(sort $(wildcard backends/avx/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
+cpu-gen.c      := $(sort $(wildcard backends/cpu-gen/*.c))
+cpu-gen.cpp    := $(sort $(wildcard backends/cpu-gen/*.cpp))
+cpu-gen.h      := $(sort $(wildcard backends/cpu-gen/*.h))
 # - GPU
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
@@ -527,6 +530,12 @@ libceed.c += $(ref.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
 libceed.h += $(ref.h) $(blocked.h) $(opt.h)
+
+# CPU Codegen Backends
+LIBCEED_CONTAINS_CXX = 1
+libceed.c   += $(cpu-gen.c)
+libceed.cpp += $(cpu-gen.cpp)
+libceed.h   += $(cpu-gen.h)
 
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
@@ -944,6 +953,7 @@ $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUR
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
+	  "$(includedir)/ceed/jit-source/cpu-gen/"\
 	  "$(includedir)/ceed/jit-source/cuda/" "$(includedir)/ceed/jit-source/hip/"\
 	  "$(includedir)/ceed/jit-source/gallery/" "$(includedir)/ceed/jit-source/magma/"\
 	  "$(includedir)/ceed/jit-source/sycl/" "$(libdir)" "$(pkgconfigdir)")
@@ -960,6 +970,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/cpu-gen/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/cpu-gen/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/cuda/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/cuda/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/hip/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/hip/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/gallery/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/gallery/"
@@ -1007,7 +1018,7 @@ TIDY_FIX_OPTS   ?= --quiet --header-filter='$(abspath .)/.*' --config-file=.clan
 
 # clang-tidy doesn't like the missing AD includes or the model lists
 tidy-fix-excl.h := include/ceedf.h include/ceed/fortran.h include/ceed/cuda.h include/ceed/hip.h include/ceed/deprecated.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h) $(wildcard backends/ceed-backend-list*.h)
-tidy-fix-excl.h += $(wildcard include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/hip/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
+tidy-fix-excl.h += $(wildcard $(wildcard include/ceed/jit-source/cpu-gen/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/hip/*.h) include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
 tidy-fix.h      := $(filter-out $(tidy-fix-excl.h), $(libceed.h))
 
 tidy-fix-h   : $(tidy-fix.h:%=%.tidy-fix)
