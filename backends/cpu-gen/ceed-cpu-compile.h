@@ -13,7 +13,7 @@
 
 #define CeedRunFunction_Cpu(ceed, handle, name, function, ...)                 \
   do {                                                                         \
-    function = dlsym(handle, name);                                            \
+    function = (void *)dlsym(handle, name);                                    \
     if (function == NULL) {                                                    \
       return CeedError((ceed), CEED_ERROR_BACKEND, "Failed to load function"); \
     }                                                                          \
