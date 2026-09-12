@@ -432,7 +432,12 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           break;
         case CEED_EVAL_INTERP: {
           if (is_collocated) {
-            code << tab << "memcpy(q_vec" << var_suffix << ", e_vec" << var_suffix << ", num_elem * num_comp * block_size * sizeof(CeedScalar));\n";
+            code << tab << "{\n";
+            tab.push();
+            code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) q_vec" << var_suffix << "[i] = e_vec"
+                 << var_suffix << "[i];\n";
+            tab.pop();
+            code << tab << "}\n";
           } else {
             std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
@@ -444,8 +449,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           CeedBasis_Ref *ref_data;
 
           CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-          std::string name =
-              (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
+          std::string name = (is_at_points ? "AtPoints_" : (dim > 2 && is_collocated ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
 
           code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
                << ", Q_1d>(inputs[" << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
@@ -508,7 +512,12 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           break;
         case CEED_EVAL_INTERP: {
           if (is_collocated) {
-            code << tab << "memcpy(e_vec" << var_suffix << ", q_vec" << var_suffix << ", num_elem * num_comp * block_size * sizeof(CeedScalar));\n";
+            code << tab << "{\n";
+            tab.push();
+            code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) e_vec" << var_suffix << "[i] = q_vec"
+                 << var_suffix << "[i];\n";
+            tab.pop();
+            code << tab << "}\n";
           } else {
             std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
