@@ -36,7 +36,7 @@ template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
 static inline int TensorContract_Apply_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
   for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
 
-  TensorContract_ApplyAdd_NoTranspose<A, B, C, J>(t, u, v);
+  CeedCall(TensorContract_ApplyAdd_NoTranspose<A, B, C, J>(t, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -60,7 +60,7 @@ template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
 static inline int TensorContract_Apply_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
   for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
 
-  TensorContract_ApplyAdd_Transpose<A, B, C, J>(t, u, v);
+  CeedCall(TensorContract_ApplyAdd_Transpose<A, B, C, J>(t, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -71,7 +71,7 @@ static inline int TensorContract_Apply_Transpose(const CeedScalar *t, const Ceed
 template <CeedInt BLOCK_SIZE, CeedInt NUM_COMP, CeedInt Q_COMP, CeedInt P, CeedInt Q>
 static inline int CeedBasis_Apply_NoTranspose_NonTensor(const CeedScalar *mat, const CeedScalar *u, CeedScalar *v) {
   for (CeedInt d = 0; d < Q_COMP; d++) {
-    TensorContract_Apply_NoTranspose<NUM_COMP, P, BLOCK_SIZE, Q>(mat + d * P * Q, u, v + d * NUM_COMP * BLOCK_SIZE * Q);
+    CeedCall(TensorContract_Apply_NoTranspose<NUM_COMP, P, BLOCK_SIZE, Q>(mat + d * P * Q, u, v + d * NUM_COMP * BLOCK_SIZE * Q));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -80,7 +80,7 @@ template <CeedInt BLOCK_SIZE, CeedInt NUM_COMP, CeedInt Q_COMP, CeedInt P, CeedI
 static inline int CeedBasis_Apply_Transpose_NonTensor(const CeedScalar *mat, const CeedScalar *u, CeedScalar *v) {
   for (CeedInt q = 0; q < P * NUM_COMP * BLOCK_SIZE; q++) v[q] = (CeedScalar)0.0;
   for (CeedInt d = 0; d < Q_COMP; d++) {
-    TensorContract_ApplyAdd_Transpose<NUM_COMP, Q, BLOCK_SIZE, P>(mat + d * P * Q, u + d * NUM_COMP * BLOCK_SIZE * Q, v);
+    CeedCall(TensorContract_ApplyAdd_Transpose<NUM_COMP, Q, BLOCK_SIZE, P>(mat + d * P * Q, u + d * NUM_COMP * BLOCK_SIZE * Q, v));
   }
   return CEED_ERROR_SUCCESS;
 }
