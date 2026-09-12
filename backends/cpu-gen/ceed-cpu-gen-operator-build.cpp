@@ -514,7 +514,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         case CEED_EVAL_GRAD: {
           std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
-          code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+          code << tab << "CeedCall(CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
                << ", Q_1d>(outputs[" << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
         } break;
         case CEED_EVAL_WEIGHT:
