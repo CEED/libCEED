@@ -694,6 +694,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-restriction-templates.h>\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-basis-templates.h>\n\n";
 
+  // C++ needs to know this size at compile time because it doesn't support reshaping via VLA
+  code << "// Ceed QFunction VLA array reshaping\n";
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
   if (is_at_points) {
     // TODO: fix this
@@ -717,7 +719,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
 
   // Get QFunction name
-  std::string                operator_name;
+  std::string operator_name;
 
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
   operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen_";
@@ -927,7 +929,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     std::size_t hash = std::hash<std::string>{}(code.str());
 
     // Wrapper function with hash
-    code << tab << "extern \"C\" int CeedOperator_" << hash << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
+    code << tab << "extern \"C\" int CeedOperator_" << hash
+         << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
     code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
     code << tab << "return CEED_ERROR_SUCCESS;\n";
