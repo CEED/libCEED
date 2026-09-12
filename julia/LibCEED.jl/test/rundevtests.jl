@@ -10,7 +10,8 @@ end
 
 @testset "LibCEED Development Tests" begin
     @testset "Operator" begin
-        c = Ceed()
+        res = "/cpu/self/opt"
+        c = Ceed(res)
         @interior_qf id = (
             c,
             (input, :in, EVAL_INTERP),
