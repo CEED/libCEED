@@ -14,21 +14,6 @@
 #include "ceed-cpu-gen.h"
 
 //------------------------------------------------------------------------------
-// Run JiTed Code
-//------------------------------------------------------------------------------
-static int CeedOperatorRunJitedFunction_Gpu_Gen(Ceed ceed, void *handle, const char *name, void *ctx, InputFieldData_Cpu_Gen *inputs,
-                                                OutputFieldData_Cpu_Gen *outputs) {
-  CeedOperatorFunction_Cpu_Gen op_function;
-
-  op_function = (CeedOperatorFunction_Cpu_Gen)dlsym(handle, name);
-  if (op_function == NULL) {
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load function");
-  }
-  CeedCallBackend((*op_function)(ctx, inputs, outputs));
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cpu_Gen(CeedOperator op) {
@@ -73,12 +58,13 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
 
   // Try to run kernel
   if (!impl->use_fallback) {
-    void              *ctx        = NULL;
-    const CeedScalar  *input_arr  = NULL;
-    CeedScalar        *output_arr = NULL;
-    CeedInt            num_input_fields, num_output_fields;
-    CeedOperatorField *op_input_fields, *op_output_fields;
-    CeedQFunction      qf;
+    void                        *ctx        = NULL;
+    const CeedScalar            *input_arr  = NULL;
+    CeedScalar                  *output_arr = NULL;
+    CeedInt                      num_input_fields, num_output_fields;
+    CeedOperatorField           *op_input_fields, *op_output_fields;
+    CeedQFunction                qf;
+    CeedOperatorFunction_Cpu_Gen op_function;
 
     CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
@@ -117,7 +103,7 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
     CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx));
 
     // Run JiTed function
-    CeedOperatorRunJitedFunction_Gpu_Gen(ceed, impl->handle, impl->op_function_name, ctx, impl->inputs, impl->outputs);
+    CeedRunFunction_Cpu(ceed, impl->handle, impl->op_function_name, op_function, ctx, impl->inputs, impl->outputs);
 
     // Restore context
     CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx));
