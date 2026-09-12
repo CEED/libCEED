@@ -430,10 +430,14 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         case CEED_EVAL_NONE:
           break;
         case CEED_EVAL_INTERP: {
-          std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
+          if (is_collocated) {
+            code << tab << "memcpy(q_vec" << var_suffix << ", e_vec" << var_suffix << ", num_elem * num_comp * block_size * sizeof(CeedScalar));\n";
+          } else {
+            std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
-          code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-               << ", Q_1d>(inputs[" << i << "].interp, e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
+            code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+                 << ", Q_1d>(inputs[" << i << "].interp, e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
+          }
         } break;
         case CEED_EVAL_GRAD: {
           CeedBasis_Ref *ref_data;
@@ -502,17 +506,21 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         case CEED_EVAL_NONE:
           break;
         case CEED_EVAL_INTERP: {
+          if (is_collocated) {
+            code << tab << "memcpy(e_vec" << var_suffix << ", q_vec" << var_suffix << ", num_elem * num_comp * block_size * sizeof(CeedScalar));\n";
+          } else {
+            std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
+
+            code << tab << "CeedCall(CeedBasis_Apply_Transpose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+                 << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
+          }
+        } break;
+        case CEED_EVAL_GRAD: {
           CeedBasis_Ref *ref_data;
 
           CeedCallBackend(CeedBasisGetData(basis, &ref_data));
           std::string name =
               (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
-
-          code << tab << "CeedCall(CeedBasis_Apply_Transpose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-               << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
-        } break;
-        case CEED_EVAL_GRAD: {
-          std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
           code << tab << "CeedCall(CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
                << ", Q_1d>(outputs[" << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
