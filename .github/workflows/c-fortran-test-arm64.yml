@@ -26,3 +26,55 @@ jobs:
         make info
         make -j
         make prove -j
+
+  test-sve:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04-arm]
+        compiler: [gcc, clang]
+        precision: [fp64, fp32]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v5
+    - name: Install QEMU
+      run: sudo apt-get update && sudo apt-get install -y qemu-user
+    - name: Configure precision
+      if: matrix.precision == 'fp32'
+      run: sed -i 's/#include "ceed-f64.h"/#include "ceed-f32.h"/' include/ceed/types.h
+    - name: Build SVE tests
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: ""
+        SVE_OPT: -O2 -g -ffp-contract=fast -march=armv8-a+sve
+      run: |
+        make -j4 OPT="$SVE_OPT" build/t366-tensor build/t367-basis
+        make info OPT="$SVE_OPT" | tee build/sve-info.log
+        grep -F 'SVE_STATUS    = Enabled' build/sve-info.log
+    - name: Run SVE tests at multiple vector lengths
+      env:
+        LD_LIBRARY_PATH: ${{ github.workspace }}/lib
+      run: |
+        cat >build/sve-vector-length.c <<'EOF'
+        #include <arm_sve.h>
+        #include <stdio.h>
+        int main(void) {
+          printf("%zu\n", svcntb() * 8);
+          return 0;
+        }
+        EOF
+        ${{ matrix.compiler }} -O2 -march=armv8-a+sve build/sve-vector-length.c -o build/sve-vector-length
+        for vq in 1 2 3 4 16; do
+          cpu="max,sve-max-vq=$vq,sve-default-vector-length=$((16 * vq))"
+          bits=$(qemu-aarch64 -cpu "$cpu" build/sve-vector-length)
+          echo "vq=$vq bits=$bits"
+          test "$bits" -eq "$((128 * vq))"
+          for resource in /cpu/self/sve/serial /cpu/self/sve/blocked; do
+            echo "vq=$vq resource=$resource test=t366"
+            qemu-aarch64 -cpu "$cpu" build/t366-tensor "$resource"
+            echo "vq=$vq resource=$resource test=t367"
+            qemu-aarch64 -cpu "$cpu" build/t367-basis "$resource"
+          done
+        done
