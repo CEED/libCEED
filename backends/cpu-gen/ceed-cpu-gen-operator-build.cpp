@@ -218,8 +218,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           tab.push();
           code << tab << "constexpr CeedInt strides_0 = " << strides[0] << ", strides_1 = " << strides[1] << ", strides_2 = " << strides[2] << ";\n";
           code << tab << "\n";
-          code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_Strided<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-               << ", num_elem, strides_0, strides_1, strides_2>(block, inputs[" << i << "].l_vec, e_vec" << var_suffix << "));\n";
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_Strided<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+               << ", num_elem, strides_0, strides_1, strides_2>(block, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
           break;
@@ -232,9 +232,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           tab.push();
           code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
-          code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
                << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix
-               << "));\n";
+               << ");\n";
           tab.pop();
           code << tab << "}\n";
           break;
@@ -247,9 +247,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           tab.push();
           code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
-          code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
                << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].orients, inputs[" << i
-               << "].l_vec, e_vec" << var_suffix << "));\n";
+               << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
           break;
@@ -262,16 +262,16 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           tab.push();
           code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
           code << tab << "\n";
-          code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size"
-               << var_suffix << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i
-               << "].curl_orients, inputs[" << i << "].l_vec, e_vec" << var_suffix << "));\n";
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+               << ", num_elem, comp_stride" << var_suffix << ">(block, inputs[" << i << "].offsets, inputs[" << i << "].curl_orients, inputs[" << i
+               << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
           break;
         }
         case CEED_RESTRICTION_POINTS: {
-          code << tab << "CeedCall(CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, num_comp>(block, inputs[" << i << "].offsets, inputs["
-               << i << "].l_vec, e_vec" << var_suffix << "));\n";
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, num_comp>(block, inputs[" << i << "].offsets, inputs[" << i
+               << "].l_vec, e_vec" << var_suffix << ");\n";
           break;
         }
       }
@@ -292,8 +292,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         tab.push();
         code << tab << "constexpr CeedInt strides_0 = " << strides[0] << ", strides_1 = " << strides[1] << ", strides_2 = " << strides[2] << ";\n";
         code << tab << "\n";
-        code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_Strided<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
-             << ", num_elem, strides_0, strides_1, strides_2>(block, e_vec" << var_suffix << ", outputs[" << i << "].l_vec));\n";
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_Strided<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+             << ", num_elem, strides_0, strides_1, strides_2>(block, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
         break;
@@ -306,9 +306,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         tab.push();
         code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
-        code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_Offset<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
              << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i
-             << "].l_vec));\n";
+             << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
         break;
@@ -321,9 +321,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         tab.push();
         code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
-        code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_Oriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
              << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, outputs[" << i << "].orients, e_vec" << var_suffix
-             << ", outputs[" << i << "].l_vec));\n";
+             << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
         break;
@@ -336,16 +336,16 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         tab.push();
         code << tab << "constexpr CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
         code << tab << "\n";
-        code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size"
-             << var_suffix << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, outputs[" << i
-             << "].curl_orients, e_vec" << var_suffix << ", outputs[" << i << "].l_vec));\n";
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_CurlOriented<block_size, num_comp" << var_suffix << ", elem_size" << var_suffix
+             << ", num_elem, comp_stride" << var_suffix << ">(block, outputs[" << i << "].offsets, outputs[" << i << "].curl_orients, e_vec"
+             << var_suffix << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
         break;
       }
       case CEED_RESTRICTION_POINTS: {
-        code << tab << "CeedCall(CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, num_comp>(block, outputs[" << i << "].offsets, e_vec"
-             << var_suffix << ", outputs[" << i << "].l_vec));\n";
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, num_comp>(block, outputs[" << i << "].offsets, e_vec"
+             << var_suffix << ", outputs[" << i << "].l_vec);\n";
         break;
       }
     }
@@ -441,8 +441,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           } else {
             std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
-            code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-                 << ", Q_1d>(inputs[" << i << "].interp, e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
+            code << tab << "CeedBasis_Apply_NoTranspose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+                 << ", Q_1d>(inputs[" << i << "].interp, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_GRAD: {
@@ -451,19 +451,18 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           CeedCallBackend(CeedBasisGetData(basis, &ref_data));
           std::string name = (is_at_points ? "AtPoints_" : (dim > 2 && is_collocated ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
 
-          code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-               << ", Q_1d>(inputs[" << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
+          code << tab << "CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(inputs["
+               << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
         } break;
         case CEED_EVAL_WEIGHT: {
           if (is_at_points) {
             code << tab << "CeedScalar q_vec" << var_suffix << "[max_points * block_size] = {0};\n";
-            code << tab << "CeedCall(CeedBasis_Apply_Weight_AtPoints<block_size, max_points>(q_vec" << var_suffix << "));\n";
+            code << tab << "CeedBasis_Apply_Weight_AtPoints<block_size, max_points>(q_vec" << var_suffix << ");\n";
           } else {
             std::string name = "Tensor_" + std::to_string(dim) + "D";
 
             code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
-            code << tab << "CeedCall(CeedBasis_Apply_Weight_" << name << "<block_size, Q_1d>(inputs[" << i << "].weights, q_vec" << var_suffix
-                 << "));\n";
+            code << tab << "CeedBasis_Apply_Weight_" << name << "<block_size, Q_1d>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_DIV:
@@ -474,10 +473,10 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
         code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
-        code << tab << "CeedCall(CeedBasis_Apply_Weight_Tensor_1D<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << "));\n";
+        code << tab << "CeedBasis_Apply_Weight_Tensor_1D<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
       } else if (eval_mode != CEED_EVAL_NONE) {
-        code << tab << "CeedCall(CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", "
-             << P_name << ", Q>(inputs[" << i << "].";
+        code << tab << "CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
+             << ", Q>(inputs[" << i << "].";
         switch (eval_mode) {
           case CEED_EVAL_NONE:
             break;
@@ -496,7 +495,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
             code << "curl";
             break;
         }
-        code << ", e_vec" << var_suffix << ", q_vec" << var_suffix << "));\n";
+        code << ", e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
       }
     }
   } else {
@@ -521,8 +520,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           } else {
             std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
 
-            code << tab << "CeedCall(CeedBasis_Apply_Transpose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-                 << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
+            code << tab << "CeedBasis_Apply_Transpose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+                 << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_GRAD: {
@@ -532,8 +531,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           std::string name =
               (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
 
-          code << tab << "CeedCall(CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
-               << ", Q_1d>(outputs[" << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
+          code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(outputs["
+               << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
         } break;
         case CEED_EVAL_WEIGHT:
         case CEED_EVAL_DIV:
@@ -545,8 +544,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       if (eval_mode == CEED_EVAL_WEIGHT) {
         // Should not occur
       } else if (eval_mode != CEED_EVAL_NONE) {
-        code << tab << "CeedCall(CeedBasis_Apply_Transpose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", "
-             << P_name << ", Q>(outputs[" << i << "].";
+        code << tab << "CeedBasis_Apply_Transpose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
+             << ", Q>(outputs[" << i << "].";
         switch (eval_mode) {
           case CEED_EVAL_NONE:
             break;
@@ -565,7 +564,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
             code << "curl";
             break;
         }
-        code << ", q_vec" << var_suffix << ", e_vec" << var_suffix << "));\n";
+        code << ", q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
       }
     }
   }
@@ -902,9 +901,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   if (is_at_points) {
     code << tab << "// -- Points ElemRestriction\n";
     code << tab << "CeedScalar e_vec_points[max_num_points * dim_points];\n";
-    code
-        << tab
-        << "CeedCall(CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, dim_points>(block, points->offsets, points->l_vec, e_vec_points));\n";
+    code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, dim_points>(block, points->offsets, points->l_vec, e_vec_points);\n";
   }
 
   // Apply ElemRestrictions
