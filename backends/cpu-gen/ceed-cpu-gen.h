@@ -22,6 +22,7 @@ typedef struct {
   char                   *op_function_name;
   CeedElemRestriction     inputs_block_elem_rstr[CEED_FIELD_MAX];
   CeedElemRestriction     outputs_block_elem_rstr[CEED_FIELD_MAX];
+  PointsData_Cpu_Gen      points;
   InputFieldData_Cpu_Gen  inputs[CEED_FIELD_MAX];
   OutputFieldData_Cpu_Gen outputs[CEED_FIELD_MAX];
 } CeedOperator_Cpu_Gen;
