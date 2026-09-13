@@ -41,4 +41,11 @@ typedef struct {
   const CeedScalar *curl;
 } OutputFieldData_Cpu_Gen;
 
-typedef int (*CeedOperatorFunction_Cpu_Gen)(void *, InputFieldData_Cpu_Gen *, OutputFieldData_Cpu_Gen *);
+typedef struct {
+  // CeedVector
+  const CeedScalar *l_vec;
+  // CeedElemRestriction
+  const CeedInt *offsets;
+} PointsData_Cpu_Gen;
+
+typedef int (*CeedOperatorFunction_Cpu_Gen)(void *, const PointsData_Cpu_Gen *, const InputFieldData_Cpu_Gen *, OutputFieldData_Cpu_Gen *);

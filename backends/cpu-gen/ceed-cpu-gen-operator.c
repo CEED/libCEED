@@ -58,15 +58,24 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
 
   // Try to run kernel
   if (!impl->use_fallback) {
-    void                        *ctx        = NULL;
-    const CeedScalar            *input_arr  = NULL;
-    CeedScalar                  *output_arr = NULL;
+    bool                         is_at_points = false;
+    void                        *ctx          = NULL;
+    const CeedScalar            *input_arr    = NULL;
+    CeedScalar                  *output_arr   = NULL;
     CeedInt                      num_input_fields, num_output_fields;
     CeedOperatorField           *op_input_fields, *op_output_fields;
+    CeedVector                   points;
     CeedQFunction                qf;
     CeedOperatorFunction_Cpu_Gen op_function;
 
     CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+
+    // Get points, if needed
+    CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
+    if (is_at_points) {
+      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &points));
+      CeedCallBackend(CeedVectorGetArrayRead(points, CEED_MEM_HOST, &impl->points.l_vec));
+    }
 
     // Get active l-vecs
     if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_HOST, &input_arr));
@@ -103,7 +112,7 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
     CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx));
 
     // Run JiTed function
-    CeedRunFunction_Cpu(ceed, impl->handle, impl->op_function_name, op_function, ctx, impl->inputs, impl->outputs);
+    CeedRunFunction_Cpu(ceed, impl->handle, impl->op_function_name, op_function, ctx, &impl->points, impl->inputs, impl->outputs);
 
     // Restore context
     CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx));
@@ -137,6 +146,12 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
     // And restore active l-vecs
     if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
     if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+
+    // Finally restore points
+    if (is_at_points) {
+      CeedCallBackend(CeedVectorRestoreArrayRead(points, &impl->points.l_vec));
+      CeedCallBackend(CeedVectorDestroy(&points));
+    }
 
     // Cleanup
     CeedCallBackend(CeedQFunctionDestroy(&qf));

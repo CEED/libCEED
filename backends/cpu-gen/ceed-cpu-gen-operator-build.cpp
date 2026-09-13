@@ -664,7 +664,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
 extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_build) {
   const char           *qfunction_name;
   bool                  is_at_points = false;
-  CeedInt               num_input_fields, num_output_fields, block_size = 1;
+  CeedInt               num_input_fields, num_output_fields, block_size = 1, max_num_points = 1, dim_points = 1;
   Ceed                  ceed;
   CeedQFunction         qf;
   CeedQFunctionField   *qf_input_fields, *qf_output_fields;
@@ -690,6 +690,16 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
     block_size = ceed_data->block_size;
+  } else {
+    CeedElemRestriction      rstr_points;
+    CeedElemRestriction_Ref *rstr_data;
+
+    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
+    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_num_points));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_points, &dim_points));
+    CeedCallBackend(CeedElemRestrictionGetData(rstr_points, &rstr_data));
+    data->points.offsets = rstr_data->offsets;
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
   }
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
@@ -707,8 +717,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   code << "// Ceed QFunction VLA array reshaping\n";
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
   if (is_at_points) {
-    // TODO: fix this
-    code << tab << "#define CEED_Q_VLA 1\n\n";
+    code << tab << "#define CEED_Q_VLA " << max_num_points << "\n\n";
   } else {
     CeedInt Q;
 
@@ -777,13 +786,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     }
   }
   if (is_at_points) {
-    CeedInt             max_points;
-    CeedElemRestriction rstr_points = NULL;
-
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr_points, &max_points));
-    code << tab << "constexpr CeedInt max_points = " << max_points << "\n";
-    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
+    code << tab << "constexpr CeedInt max_num_points = " << max_num_points << "\n";
+    code << tab << "constexpr CeedInt dim_points = " << dim_points << "\n";
   }
   {
     CeedInt num_elem;
@@ -896,6 +900,11 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
   // AtPoints data
   if (is_at_points) {
+    code << tab << "// -- Points ElemRestriction\n";
+    code << tab << "CeedScalar e_vec_points[max_num_points * dim_points];\n";
+    code
+        << tab
+        << "CeedCall(CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, dim_points>(block, points->offsets, points->l_vec, e_vec_points));\n";
   }
 
   // Apply ElemRestrictions
@@ -939,7 +948,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
     // Wrapper function with hash
     code << tab << "static inline int CeedOperator_" << hash
-         << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
+         << "(void *ctx, const PointsData_Cpu_Gen *points, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
     code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
     code << tab << "return CEED_ERROR_SUCCESS;\n";
