@@ -449,7 +449,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           CeedBasis_Ref *ref_data;
 
           CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-          std::string name = (is_at_points ? "AtPoints_" : (dim > 2 && is_collocated ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
+          std::string name =
+              (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
 
           code << tab << "CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(inputs["
                << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
