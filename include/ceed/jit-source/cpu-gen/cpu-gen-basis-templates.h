@@ -121,25 +121,25 @@ static inline int CeedBasis_Apply_Weight_Tensor_2D(const CeedScalar *weights_1d,
 
 template <CeedInt BLOCK_SIZE, CeedInt Q_1D>
 static inline int CeedBasis_Apply_Weight_Tensor_3D(const CeedScalar *weights_1d, CeedScalar *v) {
-  // Compute 2D weights
-  const CeedInt last_slab = Q_1D - 1;
-
-  for (CeedInt i = 0; i < Q_1D; i++) {
+  for (CeedInt i = 0; i < Q_1D * Q_1D; i++) {
     for (CeedInt j = 0; j < Q_1D; j++) {
-      v[((last_slab * Q_1D + j) * Q_1D + i) * BLOCK_SIZE] = weights_1d[i] * weights_1d[j];
+      for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[(i * Q_1D + j) * BLOCK_SIZE + b] = weights_1d[j];
     }
   }
-  // Convert to 3D weights
-  for (CeedInt i = 0; i < Q_1D - 1; i++) {
+  for (CeedInt i = 0; i < Q_1D; i++) {
     for (CeedInt j = 0; j < Q_1D; j++) {
-      for (CeedInt k = 0; k < Q_1D - 1; k++) {
-        const CeedScalar w = v[((last_slab * Q_1D + j) * Q_1D + i) * BLOCK_SIZE] * weights_1d[k];
+      for (CeedInt k = 0; k < Q_1D; k++) {
+        const CeedScalar w = weights_1d[j] * v[((i * Q_1D + j) * Q_1D + k) * BLOCK_SIZE];
 
-        for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[((k * Q_1D + j) * Q_1D + i) * BLOCK_SIZE + b] = w;
+        for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[((i * Q_1D + j) * Q_1D + k) * BLOCK_SIZE + b] = w;
       }
-      const CeedScalar w = v[((last_slab * Q_1D + j) * Q_1D + i) * BLOCK_SIZE] * weights_1d[last_slab];
+    }
+  }
+  for (CeedInt j = 0; j < Q_1D; j++) {
+    for (CeedInt k = 0; k < Q_1D * Q_1D; k++) {
+      const CeedScalar w = weights_1d[j] * v[(j * Q_1D * Q_1D + k) * BLOCK_SIZE];
 
-      for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[((last_slab * Q_1D + j) * Q_1D + i) * BLOCK_SIZE] = w;
+      for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[(j * Q_1D * Q_1D + k) * BLOCK_SIZE + b] = w;
     }
   }
   return CEED_ERROR_SUCCESS;
