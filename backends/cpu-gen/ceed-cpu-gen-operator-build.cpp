@@ -739,11 +739,11 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   std::string operator_name;
 
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
-  operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen_";
+  operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen";
 
   // Open function body
   code << tab << "// Operator function\n";
-  code << tab << "extern \"C\" int " << operator_name << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
+  code << tab << "static inline int " << operator_name << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
   tab.push();
 
   // Get problem info
@@ -944,7 +944,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     std::size_t hash = std::hash<std::string>{}(code.str());
 
     // Wrapper function with hash
-    code << tab << "static inline int CeedOperator_" << hash
+    code << tab << "extern \"C\" int CeedOperator_" << hash
          << "(void *ctx, const PointsData_Cpu_Gen *points, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
     code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
