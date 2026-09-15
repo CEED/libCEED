@@ -165,25 +165,15 @@ static inline int CeedBasis_Apply_Weight_Tensor_2D(const CeedScalar *weights_1d,
 
 template <CeedInt BLOCK_SIZE, CeedInt Q_1D>
 static inline int CeedBasis_Apply_Weight_Tensor_3D(const CeedScalar *weights_1d, CeedScalar *v) {
-  for (CeedInt i = 0; i < Q_1D * Q_1D; i++) {
-    for (CeedInt j = 0; j < Q_1D; j++) {
-      for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[(i * Q_1D + j) * BLOCK_SIZE + b] = weights_1d[j];
-    }
-  }
   for (CeedInt i = 0; i < Q_1D; i++) {
     for (CeedInt j = 0; j < Q_1D; j++) {
+      const CeedScalar w = weights_1d[i] * weights_1d[j];
+
       for (CeedInt k = 0; k < Q_1D; k++) {
-        const CeedScalar w = weights_1d[j] * v[((i * Q_1D + j) * Q_1D + k) * BLOCK_SIZE];
+        const CeedScalar w_k = w * weights_1d[k];
 
-        for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[((i * Q_1D + j) * Q_1D + k) * BLOCK_SIZE + b] = w;
+        for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[((i * Q_1D + j) * Q_1D + k) * BLOCK_SIZE + b] = w_k;
       }
-    }
-  }
-  for (CeedInt j = 0; j < Q_1D; j++) {
-    for (CeedInt k = 0; k < Q_1D * Q_1D; k++) {
-      const CeedScalar w = weights_1d[j] * v[(j * Q_1D * Q_1D + k) * BLOCK_SIZE];
-
-      for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[(j * Q_1D * Q_1D + k) * BLOCK_SIZE + b] = w;
     }
   }
   return CEED_ERROR_SUCCESS;
