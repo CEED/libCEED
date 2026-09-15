@@ -1144,6 +1144,55 @@ int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
 }
 
 /**
+  @brief Get Chebyshev `CeedBasis` and scratch `CeedVector` for applying a `CeedBasis` at points
+
+  @param[in,out] basis           `CeedBasis`
+  @param[out]    basis_chebyshev Pointer to store `CeedBasis`, or `NULL` if not needed
+  @param[out]    vec_chebyshev   Pointer to store `CeedVector`, or `NULL` if not needed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev) {
+  bool is_tensor;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+  CeedCheck(is_tensor, CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Chebyshev basis only defined for tensor basis");
+  if (basis_chebyshev) *basis_chebyshev = NULL;
+  if (vec_chebyshev) *vec_chebyshev = NULL;
+  if (!basis->basis_chebyshev) {
+    // Build basis mapping from nodes to Chebyshev coefficients
+    CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
+    const CeedScalar *q_ref_1d;
+    CeedInt           Q_1d, P_1d, dim, num_comp;
+
+    CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+    CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
+    CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
+    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
+    CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+
+    CeedCall(CeedVectorCreate(CeedBasisReturnCeed(basis), num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
+    CeedCall(CeedBasisCreateTensorH1(CeedBasisReturnCeed(basis), dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d,
+                                     chebyshev_q_weight_1d, &basis->basis_chebyshev));
+
+    // Cleanup
+    CeedCall(CeedFree(&chebyshev_interp_1d));
+    CeedCall(CeedFree(&chebyshev_grad_1d));
+    CeedCall(CeedFree(&chebyshev_q_weight_1d));
+  }
+  if (basis_chebyshev) CeedCall(CeedBasisReferenceCopy(basis->basis_chebyshev, basis_chebyshev));
+  if (vec_chebyshev) CeedCall(CeedVectorReferenceCopy(basis->vec_chebyshev, vec_chebyshev));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Return a reference implementation of matrix multiplication \f$C = A B\f$.
 
   Note: This is a reference implementation for CPU `CeedScalar` pointers that is not intended for high performance.
