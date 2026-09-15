@@ -21,7 +21,7 @@ jobs:
     - name: Install cross toolchain and QEMU
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-user-static gcc-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
+        sudo apt-get install -y qemu-user gcc-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
     - name: Build libCEED for ppc64le
       env:
         CC: powerpc64le-linux-gnu-${{ matrix.compiler }}
