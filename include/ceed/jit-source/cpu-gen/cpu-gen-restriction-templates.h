@@ -277,10 +277,11 @@ static inline int CeedElemRestriction_Apply_NoTranspose_AtPoints(const CeedInt b
   CeedSize e_vec_offset = 0;
 
   for (CeedSize e = block * BLOCK_SIZE; e < (block + 1) * BLOCK_SIZE; e += 1) {
-    const CeedInt num_points = offsets[e + 1] - offsets[e];
+    const CeedInt l_vec_offset = offsets[e];
+    const CeedInt num_points   = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset] = uu[offsets[i + offsets[e]] * NUM_COMP + j];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset] = uu[offsets[i + l_vec_offset] * NUM_COMP + j];
     }
     for (CeedSize i = num_points; i < NUM_POINTS; i++) {
       for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset] = 0;
@@ -296,10 +297,11 @@ static inline int CeedElemRestriction_Apply_Transpose_AtPoints(const CeedInt blo
   CeedSize e_vec_offset = 0;
 
   for (CeedSize e = block * BLOCK_SIZE; e < (block + 1) * BLOCK_SIZE; e += 1) {
-    const CeedInt num_points = offsets[e + 1] - offsets[e];
+    const CeedInt l_vec_offset = offsets[e];
+    const CeedInt num_points   = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] = uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + l_vec_offset] * NUM_COMP + j] = uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
     }
     e_vec_offset += NUM_POINTS;
   }
@@ -312,10 +314,11 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_AtPoints(const CeedInt 
   CeedSize e_vec_offset = 0;
 
   for (CeedSize e = block * BLOCK_SIZE; e < (block + 1) * BLOCK_SIZE; e += 1) {
-    const CeedInt num_points = offsets[e + 1] - offsets[e];
+    const CeedInt l_vec_offset = offsets[e];
+    const CeedInt num_points   = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] += uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + l_vec_offset] * NUM_COMP + j] += uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
     }
     e_vec_offset += NUM_POINTS;
   }
