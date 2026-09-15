@@ -37,5 +37,4 @@ jobs:
         OPT: -O2 -g -ffp-contract=fast
         CEED_TEST_RUNNER: qemu-ppc64le -L /usr/powerpc64le-linux-gnu
       run: |
-        qemu-ppc64le -L /usr/powerpc64le-linux-gnu build/t000-ceed /cpu/self/ref/serial
         make -j4 PROVE_OPTS=-j4 prove
