@@ -9,6 +9,7 @@ from math import isclose
 import os
 from pathlib import Path
 import re
+import shlex
 import subprocess
 import multiprocessing as mp
 import sys
@@ -607,6 +608,11 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
     for i, arg in enumerate(run_args):
         if '{ceed_resource}' in arg:
             run_args[i] = arg.replace('{ceed_resource}', backend.replace('/', '-'))
+    # Prefix the test executable, not mpiexec, and preserve arguments for shell execution.
+    runner = shlex.join(shlex.split(os.environ.get('CEED_TEST_RUNNER', '')))
+    if runner:
+        run_args = [runner, *run_args]
+
     if '{nproc}' in run_args:
         run_args[run_args.index('{nproc}')] = f'{nproc}'
     elif nproc > 1 and source_path.suffix != '.py':

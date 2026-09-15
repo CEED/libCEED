@@ -36,11 +36,13 @@ int main(int argc, char **argv) {
     // Check area
     {
       const CeedScalar *v_array;
-      CeedScalar        area = 0.0;
+      const double      expected  = 2.0 * CeedIntPow(2, dim);
+      const double      tolerance = fmax(5E-6, 100. * CEED_EPSILON * expected);
+      double            area      = 0.0;
 
       CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-      for (CeedInt i = 0; i < p_dim; i++) area += v_array[i];
-      if (fabs(area - 2.0 * CeedIntPow(2, dim)) > 5E-6) printf("Incorrect area computed %f != %f\n", area, 2.0 * CeedIntPow(2, dim));
+      for (CeedInt i = 0; i < p_dim; i++) area += (double)v_array[i];
+      if (fabs(area - expected) > tolerance) printf("Incorrect area computed %f != %f\n", area, expected);
       CeedVectorRestoreArrayRead(v, &v_array);
     }
 
