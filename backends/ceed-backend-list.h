@@ -13,6 +13,8 @@
 
 // Always compiled
 #include "ceed-backend-list-ref.h"
+// CPU JiT, always compiled
+#include "ceed-backend-list-cpu-gen.h"
 // Requires AVX support
 #include "ceed-backend-list-avx.h"
 // Requires Valgrind
