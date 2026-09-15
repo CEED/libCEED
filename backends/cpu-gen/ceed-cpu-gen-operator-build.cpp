@@ -224,8 +224,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
                << ", num_elem, strides_0, strides_1, strides_2>(block, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
-          break;
-        }
+        } break;
         case CEED_RESTRICTION_STANDARD: {
           CeedInt comp_stride;
 
@@ -239,8 +238,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
                << ");\n";
           tab.pop();
           code << tab << "}\n";
-          break;
-        }
+        } break;
         case CEED_RESTRICTION_ORIENTED: {
           CeedInt comp_stride;
 
@@ -254,8 +252,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
                << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
-          break;
-        }
+        } break;
         case CEED_RESTRICTION_CURL_ORIENTED: {
           CeedInt comp_stride;
 
@@ -269,8 +266,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
                << "].l_vec, e_vec" << var_suffix << ");\n";
           tab.pop();
           code << tab << "}\n";
-          break;
-        }
+        } break;
         case CEED_RESTRICTION_POINTS: {
           code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, inputs["
                << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
@@ -298,8 +294,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
              << ", num_elem, strides_0, strides_1, strides_2>(block, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
-        break;
-      }
+      } break;
       case CEED_RESTRICTION_STANDARD: {
         CeedInt comp_stride;
 
@@ -313,8 +308,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
              << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
-        break;
-      }
+      } break;
       case CEED_RESTRICTION_ORIENTED: {
         CeedInt comp_stride;
 
@@ -328,8 +322,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
              << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
-        break;
-      }
+      } break;
       case CEED_RESTRICTION_CURL_ORIENTED: {
         CeedInt comp_stride;
 
@@ -343,13 +336,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
              << var_suffix << ", outputs[" << i << "].l_vec);\n";
         tab.pop();
         code << tab << "}\n";
-        break;
-      }
+      } break;
       case CEED_RESTRICTION_POINTS: {
         code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, outputs["
              << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
-        break;
-      }
+      } break;
     }
   }
   // Reference backend data
