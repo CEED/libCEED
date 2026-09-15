@@ -424,7 +424,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     if (eval_mode == CEED_EVAL_WEIGHT) {
       // Handled separately
     } else if (eval_mode != CEED_EVAL_NONE) {
-      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * num_comp" << var_suffix << " * Q * block_size] = {0};\n";
+      code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * num_comp" << var_suffix << " * "
+           << (is_at_points ? "max_num_points" : "Q") << " * block_size] = {0};\n";
     } else {
       code << tab << "CeedScalar *q_vec" << var_suffix << " = e_vec" << var_suffix << ";\n";
     }
@@ -485,8 +486,8 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       }
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
-        code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0};\n";
-        code << tab << "CeedBasis_Apply_Weight_Tensor_1D<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
+        code << tab << "CeedScalar q_vec" << var_suffix << "[" << (is_at_points ? "max_num_points" : "Q") << " * block_size] = {0};\n";
+        code << tab << "CeedBasis_Apply_Weight_NonTensor<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
       } else if (eval_mode != CEED_EVAL_NONE) {
         code << tab << "CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
              << ", Q>(inputs[" << i << "].";
@@ -673,7 +674,8 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   // Setup input array
   code << tab << "// ---- QFunction outputs\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << tab << "CeedScalar q_vec_out_" << i << "[num_q_comp_out_" << i << " * num_comp_out_" << i << " * Q * block_size];\n";
+    code << tab << "CeedScalar q_vec_out_" << i << "[num_q_comp_out_" << i << " * num_comp_out_" << i << " * "
+         << (is_at_points ? "max_num_points" : "Q") << " * block_size];\n";
   }
   code << tab << "CeedScalar* q_vecs_out[" << num_output_fields << "] = {\n";
   tab.push();
@@ -688,7 +690,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
     code << tab << "{\n";
     tab.push();
     code << tab << "const CeedInt num_elem_apply = (block * block_size < num_elem) ? block_size : (num_elem % block_size);\n\n";
-    code << tab << "for (CeedInt elem = 0; num_elem_apply; elem++) {\n";
+    code << tab << "for (CeedInt elem = 0; elem < num_elem_apply; elem++) {\n";
     tab.push();
     code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
     code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
@@ -762,7 +764,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   code << "// Ceed QFunction VLA array reshaping\n";
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
   if (is_at_points) {
-    code << tab << "#define CEED_Q_VLA " << max_num_points << "\n\n";
+    code << tab << "#define CEED_Q_VLA " << max_num_points * block_size << "\n\n";
   } else {
     CeedInt Q;
 
@@ -975,6 +977,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
       code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d];\n";
       code << tab << "CeedBasis_ChebyshevDerivativeEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_dcheby);\n";
     }
+    code << tab << "\n";
   }
 
   // Apply ElemRestrictions

@@ -129,6 +129,16 @@ static inline int CeedBasis_Apply_Transpose_NonTensor(const CeedScalar *mat, con
   return CEED_ERROR_SUCCESS;
 }
 
+template <CeedInt BLOCK_SIZE, CeedInt Q>
+static inline int CeedBasis_Apply_Weight_NonTensor(const CeedScalar *weights, CeedScalar *v) {
+  for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar w = weights[i];
+
+    for (CeedInt b = 0; b < BLOCK_SIZE; b++) v[i * BLOCK_SIZE + b] = w;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // H1 Tensor
 //------------------------------------------------------------------------------
