@@ -271,7 +271,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOrientedUnsigned(co
 // AtPoints
 //------------------------------------------------------------------------------
 
-template <CeedInt BLOCK_SIZE, CeedInt NUM_COMP>
+template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP>
 static inline int CeedElemRestriction_Apply_NoTranspose_AtPoints(const CeedInt block, const CeedInt *offsets, const CeedScalar *__restrict__ uu,
                                                                  CeedScalar *__restrict__ vv) {
   CeedSize e_vec_offset = 0;
@@ -280,14 +280,17 @@ static inline int CeedElemRestriction_Apply_NoTranspose_AtPoints(const CeedInt b
     const CeedInt num_points = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * num_points + i + e_vec_offset] = uu[offsets[i + offsets[e]] * NUM_COMP + j];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset] = uu[offsets[i + offsets[e]] * NUM_COMP + j];
     }
-    e_vec_offset += num_points * (CeedSize)NUM_COMP;
+    for (CeedSize i = num_points; i < NUM_POINTS; i++) {
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset] = 0;
+    }
+    e_vec_offset += NUM_POINTS;
   }
   return CEED_ERROR_SUCCESS;
 }
 
-template <CeedInt BLOCK_SIZE, CeedInt NUM_COMP>
+template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP>
 static inline int CeedElemRestriction_Apply_Transpose_AtPoints(const CeedInt block, const CeedInt *offsets, const CeedScalar *__restrict__ uu,
                                                                CeedScalar *__restrict__ vv) {
   CeedSize e_vec_offset = 0;
@@ -296,14 +299,14 @@ static inline int CeedElemRestriction_Apply_Transpose_AtPoints(const CeedInt blo
     const CeedInt num_points = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] = uu[j * num_points + i + e_vec_offset];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] = uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
     }
-    e_vec_offset += num_points * (CeedSize)NUM_COMP;
+    e_vec_offset += NUM_POINTS;
   }
   return CEED_ERROR_SUCCESS;
 }
 
-template <CeedInt BLOCK_SIZE, CeedInt NUM_COMP>
+template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP>
 static inline int CeedElemRestriction_ApplyAdd_Transpose_AtPoints(const CeedInt block, const CeedInt *offsets, const CeedScalar *__restrict__ uu,
                                                                   CeedScalar *__restrict__ vv) {
   CeedSize e_vec_offset = 0;
@@ -312,9 +315,9 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_AtPoints(const CeedInt 
     const CeedInt num_points = offsets[e + 1] - offsets[e];
 
     for (CeedSize i = 0; i < num_points; i++) {
-      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] += uu[j * num_points + i + e_vec_offset];
+      for (CeedSize j = 0; j < NUM_COMP; j++) vv[offsets[i + offsets[e]] * NUM_COMP + j] += uu[j * BLOCK_SIZE * NUM_POINTS + i + e_vec_offset];
     }
-    e_vec_offset += num_points * (CeedSize)NUM_COMP;
+    e_vec_offset += NUM_POINTS;
   }
   return CEED_ERROR_SUCCESS;
 }

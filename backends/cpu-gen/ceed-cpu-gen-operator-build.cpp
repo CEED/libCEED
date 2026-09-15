@@ -170,9 +170,11 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, block_size, num_comp, l_size, strides, &block_rstr));
       } break;
       // LCOV_EXCL_START
-      case CEED_RESTRICTION_POINTS:
-        // Empty case - won't occur
-        break;
+      case CEED_RESTRICTION_POINTS: {
+        CeedCallBackend(CeedElemRestrictionReferenceCopy(elem_rstr, &block_rstr));
+      }
+      // Empty case - won't occur
+      break;
         // LCOV_EXCL_STOP
     }
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
@@ -196,7 +198,7 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
     } else if (eval_mode != CEED_EVAL_WEIGHT) {
       if (rstr_type == CEED_RESTRICTION_POINTS) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
-        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_points * block_size] = {0};\n";
+        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_num_points * block_size] = {0};\n";
       } else if (eval_mode == CEED_EVAL_NONE) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
         code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * elem_size" << var_suffix << " * block_size] = {0};\n";
@@ -270,8 +272,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           break;
         }
         case CEED_RESTRICTION_POINTS: {
-          code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, num_comp>(block, inputs[" << i << "].offsets, inputs[" << i
-               << "].l_vec, e_vec" << var_suffix << ");\n";
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, inputs["
+               << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
           break;
         }
       }
@@ -344,8 +346,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         break;
       }
       case CEED_RESTRICTION_POINTS: {
-        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, num_comp>(block, outputs[" << i << "].offsets, e_vec"
-             << var_suffix << ", outputs[" << i << "].l_vec);\n";
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, outputs["
+             << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
         break;
       }
     }
@@ -386,7 +388,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
   std::string         var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string         P_name     = (is_tensor ? "P_1d" : "P") + var_suffix;
   CeedEvalMode        eval_mode  = CEED_EVAL_NONE;
-  CeedInt             dim = 0, elem_size = 0, num_comp = 0, P_1d = 0;
+  CeedInt             dim, elem_size, num_comp, P_1d;
   CeedElemRestriction elem_rstr;
 
   assert(i >= 0 && i < CEED_FIELD_MAX);
@@ -438,27 +440,37 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
                  << var_suffix << "[i];\n";
             tab.pop();
             code << tab << "}\n";
-          } else {
-            std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
+          } else if (is_at_points) {
+            code << tab << "CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
+                 << ", " << P_name << ", Q_1d>(inputs[" << i << "].interp, e_vec_points_cheby, e_vec" << var_suffix << ", q_vec" << var_suffix
+                 << ");\n";
 
-            code << tab << "CeedBasis_Apply_NoTranspose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+          } else {
+            std::string name = "Tensor_" + std::to_string(dim) + "D";
+
+            code << tab << "CeedBasis_Apply_NoTranspose_Interp_Tensor_" << dim << "D<block_size, num_comp" << var_suffix << ", " << P_name
                  << ", Q_1d>(inputs[" << i << "].interp, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_GRAD: {
-          CeedBasis_Ref *ref_data;
+          if (is_at_points) {
+            code << tab << "CeedBasis_Apply_NoTranspose_Grad_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
+                 << ", " << P_name << ", Q_1d>(inputs[" << i << "].interp, e_vec_points_cheby, e_vec_points_dcheby, e_vec" << var_suffix << ", q_vec"
+                 << var_suffix << ");\n";
+          } else {
+            CeedBasis_Ref *ref_data;
 
-          CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-          std::string name =
-              (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
+            CeedCallBackend(CeedBasisGetData(basis, &ref_data));
+            std::string name = (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
 
-          code << tab << "CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(inputs["
-               << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
+            code << tab << "CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(inputs["
+                 << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
+          }
         } break;
         case CEED_EVAL_WEIGHT: {
           if (is_at_points) {
-            code << tab << "CeedScalar q_vec" << var_suffix << "[max_points * block_size] = {0};\n";
-            code << tab << "CeedBasis_Apply_Weight_AtPoints<block_size, max_points>(q_vec" << var_suffix << ");\n";
+            code << tab << "CeedScalar q_vec" << var_suffix << "[max_num_points * block_size] = {0};\n";
+            code << tab << "CeedBasis_Apply_Weight_AtPoints<block_size, max_num_points>(q_vec" << var_suffix << ");\n";
           } else {
             std::string name = "Tensor_" + std::to_string(dim) + "D";
 
@@ -518,22 +530,30 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
                  << var_suffix << "[i];\n";
             tab.pop();
             code << tab << "}\n";
+          } else if (is_at_points) {
+            code << tab << "CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
+                 << ", " << P_name << ", Q_1d>(outputs[" << i << "].interp, e_vec_points_cheby, q_vec" << var_suffix << ", e_vec" << var_suffix
+                 << ");\n";
           } else {
-            std::string name = (is_at_points ? "AtPoints_" : "Tensor_") + std::to_string(dim) + "D";
-
-            code << tab << "CeedBasis_Apply_Transpose_Interp_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name
+            code << tab << "CeedBasis_Apply_Transpose_Interp_Tensor_" << dim << "D<block_size, num_comp" << var_suffix << ", " << P_name
                  << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_GRAD: {
-          CeedBasis_Ref *ref_data;
+          if (is_at_points) {
+            code << tab << "CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix << ", "
+                 << P_name << ", Q_1d>(outputs[" << i << "].interp, e_vec_points_cheby, e_vec_points_dcheby, q_vec" << var_suffix << ", e_vec"
+                 << var_suffix << ");\n";
 
-          CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-          std::string name =
-              (is_at_points ? "AtPoints_" : (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_")) + std::to_string(dim) + "D";
+          } else {
+            CeedBasis_Ref *ref_data;
 
-          code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(outputs["
-               << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
+            CeedCallBackend(CeedBasisGetData(basis, &ref_data));
+            std::string name = (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
+
+            code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(outputs["
+                 << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
+          }
         } break;
         case CEED_EVAL_WEIGHT:
         case CEED_EVAL_DIV:
@@ -579,7 +599,13 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     case CEED_EVAL_INTERP: {
       const CeedScalar **ptr = is_input ? &data->inputs[i].interp : &data->outputs[i].interp;
 
-      if (is_tensor) {
+      if (is_at_points) {
+        CeedBasis basis_chebyshev;
+
+        CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+        CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, ptr));
+        CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
+      } else if (is_tensor) {
         CeedCallBackend(CeedBasisGetInterp1D(basis, ptr));
       } else {
         CeedCallBackend(CeedBasisGetInterp(basis, ptr));
@@ -589,14 +615,23 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       if (is_tensor) {
         const CeedScalar **interp_ptr = is_input ? &data->inputs[i].interp : &data->outputs[i].interp;
         const CeedScalar **grad_ptr   = is_input ? &data->inputs[i].grad : &data->outputs[i].grad;
-        CeedBasis_Ref     *ref_data;
 
-        CeedCallBackend(CeedBasisGetInterp1D(basis, interp_ptr));
-        CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-        if (dim > 2 && ref_data->collo_grad_1d) {
-          *grad_ptr = ref_data->collo_grad_1d;
+        if (is_at_points) {
+          CeedBasis basis_chebyshev;
+
+          CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+          CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, interp_ptr));
+          CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         } else {
-          CeedCallBackend(CeedBasisGetGrad1D(basis, grad_ptr));
+          CeedBasis_Ref *ref_data;
+
+          CeedCallBackend(CeedBasisGetInterp1D(basis, interp_ptr));
+          CeedCallBackend(CeedBasisGetData(basis, &ref_data));
+          if (dim > 2 && ref_data->collo_grad_1d) {
+            *grad_ptr = ref_data->collo_grad_1d;
+          } else {
+            CeedCallBackend(CeedBasisGetGrad1D(basis, grad_ptr));
+          }
         }
       } else {
         const CeedScalar **ptr = is_input ? &data->inputs[i].grad : &data->outputs[i].grad;
@@ -650,7 +685,25 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   // Call QFunction
   code << tab << "// ---- Call User QFunction\n";
   if (is_at_points) {
-    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n\n";
+    code << tab << "if (num_elem - block * block_size < block_size && !!(num_elem % block_size)) {\n";
+    tab.push();
+    code << tab << "for (CeedInt elem = 0; elem < num_elem % block_size; elem++) {\n";
+    tab.push();
+    code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
+    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
+    tab.pop();
+    code << tab << "}\n";
+    tab.pop();
+    code << tab << "} else {\n";
+    tab.push();
+    code << tab << "for (CeedInt elem = 0; elem < block_size; elem++) {\n";
+    tab.push();
+    code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
+    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
+    tab.pop();
+    code << tab << "}\n";
+    tab.pop();
+    code << tab << "}\n\n";
   } else {
     code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, Q * block_size, q_vecs_in, q_vecs_out));\n\n";
   }
@@ -663,7 +716,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
 
 extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_build) {
   const char           *qfunction_name;
-  bool                  is_at_points = false;
+  bool                  is_at_points = false, has_interp_at_points = false, has_grad_at_points = false;
   CeedInt               num_input_fields, num_output_fields, block_size = 1, max_num_points = 1, dim_points = 1;
   Ceed                  ceed;
   CeedQFunction         qf;
@@ -744,7 +797,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
   // Open function body
   code << tab << "// Operator function\n";
-  code << tab << "static inline int " << operator_name << "(void *ctx, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
+  code << tab << "static inline int " << operator_name
+       << "(void *ctx, const PointsData_Cpu_Gen *points, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
   tab.push();
 
   // Get problem info
@@ -755,6 +809,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
     CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
     code << tab << "constexpr CeedInt Q = " << Q << ";\n";
+  } else {
+    code << tab << "constexpr CeedInt Q = " << max_num_points << ";\n";
   }
   {
     CeedInt Q_1d = -1;
@@ -786,8 +842,22 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     }
   }
   if (is_at_points) {
-    code << tab << "constexpr CeedInt max_num_points = " << max_num_points << "\n";
-    code << tab << "constexpr CeedInt dim_points = " << dim_points << "\n";
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedEvalMode eval_mode;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      has_interp_at_points = has_interp_at_points || eval_mode == CEED_EVAL_INTERP;
+      has_grad_at_points   = has_grad_at_points || eval_mode == CEED_EVAL_GRAD;
+    }
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedEvalMode eval_mode;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+      has_interp_at_points = has_interp_at_points || eval_mode == CEED_EVAL_INTERP;
+      has_grad_at_points   = has_grad_at_points || eval_mode == CEED_EVAL_GRAD;
+    }
+    code << tab << "constexpr CeedInt max_num_points = " << max_num_points << ";\n";
+    code << tab << "constexpr CeedInt dim_points = " << dim_points << ";\n";
   }
   {
     CeedInt num_elem;
@@ -901,8 +971,18 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // AtPoints data
   if (is_at_points) {
     code << tab << "// -- Points ElemRestriction\n";
-    code << tab << "CeedScalar e_vec_points[max_num_points * dim_points];\n";
-    code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, dim_points>(block, points->offsets, points->l_vec, e_vec_points);\n";
+    code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points];\n";
+    code << tab
+         << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, dim_points>(block, points->offsets, points->l_vec, "
+            "e_vec_points);\n";
+    if (has_interp_at_points || has_grad_at_points) {
+      code << tab << "CeedScalar e_vec_points_cheby[block_size * max_num_points * dim_points * Q_1d];\n";
+      code << tab << "CeedBasis_ChebyshevPolynomialEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_cheby);\n";
+    }
+    if (has_grad_at_points) {
+      code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d];\n";
+      code << tab << "CeedBasis_ChebyshevDerivativeEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_dcheby);\n";
+    }
   }
 
   // Apply ElemRestrictions
@@ -948,7 +1028,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     code << tab << "extern \"C\" int CeedOperator_" << hash
          << "(void *ctx, const PointsData_Cpu_Gen *points, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
-    code << tab << "CeedCall(" << operator_name << "(ctx, inputs, outputs));\n";
+    code << tab << "CeedCall(" << operator_name << "(ctx, points, inputs, outputs));\n";
     code << tab << "return CEED_ERROR_SUCCESS;\n";
     tab.pop();
     code << tab << "}\n\n";
