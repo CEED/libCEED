@@ -685,25 +685,17 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   // Call QFunction
   code << tab << "// ---- Call User QFunction\n";
   if (is_at_points) {
-    code << tab << "if (num_elem - block * block_size < block_size && !!(num_elem % block_size)) {\n";
+    code << tab << "{\n";
     tab.push();
-    code << tab << "for (CeedInt elem = 0; elem < num_elem % block_size; elem++) {\n";
-    tab.push();
-    code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
-    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
-    tab.pop();
-    code << tab << "}\n";
-    tab.pop();
-    code << tab << "} else {\n";
-    tab.push();
-    code << tab << "for (CeedInt elem = 0; elem < block_size; elem++) {\n";
+    code << tab << "const CeedInt num_elem_apply = (block * block_size < num_elem) ? block_size : (num_elem % block_size);\n\n";
+    code << tab << "for (CeedInt elem = 0; num_elem_apply; elem++) {\n";
     tab.push();
     code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
     code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
     tab.pop();
     code << tab << "}\n";
     tab.pop();
-    code << tab << "}\n\n";
+    code << tab << "}\n";
   } else {
     code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, Q * block_size, q_vecs_in, q_vecs_out));\n\n";
   }
