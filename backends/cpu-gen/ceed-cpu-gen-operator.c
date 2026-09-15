@@ -109,13 +109,13 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
 
     // Context
     CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-    CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx));
+    CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_HOST, &ctx));
 
     // Run JiTed function
     CeedRunFunction_Cpu(ceed, impl->handle, impl->op_function_name, op_function, ctx, &impl->points, impl->inputs, impl->outputs);
 
     // Restore context
-    CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx));
+    CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &ctx));
 
     // Restore input l-vecs
     for (CeedInt i = 0; i < num_input_fields; i++) {
