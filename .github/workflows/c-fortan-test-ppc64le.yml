@@ -12,29 +12,30 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         compiler: [gcc]
-        arch: [ppc64le]
-        distro: [ubuntu22.04]
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - name: Environment setup
       uses: actions/checkout@v5
-    - name: Hardware setup and test libCEED
-      uses: uraimo/run-on-arch-action@v3
+    - name: Install cross toolchain and QEMU
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qemu-user-static gcc-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
+    - name: Build libCEED for ppc64le
       env:
-        CC: ${{ matrix.compiler }}
-        FC: gfortran
-      id: runcmd
-      with:
-        arch: ${{ matrix.arch }}
-        distro: ${{ matrix.distro }}
-        run: |
-          apt-get -y update
-          apt-get install -y build-essential
-          apt-get install -y gfortran
-          apt-get install -y python3
-          uname -a
-          make info
-          make -j4
-          make -j4 PROVE_OPTS=-j4 prove
+        CC: powerpc64le-linux-gnu-${{ matrix.compiler }}
+        FC: powerpc64le-linux-gnu-gfortran
+        OPT: -O2 -g -ffp-contract=fast
+      run: |
+        make info
+        make -j4
+    - name: Test libCEED under QEMU
+      env:
+        CC: powerpc64le-linux-gnu-${{ matrix.compiler }}
+        FC: powerpc64le-linux-gnu-gfortran
+        OPT: -O2 -g -ffp-contract=fast
+        CEED_TEST_RUNNER: qemu-ppc64le -L /usr/powerpc64le-linux-gnu
+      run: |
+        qemu-ppc64le -L /usr/powerpc64le-linux-gnu build/t000-ceed /cpu/self/ref/serial
+        make -j4 PROVE_OPTS=-j4 prove
