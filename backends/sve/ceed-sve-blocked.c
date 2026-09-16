@@ -34,6 +34,6 @@ static int CeedInit_Sve(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sve_Blocked(void) { return CeedRegister("/cpu/self/sve/blocked", CeedInit_Sve, 30); }
+CEED_INTERN int CeedRegister_Sve_Blocked(void) { return CeedRegister("/cpu/self/sve/blocked", CeedInit_Sve, 31); }
 
 //------------------------------------------------------------------------------

@@ -34,6 +34,6 @@ static int CeedInit_Sve(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sve_Serial(void) { return CeedRegister("/cpu/self/sve/serial", CeedInit_Sve, 35); }
+CEED_INTERN int CeedRegister_Sve_Serial(void) { return CeedRegister("/cpu/self/sve/serial", CeedInit_Sve, 36); }
 
 //------------------------------------------------------------------------------

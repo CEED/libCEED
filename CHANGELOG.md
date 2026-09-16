@@ -23,7 +23,6 @@ These functions will be removed when the SYCL backends are updated to reflect th
 
 ### New features
 
-- Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 - Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
 - Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
 - Add `CeedVectorReturnCeed` and similar when parent `Ceed` context for a libCEED object is only needed once in a calling scope.
@@ -37,6 +36,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends.
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
 - Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
+- Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 
 ### Examples
 
