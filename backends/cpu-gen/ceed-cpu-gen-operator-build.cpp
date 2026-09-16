@@ -956,16 +956,21 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // AtPoints data
   if (is_at_points) {
     code << tab << "// -- Points ElemRestriction\n";
-    code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points];\n";
+    code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points] = {0.};\n";
     code << tab
          << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, dim_points>(block, points->offsets, points->l_vec, "
             "e_vec_points);\n";
+    code << tab << "// -- Points Chebyshev polynomials\n";
     if (has_interp_at_points || has_grad_at_points) {
-      code << tab << "CeedScalar e_vec_points_cheby[block_size * max_num_points * dim_points * Q_1d];\n";
+      code << tab << "CeedScalar e_vec_points_cheby[block_size * max_num_points * dim_points * Q_1d] = {0.};\n";
+    }
+    if (has_grad_at_points) {
+      code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d] = {0.};\n";
+    }
+    if (has_interp_at_points || has_grad_at_points) {
       code << tab << "CeedBasis_ChebyshevPolynomialEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_cheby);\n";
     }
     if (has_grad_at_points) {
-      code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d];\n";
       code << tab << "CeedBasis_ChebyshevDerivativeEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_dcheby);\n";
     }
     code << tab << "\n";
