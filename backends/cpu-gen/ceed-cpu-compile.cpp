@@ -27,6 +27,12 @@
 #include <sstream>
 #include <string>
 
+#define CEED_QUOTE(name) #name
+#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
+const char *CeedCpuOpt = CEED_STRINGIFY(CEED_CPU_OPT);
+#undef CEED_QUOTE
+#undef CEED_STRINGIFY
+
 #define CeedCallSystem(ceed, command, message) CeedCallBackend(CeedCallSystem_Core(ceed, command, message, true, NULL))
 #define CeedCallSystem_Unchecked(ceed, command, message, is_success) CeedCallBackend(CeedCallSystem_Core(ceed, command, message, false, is_success))
 
@@ -55,15 +61,11 @@ static inline int CeedCallSystem_Core(Ceed ceed, const char *command, const char
 // Build array of JIT flags
 //------------------------------------------------------------------------------
 static inline int CeedJitGetOpts_Cpu(Ceed ceed, const char ***opts, int *num_opts) {
-  int opts_count = 2;
+  int opts_count = 1;
 
   // Standard options
   CeedCallBackend(CeedCalloc(opts_count, opts));
-  // TODO: Revert
-  // CeedCallBackend(CeedStringAllocCopy("-march=native", (char **)&(*opts)[0]));
-  // CeedCallBackend(CeedStringAllocCopy("-O3", (char **)&(*opts)[1]));
-  CeedCallBackend(CeedStringAllocCopy("-g", (char **)&(*opts)[0]));
-  CeedCallBackend(CeedStringAllocCopy("-O0", (char **)&(*opts)[1]));
+  CeedCallBackend(CeedStringAllocCopy(CeedCpuOpt, (char **)&(*opts)[0]));
 
   // Additional include dirs
   {

@@ -539,6 +539,7 @@ LIBCEED_CONTAINS_CXX = 1
 libceed.c   += $(cpu-gen.c)
 libceed.cpp += $(cpu-gen.cpp)
 libceed.h   += $(cpu-gen.h)
+CPPFLAGS    += -DCEED_CPU_OPT='$(OPT)'
 
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
