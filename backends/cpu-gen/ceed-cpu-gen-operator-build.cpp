@@ -88,7 +88,7 @@ static int CeedOperatorBuildKernelFieldData_Cpu_Gen(std::ostringstream &code, Ce
 // Restriction
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, CeedOperator_Cpu_Gen *data, Tab &tab, CeedInt i,
-                                                      CeedInt field_input_buffer[], CeedOperatorField op_field, CeedQFunctionField qf_field,
+                                                      const CeedInt field_input_buffer[], CeedOperatorField op_field, CeedQFunctionField qf_field,
                                                       bool is_input, const CeedInt block_size) {
   std::string         var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   CeedEvalMode        eval_mode  = CEED_EVAL_NONE;
@@ -198,10 +198,10 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
     } else if (eval_mode != CEED_EVAL_WEIGHT) {
       if (rstr_type == CEED_RESTRICTION_POINTS) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
-        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_num_points * block_size] = {0.};\n";
+        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * max_num_points * block_size];\n";
       } else if (eval_mode == CEED_EVAL_NONE) {
         // No basis action, so space for e_vec_in_*/q_vec_in_* needs to be allocated
-        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * elem_size" << var_suffix << " * block_size] = {0.};\n";
+        code << tab << "CeedScalar e_vec" << var_suffix << "[num_comp" << var_suffix << " * elem_size" << var_suffix << " * block_size];\n";
       } else {
         // Otherwise we're using the scratch space
         code << tab << "CeedScalar *e_vec" << var_suffix << " = e_vec_scratch;\n";
@@ -368,8 +368,9 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
 //------------------------------------------------------------------------------
 // Basis
 //------------------------------------------------------------------------------
-static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOperator_Cpu_Gen *data, Tab &tab, CeedInt i, CeedOperatorField op_field,
-                                                CeedQFunctionField qf_field, bool is_input, bool is_at_points) {
+static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOperator_Cpu_Gen *data, Tab &tab, CeedInt i,
+                                                const bool output_apply_add[], CeedOperatorField op_field, CeedQFunctionField qf_field, bool is_input,
+                                                bool is_at_points) {
   bool      is_tensor = true, is_collocated = true;
   CeedBasis basis;
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
@@ -416,7 +417,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       // Handled separately
     } else if (eval_mode != CEED_EVAL_NONE) {
       code << tab << "CeedScalar q_vec" << var_suffix << "[num_q_comp" << var_suffix << " * num_comp" << var_suffix << " * "
-           << (is_at_points ? "max_num_points" : "Q") << " * block_size] = {0.};\n";
+           << (is_at_points ? "max_num_points" : "Q") << " * block_size];\n";
     } else {
       code << tab << "CeedScalar *q_vec" << var_suffix << " = e_vec" << var_suffix << ";\n";
     }
@@ -461,12 +462,12 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         } break;
         case CEED_EVAL_WEIGHT: {
           if (is_at_points) {
-            code << tab << "CeedScalar q_vec" << var_suffix << "[max_num_points * block_size] = {0.};\n";
+            code << tab << "CeedScalar q_vec" << var_suffix << "[max_num_points * block_size];\n";
             code << tab << "CeedBasis_Apply_Weight_AtPoints<block_size, max_num_points>(q_vec" << var_suffix << ");\n";
           } else {
             std::string name = "Tensor_" + std::to_string(dim) + "D";
 
-            code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size] = {0.};\n";
+            code << tab << "CeedScalar q_vec" << var_suffix << "[Q * block_size];\n";
             code << tab << "CeedBasis_Apply_Weight_" << name << "<block_size, Q_1d>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
           }
         } break;
@@ -477,7 +478,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
       }
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
-        code << tab << "CeedScalar q_vec" << var_suffix << "[" << (is_at_points ? "max_num_points" : "Q") << " * block_size] = {0.};\n";
+        code << tab << "CeedScalar q_vec" << var_suffix << "[" << (is_at_points ? "max_num_points" : "Q") << " * block_size];\n";
         code << tab << "CeedBasis_Apply_Weight_NonTensor<block_size, Q>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
       } else if (eval_mode != CEED_EVAL_NONE) {
         code << tab << "CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
@@ -507,7 +508,6 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     if (eval_mode == CEED_EVAL_NONE) {
       code << tab << "CeedScalar *e_vec" << var_suffix << " = q_vec" << var_suffix << ";\n";
     } else {
-      // TODO: BasisApplyAdd to reduce repeat rstrs
       code << tab << "CeedScalar *e_vec" << var_suffix << " = e_vec_scratch;\n";
     }
     if (is_tensor) {
@@ -518,24 +518,25 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           if (is_collocated) {
             code << tab << "{\n";
             tab.push();
-            code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) e_vec" << var_suffix << "[i] = q_vec"
-                 << var_suffix << "[i];\n";
+            code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) e_vec" << var_suffix << "[i] "
+                 << (output_apply_add[i] ? "+" : "") << "= q_vec" << var_suffix << "[i];\n";
             tab.pop();
             code << tab << "}\n";
           } else if (is_at_points) {
             code << tab << "CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
-                 << ", " << P_name << ", Q_1d>(outputs[" << i << "].interp, e_vec_points_cheby, q_vec" << var_suffix << ", e_vec" << var_suffix
-                 << ");\n";
+                 << ", " << P_name << ", Q_1d, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i
+                 << "].interp, e_vec_points_cheby, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
           } else {
-            code << tab << "CeedBasis_Apply_Transpose_Interp_Tensor_" << dim << "D<block_size, num_comp" << var_suffix << ", " << P_name
-                 << ", Q_1d>(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
+            code << tab << "CeedBasis_Apply_Transpose_Interp_Tensor_" << dim << "D<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d, "
+                 << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix
+                 << ");\n";
           }
         } break;
         case CEED_EVAL_GRAD: {
           if (is_at_points) {
             code << tab << "CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix << ", "
-                 << P_name << ", Q_1d>(outputs[" << i << "].interp, e_vec_points_cheby, e_vec_points_dcheby, q_vec" << var_suffix << ", e_vec"
-                 << var_suffix << ");\n";
+                 << P_name << ", Q_1d, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i
+                 << "].interp, e_vec_points_cheby, e_vec_points_dcheby, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
 
           } else {
             CeedBasis_Ref *ref_data;
@@ -543,8 +544,9 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
             CeedCallBackend(CeedBasisGetData(basis, &ref_data));
             std::string name = (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
 
-            code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(outputs["
-                 << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
+            code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d, "
+                 << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix
+                 << ", e_vec" << var_suffix << ");\n";
           }
         } break;
         case CEED_EVAL_WEIGHT:
@@ -558,7 +560,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         // Should not occur
       } else if (eval_mode != CEED_EVAL_NONE) {
         code << tab << "CeedBasis_Apply_Transpose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
-             << ", Q>(outputs[" << i << "].";
+             << ", Q, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].";
         switch (eval_mode) {
           case CEED_EVAL_NONE:
             break;
@@ -896,6 +898,67 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     }
   }
 
+  // And best output field order
+  bool    output_skip_rstr[CEED_FIELD_MAX] = {false}, output_apply_add_basis[CEED_FIELD_MAX] = {false};
+  CeedInt output_field_order[CEED_FIELD_MAX];
+
+  for (CeedInt i = 0; i < num_output_fields; i++) output_field_order[i] = -1;
+  {
+    bool    is_ordered[CEED_FIELD_MAX];
+    CeedInt curr_index = 0;
+
+    for (CeedInt i = 0; i < num_output_fields; i++) is_ordered[i] = false;
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedVector          vec_i;
+      CeedElemRestriction rstr_i;
+
+      if (is_ordered[i]) continue;
+      is_ordered[i]                  = true;
+      output_field_order[curr_index] = i;
+      curr_index++;
+      CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec_i));
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr_i));
+      for (CeedInt j = i + 1; j < num_output_fields; j++) {
+        CeedVector          vec_j;
+        CeedElemRestriction rstr_j;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[j], &vec_j));
+        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[j], &rstr_j));
+        if (rstr_i == rstr_j && vec_i == vec_j) {
+          is_ordered[j]                  = true;
+          output_field_order[curr_index] = j;
+          curr_index++;
+        }
+        CeedCallBackend(CeedVectorDestroy(&vec_j));
+        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
+      }
+      CeedCallBackend(CeedVectorDestroy(&vec_i));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
+    }
+  }
+  for (CeedInt i = num_output_fields - 1; i >= 0; i--) {
+    CeedVector          vec_i;
+    CeedElemRestriction rstr_i;
+
+    CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec_i));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr_i));
+    for (CeedInt j = i - 1; j >= 0; j--) {
+      CeedVector          vec_j;
+      CeedElemRestriction rstr_j;
+
+      CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[j], &vec_j));
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[j], &rstr_j));
+      if (vec_i == vec_j && rstr_i == rstr_j) {
+        output_skip_rstr[j]       = true;
+        output_apply_add_basis[i] = true;
+      }
+      CeedCallBackend(CeedVectorDestroy(&vec_j));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
+    }
+    CeedCallBackend(CeedVectorDestroy(&vec_i));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
+  }
+
   // Field info
   code << tab << "// Field constants\n";
   code << tab << "// -- Input Fields\n";
@@ -946,7 +1009,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "constexpr CeedInt max_e_vec_buffer_size = " << max_rstr_buffer_size << ";\n";
-  code << tab << "CeedScalar e_vec_scratch[max_e_vec_buffer_size * block_size] = {0.};\n\n";
+  code << tab << "CeedScalar e_vec_scratch[max_e_vec_buffer_size * block_size];\n\n";
 
   // Loop over blocks
   code << tab << "// Loop over blocks\n";
@@ -956,16 +1019,16 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // AtPoints data
   if (is_at_points) {
     code << tab << "// -- Points ElemRestriction\n";
-    code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points] = {0.};\n";
+    code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points];\n";
     code << tab
          << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, dim_points>(block, points->offsets, points->l_vec, "
             "e_vec_points);\n";
     code << tab << "// -- Points Chebyshev polynomials\n";
     if (has_interp_at_points || has_grad_at_points) {
-      code << tab << "CeedScalar e_vec_points_cheby[block_size * max_num_points * dim_points * Q_1d] = {0.};\n";
+      code << tab << "CeedScalar e_vec_points_cheby[block_size * max_num_points * dim_points * Q_1d];\n";
     }
     if (has_grad_at_points) {
-      code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d] = {0.};\n";
+      code << tab << "CeedScalar e_vec_points_dcheby[block_size * max_num_points * dim_points * Q_1d];\n";
     }
     if (has_interp_at_points || has_grad_at_points) {
       code << tab << "CeedBasis_ChebyshevPolynomialEval<block_size, max_num_points, dim_points, Q_1d>(e_vec_points, e_vec_points_cheby);\n";
@@ -983,7 +1046,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cpu_Gen(code, data, tab, field, field_rstr_in_buffer, op_input_fields[field],
                                                                qf_input_fields[field], true, block_size));
-    CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, field, op_input_fields[field], qf_input_fields[field], true, is_at_points));
+    CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, field, NULL, op_input_fields[field], qf_input_fields[field], true,
+                                                         is_at_points));
   }
   code << tab << "\n";
 
@@ -995,9 +1059,14 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // Apply ElemRestrictions Transpose
   code << tab << "// -- Output Bases and ElemRestrictions\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, i, op_output_fields[i], qf_output_fields[i], false, is_at_points));
-    CeedCallBackend(CeedOperatorBuildKernelRestriction_Cpu_Gen(code, data, tab, i, NULL, op_output_fields[i], qf_output_fields[i], false,
-                                                               block_size));
+    CeedInt field = output_field_order[i];
+
+    CeedCallBackend(CeedOperatorBuildKernelBasis_Cpu_Gen(code, data, tab, field, output_apply_add_basis, op_output_fields[field],
+                                                         qf_output_fields[field], false, is_at_points));
+    if (!output_skip_rstr[field]) {
+      CeedCallBackend(CeedOperatorBuildKernelRestriction_Cpu_Gen(code, data, tab, field, NULL, op_output_fields[field], qf_output_fields[field],
+                                                                 false, block_size));
+    }
   }
 
   // Close loop over blocks
