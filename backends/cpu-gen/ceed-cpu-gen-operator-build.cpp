@@ -426,18 +426,18 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         case CEED_EVAL_NONE:
           break;
         case CEED_EVAL_INTERP: {
-          if (is_collocated) {
+          if (is_at_points) {
+            code << tab << "CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
+                 << ", " << P_name << ", Q_1d>(inputs[" << i << "].interp, e_vec_points_cheby, e_vec" << var_suffix << ", q_vec" << var_suffix
+                 << ");\n";
+
+          } else if (is_collocated) {
             code << tab << "{\n";
             tab.push();
             code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) q_vec" << var_suffix << "[i] = e_vec"
                  << var_suffix << "[i];\n";
             tab.pop();
             code << tab << "}\n";
-          } else if (is_at_points) {
-            code << tab << "CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
-                 << ", " << P_name << ", Q_1d>(inputs[" << i << "].interp, e_vec_points_cheby, e_vec" << var_suffix << ", q_vec" << var_suffix
-                 << ");\n";
-
           } else {
             std::string name = "Tensor_" + std::to_string(dim) + "D";
 
@@ -515,17 +515,17 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         case CEED_EVAL_NONE:
           break;
         case CEED_EVAL_INTERP: {
-          if (is_collocated) {
+          if (is_at_points) {
+            code << tab << "CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
+                 << ", " << P_name << ", Q_1d, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i
+                 << "].interp, e_vec_points_cheby, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
+          } else if (is_collocated) {
             code << tab << "{\n";
             tab.push();
             code << tab << "for (CeedInt i = 0; i < num_comp" << var_suffix << " * Q * block_size; i++) e_vec" << var_suffix << "[i] "
                  << (output_apply_add[i] ? "+" : "") << "= q_vec" << var_suffix << "[i];\n";
             tab.pop();
             code << tab << "}\n";
-          } else if (is_at_points) {
-            code << tab << "CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
-                 << ", " << P_name << ", Q_1d, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i
-                 << "].interp, e_vec_points_cheby, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
           } else {
             code << tab << "CeedBasis_Apply_Transpose_Interp_Tensor_" << dim << "D<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d, "
                  << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].interp, q_vec" << var_suffix << ", e_vec" << var_suffix

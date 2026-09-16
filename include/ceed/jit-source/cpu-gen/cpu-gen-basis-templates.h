@@ -38,6 +38,7 @@ inline void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar *chebyshev
   }
 }
 
+// chebyshev_x has slowest to fastest strides: DIM_POINTS, BLOCK_SIZE * NUM_POINTS, Q_1D
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt DIM_POINTS, CeedInt Q_1D>
 inline void CeedBasis_ChebyshevPolynomialEval(const CeedScalar *x, CeedScalar *chebyshev_x) {
   for (CeedInt d = 0; d < DIM_POINTS; d++) {
@@ -47,6 +48,7 @@ inline void CeedBasis_ChebyshevPolynomialEval(const CeedScalar *x, CeedScalar *c
   }
 }
 
+// chebyshev_dx has slowest to fastest strides: DIM_POINTS, BLOCK_SIZE * NUM_POINTS, Q_1D
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt DIM_POINTS, CeedInt Q_1D>
 inline void CeedBasis_ChebyshevDerivativeEval(const CeedScalar *x, CeedScalar *chebyshev_dx) {
   for (CeedInt d = 0; d < DIM_POINTS; d++) {
@@ -62,14 +64,10 @@ inline void CeedBasis_ChebyshevDerivativeEval(const CeedScalar *x, CeedScalar *c
 
 template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
 static inline int TensorContract_ApplyAdd_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
-  constexpr CeedInt t_stride_0 = B, t_stride_1 = 1;
-
   for (CeedInt a = 0; a < A; a++) {
     for (CeedInt b = 0; b < B; b++) {
       for (CeedInt j = 0; j < J; j++) {
-        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
-
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
+        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += t[j * B + b] * u[(a * B + b) * C + c];
       }
     }
   }
@@ -84,16 +82,36 @@ static inline int TensorContract_Apply_NoTranspose(const CeedScalar *t, const Ce
   return CEED_ERROR_SUCCESS;
 }
 
-template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
-static inline int TensorContract_ApplyAdd_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
-  constexpr CeedInt t_stride_0 = 1, t_stride_1 = J;
+// v_Ap += t_pB u_ABp for p = 0,...,P-1
+template <CeedInt A, CeedInt B, CeedInt P>
+static inline int TensorContract_ApplyAdd_Points_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  constexpr CeedInt t_stride_0 = B, t_stride_1 = 1;
 
   for (CeedInt a = 0; a < A; a++) {
     for (CeedInt b = 0; b < B; b++) {
-      for (CeedInt j = 0; j < J; j++) {
-        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+      for (CeedInt p = 0; p < P; p++) {
+        v[a * P + p] += t[p * B + b] * u[(a * B + b) * P + p];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
 
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
+// v_Ap = t_pB u_ABp for p = 0,...,P-1
+template <CeedInt A, CeedInt B, CeedInt P>
+static inline int TensorContract_Apply_Points_NoTranspose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt q = 0; q < A * P; q++) v[q] = (CeedScalar)0.0;
+
+  TensorContract_ApplyAdd_Points_NoTranspose<A, B, P>(t, u, v);
+  return CEED_ERROR_SUCCESS;
+}
+
+template <CeedInt A, CeedInt B, CeedInt C, CeedInt J>
+static inline int TensorContract_ApplyAdd_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt b = 0; b < B; b++) {
+      for (CeedInt j = 0; j < J; j++) {
+        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += t[b * J + j] * u[(a * B + b) * C + c];
       }
     }
   }
@@ -105,6 +123,28 @@ static inline int TensorContract_Apply_Transpose(const CeedScalar *t, const Ceed
   for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
 
   TensorContract_ApplyAdd_Transpose<A, B, C, J>(t, u, v);
+  return CEED_ERROR_SUCCESS;
+}
+
+// v_AJp += t_pJ u_Ap for p = 0,...,P-1
+template <CeedInt A, CeedInt J, CeedInt P>
+static inline int TensorContract_ApplyAdd_Points_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt j = 0; j < J; j++) {
+      for (CeedInt p = 0; p < P; p++) {
+        v[(a * J + j) * P + p] += t[p * J + j] * u[a * P + p];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+// v_AJp = t_pJ u_Ap for p = 0,...,P-1
+template <CeedInt A, CeedInt J, CeedInt P>
+static inline int TensorContract_Apply_Points_Transpose(const CeedScalar *t, const CeedScalar *u, CeedScalar *v) {
+  for (CeedInt q = 0; q < A * J * P; q++) v[q] = (CeedScalar)0.0;
+
+  TensorContract_ApplyAdd_Points_Transpose<A, J, P>(t, u, v);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -234,31 +274,30 @@ static inline int CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_1D(const Ce
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D>
 static inline int CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_2D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                         const CeedScalar *u, CeedScalar *v_points) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D]    = {0.};
-  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D];
+  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
 
   CeedBasis_Apply_NoTranspose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D>(interp_cheby_1d, u, u_cheby);
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_cheby,
                                                                                       temp);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                                                     temp, v_points);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, v_points);
   return CEED_ERROR_SUCCESS;
 }
 
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D>
 static inline int CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_3D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                         const CeedScalar *u, CeedScalar *v_points) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D]            = {0.};
-  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS]       = {0.};
-  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D];
+  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS];
+  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
 
   CeedBasis_Apply_NoTranspose_Interp_Tensor_3D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D>(interp_cheby_1d, u, u_cheby);
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
                                                                                              u_cheby, temp_0);
-  TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0, temp_1);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, v_points);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                          temp_1);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                   v_points);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -302,7 +341,7 @@ static inline int CeedBasis_Apply_Transpose_Interp_Tensor_3D(const CeedScalar *i
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_1D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D] = {nan("")};
 
   TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(x_ref_cheby, u_points, u_cheby);
   CeedBasis_Apply_Transpose_Interp_Tensor_1D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
@@ -312,27 +351,30 @@ static inline int CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_1D(const Ceed
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_2D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D]    = {0.};
-  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D]    = {nan("")};
+  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS] = {nan("")};
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_points, temp);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_points, temp);
+  TensorContract_Apply_Transpose<NUM_COMP * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
+
   CeedBasis_Apply_Transpose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
+
   return CEED_ERROR_SUCCESS;
 }
 
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_3D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D]            = {0.};
-  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS]       = {0.};
-  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D];
+  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS];
+  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS * NUM_POINTS];
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_points, temp_0);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0, temp_1);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D * Q_1D, Q_1D>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
-                                                                                       u_cheby);
-  CeedBasis_Apply_Transpose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_points, temp_1);
+  TensorContract_Apply_Points_Transpose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                        temp_0);
+  TensorContract_Apply_Transpose<NUM_COMP * Q_1D * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                           u_cheby);
+  CeedBasis_Apply_Transpose_Interp_Tensor_3D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -403,9 +445,9 @@ static inline int CeedBasis_Apply_NoTranspose_Grad_Collo_Tensor_3D(const CeedSca
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D>
 static inline int CeedBasis_Apply_NoTranspose_Grad_AtPoints_Tensor_1D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *dx_ref_cheby, const CeedScalar *u, CeedScalar *v_points) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D];
 
-  TensorContract_Apply_NoTranspose<NUM_COMP, P_1D, BLOCK_SIZE, Q_1D>(interp_cheby_1d, u, u_cheby);
+  CeedBasis_Apply_NoTranspose_Interp_Tensor_1D<BLOCK_SIZE, NUM_COMP, Q_1D, P_1D>(x_ref_cheby, u, u_cheby);
   TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(dx_ref_cheby, u_cheby, v_points);
   return CEED_ERROR_SUCCESS;
 }
@@ -413,52 +455,51 @@ static inline int CeedBasis_Apply_NoTranspose_Grad_AtPoints_Tensor_1D(const Ceed
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D>
 static inline int CeedBasis_Apply_NoTranspose_Grad_AtPoints_Tensor_2D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *dx_ref_cheby, const CeedScalar *u, CeedScalar *v_points) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D]    = {0.};
-  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D];
+  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
 
   CeedBasis_Apply_NoTranspose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D>(interp_cheby_1d, u, u_cheby);
 
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_cheby,
                                                                                       temp);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                                                     temp, v_points);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, v_points);
 
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_cheby,
                                                                                       temp);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, &v_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp,
+                                                                                   &v_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
   return CEED_ERROR_SUCCESS;
 }
 
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D>
 static inline int CeedBasis_Apply_NoTranspose_Grad_AtPoints_Tensor_3D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                       const CeedScalar *dx_ref_cheby, const CeedScalar *u, CeedScalar *v_points) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D]            = {0.};
-  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS]       = {0.};
-  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS * NUM_POINTS] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D];
+  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS];
+  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
 
   CeedBasis_Apply_NoTranspose_Interp_Tensor_3D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D>(interp_cheby_1d, u, u_cheby);
 
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
                                                                                              u_cheby, temp_0);
-  TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0, temp_1);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, &v_points[0 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                          temp_1);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                   &v_points[0 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
 
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
                                                                                              u_cheby, temp_0);
-  TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0, temp_1);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, &v_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                          temp_1);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                   &v_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
 
   TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D * Q_1D, Q_1D, 1, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
                                                                                              u_cheby, temp_0);
-  TensorContract_Apply_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0, temp_1);
-  TensorContract_Apply_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS * NUM_POINTS, BLOCK_SIZE * NUM_POINTS>(
-      &dx_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, &v_points[2 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                          temp_1);
+  TensorContract_Apply_Points_NoTranspose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                   &v_points[2 * BLOCK_SIZE * NUM_COMP * NUM_POINTS]);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -539,25 +580,27 @@ static inline int CeedBasis_Apply_Transpose_Grad_Collo_Tensor_3D(const CeedScala
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_1D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                     const CeedScalar *dx_ref_cheby, const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D] = {0.};
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D];
 
-  TensorContract_Apply_Transpose<NUM_COMP, 1, BLOCK_SIZE * NUM_POINTS, Q_1D>(dx_ref_cheby, u_points, u_cheby);
-  TensorContract_Apply_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE, P_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
+  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(dx_ref_cheby, u_points, u_cheby);
+  CeedBasis_Apply_Transpose_Interp_Tensor_1D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
   return CEED_ERROR_SUCCESS;
 }
 
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_2D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                     const CeedScalar *dx_ref_cheby, const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D]    = {0.};
-  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS] = {0.};
+  CeedScalar temp[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D];
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                             &u_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                 &u_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp);
+  TensorContract_Apply_Transpose<NUM_COMP * Q_1D, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], u_points, temp);
-  TensorContract_ApplyAdd_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                 &u_points[0 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp);
+  TensorContract_ApplyAdd_Transpose<NUM_COMP * Q_1D, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp,
+                                                                                       u_cheby);
 
   CeedBasis_Apply_Transpose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
   return CEED_ERROR_SUCCESS;
@@ -566,27 +609,30 @@ static inline int CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_2D(const CeedSc
 template <CeedInt BLOCK_SIZE, CeedInt NUM_POINTS, CeedInt NUM_COMP, CeedInt P_1D, CeedInt Q_1D, bool APPLY_ADD>
 static inline int CeedBasis_Apply_Transpose_Grad_AtPoints_Tensor_3D(const CeedScalar *interp_cheby_1d, const CeedScalar *x_ref_cheby,
                                                                     const CeedScalar *dx_ref_cheby, const CeedScalar *u_points, CeedScalar *v) {
-  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D]            = {0.};
-  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS]       = {0.};
-  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS * NUM_POINTS] = {0.};
+  CeedScalar temp_1[BLOCK_SIZE * NUM_COMP * Q_1D * NUM_POINTS];
+  CeedScalar temp_0[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * NUM_POINTS];
+  CeedScalar u_cheby[BLOCK_SIZE * NUM_COMP * Q_1D * Q_1D * Q_1D];
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&dx_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                             &u_points[2 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, temp_0);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D * Q_1D, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
-                                                                                       u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                 &u_points[2 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
+  TensorContract_Apply_Points_Transpose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                        temp_0);
+  TensorContract_Apply_Transpose<NUM_COMP * Q_1D * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
+                                                                                           u_cheby);
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                             &u_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, temp_0);
-  TensorContract_ApplyAdd_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D * Q_1D, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
-                                                                                          u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                 &u_points[1 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
+  TensorContract_Apply_Points_Transpose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&dx_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                        temp_0);
+  TensorContract_ApplyAdd_Transpose<NUM_COMP * Q_1D * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                              temp_0, u_cheby);
 
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, 1, Q_1D>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
-                                                                             &u_points[0 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
-  TensorContract_Apply_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D, Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1, temp_0);
-  TensorContract_ApplyAdd_Transpose<NUM_COMP, BLOCK_SIZE * NUM_POINTS, Q_1D * Q_1D, Q_1D>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_0,
-                                                                                          u_cheby);
+  TensorContract_Apply_Points_Transpose<NUM_COMP, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[2 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                 &u_points[0 * BLOCK_SIZE * NUM_COMP * NUM_POINTS], temp_1);
+  TensorContract_Apply_Points_Transpose<NUM_COMP * Q_1D, Q_1D, BLOCK_SIZE * NUM_POINTS>(&x_ref_cheby[1 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp_1,
+                                                                                        temp_0);
+  TensorContract_ApplyAdd_Transpose<NUM_COMP * Q_1D * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&dx_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D],
+                                                                                              temp_0, u_cheby);
 
   CeedBasis_Apply_Transpose_Interp_Tensor_3D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
   return CEED_ERROR_SUCCESS;
