@@ -755,7 +755,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
 
   // C++ needs to know this size at compile time because it doesn't support reshaping via VLA
   code << "// Ceed QFunction VLA array reshaping\n";
-  code << "\n" << tab << "#undef CEED_Q_VLA\n";
+  code << tab << "#undef CEED_Q_VLA\n";
   if (is_at_points) {
     code << tab << "#define CEED_Q_VLA " << max_num_points * block_size << "\n\n";
   } else {
