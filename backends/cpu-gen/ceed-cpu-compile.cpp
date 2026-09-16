@@ -219,7 +219,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     }
 
     // Compile wrapper kernel
-    std::string command = std::string(cxx) + " -shared -fPIC -rdynamic";
+    std::string command = std::string(cxx) + " -shared -fPIC -rdynamic -fsplit-stack";
 
     for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
     command += " " + filename_base + ".cpp -o " + filename_base + ".so";
