@@ -934,7 +934,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%opt%:$(OPT):" \
-	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
+	    -e "s:%libs_private%:$(patsubst,:,\:,pkgconfig-libs-private):" $< > $@
 
 GIT_DESCRIBE = $(shell git -c safe.directory=$PWD describe --always --dirty 2>/dev/null || printf "unknown\n")
 
