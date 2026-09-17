@@ -744,6 +744,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  assert(num_input_fields >= 0 && num_input_fields < CEED_FIELD_MAX);
+  assert(num_output_fields >= 0 && num_output_fields < CEED_FIELD_MAX);
 
   // Load utils
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-utils.h>\n\n";
