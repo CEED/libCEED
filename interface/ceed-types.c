@@ -64,3 +64,8 @@ const char *const CeedFESpaces[] = {
     [CEED_FE_SPACE_HDIV]  = "H(div) space",
     [CEED_FE_SPACE_HCURL] = "H(curl) space",
 };
+
+const char *const CeedRestrictionTypes[] = {
+    [CEED_RESTRICTION_STANDARD] = "offset", [CEED_RESTRICTION_ORIENTED] = "oriented", [CEED_RESTRICTION_CURL_ORIENTED] = "curl-oriented",
+    [CEED_RESTRICTION_STRIDED] = "strided", [CEED_RESTRICTION_POINTS] = "at points",
+};

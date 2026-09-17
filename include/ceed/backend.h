@@ -289,16 +289,19 @@ CEED_EXTERN int CeedVectorReference(CeedVector vec);
 **/
 typedef enum {
   /// Standard element restriction with offsets
-  CEED_RESTRICTION_STANDARD = 1,
+  CEED_RESTRICTION_STANDARD = 0,
   /// Oriented element restriction
-  CEED_RESTRICTION_ORIENTED = 2,
+  CEED_RESTRICTION_ORIENTED = 1,
   /// Curl-oriented element restriction
-  CEED_RESTRICTION_CURL_ORIENTED = 3,
+  CEED_RESTRICTION_CURL_ORIENTED = 2,
   /// Strided element restriction
-  CEED_RESTRICTION_STRIDED = 4,
+  CEED_RESTRICTION_STRIDED = 3,
   /// Point-in-cell element restriction
-  CEED_RESTRICTION_POINTS = 5,
+  CEED_RESTRICTION_POINTS = 4,
 } CeedRestrictionType;
+
+/// String names for enum pretty printing
+CEED_EXTERN const char *const CeedRestrictionTypes[];
 
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
