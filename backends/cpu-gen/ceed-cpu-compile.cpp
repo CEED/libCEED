@@ -29,7 +29,8 @@
 
 #define CEED_QUOTE(name) #name
 #define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
-const char *CeedCpuOpt = CEED_STRINGIFY(CEED_CPU_OPT);
+const char *CeedJitOpt = CEED_STRINGIFY(CEED_CPU_JIT_OPT);
+const char *CeedJitCxx = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
 #undef CEED_QUOTE
 #undef CEED_STRINGIFY
 
@@ -65,7 +66,7 @@ static inline int CeedJitGetOpts_Cpu(Ceed ceed, const char ***opts, int *num_opt
 
   // Standard options
   CeedCallBackend(CeedCalloc(opts_count, opts));
-  CeedCallBackend(CeedStringAllocCopy(CeedCpuOpt, (char **)&(*opts)[0]));
+  CeedCallBackend(CeedStringAllocCopy(CeedJitOpt, (char **)&(*opts)[0]));
 
   // Additional include dirs
   {
@@ -185,7 +186,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
     // First check for user JiT compiler
     if (!cxx) {
-      const char *user_cxx = getenv("CEED_JIT_CXX");
+      const char *user_cxx = getenv("CEED_CPU_JIT_CXX");
       CeedDebug(ceed, "Attempting to detect user specified JiT compiler\nUser JiT compiler: %s\n", user_cxx);
 
       // Check if valid Clang
@@ -198,46 +199,61 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       }
 
       if (is_valid) {
-        CeedDebug(ceed, "User specified JiT compiler is valid\n");
+        CeedDebug(ceed, "Default JiT compiler is valid\n");
         CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->cxx));
         cxx = ceed_data->cxx;
       } else {
         CeedDebug(ceed, "Could not invoke user specified JiT compiler\n");
       }
     }
-    // Default to c++
+    // Fallback to CXX compiler used for building libCEED
     if (!cxx) {
-      CeedDebug(ceed, "Default JiT compiler: c++\n");
-      CeedCall(CeedStringAllocCopy("c++", &ceed_data->cxx));
-      cxx = ceed_data->cxx;
+      bool is_valid = false;
+
+      CeedDebug(ceed, "Default JiT compiler: %s\n", CeedJitCxx);
+
       {
-        std::string command = std::string(cxx) + " --version 2>&1";
+        std::string command = std::string(CeedJitCxx) + " --version 2>&1";
 
         CeedDebug(ceed, "Checking default JiT compiler...");
-        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default JiT compiler", NULL);
+        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default JiT compiler", &is_valid);
+      }
+
+      if (is_valid) {
+        CeedDebug(ceed, "Default JiT compiler is valid\n");
+        CeedCall(CeedStringAllocCopy(CeedJitCxx, &ceed_data->cxx));
+        cxx = ceed_data->cxx;
+      } else {
+        CeedDebug(ceed, "Could not invoke default JiT compiler\n");
       }
     }
 
-    // Compile wrapper kernel
-    std::string command = std::string(cxx) + " -shared -fPIC -rdynamic";
+    if (cxx) {
+      // Compile wrapper kernel
+      std::string command = std::string(cxx) + " -shared -fPIC -rdynamic";
 
-    for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
-    command += " " + filename_base + ".cpp -o " + filename_base + ".so";
-    CeedCallSystem(ceed, command.c_str(), "JiT function source");
-    CeedCallSystem(ceed, (std::string("chmod 0777 ") + filename_base + ".so").c_str(), "update JiT file permissions");
+      for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
+      command += " " + filename_base + ".cpp -o " + filename_base + ".so";
+      CeedCallSystem(ceed, command.c_str(), "JiT function source");
+      CeedCallSystem(ceed, (std::string("chmod 0777 ") + filename_base + ".so").c_str(), "update JiT file permissions");
 
-    // Load function from object file
-    CeedDebug(ceed, (std::string("Loading object file: ") + filename_base + ".so").c_str());
-    *handle          = dlopen((filename_base + ".so").c_str(), RTLD_NOW | RTLD_LOCAL);
-    *is_compile_good = *handle != NULL;
+      // Load function from object file
+      CeedDebug(ceed, (std::string("Loading object file: ") + filename_base + ".so").c_str());
+      *handle          = dlopen((filename_base + ".so").c_str(), RTLD_NOW | RTLD_LOCAL);
+      *is_compile_good = *handle != NULL;
 
-    // Check load
-    if (*is_compile_good) {
-      void *function;
+      // Check load
+      if (*is_compile_good) {
+        void *function;
 
-      CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
-      function         = (void *)dlsym(*handle, name);
-      *is_compile_good = function != NULL;
+        CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
+        function         = (void *)dlsym(*handle, name);
+        *is_compile_good = function != NULL;
+      }
+    } else {
+      // LCOV_EXCL_START
+      *is_compile_good = false;
+      // LCOV_EXCL_STOP
     }
     for (CeedInt i = 0; i < num_opts; i++) {
       CeedCall(CeedFree(&opts[i]));

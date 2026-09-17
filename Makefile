@@ -536,10 +536,12 @@ libceed.h += $(ref.h) $(blocked.h) $(opt.h)
 
 # CPU Codegen Backends
 LIBCEED_CONTAINS_CXX = 1
-libceed.c   += $(cpu-gen.c)
-libceed.cpp += $(cpu-gen.cpp)
-libceed.h   += $(cpu-gen.h)
-CPPFLAGS    += -DCEED_CPU_OPT='$(OPT)'
+libceed.c    += $(cpu-gen.c)
+libceed.cpp  += $(cpu-gen.cpp)
+libceed.h    += $(cpu-gen.h)
+CEED_CPU_JIT_CXX ?= $(CXX)
+CEED_CPU_JIT_OPT ?= $(OPT)
+CPPFLAGS    += -DCEED_CPU_JIT_OPT='$(CEED_CPU_JIT_OPT)' -DCEED_CPU_JIT_CXX='$(CEED_CPU_JIT_CXX)'
 
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
