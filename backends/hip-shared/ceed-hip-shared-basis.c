@@ -343,15 +343,16 @@ static int CeedBasisApplyAtPointsCore_Hip_shared(CeedBasis basis, bool apply_add
 
     // -- Create interp matrix to Chebyshev coefficients
     if (!data->d_chebyshev_interp_1d) {
-      CeedSize    interp_bytes;
-      CeedScalar *chebyshev_interp_1d;
+      CeedSize          interp_bytes;
+      const CeedScalar *chebyshev_interp_1d;
+      CeedBasis         basis_chebyshev;
 
+      CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+      CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, &chebyshev_interp_1d));
       interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-      CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-      CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
       CeedCallHip(ceed, hipMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
       CeedCallHip(ceed, hipMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, hipMemcpyHostToDevice));
-      CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+      CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
     }
 
     // -- Compile kernels

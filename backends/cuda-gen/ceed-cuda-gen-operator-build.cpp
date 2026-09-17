@@ -256,16 +256,17 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       if (is_at_points) {
         // AtPoints
         if (!basis_data->d_chebyshev_interp_1d) {
-          CeedSize    interp_bytes;
-          CeedScalar *chebyshev_interp_1d;
+          CeedSize          interp_bytes;
+          const CeedScalar *chebyshev_interp_1d;
+          CeedBasis         basis_chebyshev;
 
+          CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+          CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, &chebyshev_interp_1d));
           interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-          CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-          CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
           CeedCallCuda(CeedBasisReturnCeed(basis), cudaMalloc((void **)&basis_data->d_chebyshev_interp_1d, interp_bytes));
           CeedCallCuda(CeedBasisReturnCeed(basis),
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-          CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+          CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         }
         if (is_input) {
           data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
@@ -300,16 +301,17 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       if (is_at_points) {
         // AtPoints
         if (!basis_data->d_chebyshev_interp_1d) {
-          CeedSize    interp_bytes;
-          CeedScalar *chebyshev_interp_1d;
+          CeedSize          interp_bytes;
+          const CeedScalar *chebyshev_interp_1d;
+          CeedBasis         basis_chebyshev;
 
+          CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+          CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, &chebyshev_interp_1d));
           interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-          CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-          CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
           CeedCallCuda(CeedBasisReturnCeed(basis), cudaMalloc((void **)&basis_data->d_chebyshev_interp_1d, interp_bytes));
           CeedCallCuda(CeedBasisReturnCeed(basis),
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-          CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+          CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         }
         if (is_input) {
           data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
