@@ -49,6 +49,13 @@ fn main() {
         .probe(&ceed_pc)
         .unwrap();
 
+    // Link to C++ standard library
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+    if target_os == "macos" {
+        println!("cargo:rustc-link-lib=c++");
+    } else {
+        println!("cargo:rustc-link-lib=stdc++");
+    }
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=c-src/include/ceed.h");
     println!("cargo:rerun-if-changed=c-src/include/ceed/types.h");
