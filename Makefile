@@ -187,7 +187,11 @@ OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
-LIBCXX ?= -lstdc++
+ifeq ($(shell uname -s),Darwin)
+    LIBCXX ?= -lc++
+else
+    LIBCXX ?= -lstdc++
+endif
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
 CUDA_TARGETS_UNKNOWN := $(filter-out sm_%,$(CUDA_TARGETS))
 CUDA_SMS := $(patsubst sm_%,%,$(filter sm_%,$(CUDA_TARGETS)))
