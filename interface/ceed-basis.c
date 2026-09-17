@@ -480,7 +480,9 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
 **/
 static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
                                        CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
-  CeedInt dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  CeedInt    dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  CeedVector vec_chebyshev;
+  CeedBasis  basis_chebyshev;
 
   CeedCall(CeedBasisGetDimension(basis, &dim));
   // Inserting check because clang-tidy doesn't understand this cannot occur
@@ -503,29 +505,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
     CeedCall(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
   }
-  if (!basis->basis_chebyshev) {
-    // Build basis mapping from nodes to Chebyshev coefficients
-    CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
-    const CeedScalar *q_ref_1d;
-    Ceed              ceed;
-
-    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
-    CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
-    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
-    CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
-
-    CeedCall(CeedBasisGetCeed(basis, &ceed));
-    CeedCall(CeedVectorCreate(ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
-    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
-                                     &basis->basis_chebyshev));
-
-    // Cleanup
-    CeedCall(CeedFree(&chebyshev_interp_1d));
-    CeedCall(CeedFree(&chebyshev_grad_1d));
-    CeedCall(CeedFree(&chebyshev_q_weight_1d));
-    CeedCall(CeedDestroy(&ceed));
-  }
+  CeedCall(CeedBasisGetChebyshevData(basis, &basis_chebyshev, &vec_chebyshev));
 
   // Create TensorContract object if needed, such as a basis from the GPU backends
   if (!basis->contract) {
@@ -551,10 +531,10 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       const CeedScalar *chebyshev_coeffs, *x_array_read;
 
       // -- Interpolate to Chebyshev coefficients
-      CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, basis->vec_chebyshev));
+      CeedCall(CeedBasisApply(basis_chebyshev, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, vec_chebyshev));
 
       // -- Evaluate Chebyshev polynomials at arbitrary points
-      CeedCall(CeedVectorGetArrayRead(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
+      CeedCall(CeedVectorGetArrayRead(vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
       CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
       CeedCall(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &v_array));
       switch (eval_mode) {
@@ -609,7 +589,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           break;
           // LCOV_EXCL_STOP
       }
-      CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
+      CeedCall(CeedVectorRestoreArrayRead(vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
       CeedCall(CeedVectorRestoreArray(v, &v_array));
       break;
@@ -620,7 +600,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       const CeedScalar *u_array, *x_array_read;
 
       // -- Transpose of evaluation of Chebyshev polynomials at arbitrary points
-      CeedCall(CeedVectorGetArrayWrite(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
+      CeedCall(CeedVectorGetArrayWrite(vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
       CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
       CeedCall(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array));
 
@@ -677,19 +657,22 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           break;
           // LCOV_EXCL_STOP
       }
-      CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
+      CeedCall(CeedVectorRestoreArray(vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
       CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
 
       // -- Interpolate transpose from Chebyshev coefficients
       if (apply_add) {
-        CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+        CeedCall(CeedBasisApplyAdd(basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, vec_chebyshev, v));
       } else {
-        CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+        CeedCall(CeedBasisApply(basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, vec_chebyshev, v));
       }
       break;
     }
   }
+  // Cleanup
+  CeedCall(CeedVectorDestroy(&vec_chebyshev));
+  CeedCall(CeedBasisDestroy(&basis_chebyshev));
   return CEED_ERROR_SUCCESS;
 }
 
