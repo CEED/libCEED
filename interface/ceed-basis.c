@@ -480,9 +480,10 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
 **/
 static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
                                        CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
-  CeedInt    dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
-  CeedVector vec_chebyshev;
-  CeedBasis  basis_chebyshev;
+  CeedInt            dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  CeedVector         vec_chebyshev;
+  CeedBasis          basis_chebyshev;
+  CeedTensorContract contract;
 
   CeedCall(CeedBasisGetDimension(basis, &dim));
   // Inserting check because clang-tidy doesn't understand this cannot occur
@@ -522,6 +523,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
     CeedCall(CeedBasisDestroy(&basis_ref));
     CeedCall(CeedDestroy(&ceed_ref));
   }
+  CeedCall(CeedBasisGetTensorContract(basis, &contract));
 
   // Basis evaluation
   switch (t_mode) {
@@ -548,8 +550,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
             for (CeedInt d = 0; d < dim; d++) {
               // ------ Tensor contract with current Chebyshev polynomial values
               CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-              CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
-                                               d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
+              CeedCall(CeedTensorContractApply(contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false, d == 0 ? chebyshev_coeffs : tmp[d % 2],
+                                               tmp[(d + 1) % 2]));
               pre /= Q_1d;
               post *= 1;
             }
@@ -573,8 +575,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
                 } else {
                   CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
                 }
-                CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
-                                                 d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
+                CeedCall(CeedTensorContractApply(contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false, d == 0 ? chebyshev_coeffs : tmp[d % 2],
+                                                 tmp[(d + 1) % 2]));
                 pre /= Q_1d;
                 post *= 1;
               }
@@ -616,7 +618,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
             for (CeedInt d = 0; d < dim; d++) {
               // ------ Tensor contract with current Chebyshev polynomial values
               CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-              CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, p > 0 && d == (dim - 1), tmp[d % 2],
+              CeedCall(CeedTensorContractApply(contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, p > 0 && d == (dim - 1), tmp[d % 2],
                                                d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
               pre /= 1;
               post *= Q_1d;
@@ -641,9 +643,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
                 } else {
                   CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
                 }
-                CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode,
-                                                 (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1), tmp[d % 2],
-                                                 d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
+                CeedCall(CeedTensorContractApply(contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1),
+                                                 tmp[d % 2], d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
                 pre /= 1;
                 post *= Q_1d;
               }
