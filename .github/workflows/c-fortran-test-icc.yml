@@ -33,5 +33,4 @@ jobs:
           export OPENMP=1
           make info
           make -j
-          make prove -j
-
+          make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j

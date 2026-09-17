@@ -12,6 +12,8 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         compiler: [gcc]
+        arch: [ppc64le]
+        distro: [ubuntu24.04]
 
     runs-on: ${{ matrix.os }}
 
@@ -41,4 +43,4 @@ jobs:
         make -j4 build/t000-ceed
         file build/t000-ceed | grep -F 'PowerPC'
         $CEED_TEST_RUNNER build/t000-ceed /cpu/self/ref/serial
-        make -j4 PROVE_OPTS=-j4 prove
+        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j4

@@ -50,4 +50,4 @@ jobs:
       run: |
         make info
         make -j
-        make prove -j2
+        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j
