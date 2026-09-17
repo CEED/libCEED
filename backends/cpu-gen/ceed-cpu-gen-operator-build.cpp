@@ -423,8 +423,10 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
     }
     if (is_tensor) {
       switch (eval_mode) {
+        // LCOV_EXCL_START
         case CEED_EVAL_NONE:
           break;
+        // LCOV_EXCL_STOP
         case CEED_EVAL_INTERP: {
           if (is_at_points) {
             code << tab << "CeedBasis_Apply_NoTranspose_Interp_AtPoints_Tensor_" << dim << "D<block_size, max_num_points, num_comp" << var_suffix
@@ -471,10 +473,13 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
             code << tab << "CeedBasis_Apply_Weight_" << name << "<block_size, Q_1d>(inputs[" << i << "].weights, q_vec" << var_suffix << ");\n";
           }
         } break;
+        // LCOV_EXCL_START
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          // TODO: Not implemented
           data->use_fallback = true;
-          break;  // TODO: Not implemented
+          break;
+          // LCOV_EXCL_STOP
       }
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
@@ -484,10 +489,6 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         code << tab << "CeedBasis_Apply_NoTranspose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
              << ", Q>(inputs[" << i << "].";
         switch (eval_mode) {
-          case CEED_EVAL_NONE:
-            break;
-          case CEED_EVAL_WEIGHT:
-            break;
           case CEED_EVAL_INTERP:
             code << "interp";
             break;
@@ -500,6 +501,12 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           case CEED_EVAL_CURL:
             code << "curl";
             break;
+          // LCOV_EXCL_START
+          case CEED_EVAL_NONE:
+          case CEED_EVAL_WEIGHT:
+            // excluded above
+            break;
+            // LCOV_EXCL_STOP
         }
         code << ", e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
       }
@@ -549,11 +556,14 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
                  << ", e_vec" << var_suffix << ");\n";
           }
         } break;
+        // LCOV_EXCL_START
         case CEED_EVAL_WEIGHT:
         case CEED_EVAL_DIV:
         case CEED_EVAL_CURL:
+          // TODO: Not implemented
           data->use_fallback = true;
-          break;  // TODO: Not implemented
+          break;
+          // LCOV_EXCL_STOP
       }
     } else {
       if (eval_mode == CEED_EVAL_WEIGHT) {
@@ -562,10 +572,6 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
         code << tab << "CeedBasis_Apply_Transpose_NonTensor<block_size, num_comp" << var_suffix << ", num_q_comp" << var_suffix << ", " << P_name
              << ", Q, " << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].";
         switch (eval_mode) {
-          case CEED_EVAL_NONE:
-            break;
-          case CEED_EVAL_WEIGHT:
-            break;
           case CEED_EVAL_INTERP:
             code << "interp";
             break;
@@ -578,6 +584,11 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           case CEED_EVAL_CURL:
             code << "curl";
             break;
+          // LCOV_EXCL_START
+          case CEED_EVAL_NONE:
+          case CEED_EVAL_WEIGHT:
+            break;
+            // LCOV_EXCL_STOP
         }
         code << ", q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
       }
@@ -713,8 +724,6 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   std::ostringstream    code;
   Tab                   tab;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedOperatorGetData(op, &data));
   {
     bool is_setup_done;
 
@@ -724,6 +733,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
       return CEED_ERROR_SUCCESS;
     }
   }
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (!is_at_points) {
     Ceed_Cpu_Gen *ceed_data;
@@ -976,6 +987,16 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
   code << "\n";
 
+  if (data->use_fallback) {
+    // LCOV_EXCL_START
+    *is_good_build = false;
+    CeedCallBackend(CeedOperatorSetSetupDone(op));
+    CeedCallBackend(CeedDestroy(&ceed));
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    return CEED_ERROR_SUCCESS;
+    // LCOV_EXCL_STOP
+  }
+
   // Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
 
@@ -1112,6 +1133,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
 
   // Cleanup
+  CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
