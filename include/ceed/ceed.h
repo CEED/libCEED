@@ -417,14 +417,10 @@ CEED_EXTERN int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemTyp
 CEED_EXTERN int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx, CeedMemType mem_type, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data);
 CEED_EXTERN int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data);
+CEED_EXTERN int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterByte(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                  const char *field_description);
-CEED_EXTERN int CeedQFunctionContextRegisterCeedScalar(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
-                                                       const char *field_description);
-CEED_EXTERN int CeedQFunctionContextRegisterFloat(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
-                                                  const char *field_description);
-CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
-                                                   const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterCeedInt8(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                      const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterCeedInt(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
@@ -435,8 +431,12 @@ CEED_EXTERN int CeedQFunctionContextRegisterInt64(CeedQFunctionContext ctx, cons
                                                   const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterCeedSize(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                      const char *field_description);
-CEED_EXTERN int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
-                                                    const char *field_description);
+CEED_EXTERN int CeedQFunctionContextRegisterCeedScalar(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                       const char *field_description);
+CEED_EXTERN int CeedQFunctionContextRegisterFloat(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                  const char *field_description);
+CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                   const char *field_description);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
                                                     const char **field_description, CeedContextFieldType *field_type);
@@ -503,19 +503,12 @@ CEED_EXTERN int  CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *nu
 CEED_EXTERN int  CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx);
 CEED_EXTERN int  CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label);
+CEED_EXTERN int  CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int  CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
+CEED_EXTERN int  CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int  CeedOperatorSetContextByte(CeedOperator op, CeedContextFieldLabel field_label, char *values);
 CEED_EXTERN int  CeedOperatorGetContextByteRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const char **values);
 CEED_EXTERN int  CeedOperatorRestoreContextByteRead(CeedOperator op, CeedContextFieldLabel field_label, const char **values);
-CEED_EXTERN int  CeedOperatorSetContextCeedScalar(CeedOperator op, CeedContextFieldLabel field_label, CeedScalar *values);
-CEED_EXTERN int  CeedOperatorGetContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values,
-                                                      const CeedScalar **values);
-CEED_EXTERN int  CeedOperatorRestoreContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedScalar **values);
-CEED_EXTERN int  CeedOperatorSetContextFloat(CeedOperator op, CeedContextFieldLabel field_label, float *values);
-CEED_EXTERN int  CeedOperatorGetContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const float **values);
-CEED_EXTERN int  CeedOperatorRestoreContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, const float **values);
-CEED_EXTERN int  CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int  CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
-CEED_EXTERN int  CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
 CEED_EXTERN int  CeedOperatorSetContextCeedInt8(CeedOperator op, CeedContextFieldLabel field_label, CeedInt8 *values);
 CEED_EXTERN int  CeedOperatorGetContextCeedInt8Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedInt8 **values);
 CEED_EXTERN int  CeedOperatorRestoreContextCeedInt8Read(CeedOperator op, CeedContextFieldLabel field_label, const CeedInt8 **values);
@@ -531,9 +524,16 @@ CEED_EXTERN int  CeedOperatorRestoreContextInt64Read(CeedOperator op, CeedContex
 CEED_EXTERN int  CeedOperatorSetContextCeedSize(CeedOperator op, CeedContextFieldLabel field_label, CeedSize *values);
 CEED_EXTERN int  CeedOperatorGetContextCeedSizeRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedSize **values);
 CEED_EXTERN int  CeedOperatorRestoreContextCeedSizeRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedSize **values);
-CEED_EXTERN int  CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
-CEED_EXTERN int  CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
-CEED_EXTERN int  CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
+CEED_EXTERN int  CeedOperatorSetContextCeedScalar(CeedOperator op, CeedContextFieldLabel field_label, CeedScalar *values);
+CEED_EXTERN int  CeedOperatorGetContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values,
+                                                      const CeedScalar **values);
+CEED_EXTERN int  CeedOperatorRestoreContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedScalar **values);
+CEED_EXTERN int  CeedOperatorSetContextFloat(CeedOperator op, CeedContextFieldLabel field_label, float *values);
+CEED_EXTERN int  CeedOperatorGetContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const float **values);
+CEED_EXTERN int  CeedOperatorRestoreContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, const float **values);
+CEED_EXTERN int  CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int  CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
+CEED_EXTERN int  CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
 CEED_EXTERN int  CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorApplyAddActive(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
