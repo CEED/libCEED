@@ -151,45 +151,47 @@ $ make prove
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
-| CEED resource              | Backend                                           | Deterministic Capable |
-| :---                       | :---                                              | :---:                 |
+| CEED resource              | Backend                                                | Deterministic Capable |
+| :---                       | :---                                                   | :---:                 |
 ||
 | **CPU Native**             |
-| `/cpu/self/ref/serial`     | Serial reference implementation                   | Yes                   |
-| `/cpu/self/ref/blocked`    | Blocked reference implementation                  | Yes                   |
-| `/cpu/self/opt/serial`     | Serial optimized C implementation                 | Yes                   |
-| `/cpu/self/opt/blocked`    | Blocked optimized C implementation                | Yes                   |
-| `/cpu/self/avx/serial`     | Serial AVX implementation                         | Yes                   |
-| `/cpu/self/avx/blocked`    | Blocked AVX implementation                        | Yes                   |
-| `/cpu/self/sve/serial`     | Serial Arm SVE implementation                     | Yes                   |
-| `/cpu/self/sve/blocked`    | Blocked Arm SVE implementation                    | Yes                   |
+| `/cpu/self/ref/serial`     | Serial reference implementation                        | Yes                   |
+| `/cpu/self/ref/blocked`    | Blocked reference implementation                       | Yes                   |
+| `/cpu/self/opt/serial`     | Serial optimized C implementation                      | Yes                   |
+| `/cpu/self/opt/blocked`    | Blocked optimized C implementation                     | Yes                   |
+| `/cpu/self/avx/serial`     | Serial AVX implementation                              | Yes                   |
+| `/cpu/self/avx/blocked`    | Blocked AVX implementation                             | Yes                   |
+| `/cpu/self/sve/serial`     | Serial Arm SVE implementation                          | Yes                   |
+| `/cpu/self/sve/blocked`    | Blocked Arm SVE implementation                         | Yes                   |
+| `/cpu/self/gen/serial`     | Optimized serial implementation using code generation  | Yes                   |
+| `/cpu/self/gen/blocked`    | Optimized blocked implementation using code generation | Yes                   |
 ||
 | **CPU Valgrind**           |
-| `/cpu/self/memcheck/*`     | Memcheck backends, undefined value checks         | Yes                   |
+| `/cpu/self/memcheck/*`     | Memcheck backends, undefined value checks              | Yes                   |
 ||
 | **CPU LIBXSMM**            |
-| `/cpu/self/xsmm/serial`    | Serial LIBXSMM implementation                     | Yes                   |
-| `/cpu/self/xsmm/blocked`   | Blocked LIBXSMM implementation                    | Yes                   |
+| `/cpu/self/xsmm/serial`    | Serial LIBXSMM implementation                          | Yes                   |
+| `/cpu/self/xsmm/blocked`   | Blocked LIBXSMM implementation                         | Yes                   |
 ||
 | **CUDA Native**            |
-| `/gpu/cuda/ref`            | Reference pure CUDA kernels                       | Yes                   |
-| `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory   | Yes                   |
-| `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation | No                    |
+| `/gpu/cuda/ref`            | Reference pure CUDA kernels                            | Yes                   |
+| `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory        | Yes                   |
+| `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation      | No                    |
 ||
 | **HIP Native**             |
-| `/gpu/hip/ref`             | Reference pure HIP kernels                        | Yes                   |
-| `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory    | Yes                   |
-| `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation  | No                    |
+| `/gpu/hip/ref`             | Reference pure HIP kernels                             | Yes                   |
+| `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory         | Yes                   |
+| `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation       | No                    |
 ||
 | **SYCL Native**            |
-| `/gpu/sycl/ref`            | Reference pure SYCL kernels                       | Yes                   |
-| `/gpu/sycl/shared`         | Optimized pure SYCL kernels using shared memory   | Yes                   |
+| `/gpu/sycl/ref`            | Reference pure SYCL kernels                            | Yes                   |
+| `/gpu/sycl/shared`         | Optimized pure SYCL kernels using shared memory        | Yes                   |
 ||
 | **MAGMA**                  |
-| `/gpu/cuda/magma`          | CUDA MAGMA kernels                                | No                    |
-| `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                | Yes                   |
-| `/gpu/hip/magma`           | HIP MAGMA kernels                                 | No                    |
-| `/gpu/hip/magma/det`       | HIP MAGMA kernels                                 | Yes                   |
+| `/gpu/cuda/magma`          | CUDA MAGMA kernels                                     | No                    |
+| `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                     | Yes                   |
+| `/gpu/hip/magma`           | HIP MAGMA kernels                                      | No                    |
+| `/gpu/hip/magma/det`       | HIP MAGMA kernels                                      | Yes                   |
 ||
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
@@ -202,6 +204,9 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
 The `/cpu/self/sve/*` backends use vector-length-agnostic Arm SVE instructions for tensor contractions, delegating other operations to the corresponding `/cpu/self/opt/*` backend. They are built when the active compiler target supports SVE, and the resulting library must run on an SVE-capable target.
+
+The `/cpu/self/gen/*` backends use code generation to write a function to perform the action of the Operator and compile it at runtime.
+You can configure the compiler and optimization options at compile or runtime with the options `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
 
 The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
 To use, run your code with Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
