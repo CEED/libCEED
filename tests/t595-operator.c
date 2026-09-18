@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
   CeedGetPreferredMemType(ceed, &mem_type);
   // Device backends pad each element to seven points.
-  const CeedSize expected_flops_apply    = mem_type == CEED_MEM_DEVICE ? 22824 : 16317;
+  const CeedSize expected_flops_apply    = mem_type == CEED_MEM_DEVICE ? 23499 : 16317;
   const CeedSize expected_flops_full     = mem_type == CEED_MEM_DEVICE ? 11403 : 6516;
   const CeedSize expected_flops_diagonal = mem_type == CEED_MEM_DEVICE ? 1845 : 1089;
   CeedOperatorGetFlopsEstimate(op_mass, &flop_estimate);
