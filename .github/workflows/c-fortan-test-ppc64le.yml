@@ -25,6 +25,7 @@ jobs:
     - name: Build libCEED for ppc64le
       env:
         CC: powerpc64le-linux-gnu-${{ matrix.compiler }}
+        CXX: powerpc64le-linux-gnu-g++
         FC: powerpc64le-linux-gnu-gfortran
         OPT: -O2 -g -ffp-contract=fast
       run: |
@@ -34,6 +35,7 @@ jobs:
     - name: Test libCEED under QEMU
       env:
         CC: powerpc64le-linux-gnu-${{ matrix.compiler }}
+        CXX: powerpc64le-linux-gnu-g++
         FC: powerpc64le-linux-gnu-gfortran
         OPT: -O2 -g -ffp-contract=fast
         CEED_TEST_RUNNER: qemu-ppc64le -L /usr/powerpc64le-linux-gnu
