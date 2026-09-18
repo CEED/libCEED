@@ -10,6 +10,7 @@
 #pragma once
 
 #include <ceed.h>
+#include <ceed/macros.h>
 #include <limits.h>
 #include <stdbool.h>
 
@@ -55,23 +56,6 @@
 #else
 #define CeedPragmaOptimizeOn
 #endif
-#endif
-
-/// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
-/// @ingroup Ceed
-#ifndef CeedPragmaOMP
-#ifdef _OPENMP
-#define CeedPragmaOMPHelper(x) _Pragma(#x)
-#define CeedPragmaOMP(x) CeedPragmaOMPHelper(omp x)
-#else
-#define CeedPragmaOMP(x)
-#endif
-#endif
-#ifndef CeedPragmaAtomic
-#define CeedPragmaAtomic CeedPragmaOMP(atomic update)
-#endif
-#ifndef CeedPragmaCritical
-#define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
 #endif
 
 /// This macro provides the tab width for viewing Ceed objects.
@@ -200,41 +184,6 @@ CEED_INTERN int CeedSetHostCeedIntArray(const CeedInt *source_array, CeedCopyMod
 CEED_INTERN int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
                                            const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
                                            const CeedScalar **target_array);
-
-/**
-  @brief Calls a libCEED function and then checks the resulting error code.
-  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
-
-  @ref Developer
-**/
-#define CeedCall(...)        \
-  do {                       \
-    int ierr_ = __VA_ARGS__; \
-    if (ierr_) return ierr_; \
-  } while (0)
-
-/**
-  @brief Calls a libCEED function and then checks the resulting error code.
-  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
-  All interface level error codes are upgraded to `CEED_ERROR_BACKEND`.
-
-  @ref Developer
-**/
-#define CeedCallBackend(...)                                                     \
-  do {                                                                           \
-    int ierr_ = __VA_ARGS__;                                                     \
-    if (ierr_) return (ierr_ > CEED_ERROR_SUCCESS) ? CEED_ERROR_BACKEND : ierr_; \
-  } while (0)
-
-/**
-  @brief Check that a particular condition is true and returns a `CeedError` if not.
-
-  @ref Developer
-**/
-#define CeedCheck(cond, ceed, ecode, ...)                    \
-  do {                                                       \
-    if (!(cond)) return CeedError(ceed, ecode, __VA_ARGS__); \
-  } while (0)
 
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */

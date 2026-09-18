@@ -9,14 +9,8 @@
 /// Internal header for CPU JiT utilities
 #pragma once
 
+#include <ceed/macros.h>
 #include <ceed/types.h>
 
-#define CeedCall(...)        \
-  do {                       \
-    int ierr_ = __VA_ARGS__; \
-    if (ierr_) return ierr_; \
-  } while (0)
-
 constexpr CeedInt CeedIntMin(CeedInt a, CeedInt b) { return a < b ? a : b; }
-
 constexpr CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
