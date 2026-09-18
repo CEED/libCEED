@@ -25,7 +25,7 @@ jobs:
       run: |
         make info
         make -j4
-        make -j4 PROVE_OPTS=-j4 prove
+        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j
 
   test-sve:
     strategy:

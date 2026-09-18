@@ -30,8 +30,8 @@
       do i=1,q
         du0=u1(i+q*0)
         du1=u1(i+q*1)
-        v1(i+q*0)=u2(i+q*0)*du0+u2(i+q*1)*du1
-        v1(i+q*1)=u2(i+q*1)*du0+u2(i+q*2)*du1
+        v1(i+q*0)=u2(i+q*0)*du0+u2(i+q*2)*du1
+        v1(i+q*1)=u2(i+q*2)*du0+u2(i+q*1)*du1
       enddo
 
       ierr=0
