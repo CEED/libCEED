@@ -210,6 +210,7 @@ struct CeedBasis_private {
   int (*ApplyAddAtPoints)(CeedBasis, CeedInt, const CeedInt *, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   bool               is_tensor_basis; /* flag for tensor basis */
+  bool               is_collocated;   /* flag for collocated basis */
   CeedInt            dim;             /* topological dimension */
   CeedElemTopology   topo;            /* element topology */
   CeedInt            num_comp;        /* number of field components (1 for scalar fields) */
@@ -223,9 +224,10 @@ struct CeedBasis_private {
   CeedScalar        *q_weight_1d;     /* array of length Q1d holding the quadrature weights on the reference element */
   CeedScalar *interp; /* row-major matrix of shape [Q, P] or [dim * Q, P] expressing the values of nodal basis functions or vector basis functions at
                          quadrature points */
-  CeedScalar *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
-  CeedScalar *grad;      /* row-major matrix of shape [dim * Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
-  CeedScalar *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *interp_1d;     /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
+  CeedScalar *grad;          /* row-major matrix of shape [dim * Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *grad_1d;       /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *collo_grad_1d; /* row-major matrix of shape [Q1d, Q1d] matrix expressing derivatives of nodal basis functions at quadrature points */
   CeedScalar *div; /* row-major matrix of shape [Q, P] expressing the divergence of basis functions at quadrature points for H(div) discretizations */
   CeedScalar *curl; /* row-major matrix of shape [curl_dim * Q, P], curl_dim = 1 if dim < 3 else dim, expressing the curl of basis functions at
                        quadrature points for H(curl) discretizations */

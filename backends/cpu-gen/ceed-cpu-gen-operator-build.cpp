@@ -371,11 +371,12 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
 static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOperator_Cpu_Gen *data, Tab &tab, CeedInt i,
                                                 const bool output_apply_add[], CeedOperatorField op_field, CeedQFunctionField qf_field, bool is_input,
                                                 bool is_at_points) {
-  bool      is_tensor = true, is_collocated = true;
+  bool      is_tensor, is_collocated, has_collocated_grad;
   CeedBasis basis;
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
   CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
   CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
+  CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
 
   std::string         var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string         P_name     = (is_tensor ? "P_1d" : "P") + var_suffix;
@@ -453,10 +454,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
                  << ", " << P_name << ", Q_1d>(inputs[" << i << "].interp, e_vec_points_cheby, e_vec_points_dcheby, e_vec" << var_suffix << ", q_vec"
                  << var_suffix << ");\n";
           } else {
-            CeedBasis_Ref *ref_data;
-
-            CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-            std::string name = (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
+            std::string name = (dim > 2 && has_collocated_grad ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
 
             code << tab << "CeedBasis_Apply_NoTranspose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d>(inputs["
                  << i << "].interp, inputs[" << i << "].grad, e_vec" << var_suffix << ", q_vec" << var_suffix << ");\n";
@@ -546,10 +544,7 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
                  << "].interp, e_vec_points_cheby, e_vec_points_dcheby, q_vec" << var_suffix << ", e_vec" << var_suffix << ");\n";
 
           } else {
-            CeedBasis_Ref *ref_data;
-
-            CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-            std::string name = (dim > 2 && ref_data->collo_grad_1d ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
+            std::string name = (dim > 2 && has_collocated_grad ? "Collo_Tensor_" : "Tensor_") + std::to_string(dim) + "D";
 
             code << tab << "CeedBasis_Apply_Transpose_Grad_" << name << "<block_size, num_comp" << var_suffix << ", " << P_name << ", Q_1d, "
                  << (output_apply_add[i] ? "true" : "false") << ">(outputs[" << i << "].interp, outputs[" << i << "].grad, q_vec" << var_suffix
@@ -628,12 +623,9 @@ static int CeedOperatorBuildKernelBasis_Cpu_Gen(std::ostringstream &code, CeedOp
           CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, interp_ptr));
           CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         } else {
-          CeedBasis_Ref *ref_data;
-
           CeedCallBackend(CeedBasisGetInterp1D(basis, interp_ptr));
-          CeedCallBackend(CeedBasisGetData(basis, &ref_data));
-          if (dim > 2 && ref_data->collo_grad_1d) {
-            *grad_ptr = ref_data->collo_grad_1d;
+          if (dim > 2 && has_collocated_grad) {
+            CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, grad_ptr));
           } else {
             CeedCallBackend(CeedBasisGetGrad1D(basis, grad_ptr));
           }

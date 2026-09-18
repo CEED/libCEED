@@ -291,10 +291,10 @@ typedef enum {
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
-CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated);
+CEED_EXTERN int CeedBasisHasCollocatedGrad(CeedBasis basis, bool *has_collocated_grad);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
@@ -309,6 +309,7 @@ CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, Ceed
                                           const CeedScalar *interp, const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights,
                                           CeedBasis basis);
 CEED_EXTERN int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev);
+CEED_EXTERN int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d);
 
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,

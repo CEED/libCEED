@@ -722,39 +722,6 @@ int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp
 }
 
 /**
-  @brief Return collocated gradient matrix
-
-  @param[in]  basis         `CeedBasis`
-  @param[out] collo_grad_1d Row-major (`Q_1d * Q_1d`) matrix expressing derivatives of basis functions at quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
-  Ceed              ceed;
-  CeedInt           P_1d, Q_1d;
-  CeedScalar       *interp_1d_pinv;
-  const CeedScalar *grad_1d, *interp_1d;
-
-  // Note: This function is for backend use, so all errors are terminal and we do not need to clean up memory on failure.
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
-  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-
-  // Compute interp_1d^+, pseudoinverse of interp_1d
-  CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
-  CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
-  CeedCall(CeedMatrixPseudoinverse(ceed, interp_1d, Q_1d, P_1d, interp_1d_pinv));
-  CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
-  CeedCall(CeedMatrixMatrixMultiply(ceed, grad_1d, (const CeedScalar *)interp_1d_pinv, collo_grad_1d, Q_1d, Q_1d, P_1d));
-
-  CeedCall(CeedFree(&interp_1d_pinv));
-  CeedCall(CeedDestroy(&ceed));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Return 1D interpolation matrix to Chebyshev polynomial coefficients on quadrature space
 
   @param[in]  basis               `CeedBasis`
@@ -819,9 +786,9 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Developer
 **/
-int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+static int CeedBasisComputeIsCollocated(CeedBasis basis, bool *is_collocated) {
   if (basis->is_tensor_basis && (basis->Q_1d == basis->P_1d)) {
     *is_collocated = true;
 
@@ -834,6 +801,36 @@ int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
   } else {
     *is_collocated = false;
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+  *is_collocated = basis->is_collocated;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if given `CeedBasis` supports collocated gradient application
+
+  @param[in]  basis               `CeedBasis`
+  @param[out] has_collocated_grad Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisHasCollocatedGrad(CeedBasis basis, bool *has_collocated_grad) {
+  *has_collocated_grad = basis->is_tensor_basis && basis->Q_1d >= basis->P_1d;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1627,6 +1624,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedCall(CeedCalloc(Q_1d * P_1d, &(*basis)->grad_1d));
   if (interp_1d) memcpy((*basis)->interp_1d, interp_1d, Q_1d * P_1d * sizeof(interp_1d[0]));
   if (grad_1d) memcpy((*basis)->grad_1d, grad_1d, Q_1d * P_1d * sizeof(grad_1d[0]));
+  CeedCall(CeedBasisComputeIsCollocated((*basis), &(*basis)->is_collocated));
   CeedCall(ceed->BasisCreateTensorH1(dim, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, *basis));
   return CEED_ERROR_SUCCESS;
 }
@@ -2488,6 +2486,49 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
 }
 
 /**
+  @brief Return collocated gradient matrix
+
+  @param[in]  basis              `CeedBasis`
+  @param[out] collocated_grad_1d Row-major (`Q_1d * Q_1d`) matrix expressing derivatives of basis functions at quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d) {
+  bool has_collo_grad;
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not support collocated gradient application");
+
+  if (!basis->collo_grad_1d) {
+    Ceed              ceed;
+    CeedScalar       *interp_1d_pinv;
+    const CeedScalar *grad_1d, *interp_1d;
+    CeedInt           P_1d, Q_1d;
+
+    CeedCall(CeedBasisGetCeed(basis, &ceed));
+    CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+    CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+
+    // Allocate array for collocated grad
+    CeedCall(CeedCalloc(Q_1d * Q_1d, &basis->collo_grad_1d));
+
+    // Compute interp_1d^+, pseudoinverse of interp_1d
+    CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
+    CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
+    CeedCall(CeedMatrixPseudoinverse(ceed, interp_1d, Q_1d, P_1d, interp_1d_pinv));
+    CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
+    CeedCall(CeedMatrixMatrixMultiply(ceed, grad_1d, (const CeedScalar *)interp_1d_pinv, basis->collo_grad_1d, Q_1d, Q_1d, P_1d));
+
+    CeedCall(CeedFree(&interp_1d_pinv));
+    CeedCall(CeedDestroy(&ceed));
+  }
+  *collocated_grad_1d = basis->collo_grad_1d;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get divergence matrix of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
@@ -2539,6 +2580,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->interp_1d));
   CeedCall(CeedFree(&(*basis)->grad));
   CeedCall(CeedFree(&(*basis)->grad_1d));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d));
   CeedCall(CeedFree(&(*basis)->div));
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));
