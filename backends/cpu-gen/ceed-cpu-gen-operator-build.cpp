@@ -679,7 +679,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   code << tab << "// ---- QFunction outputs\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << tab << "CeedScalar q_vec_out_" << i << "[num_q_comp_out_" << i << " * num_comp_out_" << i << " * "
-         << (is_at_points ? "max_num_points" : "Q") << " * block_size];\n";
+         << (is_at_points ? "max_num_points" : "Q") << " * block_size]" << (is_at_points ? " = {0}" : "") << ";\n";
   }
   code << tab << "CeedScalar* q_vecs_out[" << num_output_fields << "] = {\n";
   tab.push();
