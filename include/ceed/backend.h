@@ -291,10 +291,10 @@ typedef enum {
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
-CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated);
+CEED_EXTERN int CeedBasisHasCollocatedGrad(CeedBasis basis, bool *has_collocated_grad);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);

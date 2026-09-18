@@ -353,6 +353,7 @@ CEED_EXTERN int  CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp);
 CEED_EXTERN int  CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d);
 CEED_EXTERN int  CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
 CEED_EXTERN int  CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
+CEED_EXTERN int  CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d);
 CEED_EXTERN int  CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
 CEED_EXTERN int  CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl);
 CEED_EXTERN int  CeedBasisDestroy(CeedBasis *basis);

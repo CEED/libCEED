@@ -32,8 +32,6 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
-  CeedScalar *collo_grad_1d;
-  bool        is_collocated;
 } CeedBasis_Ref;
 
 typedef struct {
