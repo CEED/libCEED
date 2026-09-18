@@ -1,6 +1,6 @@
 /// @file
-/// Test FLOP estimation for composite mass matrix operator
-/// \test Test FLOP estimation for composite mass matrix operator
+/// Test apply and assembly FLOP estimation for composite mass matrix operator
+/// \test Test apply and assembly FLOP estimation for composite mass matrix operator
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,13 +19,13 @@
 
 int main(int argc, char **argv) {
   Ceed                ceed;
-  CeedSize            flop_estimate;
+  CeedSize            flop_estimate, num_entries;
   CeedElemRestriction elem_restriction_x_tet, elem_restriction_u_tet, elem_restriction_q_data_tet, elem_restriction_x_hex, elem_restriction_u_hex,
       elem_restriction_q_data_hex;
   CeedBasis     basis_x_tet, basis_u_tet, basis_x_hex, basis_u_hex;
   CeedQFunction qf_mass;
   CeedOperator  op_mass_tet, op_mass_hex, op_mass;
-  CeedVector    q_data_tet, q_data_hex;
+  CeedVector    q_data_tet, q_data_hex, assembled;
   CeedInt       num_elem_tet = 6, p_tet = 6, q_tet = 4, num_elem_hex = 6, p_hex = 3, q_hex = 4, dim = 2;
   CeedInt       n_x = 3, n_y = 3, n_x_tet = 3, n_y_tet = 1, n_x_hex = 3;
   CeedInt       row, col, offset;
@@ -39,6 +39,8 @@ int main(int argc, char **argv) {
   // Qdata Vectors
   CeedVectorCreate(ceed, num_qpts_tet, &q_data_tet);
   CeedVectorCreate(ceed, num_qpts_hex, &q_data_hex);
+  CeedVectorSetValue(q_data_tet, 1.0);
+  CeedVectorSetValue(q_data_hex, 1.0);
 
   // Set up Tet Elements
   // -- Restrictions
@@ -123,12 +125,34 @@ int main(int argc, char **argv) {
   CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
   CeedOperatorGetFlopsEstimate(op_mass, &flop_estimate);
 
-  // Check output
+  // Check FLOP estimate
   if (flop_estimate != 3042) printf("Incorrect FLOP estimate computed, %" CeedSize_FMT " != 3042\n", flop_estimate);
+
+  // Check assembly FLOP estimates with stale QFunction data. Repeating the query must not update it.
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 19416) printf("Incorrect full assembly FLOP estimate, %" CeedSize_FMT " != 19416\n", flop_estimate);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 3234) printf("Incorrect diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3234\n", flop_estimate);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 3234) printf("Incorrect point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3234\n", flop_estimate);
+
+  // Check QFunction data reuse reduces FLOPs estimate on second assembly
+  CeedOperatorSetQFunctionAssemblyReuse(op_mass, true);
+  CeedOperatorLinearAssembleGetNumEntries(op_mass, &num_entries);
+  CeedVectorCreate(ceed, num_entries, &assembled);
+  CeedVectorSetValue(assembled, 0.0);
+  CeedOperatorLinearAssemble(op_mass, assembled);
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 19296) printf("Incorrect cached full assembly FLOP estimate, %" CeedSize_FMT " != 19296\n", flop_estimate);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 3114) printf("Incorrect cached diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3114\n", flop_estimate);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 3114) printf("Incorrect cached point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 3114\n", flop_estimate);
 
   // Cleanup
   CeedVectorDestroy(&q_data_tet);
   CeedVectorDestroy(&q_data_hex);
+  CeedVectorDestroy(&assembled);
   CeedElemRestrictionDestroy(&elem_restriction_u_tet);
   CeedElemRestrictionDestroy(&elem_restriction_x_tet);
   CeedElemRestrictionDestroy(&elem_restriction_q_data_tet);
