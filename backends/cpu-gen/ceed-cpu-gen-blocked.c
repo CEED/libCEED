@@ -55,6 +55,6 @@ static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cpu_Gen_Blocked(void) { return CeedRegister("/cpu/self/gen/blocked", CeedInit_Cpu_Gen_Blocked, 10); }
+CEED_INTERN int CeedRegister_Cpu_Gen_Blocked(void) { return CeedRegister("/cpu/self/gen/blocked", CeedInit_Cpu_Gen_Blocked, 60); }
 
 //------------------------------------------------------------------------------

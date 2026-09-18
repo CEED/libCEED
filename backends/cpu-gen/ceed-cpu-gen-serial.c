@@ -55,6 +55,6 @@ static int CeedInit_Cpu_Gen_Serial(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cpu_Gen_Serial(void) { return CeedRegister("/cpu/self/gen/serial", CeedInit_Cpu_Gen_Serial, 15); }
+CEED_INTERN int CeedRegister_Cpu_Gen_Serial(void) { return CeedRegister("/cpu/self/gen/serial", CeedInit_Cpu_Gen_Serial, 65); }
 
 //------------------------------------------------------------------------------
