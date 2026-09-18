@@ -73,7 +73,10 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_Offset(const CeedInt bl
     for (CeedSize i = 0; i < ELEM_SIZE * BLOCK_SIZE; i += BLOCK_SIZE) {
       // Iteration bound set to discard padding elements
       for (CeedSize j = i; j < i + CeedIntMin(BLOCK_SIZE, NUM_ELEM - e); j++) {
-        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += uu[ELEM_SIZE * (k * BLOCK_SIZE) + j];
+        CeedScalar vv_loc;
+
+        vv_loc = uu[ELEM_SIZE * (k * BLOCK_SIZE) + j];
+        CeedPragmaAtomic vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc;
       }
     }
   }
@@ -108,9 +111,11 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_Oriented(const CeedInt 
     for (CeedSize i = 0; i < ELEM_SIZE * BLOCK_SIZE; i += BLOCK_SIZE) {
       // Iteration bound set to discard padding elements
       for (CeedSize j = i; j < i + CeedIntMin(BLOCK_SIZE, NUM_ELEM - e); j++) {
+        CeedScalar       vv_loc;
         const CeedScalar orient = orients[j + e * ELEM_SIZE] ? -1.0 : 1.0;
 
-        vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += orient * uu[ELEM_SIZE * (k * BLOCK_SIZE) + j];
+        vv_loc = orient * uu[ELEM_SIZE * (k * BLOCK_SIZE) + j];
+        CeedPragmaAtomic vv[offsets[j + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc;
       }
     }
   }
@@ -203,7 +208,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOriented(const Ceed
                   uu[(k * ELEM_SIZE + n + 1) * BLOCK_SIZE + j] * curl_orients[j + (3 * n + 3) * BLOCK_SIZE + e * 3 * ELEM_SIZE];
     }
     for (CeedSize j = 0; j < block_end; j++) {
-      vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+      CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
     }
     for (n = 1; n < ELEM_SIZE - 1; n++) {
       CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
@@ -212,7 +217,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOriented(const Ceed
                     uu[(k * ELEM_SIZE + n + 1) * BLOCK_SIZE + j] * curl_orients[j + (3 * n + 3) * BLOCK_SIZE + e * 3 * ELEM_SIZE];
       }
       for (CeedSize j = 0; j < block_end; j++) {
-        vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+        CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
       }
     }
     CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
@@ -220,7 +225,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOriented(const Ceed
                   uu[(k * ELEM_SIZE + n) * BLOCK_SIZE + j] * curl_orients[j + (3 * n + 1) * BLOCK_SIZE + e * 3 * ELEM_SIZE];
     }
     for (CeedSize j = 0; j < block_end; j++) {
-      vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+      CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -244,7 +249,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOrientedUnsigned(co
                   uu[(k * ELEM_SIZE + n + 1) * BLOCK_SIZE + j] * abs(curl_orients[j + (3 * n + 3) * BLOCK_SIZE + e * 3 * ELEM_SIZE]);
     }
     for (CeedSize j = 0; j < block_end; j++) {
-      vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+      CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
     }
     for (n = 1; n < ELEM_SIZE - 1; n++) {
       CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
@@ -253,7 +258,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOrientedUnsigned(co
                     uu[(k * ELEM_SIZE + n + 1) * BLOCK_SIZE + j] * abs(curl_orients[j + (3 * n + 3) * BLOCK_SIZE + e * 3 * ELEM_SIZE]);
       }
       for (CeedSize j = 0; j < block_end; j++) {
-        vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+        CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
       }
     }
     CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
@@ -261,7 +266,7 @@ static inline int CeedElemRestriction_ApplyAdd_Transpose_CurlOrientedUnsigned(co
                   uu[(k * ELEM_SIZE + n) * BLOCK_SIZE + j] * abs(curl_orients[j + (3 * n + 1) * BLOCK_SIZE + e * 3 * ELEM_SIZE]);
     }
     for (CeedSize j = 0; j < block_end; j++) {
-      vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
+      CeedPragmaAtomic vv[offsets[j + n * BLOCK_SIZE + e * ELEM_SIZE] + k * COMP_STRIDE] += vv_loc[j];
     }
   }
   return CEED_ERROR_SUCCESS;

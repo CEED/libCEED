@@ -11,8 +11,6 @@
 #ifndef CEED_LIBRARY_DEFS_H
 #define CEED_LIBRARY_DEFS_H
 
-
-
 /// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
 /// @ingroup Ceed
 #ifndef CeedPragmaOMP
