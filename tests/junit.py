@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from junit_common import *
+import shlex
 
 
 def create_argparser() -> argparse.ArgumentParser:
@@ -75,16 +76,21 @@ class CeedSuiteSpec(SuiteSpec):
             return (Path('tests') / test).with_suffix('.c')
 
     # get path to executable
-    def get_run_path(self, test: str) -> Path:
+    def get_run_path(self, test: str) -> Union[Path, List[str]]:
         """Compute path to built test executable file
+
+        If `CEED_TEST_RUNNER` is set, its contents (e.g. `qemu-aarch64 -cpu max`) are prepended to run the executable
+        under an emulator or other wrapper; `mpiexec`, if used, still wraps the whole command.
 
         Args:
             test (str): Name of test
 
         Returns:
-            Path: Path to test executable
+            Union[Path, List[str]]: Path to test executable, or runner arguments followed by the test executable
         """
-        return Path('build') / test
+        run_path: Path = Path('build') / test
+        runner: List[str] = shlex.split(os.environ.get('CEED_TEST_RUNNER', ''))
+        return [*map(shlex.quote, runner), f'{run_path}'] if runner else run_path
 
     def get_output_path(self, test: str, output_file: str) -> Path:
         """Compute path to expected output file

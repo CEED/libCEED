@@ -329,6 +329,8 @@ opt.c          := $(sort $(wildcard backends/opt/*.c))
 opt.h          := $(sort $(wildcard backends/opt/*.h))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 avx.h          := $(sort $(wildcard backends/avx/*.h))
+sve.c          := $(sort $(wildcard backends/sve/*.c))
+sve.h          := $(sort $(wildcard backends/sve/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
 # - GPU
@@ -479,6 +481,7 @@ info:
 	$(info Backend Dependencies:)
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
+	$(info SVE_STATUS    = $(SVE_STATUS)$(call backend_status,$(SVE_BACKENDS)))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
@@ -549,6 +552,22 @@ ifneq ($(AVX),)
   libceed.c += $(avx.c)
   libceed.h += $(avx.h)
   BACKENDS_MAKE += $(AVX_BACKENDS)
+endif
+
+# Arm SVE Backends
+SVE_STATUS   = Disabled
+SVE         := $(shell printf '%s\n' \
+  '$(HASH)include <arm_sve.h>' \
+  '$(HASH)include <stdint.h>' \
+  'void f32(float *v, const float *u, uint64_t n) { svbool_t p = svwhilelt_b32((uint64_t)0, n); svfloat32_t x = svld1_f32(p, u); svst1_f32(p, v, svmla_f32_m(p, x, x, x)); }' \
+  'void f64(double *v, const double *u, uint64_t n) { svbool_t p = svwhilelt_b64((uint64_t)0, n); svfloat64_t x = svld1_f64(p, u); svst1_f64(p, v, svmla_f64_m(p, x, x, x)); }' \
+  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
+SVE_BACKENDS = /cpu/self/sve/serial /cpu/self/sve/blocked
+ifeq ($(SVE),1)
+  SVE_STATUS = Enabled
+  libceed.c += $(sve.c)
+  libceed.h += $(sve.h)
+  BACKENDS_MAKE += $(SVE_BACKENDS)
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config

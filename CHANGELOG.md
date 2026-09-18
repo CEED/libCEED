@@ -40,6 +40,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
 - Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
 - Add string names of `ElemRestrictionType`s for human-readable output.
+- Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 
 ### Examples
 
