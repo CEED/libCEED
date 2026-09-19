@@ -2037,21 +2037,22 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           new_field_label->name          = new_field_label_i->name;
           new_field_label->description   = new_field_label_i->description;
           if (new_field_label->type && new_field_label->type != new_field_label_i->type) {
-            // LCOV_EXCL_START
+            CeedContextFieldType type = new_field_label->type;
+
+            CeedCall(CeedFree(&new_field_label->sub_labels));
             CeedCall(CeedFree(&new_field_label));
             return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE, "Incompatible field types on sub-operator contexts. %s != %s",
-                             CeedContextFieldTypes[new_field_label->type], CeedContextFieldTypes[new_field_label_i->type]);
-            // LCOV_EXCL_STOP
+                             CeedContextFieldTypes[type], CeedContextFieldTypes[new_field_label_i->type]);
           } else {
             new_field_label->type = new_field_label_i->type;
           }
           if (new_field_label->num_values != 0 && new_field_label->num_values != new_field_label_i->num_values) {
-            // LCOV_EXCL_START
+            size_t num_values = new_field_label->num_values;
+
+            CeedCall(CeedFree(&new_field_label->sub_labels));
             CeedCall(CeedFree(&new_field_label));
             return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE,
-                             "Incompatible field number of values on sub-operator contexts. %zu != %zu", new_field_label->num_values,
-                             new_field_label_i->num_values);
-            // LCOV_EXCL_STOP
+                             "Incompatible field number of values on sub-operator contexts. %zu != %zu", num_values, new_field_label_i->num_values);
           } else {
             new_field_label->num_values = new_field_label_i->num_values;
           }
