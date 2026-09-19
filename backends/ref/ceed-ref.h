@@ -32,8 +32,11 @@ typedef struct {
 } CeedElemRestriction_Ref;
 
 typedef struct {
-  CeedScalar *collo_grad_1d;
-  bool        is_collocated;
+  CeedScalar      *collo_grad_1d;
+  bool             is_collocated;
+  bool             use_even_odd;
+  CeedSymmetryType collo_grad_symmetry;
+  CeedScalar      *collo_grad_1d_even, *collo_grad_1d_odd;
 } CeedBasis_Ref;
 
 typedef struct {
