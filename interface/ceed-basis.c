@@ -327,6 +327,97 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 }
 
 /**
+  @brief Detect centro-symmetry of a row-major matrix
+
+  Checks whether matrix[row][col] = +/- matrix[num_rows-1-row][num_cols-1-col] using a relative tolerance based on `CEED_EPSILON`.
+
+  @param[in]  num_rows      Number of rows
+  @param[in]  num_cols      Number of columns
+  @param[in]  matrix        Row-major matrix data
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisDetectSymmetry(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type) {
+  const CeedScalar tolerance = 100 * CEED_EPSILON;
+
+  *symmetry_type = CEED_SYMMETRY_UNKNOWN;
+  // The map (row, col) -> (num_rows - 1 - row, num_cols - 1 - col) pairs up every entry, so sweeping the top half of the rows over all columns
+  // visits each pair at least once. A middle row, when num_rows is odd, revisits its own pairs, which is harmless.
+  for (CeedInt row = 0; row < (num_rows + 1) / 2; row++) {
+    for (CeedInt col = 0; col < num_cols; col++) {
+      CeedScalar value              = matrix[row * num_cols + col];
+      CeedScalar mirror_value       = matrix[(num_rows - 1 - row) * num_cols + (num_cols - 1 - col)];
+      CeedScalar scale              = fabs(value) + fabs(mirror_value);
+      CeedScalar symmetric_diff     = fabs(mirror_value - value);
+      CeedScalar antisymmetric_diff = fabs(mirror_value + value);
+
+      if (scale < tolerance) continue;
+      if (*symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+        if (symmetric_diff / scale < tolerance) {
+          *symmetry_type = CEED_SYMMETRY_SYMMETRIC;
+        } else if (antisymmetric_diff / scale < tolerance) {
+          *symmetry_type = CEED_SYMMETRY_ANTISYMMETRIC;
+        } else {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      } else if (*symmetry_type == CEED_SYMMETRY_SYMMETRIC) {
+        if (symmetric_diff / scale >= tolerance) {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      } else {
+        if (antisymmetric_diff / scale >= tolerance) {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      }
+    }
+  }
+  if (*symmetry_type == CEED_SYMMETRY_UNKNOWN) *symmetry_type = CEED_SYMMETRY_NONE;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute even and odd half-matrices from a centro-symmetric row-major matrix
+
+  The half-matrices fold along the column dimension: even[row][col] = (matrix[row][col] + matrix[row][num_cols-1-col]) / 2.
+  Only the first `num_rows_half` rows are stored; the rest are recoverable via the symmetry relation.
+
+  @param[in]  num_rows      Number of rows in original matrix
+  @param[in]  num_cols      Number of columns in original matrix
+  @param[in]  matrix        Row-major original matrix
+  @param[in]  num_rows_half (num_rows + 1) / 2
+  @param[in]  num_cols_half (num_cols + 1) / 2
+  @param[out] even          Even half-matrix, shape [num_rows_half, num_cols_half]
+  @param[out] odd           Odd half-matrix, shape [num_rows_half, num_cols_half]
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisComputeHalfMatrices(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedInt num_rows_half, CeedInt num_cols_half,
+                                        CeedScalar *even, CeedScalar *odd) {
+  for (CeedInt row = 0; row < num_rows_half; row++) {
+    for (CeedInt col = 0; col < num_cols / 2; col++) {
+      CeedScalar value        = matrix[row * num_cols + col];
+      CeedScalar mirror_value = matrix[row * num_cols + (num_cols - 1 - col)];
+
+      even[row * num_cols_half + col] = (value + mirror_value) * (CeedScalar)0.5;
+      odd[row * num_cols_half + col]  = (value - mirror_value) * (CeedScalar)0.5;
+    }
+    if (num_cols % 2) {
+      even[row * num_cols_half + num_cols / 2] = matrix[row * num_cols + num_cols / 2];
+      odd[row * num_cols_half + num_cols / 2]  = (CeedScalar)0.0;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check input vector dimensions for CeedBasisApply[Add]
 
   @param[in]  basis     `CeedBasis` to evaluate
@@ -751,6 +842,104 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 
   CeedCall(CeedFree(&interp_1d_pinv));
   CeedCall(CeedDestroy(&ceed));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute the even-odd decomposition of a row-major matrix
+
+  Detects centro-symmetry and, when the matrix has it, allocates and fills the even and odd half-matrices of shape
+  `[(num_rows + 1) / 2, (num_cols + 1) / 2]`.
+  `even` and `odd` are left untouched when no centro-symmetry is found, so the caller should initialize them to `NULL`.
+  The caller owns the returned arrays and must free them with @ref CeedFree().
+
+  @param[in]  num_rows      Number of rows
+  @param[in]  num_cols      Number of columns
+  @param[in]  matrix        Row-major matrix data
+  @param[out] symmetry_type Detected symmetry type
+  @param[out] even          Variable to store the newly allocated even half-matrix
+  @param[out] odd           Variable to store the newly allocated odd half-matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type, CeedScalar **even,
+                                    CeedScalar **odd) {
+  CeedCall(CeedBasisDetectSymmetry(num_rows, num_cols, matrix, symmetry_type));
+  if (*symmetry_type == CEED_SYMMETRY_SYMMETRIC || *symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC) {
+    const CeedInt num_rows_half = (num_rows + 1) / 2, num_cols_half = (num_cols + 1) / 2;
+
+    CeedCall(CeedMalloc(num_rows_half * num_cols_half, even));
+    CeedCall(CeedMalloc(num_rows_half * num_cols_half, odd));
+    CeedCall(CeedBasisComputeHalfMatrices(num_rows, num_cols, matrix, num_rows_half, num_cols_half, *even, *odd));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D interpolation matrix
+
+  Lazily detects centro-symmetry and computes half-matrices on first call.
+  The half-matrices are stored in the basis and reused on subsequent calls.
+
+  @param[in]  basis          `CeedBasis`
+  @param[out] symmetry_type  Detected symmetry type
+  @param[out] interp_1d_even Even half-matrix (may be NULL if no symmetry)
+  @param[out] interp_1d_odd  Odd half-matrix (may be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **interp_1d_even,
+                                             const CeedScalar **interp_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->interp_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type, &basis->interp_1d_even,
+                                             &basis->interp_1d_odd));
+  }
+
+  *symmetry_type = basis->interp_1d_symmetry_type;
+  if (interp_1d_even) *interp_1d_even = basis->interp_1d_even;
+  if (interp_1d_odd) *interp_1d_odd = basis->interp_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D gradient matrix
+
+  Lazily detects centro-symmetry and computes half-matrices on first call.
+  The half-matrices are stored in the basis and reused on subsequent calls.
+
+  @param[in]  basis          `CeedBasis`
+  @param[out] symmetry_type  Detected symmetry type
+  @param[out] grad_1d_even   Even half-matrix (may be NULL if no symmetry)
+  @param[out] grad_1d_odd    Odd half-matrix (may be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **grad_1d_even,
+                                           const CeedScalar **grad_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type, &basis->grad_1d_even,
+                                             &basis->grad_1d_odd));
+  }
+
+  *symmetry_type = basis->grad_1d_symmetry_type;
+  if (grad_1d_even) *grad_1d_even = basis->grad_1d_even;
+  if (grad_1d_odd) *grad_1d_odd = basis->grad_1d_odd;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2518,6 +2707,33 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 }
 
 /**
+  @brief Enable or disable the even-odd decomposition for a `CeedBasis`
+
+  The decomposition halves the arithmetic in a tensor contraction when the 1D matrix is centro-symmetric, at the cost of folding the input and
+  unfolding the output.
+  Whether that trade is a win depends on the basis size and the backend, and it also reorders the summation, which moves results by about an ulp.
+  It is therefore off by default and has to be asked for.
+  Backends that do not implement the even-odd path ignore this setting.
+
+  The default follows the `CEED_BASIS_USE_EVEN_ODD` environment variable, which enables it when set to `1` or `true`.
+
+  @param[in,out] basis         `CeedBasis`
+  @param[in]     use_even_odd  Boolean flag to enable the even-odd decomposition
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisSetUseEvenOdd(CeedBasis basis, bool use_even_odd) {
+  if (!basis->SetUseEvenOdd) {
+    CeedDebug(CeedBasisReturnCeed(basis), "Backend does not implement the even-odd decomposition for bases.");
+  } else {
+    CeedCall(basis->SetUseEvenOdd(basis, use_even_odd));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a @ref CeedBasis
 
   @param[in,out] basis `CeedBasis` to destroy
@@ -2537,8 +2753,12 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->q_weight_1d));
   CeedCall(CeedFree(&(*basis)->interp));
   CeedCall(CeedFree(&(*basis)->interp_1d));
+  CeedCall(CeedFree(&(*basis)->interp_1d_even));
+  CeedCall(CeedFree(&(*basis)->interp_1d_odd));
   CeedCall(CeedFree(&(*basis)->grad));
   CeedCall(CeedFree(&(*basis)->grad_1d));
+  CeedCall(CeedFree(&(*basis)->grad_1d_even));
+  CeedCall(CeedFree(&(*basis)->grad_1d_odd));
   CeedCall(CeedFree(&(*basis)->div));
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));
