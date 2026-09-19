@@ -2711,11 +2711,11 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 
   The decomposition halves the arithmetic in a tensor contraction when the 1D matrix is centro-symmetric, at the cost of folding the input and
   unfolding the output.
-  Whether that trade is a win depends on the basis size and the backend, and it also reorders the summation, which moves results by about an ulp.
-  It is therefore off by default and has to be asked for.
+  It only pays off once the contraction is large enough, so it is applied from @ref CEED_EVEN_ODD_MIN_DIM upwards and skipped below that.
+  It also reorders the summation, so results move by about an ulp; turn it off for a basis that needs the plain contraction bit for bit.
   Backends that do not implement the even-odd path ignore this setting.
 
-  The default follows the `CEED_BASIS_USE_EVEN_ODD` environment variable, which enables it when set to `1` or `true`.
+  The default follows the `CEED_BASIS_USE_EVEN_ODD` environment variable, which is enabled unless set to `0` or `false`.
 
   @param[in,out] basis         `CeedBasis`
   @param[in]     use_even_odd  Boolean flag to enable the even-odd decomposition

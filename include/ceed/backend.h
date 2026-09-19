@@ -312,7 +312,9 @@ CEED_EXTERN int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_cheb
 
 /// Smallest contraction dimension worth splitting with the even-odd decomposition.
 /// Below this the fold and unfold cost more than the halved contraction saves, and the extra rounding is not worth paying for.
-#define CEED_EVEN_ODD_MIN_DIM 4
+/// Measured on Apple M4 for `/cpu/self/ref/*` and `/cpu/self/opt/*`: the decomposition loses up to 0.63x around order 4 and breaks even near
+/// order 8, so the threshold sits where no measured configuration regresses.
+#define CEED_EVEN_ODD_MIN_DIM 10
 
 CEED_EXTERN int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type,
                                                 CeedScalar **even, CeedScalar **odd);

@@ -390,9 +390,9 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   {
     const char *env_val      = getenv("CEED_BASIS_USE_EVEN_ODD");
-    bool        use_even_odd = false;
+    bool        use_even_odd = true;
 
-    if (env_val) use_even_odd = !strcmp(env_val, "1") || !strcmp(env_val, "true");
+    if (env_val) use_even_odd = strcmp(env_val, "0") && strcmp(env_val, "false");
     CeedCallBackend(CeedBasisSetUseEvenOdd(basis, use_even_odd));
   }
 

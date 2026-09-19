@@ -63,9 +63,17 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
+  // Orders straddle CEED_EVEN_ODD_MIN_DIM so both the plain and the even-odd contraction are covered.
+  // The high orders are kept to one and two dimensions to hold the test's run time down.
+  const CeedInt orders[] = {4, 5, 10, 11, 12};
+
   for (CeedInt dim = 1; dim <= 3; dim++) {
-    for (CeedInt p = 2; p <= 6; p++) {
-      for (CeedInt q = 2; q <= 6; q++) {
+    for (unsigned pi = 0; pi < sizeof(orders) / sizeof(orders[0]); pi++) {
+      const CeedInt p = orders[pi];
+
+      if (dim == 3 && p > 5) continue;
+      for (CeedInt q = p - 1; q <= p + 1; q++) {
+        if (q < 2) continue;
         for (CeedInt kind = MATRIX_SYMMETRIC; kind <= MATRIX_GENERAL; kind++) {
           CeedBasis  basis;
           CeedScalar interp_1d[q * p], grad_1d[q * p], q_ref_1d[q], q_weight_1d[q];
