@@ -310,9 +310,26 @@ CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, Ceed
                                           CeedBasis basis);
 CEED_EXTERN int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev);
 
+/// Smallest contraction dimension worth splitting with the even-odd decomposition.
+/// Below this the fold and unfold cost more than the halved contraction saves, and the extra rounding is not worth paying for.
+/// Measured on Apple M4 for `/cpu/self/ref/*` and `/cpu/self/opt/*`: the decomposition loses up to 0.63x around order 4 and breaks even near
+/// order 8, so the threshold sits where no measured configuration regresses.
+#define CEED_EVEN_ODD_MIN_DIM 10
+
+CEED_EXTERN int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type,
+                                                CeedScalar **even, CeedScalar **odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **interp_1d_even,
+                                                         const CeedScalar **interp_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **grad_1d_even,
+                                                       const CeedScalar **grad_1d_odd);
+
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                          CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractApplyEvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                                const CeedScalar *__restrict__ t_even, const CeedScalar *__restrict__ t_odd,
+                                                CeedSymmetryType symmetry_type, CeedTransposeMode t_mode, const CeedInt add,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int  CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
                                                 const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
                                                 const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
