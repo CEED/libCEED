@@ -40,10 +40,11 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add `CeedGetBuildConfiguration()` to access compilers, flags, and related information about the build environment.
 - Add support for full `CeedOperator` assembly for operators with multiple active fields with different bases for CPU backends and `/gpu/cuda/ref` and `/gpu/hip/gen` backends.
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
-- Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_ENABLE_CUDA_GRAPH=0` to turn off.
+- Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_CUDA_ENABLE_GRAPH=0` to turn off.
 - Add string names of `ElemRestrictionType`s for human-readable output.
 - Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 - Add `/cpu/self/gen/serial` and `/cpu/self/gen/blocked` CPU just-in-time (JiT) compiled backends, inspired by the CUDA and ROCm JiT complied backends. JiT compiler and optimizer options can be set at compile or runtime with the environment variables `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
+- Add unified environment variable interface. Supported variables are shown with `CeedView()` and can be get/set programmatically with `CeedGet*()` functions.
 
 ### Examples
 
@@ -54,6 +55,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - OCCA backends were retired.
 - Use clang-tidy to automatically fix if-else blocks which are missing braces.
 - Fixed bugs with `CeedRegistryGetList()` and clarified internals.
+- All environment variables are now defined in a central header: `include/ceed/ceed-env-list.h`. This header is used to generate all code needed to set and get the environment variables.
 
 (v0-12)=
 

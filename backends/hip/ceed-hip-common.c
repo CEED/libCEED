@@ -9,7 +9,6 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <stdlib.h>
 #include <string.h>
 
 //------------------------------------------------------------------------------
@@ -19,8 +18,8 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
   Ceed_Hip   *data;
   const char *device_spec = strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
-  int         current_device_id, xnack_value;
-  const char *xnack;
+  int         current_device_id;
+  bool        xnack_enabled;
 
   CeedCallHip(ceed, hipGetDevice(&current_device_id));
   if (device_id >= 0 && current_device_id != device_id) {
@@ -31,9 +30,8 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
   CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
   CeedCallHip(ceed, hipGetDeviceProperties(&data->device_prop, current_device_id));
-  xnack                        = getenv("HSA_XNACK");
-  xnack_value                  = !!xnack ? atol(xnack) : 0;
-  data->has_unified_addressing = xnack_value > 0 ? data->device_prop.unifiedAddressing : 0;
+  CeedCallBackend(CeedGetEnvHipHsaXnack(&xnack_enabled));
+  data->has_unified_addressing = xnack_enabled ? data->device_prop.unifiedAddressing : 0;
   if (data->has_unified_addressing) {
     CeedDebug(ceed, "Using unified memory addressing");
   }

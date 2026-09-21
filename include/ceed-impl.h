@@ -98,6 +98,7 @@ typedef struct CeedObject_private {
   CeedInt num_view_tabs;
 } CeedObject_private;
 
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding)
 struct Ceed_private {
   CeedObject_private obj;
   const char        *resource;
@@ -110,7 +111,6 @@ struct Ceed_private {
   char             **rust_source_roots;
   CeedInt            num_rust_source_roots, max_rust_source_roots, num_rust_source_roots_readers;
   CeedInt            num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
-  bool               cuda_compile_with_clang;
   char             **jit_defines;
   CeedInt            num_jit_defines, max_jit_defines, num_jit_defines_readers;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
@@ -134,13 +134,39 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
-  void           *data;
-  bool            is_debug;
+  void *data;
+// Environment variables, generated
+#define CEED_ENV_FLAG(suffix, default, ...) \
+  bool ceed_env_##suffix;                   \
+  bool ceed_env_set_##suffix;               \
+  bool ceed_env_checked_##suffix;
+#define CEED_ENV_STRING(suffix, default, ...) \
+  char *ceed_env_##suffix;                    \
+  bool  ceed_env_set_##suffix;                \
+  bool  ceed_env_checked_##suffix;
+#include <ceed/ceed-env-list.h>
+#undef CEED_ENV_FLAG
+#undef CEED_ENV_STRING
   bool            is_deterministic;
   char            err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset        *f_offsets;
   CeedWorkVectors work_vectors;
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding)
+
+/**
+  @brief Return value of `CEED_DEBUG` environment variable
+
+  @note This macro is to override the non-inlined version when `ceed-impl.h` is included
+
+  @param[in] ceed `Ceed` context
+
+  @return Boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
+
+  @ref Backend
+**/
+#define CeedDebugFlag(ceed) (ceed->ceed_env_EnableDebug)
 
 struct CeedVector_private {
   CeedObject_private obj;

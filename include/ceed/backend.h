@@ -82,7 +82,7 @@ typedef enum {
 
 CEED_EXTERN void CeedDebugImpl256(const unsigned char, const char *, ...);
 CEED_EXTERN bool CeedDebugFlag(const Ceed ceed);
-CEED_EXTERN bool CeedDebugFlagEnv(void);
+
 /**
   Print debugging information in color
 
@@ -113,9 +113,12 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebugEnv256(color, ...)                                 \
-  {                                                                 \
-    if (CeedDebugFlagEnv()) CeedDebugImpl256(color, ##__VA_ARGS__); \
+#define CeedDebugEnv256(color, ...)                    \
+  {                                                    \
+    bool debug;                                        \
+                                                       \
+    CeedGetEnvEnableDebug(&debug);                     \
+    if (debug) CeedDebugImpl256(color, ##__VA_ARGS__); \
   }
 /**
   Print debugging information to terminal without Ceed to reference
@@ -197,7 +200,6 @@ CEED_INTERN int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedC
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 CEED_EXTERN int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 
-CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *is_debug);
 CEED_EXTERN int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator, char **resource_root);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
@@ -221,7 +223,7 @@ CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_ro
 CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots);
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
-
+CEED_EXTERN int CeedRegisterEnvironmentVariable(Ceed ceed, const char *name, void (*get_default)(void));
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);

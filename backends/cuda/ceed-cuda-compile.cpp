@@ -155,7 +155,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
   // Make sure a Context exists for nvrtc
   cudaFree(0);
 
-  CeedCallBackend(CeedGetIsClang(ceed, &using_clang));
+  CeedCallBackend(CeedGetCudaUseClang(ceed, &using_clang));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS,
                using_clang ? "Compiling CUDA with Clang backend (with Rust QFunction support)"
                            : "Compiling CUDA with NVRTC backend (without Rust QFunction support)."
@@ -270,6 +270,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     }
 
     // Get rust crate directories
+    const char  *rust_toolchain;
     const char **rust_source_dirs     = nullptr;
     int          num_rust_source_dirs = 0;
 
@@ -286,13 +287,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     }
 
     CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_dirs));
-
-    char *rust_toolchain = std::getenv("RUST_TOOLCHAIN");
-
-    if (rust_toolchain == nullptr) {
-      rust_toolchain = (char *)"nightly";
-      setenv("RUST_TOOLCHAIN", "nightly", 0);
-    }
+    CeedCallBackend(CeedGetCudaRustupToolchain(ceed, &rust_toolchain));
 
     // Compile Rust crate(s) needed
     std::string command;
@@ -311,7 +306,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     // First check for user LLVM version
     if (!llvm_cxx) {
-      const char *user_cxx = getenv("CEED_CLANG_CUDA_CXX");
+      const char *user_cxx;
+
+      CeedCallBackend(CeedGetCudaClangCxx(ceed, &user_cxx));
       CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
 
       // Check if valid Clang
@@ -325,7 +322,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
       if (is_valid) {
         CeedDebug(ceed, "User specified LLVM compiler is valid\n");
-        CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
+        CeedCallBackend(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
         llvm_cxx = ceed_data->llvm_cxx;
       } else {
         CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");

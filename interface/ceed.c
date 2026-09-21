@@ -219,6 +219,8 @@ static int CeedDestroy_Object(CeedObject *ceed) {
 /**
   @brief Return value of `CEED_DEBUG` environment variable
 
+  @note Custom getter to allow for compiler inlining
+
   @param[in] ceed `Ceed` context
 
   @return Boolean value: true  - debugging mode enabled
@@ -226,20 +228,52 @@ static int CeedDestroy_Object(CeedObject *ceed) {
 
   @ref Backend
 **/
-// LCOV_EXCL_START
-bool CeedDebugFlag(const Ceed ceed) { return ceed->is_debug; }
-// LCOV_EXCL_STOP
+#undef CeedDebugFlag
+bool CeedDebugFlag(Ceed ceed) { return ceed->ceed_env_EnableDebug; }
+#define CeedDebugFlag(ceed) (ceed->ceed_env_EnableDebug)
 
 /**
-  @brief Return value of `CEED_DEBUG` environment variable
+  @brief Get the current debug state for the `Ceed` context
 
-  @return Boolean value: true  - debugging mode enabled
-                         false - debugging mode disabled
+  @note Custom getter to ensure compiler inlining
 
-  @ref Backend
+  @param[in]  ceed     `Ceed` context
+  @param[out] is_debug Pointer to store flag value
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
 **/
+int CeedGetEnableDebug(Ceed ceed, bool *is_debug) {
+  *is_debug = ceed->ceed_env_EnableDebug;
+  return CEED_ERROR_SUCCESS;
+}
+
 // LCOV_EXCL_START
-bool CeedDebugFlagEnv(void) { return getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG"); }
+/**
+  @brief Set the debug state for the `Ceed` context
+
+  @note Custom setter to enable compiler inlining of the getter.
+        Rather than setting only on the root `Ceed`, this setter propogates to all children of the root `Ceed`
+
+  @param[in,out] ceed     `Ceed` context
+  @param[in]     is_debug New flag value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetEnableDebug(Ceed ceed, bool is_debug) {
+  // Exit early/end recursion if already set
+  if (is_debug == ceed->ceed_env_EnableDebug) return CEED_ERROR_SUCCESS;
+  ceed->ceed_env_EnableDebug     = is_debug;
+  ceed->ceed_env_set_EnableDebug = true;
+  if (ceed->parent) CeedCall(CeedSetEnableDebug(ceed->parent, is_debug));
+  if (ceed->delegate) CeedCall(CeedSetEnableDebug(ceed->delegate, is_debug));
+  if (ceed->op_fallback_ceed) CeedCall(CeedSetEnableDebug(ceed->op_fallback_ceed, is_debug));
+  for (CeedInt i = 0; i < ceed->obj_delegate_count; i++) CeedCall(CeedSetEnableDebug(ceed->obj_delegates[i].delegate, is_debug));
+  return CEED_ERROR_SUCCESS;
+}
 // LCOV_EXCL_STOP
 
 /**
@@ -500,21 +534,6 @@ int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedCopyMode copy
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
   CeedDebugEnv("Backend Register: %s", prefix);
   CeedRegisterImpl(prefix, init, priority);
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Return debugging status flag
-
-  @param[in]  ceed     `Ceed` context to get debugging flag
-  @param[out] is_debug Variable to store debugging flag
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedIsDebug(Ceed ceed, bool *is_debug) {
-  *is_debug = ceed->is_debug;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -930,7 +949,7 @@ int CeedGetWorkVector(Ceed ceed, CeedSize len, CeedVector *vec) {
     CeedCallBackend(CeedVectorCreate(ceed, len, &ceed->work_vectors->vecs[i]));
     // Note: ref_count manipulation to prevent a ref-loop
     CeedObjectDereference((CeedObject)ceed);
-    if (ceed->is_debug) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
+    if (CeedDebugFlag(ceed)) CeedGetWorkVectorMemoryUsage(ceed, &usage_mb);
   }
   // Return pointer to work vector
   ceed->work_vectors->is_in_use[i] = true;
@@ -1274,8 +1293,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedObjectCreate(NULL, CeedView_Object, CeedDestroy_Object, &(*ceed)->obj));
   CeedCall(CeedCalloc(1, &(*ceed)->jit_source_roots));
   CeedCall(CeedCalloc(1, &(*ceed)->rust_source_roots));
-  const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
-  if (!ceed_error_handler) ceed_error_handler = "abort";
+  const char *ceed_error_handler;
+
+  CeedCall(CeedGetEnvErrorHandler(&ceed_error_handler));
   if (!strcmp(ceed_error_handler, "exit")) {
     (*ceed)->Error = CeedErrorExit;
   } else if (!strcmp(ceed_error_handler, "store")) {
@@ -1382,8 +1402,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedCalloc(sizeof(f_offsets), &(*ceed)->f_offsets));
   memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
-  // Record env variables CEED_DEBUG or DBG
-  (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
+  // Get env debug value
+  CeedCall(CeedGetEnvEnableDebug(&(*ceed)->ceed_env_EnableDebug));
+  (*ceed)->ceed_env_checked_EnableDebug = true;
 
   // Copy resource prefix, if backend setup successful
   CeedCall(CeedStringAllocCopy(backends[match_index].prefix, (char **)&(*ceed)->resource));
@@ -1394,10 +1415,12 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // By default, make CUDA compile without Clang, use nvrtc instead
   // Note that this is overridden if a Rust file is included (Rust requires Clang)
-  const char *cuda_clang_flag = getenv("CEED_USE_CLANG_CUDA");
-  bool        use_cuda_clang  = cuda_clang_flag && strcmp(cuda_clang_flag, "0") && strcmp(cuda_clang_flag, "false");
+  {
+    const char *cuda_clang_cxx;
 
-  (*ceed)->cuda_compile_with_clang = use_cuda_clang || getenv("CEED_CLANG_CUDA_CXX");
+    CeedCall(CeedGetCudaClangCxx(*ceed, &cuda_clang_cxx));
+    if (cuda_clang_cxx) CeedCall(CeedSetCudaUseClang(*ceed, true));
+  }
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
@@ -1569,8 +1592,7 @@ int CeedAddRustSourceRoot(Ceed ceed, const char *rust_source_root) {
   CeedCall(CeedCalloc(path_length + 1, &ceed_parent->rust_source_roots[index]));
   memcpy(ceed_parent->rust_source_roots[index], rust_source_root, path_length);
   ceed_parent->num_rust_source_roots++;
-  ceed_parent->cuda_compile_with_clang = true;
-  ceed->cuda_compile_with_clang        = true;
+  CeedCall(CeedSetCudaUseClang(ceed_parent, true));
   CeedCall(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
 }
@@ -1636,6 +1658,74 @@ int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs) {
   return CEED_ERROR_SUCCESS;
 }
 
+static inline int CeedViewEnvFlag(const char *tabs, const char *suffix, bool flag, bool default_flag, bool set, bool is_env_only, FILE *stream, ...) {
+  va_list     args;
+  const char *alias;
+
+  va_start(args, stream);
+  alias = va_arg(args, char *);
+
+  fprintf(stream,
+          "%s  - %s\n"
+          "%s    Environment Variable: %s\n"
+          "%s    Default:              %s\n"
+          "%s    Value:                %s\n",
+          tabs, suffix, tabs, alias, tabs, default_flag ? "true" : "false", tabs, flag ? "true" : "false");
+
+  if (is_env_only) {
+    fprintf(stream, "%s    Must be set via environment.\n", tabs);
+  } else {
+    fprintf(stream, "%s    Set Programmatically: %s\n", tabs, set ? "true" : "false");
+  }
+
+  alias = va_arg(args, char *);
+  if (alias) {
+    fprintf(stream, "%s    Aliases:              ", tabs);
+    do {
+      const char *next = va_arg(args, char *);
+
+      fprintf(stream, "%s%s", alias, next ? ", " : "\n");
+      alias = next;
+    } while (alias);
+  }
+  va_end(args);
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedViewEnvString(const char *tabs, const char *suffix, const char *value, const char *default_value, bool set, bool is_env_only,
+                                    FILE *stream, ...) {
+  va_list     args;
+  const char *alias;
+
+  va_start(args, stream);
+  alias = va_arg(args, char *);
+
+  fprintf(stream,
+          "%s  - %s\n"
+          "%s    Environment Variable: %s\n"
+          "%s    Default:              %s\n"
+          "%s    Value:                %s\n",
+          tabs, suffix, tabs, alias, tabs, default_value ? default_value : "(null)", tabs, value ? value : "(null)");
+  if (is_env_only) {
+    fprintf(stream, "%s    Must be set via environment.\n", tabs);
+  } else {
+    fprintf(stream, "%s    Set Programmatically: %s\n", tabs, set ? "true" : "false");
+  }
+
+  alias = va_arg(args, char *);
+  if (alias) {
+    fprintf(stream, "%s    Aliases:              ", tabs);
+    do {
+      const char *next = va_arg(args, char *);
+
+      fprintf(stream, "%s%s", alias, next ? ", " : "\n");
+      alias = next;
+    } while (alias);
+  }
+  va_end(args);
+  return CEED_ERROR_SUCCESS;
+}
+
 /**
   @brief View a `Ceed`
 
@@ -1662,8 +1752,48 @@ int CeedView(Ceed ceed, FILE *stream) {
   fprintf(stream,
           "%sCeed\n"
           "%s  Ceed Resource: %s\n"
-          "%s  Preferred MemType: %s\n",
-          tabs, tabs, ceed->resource, tabs, CeedMemTypes[mem_type]);
+          "%s  Preferred MemType: %s\n"
+          "%s  Environment Variables:\n",
+          tabs, tabs, ceed->resource, tabs, CeedMemTypes[mem_type], tabs);
+
+#define CEED_ENV_FLAG(suffix, default, ...)                                                                                    \
+  {                                                                                                                            \
+    bool value;                                                                                                                \
+                                                                                                                               \
+    CeedCall(CeedGet##suffix(ceed, &value));                                                                                   \
+    CeedCall(CeedViewEnvFlag(tabs, #suffix, value, default, ceed->ceed_env_set_##suffix, false, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#define CEED_ENV_ONLY_FLAG(suffix, default, ...)                                                                              \
+  {                                                                                                                           \
+    bool value;                                                                                                               \
+                                                                                                                              \
+    CeedCall(CeedGetEnv##suffix(&value));                                                                                     \
+    CeedCall(CeedViewEnvFlag(tabs, #suffix, value, default, ceed->ceed_env_set_##suffix, true, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#define CEED_ENV_STRING(suffix, default, ...)                                                                                    \
+  {                                                                                                                              \
+    const char *value;                                                                                                           \
+                                                                                                                                 \
+    CeedCall(CeedGet##suffix(ceed, &value));                                                                                     \
+    CeedCall(CeedViewEnvString(tabs, #suffix, value, default, ceed->ceed_env_set_##suffix, false, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#define CEED_ENV_ONLY_STRING(suffix, default, ...)                                                                              \
+  {                                                                                                                             \
+    const char *value;                                                                                                          \
+                                                                                                                                \
+    CeedCall(CeedGetEnv##suffix(&value));                                                                                       \
+    CeedCall(CeedViewEnvString(tabs, #suffix, value, default, ceed->ceed_env_set_##suffix, true, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#include <ceed/ceed-env-list.h>
+
+#undef CEED_ENV_FLAG
+#undef CEED_ENV_ONLY_FLAG
+#undef CEED_ENV_STRING
+#undef CEED_ENV_ONLY_STRING
   CeedCall(CeedFree(&tabs));
   return CEED_ERROR_SUCCESS;
 }
@@ -1716,6 +1846,13 @@ int CeedDestroy(Ceed *ceed) {
   }
   CeedCall(CeedFree(&(*ceed)->rust_source_roots));
 
+#define CEED_ENV_FLAG(suffix, default, ...)
+#define CEED_ENV_STRING(suffix, default, ...) \
+  if ((*ceed)->ceed_env_set_##suffix) CeedCall(CeedFree(&(*ceed)->ceed_env_##suffix));
+#include <ceed/ceed-env-list.h>
+#undef CEED_ENV_FLAG
+#undef CEED_ENV_STRING
+
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
@@ -1749,7 +1886,9 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
     ret_val = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
   } else {
     // LCOV_EXCL_START
-    const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
+    const char *ceed_error_handler;
+
+    CeedGetEnvErrorHandler(&ceed_error_handler);
     if (!ceed_error_handler) ceed_error_handler = "abort";
     if (!strcmp(ceed_error_handler, "return")) {
       ret_val = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);

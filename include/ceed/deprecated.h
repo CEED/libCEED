@@ -34,5 +34,7 @@ DEPRECATED("Use CeedOperatorCompositeGetMultiplicity()")
 static inline int CeedCompositeOperatorGetMultiplicity(CeedOperator a, CeedInt b, CeedInt *c, CeedVector d) {
   return CeedOperatorCompositeGetMultiplicity(a, b, c, d);
 }
+DEPRECATED("Use CeedGetEnableDebug()")
+static inline int CeedIsDebug(Ceed ceed, bool *is_debug) { return CeedGetEnableDebug(ceed, is_debug); }
 
 #undef DEPRECATED
