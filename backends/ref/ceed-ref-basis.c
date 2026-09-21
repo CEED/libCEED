@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U,
                                   CeedVector V) {
-  bool               is_tensor_basis, add = apply_add || (t_mode == CEED_TRANSPOSE);
+  bool               is_tensor_basis, is_collocated, has_collocated_grad, add = apply_add || (t_mode == CEED_TRANSPOSE);
   CeedInt            dim, num_comp, q_comp, num_nodes, num_qpts;
   const CeedScalar  *u;
   CeedScalar        *v;
@@ -52,6 +52,8 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   }
 
   CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
+  CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
   if (is_tensor_basis) {
     // Tensor basis
     CeedInt P_1d, Q_1d;
@@ -61,7 +63,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
     switch (eval_mode) {
       // Interpolate to/from quadrature points
       case CEED_EVAL_INTERP: {
-        if (impl->is_collocated) {
+        if (is_collocated) {
           memcpy(v, u, num_elem * num_comp * num_nodes * sizeof(u[0]));
         } else {
           CeedInt P = P_1d, Q = Q_1d;
@@ -99,14 +101,31 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
         const CeedScalar *interp_1d;
 
         CeedCallBackend(CeedBasisGetInterp1D(basis, &interp_1d));
-        if (impl->collo_grad_1d) {
-          CeedScalar tmp[2][num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
-          CeedScalar interp[num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
+        if (is_collocated) {  // Qpts collocated with nodes
+          const CeedScalar *grad_1d;
 
+          CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
+
+          // Dim contractions, identity in other directions
+          CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
+
+          for (CeedInt d = 0; d < dim; d++) {
+            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
+                                                    t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
+                                                    t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
+            pre /= P;
+            post *= Q;
+          }
+        } else if (has_collocated_grad && dim == 3) {  // precomputed collocated gradient
+          CeedScalar        tmp[2][num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
+          CeedScalar        interp[num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
+          const CeedScalar *collo_grad_1d;
+
+          CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
           // Interpolate to quadrature points (NoTranspose)
           //  or Grad to quadrature points (Transpose)
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? interp_1d : impl->collo_grad_1d), t_mode,
+            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? interp_1d : collo_grad_1d), t_mode,
                                                     (t_mode == CEED_TRANSPOSE) && (d > 0),
                                                     (t_mode == CEED_NOTRANSPOSE ? (d == 0 ? u : tmp[d % 2]) : &u[d * num_qpts * num_comp * num_elem]),
                                                     (t_mode == CEED_NOTRANSPOSE ? (d == dim - 1 ? interp : tmp[(d + 1) % 2]) : interp)));
@@ -122,26 +141,11 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           }
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
+            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? collo_grad_1d : interp_1d), t_mode,
                                                     (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
                                                     (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
                                                     (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem]
                                                                                 : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
-            pre /= P;
-            post *= Q;
-          }
-        } else if (impl->is_collocated) {  // Qpts collocated with nodes
-          const CeedScalar *grad_1d;
-
-          CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
-
-          // Dim contractions, identity in other directions
-          CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
-
-          for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
-                                                    t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
-                                                    t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
             pre /= P;
             post *= Q;
           }
@@ -273,7 +277,6 @@ static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
   CeedBasis_Ref *impl;
 
   CeedCallBackend(CeedBasisGetData(basis, &impl));
-  CeedCallBackend(CeedFree(&impl->collo_grad_1d));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -291,12 +294,6 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
   CeedCallBackend(CeedCalloc(1, &impl));
-  // Calculate collocated grad
-  CeedCallBackend(CeedBasisIsCollocated(basis, &impl->is_collocated));
-  if (Q_1d >= P_1d && !impl->is_collocated) {
-    CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
-    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, impl->collo_grad_1d));
-  }
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));

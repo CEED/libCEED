@@ -672,6 +672,7 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   const CeedInt         q_bytes      = Q_1d * sizeof(CeedScalar);
   const CeedInt         interp_bytes = q_bytes * P_1d;
   CeedBasis_Hip_shared *data;
+  bool                  has_collocated_grad;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
@@ -687,17 +688,15 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallHip(ceed, hipMemcpy(data->d_grad_1d, grad_1d, interp_bytes, hipMemcpyHostToDevice));
 
   // Compute collocated gradient and copy to GPU
-  data->d_collo_grad_1d    = NULL;
-  bool has_collocated_grad = dim == 3 && Q_1d >= P_1d;
-
+  data->d_collo_grad_1d = NULL;
+  CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
+  has_collocated_grad = has_collocated_grad && dim == 3;
   if (has_collocated_grad) {
-    CeedScalar *collo_grad_1d;
+    const CeedScalar *collo_grad_1d;
 
-    CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &collo_grad_1d));
-    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, collo_grad_1d));
+    CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
     CeedCallHip(ceed, hipMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d));
     CeedCallHip(ceed, hipMemcpy(data->d_collo_grad_1d, collo_grad_1d, q_bytes * Q_1d, hipMemcpyHostToDevice));
-    CeedCallBackend(CeedFree(&collo_grad_1d));
   }
 
   // Set number of threads per block for basis kernels

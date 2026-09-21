@@ -23,6 +23,8 @@ These functions will be removed when the SYCL backends are updated to reflect th
 - Add `CeedOperatorLinearAssembleGetFlopsEstimate`, `CeedOperatorLinearAssembleDiagonalGetFlopsEstimate`, and
   `CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate` to estimate FLOPs for linear operator assembly.
 - Add `CeedBasisGetChebyshevData` to access interpolation data data from DoFs to Chebyshev polynomials and reduce duplicated code.
+- Add `CeedBasisHasCollocatedGrad` to check whether collocated gradient is suppported for a `CeedBasis`.
+- Rename `CeedBasisGetCollocatedGrad` to `CeedBasisGetCollocatedGrad1D` and change signature to take `const CeedScalar **` like other getters; the output array is set to an internally cached array.
 
 ### New features
 

@@ -528,11 +528,6 @@ CEED_EXTERN void fCeedBasisSetNumViewTabs(int *basis, int *num_tabs, int *err) {
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
 CEED_EXTERN void fCeedBasisView(int *basis, int *err) { CeedCallFortran(CeedBasisView(CeedBasis_dict[*basis], stdout)); }
 
-#define fCeedBasisGetCollocatedGrad FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
-CEED_EXTERN void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colo_grad_1d, int *err) {
-  CeedCallFortran(CeedBasisGetCollocatedGrad(CeedBasis_dict[*basis], colo_grad_1d));
-}
-
 #define fCeedBasisApply FORTRAN_NAME(ceedbasisapply, CEEDBASISAPPLY)
 CEED_EXTERN void fCeedBasisApply(int *basis, int *num_elem, int *t_mode, int *eval_mode, int *u, int *v, int *err) {
   CeedCallFortran(CeedBasisApply(CeedBasis_dict[*basis], *num_elem, (CeedTransposeMode)*t_mode, (CeedEvalMode)*eval_mode,
@@ -563,6 +558,14 @@ CEED_EXTERN void fCeedBasisGetGrad1D(int *basis, CeedScalar *grad_1d, int64_t *o
 
   CeedCallFortran(CeedBasisGetGrad1D(CeedBasis_dict[*basis], &grad_1d_c));
   *offset = grad_1d_c - grad_1d;
+}
+
+#define fCeedBasisGetCollocatedGrad1D FORTRAN_NAME(ceedbasisgetcollocatedgrad1d, CEEDBASISGETCOLLOCATEDGRAD1D)
+CEED_EXTERN void fCeedBasisGetCollocatedGrad1D(int *basis, CeedScalar *collocated_grad_1d, int64_t *offset, int *err) {
+  const CeedScalar *colloc_grad_1d_c;
+
+  CeedCallFortran(CeedBasisGetCollocatedGrad1D(CeedBasis_dict[*basis], &colloc_grad_1d_c));
+  *offset = colloc_grad_1d_c - collocated_grad_1d;
 }
 
 #define fCeedBasisGetQRef FORTRAN_NAME(ceedbasisgetqref, CEEDBASISGETQREF)
