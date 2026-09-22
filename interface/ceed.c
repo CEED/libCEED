@@ -1185,6 +1185,95 @@ int CeedRegistryGetList(size_t *n, char *const **resources, CeedInt **priorities
 }
 // LCOV_EXCL_STOP
 
+static inline int CeedHelpEnvFlag(const char *suffix, bool flag, bool default_flag, FILE *stream, ...) {
+  va_list     args;
+  const char *alias;
+
+  va_start(args, stream);
+  alias = va_arg(args, char *);
+
+  fprintf(stream,
+          "- %s\n"
+          "  Environment Variable: %s\n"
+          "  Default:              %s\n"
+          "  Value:                %s\n",
+          suffix, alias, default_flag ? "true" : "false", flag ? "true" : "false");
+
+  alias = va_arg(args, char *);
+  if (alias) {
+    fprintf(stream, "  Aliases:              ");
+    do {
+      const char *next = va_arg(args, char *);
+
+      fprintf(stream, "%s%s", alias, next ? ", " : "\n");
+      alias = next;
+    } while (alias);
+  }
+  va_end(args);
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedHelpEnvString(const char *suffix, const char *value, const char *default_value, FILE *stream, ...) {
+  va_list     args;
+  const char *alias;
+
+  va_start(args, stream);
+  alias = va_arg(args, char *);
+
+  fprintf(stream,
+          "- %s\n"
+          "  Environment Variable: %s\n"
+          "  Default:              %s\n"
+          "  Value:                %s\n",
+          suffix, alias, default_value ? default_value : "(null)", value ? value : "(null)");
+
+  alias = va_arg(args, char *);
+  if (alias) {
+    fprintf(stream, "  Aliases:              ");
+    do {
+      const char *next = va_arg(args, char *);
+
+      fprintf(stream, "%s%s", alias, next ? ", " : "\n");
+      alias = next;
+    } while (alias);
+  }
+  va_end(args);
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedPrintHelp(FILE *stream) {
+  fprintf(stream, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR, CEED_VERSION_MINOR, CEED_VERSION_PATCH,
+          CEED_VERSION_RELEASE ? "" : "+development");
+  fprintf(stderr, "Available backend resources:\n");
+  for (size_t i = 0; i < num_backends; i++) {
+    // Only report compiled backends
+    if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) fprintf(stderr, "  %s\n", backends[i].prefix);
+  }
+  fprintf(stderr, "Configurable Environment Variables:\n");
+#define CEED_ENV_FLAG(suffix, default, ...)                                          \
+  {                                                                                  \
+    bool value;                                                                      \
+                                                                                     \
+    CeedCall(CeedGetEnv##suffix(&value));                                            \
+    CeedCall(CeedHelpEnvFlag(#suffix, value, default, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#define CEED_ENV_STRING(suffix, default, ...)                                          \
+  {                                                                                    \
+    const char *value;                                                                 \
+                                                                                       \
+    CeedCall(CeedGetEnv##suffix(&value));                                              \
+    CeedCall(CeedHelpEnvString(#suffix, value, default, stream, ##__VA_ARGS__, NULL)); \
+  }
+
+#include <ceed/ceed-env-list.h>
+
+#undef CEED_ENV_FLAG
+#undef CEED_ENV_STRING
+  fflush(stderr);
+  return CEED_ERROR_SUCCESS;
+}
+
 /**
   @brief Initialize a `Ceed` context to use the specified resource.
 
@@ -1208,32 +1297,22 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Check for help request
   const char *help_prefix = "help";
-  size_t      match_help  = 0;
+  size_t      offset      = 0;
+  const char *match       = strstr(resource, help_prefix);
 
-  while (match_help < 4 && resource[match_help] == help_prefix[match_help]) match_help++;
-  if (match_help == 4) {
-    fprintf(stderr, "libCEED version: %d.%d%d%s\n", CEED_VERSION_MAJOR, CEED_VERSION_MINOR, CEED_VERSION_PATCH,
-            CEED_VERSION_RELEASE ? "" : "+development");
-    fprintf(stderr, "Available backend resources:\n");
-    for (size_t i = 0; i < num_backends; i++) {
-      // Only report compiled backends
-      if (backends[i].priority < CEED_MAX_BACKEND_PRIORITY) fprintf(stderr, "  %s\n", backends[i].prefix);
-    }
-    fflush(stderr);
-    match_help = 5;  // Delineating character expected
-  } else {
-    match_help = 0;
+  if (match == resource) {
+    CeedCall(CeedPrintHelp(stderr));
+    offset = 5;  // Delineating character expected
   }
-
   // Find best match, computed as number of matching characters from requested resource stem
   size_t stem_length = 0;
 
-  while (resource[stem_length + match_help] && resource[stem_length + match_help] != ':') stem_length++;
+  while (resource[stem_length + offset] && resource[stem_length + offset] != ':') stem_length++;
   for (size_t i = 0; i < num_backends; i++) {
     size_t      n      = 0;
     const char *prefix = backends[i].prefix;
 
-    while (prefix[n] && prefix[n] == resource[n + match_help]) n++;
+    while (prefix[n] && prefix[n] == resource[n + offset]) n++;
     priority = backends[i].priority;
     if (n > match_len || (n == match_len && match_priority > priority)) {
       match_len      = n;
@@ -1259,7 +1338,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
         for (size_t k = 1, last_diag = j - 1; k <= min_len; k++) {
           size_t old_diag = column[k];
           size_t min_1    = (column[k] < column[k - 1]) ? column[k] + 1 : column[k - 1] + 1;
-          size_t min_2    = last_diag + (resource[k - 1] == prefix[j - 1] ? 0 : 1);
+          size_t min_2    = last_diag + (resource[offset + k - 1] == prefix[j - 1] ? 0 : 1);
 
           column[k] = (min_1 < min_2) ? min_1 : min_2;
           last_diag = old_diag;
@@ -1425,7 +1504,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   }
 
   // Backend specific setup
-  CeedCall(backends[match_index].init(&resource[match_help], *ceed));
+  CeedCall(backends[match_index].init(&resource[offset], *ceed));
   return CEED_ERROR_SUCCESS;
 }
 
