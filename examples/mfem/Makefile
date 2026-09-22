@@ -24,7 +24,7 @@ MFEM_DEF = -DMFEM_DIR="\"$(abspath $(MFEM_DIR))\""
 MFEM_LIB_FILE = mfem_is_not_built
 -include $(wildcard $(CONFIG_MK))
 
-MFEM_EXAMPLES =  bp1 bp3
+MFEM_EXAMPLES =  bp1 bp3 biharmonic
 
 .SUFFIXES:
 .SUFFIXES: .cpp
