@@ -1300,6 +1300,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     (*ceed)->Error = CeedErrorExit;
   } else if (!strcmp(ceed_error_handler, "store")) {
     (*ceed)->Error = CeedErrorStore;
+  } else if (!strcmp(ceed_error_handler, "return")) {
+    (*ceed)->Error = CeedErrorReturn;
   } else {
     (*ceed)->Error = CeedErrorAbort;
   }
@@ -1886,16 +1888,20 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
     ret_val = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
   } else {
     // LCOV_EXCL_START
-    const char *ceed_error_handler;
+    const char      *ceed_error_handler;
+    CeedErrorHandler handler;
 
     CeedGetEnvErrorHandler(&ceed_error_handler);
     if (!ceed_error_handler) ceed_error_handler = "abort";
-    if (!strcmp(ceed_error_handler, "return")) {
-      ret_val = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
+    // Store not supported
+    if (!strcmp(ceed_error_handler, "exit")) {
+      handler = &CeedErrorExit;
+    } else if (!strcmp(ceed_error_handler, "return")) {
+      handler = &CeedErrorReturn;
     } else {
-      // This function will not return
-      ret_val = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, &args);
+      handler = &CeedErrorAbort;
     }
+    ret_val = handler(NULL, filename, lineno, func, ecode, format, &args);
   }
   va_end(args);
   return ret_val;
