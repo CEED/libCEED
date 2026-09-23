@@ -98,6 +98,20 @@ typedef struct CeedObject_private {
   CeedInt num_view_tabs;
 } CeedObject_private;
 
+typedef struct {
+  bool value;
+  bool is_set_by_user;
+  bool is_set_in_environment;
+  bool have_checked_environment;
+} CeedEnvFlag;
+
+typedef struct {
+  const char *value;
+  bool        is_set_by_user;
+  bool        is_set_in_environment;
+  bool        have_checked_environment;
+} CeedEnvString;
+
 // NOLINTBEGIN(clang-analyzer-optin.performance.Padding)
 struct Ceed_private {
   CeedObject_private obj;
@@ -136,14 +150,8 @@ struct Ceed_private {
   int (*CompositeOperatorCreate)(CeedOperator);
   void *data;
 // Environment variables, generated
-#define CEED_ENV_FLAG(suffix, default, ...) \
-  bool ceed_env_##suffix;                   \
-  bool ceed_env_set_##suffix;               \
-  bool ceed_env_checked_##suffix;
-#define CEED_ENV_STRING(suffix, default, ...) \
-  char *ceed_env_##suffix;                    \
-  bool  ceed_env_set_##suffix;                \
-  bool  ceed_env_checked_##suffix;
+#define CEED_ENV_FLAG(suffix, default, ...) CeedEnvFlag ceed_env_##suffix;
+#define CEED_ENV_STRING(suffix, default, ...) CeedEnvString ceed_env_##suffix;
 #include <ceed/ceed-env-list.h>
 #undef CEED_ENV_FLAG
 #undef CEED_ENV_STRING
@@ -166,7 +174,7 @@ struct Ceed_private {
 
   @ref Backend
 **/
-#define CeedDebugFlag(ceed) (ceed->ceed_env_EnableDebug)
+#define CeedDebugFlag(ceed) (ceed->ceed_env_EnableDebug.value)
 
 struct CeedVector_private {
   CeedObject_private obj;

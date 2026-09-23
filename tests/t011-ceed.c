@@ -15,10 +15,12 @@ int main(int argc, char **argv) {
 
 #define CEED_ENV_FLAG(suffix, default, ...)                                                                                           \
   {                                                                                                                                   \
-    bool value, new_value;                                                                                                            \
+    bool value, new_value, is_set;                                                                                                    \
                                                                                                                                       \
     CeedGet##suffix(ceed_test, &value);                                                                                               \
     CeedSet##suffix(ceed_test, !value);                                                                                               \
+    CeedGetIsSet##suffix(ceed_test, &is_set);                                                                                         \
+    if (!is_set) printf("Error: flag %s shows as unset after calling CeedSet%s()\n", #suffix, #suffix);                               \
     CeedGet##suffix(ceed_test, &new_value);                                                                                           \
     if (new_value != !value) {                                                                                                        \
       printf("Error: failed to set flag %s (set %s, actual %s)\n", #suffix, !value ? "true" : "false", new_value ? "true" : "false"); \
@@ -30,6 +32,7 @@ int main(int argc, char **argv) {
   {                                                                                                                 \
     const char *env_value, *value, *new_value = "test value";                                                       \
     char       *original_value;                                                                                     \
+    bool        is_set;                                                                                             \
                                                                                                                     \
     CeedGet##suffix(ceed_test, &value);                                                                             \
     if (value) {                                                                                                    \
@@ -41,23 +44,29 @@ int main(int argc, char **argv) {
       original_value = NULL;                                                                                        \
     }                                                                                                               \
     CeedSet##suffix(ceed_test, new_value);                                                                          \
+    CeedGetIsSet##suffix(ceed_test, &is_set);                                                                       \
+    if (!is_set) printf("Error: flag %s shows as unset after calling CeedSet%s()\n", #suffix, #suffix);             \
     CeedGet##suffix(ceed_test, &value);                                                                             \
     if (!value || !strstr(new_value, value)) {                                                                      \
       printf("Error: failed to set string %s (set %s, actual %s)\n", #suffix, new_value, value ? value : "(null)"); \
     }                                                                                                               \
                                                                                                                     \
     CeedSet##suffix(ceed_test, NULL);                                                                               \
+    CeedGetIsSet##suffix(ceed_test, &is_set);                                                                       \
+    if (!is_set) printf("Error: flag %s shows as unset after calling CeedSet%s()\n", #suffix, #suffix);             \
     CeedGet##suffix(ceed_test, &value);                                                                             \
     if (value) {                                                                                                    \
       printf("Error: failed to set string %s (set (null), actual %s)\n", #suffix, value);                           \
     }                                                                                                               \
-    CeedGetEnv##suffix(&env_value);                                                                                 \
+    CeedGetEnv##suffix(&env_value, NULL);                                                                           \
     if (((!env_value && !original_value) && (env_value != original_value)) ||                                       \
         ((env_value && original_value) && !strstr(env_value, original_value))) {                                    \
       printf("Error: original value doesn't match environment for string %s (orig %s, env %s)\n", #suffix,          \
              original_value ? original_value : "(null)", env_value ? env_value : "(null)");                         \
     }                                                                                                               \
     CeedSet##suffix(ceed_test, env_value);                                                                          \
+    CeedGetIsSet##suffix(ceed_test, &is_set);                                                                       \
+    if (!is_set) printf("Error: flag %s shows as unset after calling CeedSet%s()\n", #suffix, #suffix);             \
     if (original_value) free(original_value);                                                                       \
   }
 #define CEED_ENV_ONLY_STRING(suffix, default, ...)

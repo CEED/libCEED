@@ -25,15 +25,17 @@
 typedef struct Ceed_private *Ceed;
 #endif
 
-#define CEED_ENV_ONLY_FLAG(suffix, default, ...) CEED_EXTERN int CeedGetEnv##suffix(bool *value);
-#define CEED_ENV_FLAG(suffix, default, ...)                \
-  CEED_ENV_ONLY_FLAG(suffix, default, ##__VA_ARGS__)       \
-  CEED_EXTERN int CeedGet##suffix(Ceed ceed, bool *value); \
+#define CEED_ENV_ONLY_FLAG(suffix, default, ...) CEED_EXTERN int CeedGetEnv##suffix(bool *value, bool *is_set);
+#define CEED_ENV_FLAG(suffix, default, ...)                      \
+  CEED_ENV_ONLY_FLAG(suffix, default, ##__VA_ARGS__)             \
+  CEED_EXTERN int CeedGet##suffix(Ceed ceed, bool *value);       \
+  CEED_EXTERN int CeedGetIsSet##suffix(Ceed ceed, bool *is_set); \
   CEED_EXTERN int CeedSet##suffix(Ceed ceed, bool value);
-#define CEED_ENV_ONLY_STRING(suffix, default, ...) CEED_EXTERN int CeedGetEnv##suffix(const char **value);
+#define CEED_ENV_ONLY_STRING(suffix, default, ...) CEED_EXTERN int CeedGetEnv##suffix(const char **value, bool *is_set);
 #define CEED_ENV_STRING(suffix, default, ...)                     \
   CEED_ENV_ONLY_STRING(suffix, default, ##__VA_ARGS__)            \
   CEED_EXTERN int CeedGet##suffix(Ceed ceed, const char **value); \
+  CEED_EXTERN int CeedGetIsSet##suffix(Ceed ceed, bool *is_set);  \
   CEED_EXTERN int CeedSet##suffix(Ceed ceed, const char *value);
 
 #include "ceed-env-list.h"

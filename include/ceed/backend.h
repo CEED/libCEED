@@ -117,7 +117,7 @@ CEED_EXTERN bool CeedDebugFlag(const Ceed ceed);
   {                                                    \
     bool debug;                                        \
                                                        \
-    CeedGetEnvEnableDebug(&debug);                     \
+    CeedGetEnvEnableDebug(&debug, NULL);               \
     if (debug) CeedDebugImpl256(color, ##__VA_ARGS__); \
   }
 /**

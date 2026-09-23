@@ -30,7 +30,7 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
   CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
   CeedCallHip(ceed, hipGetDeviceProperties(&data->device_prop, current_device_id));
-  CeedCallBackend(CeedGetEnvHipHsaXnack(&xnack_enabled));
+  CeedCallBackend(CeedGetEnvHipHsaXnack(&xnack_enabled, NULL));
   data->has_unified_addressing = xnack_enabled ? data->device_prop.unifiedAddressing : 0;
   if (data->has_unified_addressing) {
     CeedDebug(ceed, "Using unified memory addressing");
