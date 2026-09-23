@@ -1,4 +1,4 @@
-name: ARM
+name: ARM SVE
 
 on:
   push:
@@ -7,26 +7,6 @@ on:
   pull_request:
 
 jobs:
-  test:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04-arm]
-        compiler: [gcc, clang]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - name: Environment setup
-      uses: actions/checkout@v5
-    - name: Build and test libCEED
-      env:
-        CC: ${{ matrix.compiler }}
-        FC: gfortran
-      run: |
-        make info
-        make -j4
-        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j
-
   test-sve:
     strategy:
       matrix:
@@ -40,25 +20,39 @@ jobs:
     - name: Environment setup
       uses: actions/checkout@v5
     - name: Install QEMU
-      run: sudo apt-get update && sudo apt-get install -y qemu-user
+      run: sudo apt-get update && sudo apt-get install -y qemu-user lcov llvm
+    - name: Set compiler
+      run: |
+        case "${{ matrix.compiler }}" in
+          gcc)
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+            echo "GCOV=gcov" >> $GITHUB_ENV
+            if [[ ${{ matrix.precision }} == "fp64" ]]; then
+              echo "FC=gfortran" >> $GITHUB_ENV
+            else
+              echo "FC=" >> $GITHUB_ENV
+            fi
+            ;;
+          clang)
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+            echo "FC=" >> $GITHUB_ENV
+            echo "GCOV=llvm-cov --gcov-tool gcov" >> $GITHUB_ENV
+            ;;
+        esac
+        echo "OPT=-O2 -g -ffp-contract=fast -march=armv8-a+sve" >> $GITHUB_ENV
+        echo "COVERAGE=1" >> $GITHUB_ENV
     - name: Configure precision
       if: matrix.precision == 'fp32'
       run: sed -i 's/#include "ceed-f64.h"/#include "ceed-f32.h"/' include/ceed/types.h
     - name: Build SVE test suite
-      env:
-        CC: ${{ matrix.compiler }}
-        FC: ${{ matrix.precision == 'fp64' && 'gfortran' || '' }}
-        SVE_OPT: -O2 -g -ffp-contract=fast -march=armv8-a+sve
       run: |
-        make -j4 OPT="$SVE_OPT"
-        make info OPT="$SVE_OPT" | tee build/sve-info.log
+        make -j
+        make info | tee build/sve-info.log
+        cat build/sve_err.txt || echo "SVE ENABLED"
         grep -F 'SVE_STATUS    = Enabled' build/sve-info.log
     - name: Run SVE full suite at multiple vector lengths
-      env:
-        CC: ${{ matrix.compiler }}
-        FC: ${{ matrix.precision == 'fp64' && 'gfortran' || '' }}
-        LD_LIBRARY_PATH: ${{ github.workspace }}/lib
-        SVE_OPT: -O2 -g -ffp-contract=fast -march=armv8-a+sve
       run: |
         cat >build/sve-vector-length.c <<'EOF'
         #include <arm_sve.h>
@@ -74,5 +68,14 @@ jobs:
           bits=$(qemu-aarch64 -cpu "$cpu" build/sve-vector-length)
           echo "vq=$vq bits=$bits"
           test "$bits" -eq "$((128 * vq))"
-          CEED_TEST_RUNNER="qemu-aarch64 -cpu $cpu" make -j4 OPT="$SVE_OPT" PROVE_OPTS=-j4 prove
+          CEED_TEST_RUNNER="qemu-aarch64 -cpu $cpu" make -j JUNIT_BATCH="SVE-${{ matrix.os }}-${{ matrix.compiler }}-${bits}bit" junit
         done
+    - name: Collect coverage
+      run: |
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+    - name: Codecov upload
+      uses: codecov/codecov-action@v5
+      with:
+        files: coverage.info
+        plugins: noop
+        token: ${{ secrets.CODECOV_TOKEN }}

@@ -226,12 +226,13 @@ ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
   CXXFLAGS += --coverage
   CEED_LDFLAGS += --coverage
+  FFLAGS += --coverage -fprofile-abs-path
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS += -I./include
+CPPFLAGS += -I$(abspath ./include)
 CEED_LDLIBS = -lm
 OBJDIR := build
 for_install := $(filter install,$(MAKECMDGOALS))
@@ -577,7 +578,7 @@ SVE         := $(shell printf '%s\n' \
   '$(HASH)include <stdint.h>' \
   'void f32(float *v, const float *u, uint64_t n) { svbool_t p = svwhilelt_b32((uint64_t)0, n); svfloat32_t x = svld1_f32(p, u); svst1_f32(p, v, svmla_f32_m(p, x, x, x)); }' \
   'void f64(double *v, const double *u, uint64_t n) { svbool_t p = svwhilelt_b64((uint64_t)0, n); svfloat64_t x = svld1_f64(p, u); svst1_f64(p, v, svmla_f64_m(p, x, x, x)); }' \
-  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
+  | $(CC) $(CPPFLAGS) $(filter-out --coverage,$(CFLAGS:-M%=)) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
 SVE_BACKENDS = /cpu/self/sve/serial /cpu/self/sve/blocked
 ifeq ($(SVE),1)
   SVE_STATUS = Enabled

@@ -21,26 +21,31 @@ jobs:
     - name: Install cross toolchain and QEMU
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-user gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
+        sudo apt-get install -y lcov qemu-user gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
+        echo "CC=powerpc64le-linux-gnu-gcc" >> $GITHUB_ENV
+        echo "CXX=powerpc64le-linux-gnu-g++" >> $GITHUB_ENV
+        echo "FC=powerpc64le-linux-gnu-gfortran" >> $GITHUB_ENV
+        echo "GCOV=powerpc64le-linux-gnu-gcov" >> $GITHUB_ENV
+        echo "OPT=-O2 -g -ffp-contract=fast" >> $GITHUB_ENV
+        echo "COVERAGE=1" >> $GITHUB_ENV
     - name: Build libCEED for ppc64le
-      env:
-        CC: powerpc64le-linux-gnu-gcc
-        CXX: powerpc64le-linux-gnu-g++
-        FC: powerpc64le-linux-gnu-gfortran
-        OPT: -O2 -g -ffp-contract=fast
       run: |
         make info
-        make -j4
+        make -j
         file lib/libceed.so | grep -F 'PowerPC'
     - name: Test libCEED under QEMU
       env:
-        CC: powerpc64le-linux-gnu-gcc
-        CXX: powerpc64le-linux-gnu-g++
-        FC: powerpc64le-linux-gnu-gfortran
-        OPT: -O2 -g -ffp-contract=fast
         CEED_TEST_RUNNER: qemu-ppc64le -L /usr/powerpc64le-linux-gnu
       run: |
-        make -j4 build/t000-ceed
+        make -j build/t000-ceed
         file build/t000-ceed | grep -F 'PowerPC'
         $CEED_TEST_RUNNER build/t000-ceed /cpu/self/ref/serial
-        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j4
+        make JUNIT_BATCH="IBMPower-${{ matrix.os }}-${{ matrix.compiler }}" junit -j
+    - name: Collect coverage
+      run: |
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+    - name: Codecov upload
+      uses: codecov/codecov-action@v5
+      with:
+        files: coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}

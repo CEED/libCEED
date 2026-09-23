@@ -122,7 +122,7 @@ noether-cpu:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --rc geninfo_unexecuted_blocks=1 --ignore-errors source,mismatch --ignore-errors inconsistent;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -214,10 +214,12 @@ noether-rust-qfunctions:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --rc geninfo_unexecuted_blocks=1 --ignore-errors source,mismatch --ignore-errors inconsistent;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
       fi
   artifacts:
     paths:
@@ -307,7 +309,7 @@ noether-cuda:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --rc geninfo_unexecuted_blocks=1 --ignore-errors source,mismatch --ignore-errors inconsistent;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -376,7 +378,7 @@ noether-cuda:
 #    - |
 #      if [ -f .SUCCESS ]; then
 #        source job.env;
-#        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
+#        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --rc geninfo_unexecuted_blocks=1 --ignore-errors source,mismatch;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
 #        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
@@ -480,7 +482,7 @@ noether-float:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --rc geninfo_unexecuted_blocks=1 --ignore-errors source,mismatch --ignore-errors inconsistent;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
