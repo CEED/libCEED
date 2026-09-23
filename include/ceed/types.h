@@ -225,6 +225,19 @@ typedef enum {
   CEED_TRANSPOSE
 } CeedTransposeMode;
 
+/// Denotes the centro-symmetry type of a 1D basis matrix
+/// @ingroup CeedBasis
+typedef enum {
+  /// Symmetry has not been checked yet
+  CEED_SYMMETRY_UNKNOWN = 0,
+  /// No centro-symmetry detected
+  CEED_SYMMETRY_NONE = 1,
+  /// Centro-symmetric: t[j][b] = t[J-1-j][B-1-b]
+  CEED_SYMMETRY_SYMMETRIC = 2,
+  /// Centro-antisymmetric: t[j][b] = -t[J-1-j][B-1-b]
+  CEED_SYMMETRY_ANTISYMMETRIC = 3,
+} CeedSymmetryType;
+
 /// Basis evaluation mode
 /// @ingroup CeedBasis
 typedef enum {
