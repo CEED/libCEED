@@ -44,6 +44,10 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add string names of `ElemRestrictionType`s for human-readable output.
 - Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 - Add `/cpu/self/gen/serial` and `/cpu/self/gen/blocked` CPU just-in-time (JiT) compiled backends, inspired by the CUDA and ROCm JiT complied backends. JiT compiler and optimizer options can be set at compile or runtime with the environment variables `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
+- Add even-odd (centro-symmetry) decomposition for tensor contractions, which halves the arithmetic when the 1D basis matrix is centro-symmetric.
+`CeedBasisGetEvenOddDecompositionInterp1D` and `CeedBasisGetEvenOddDecompositionGrad1D` report the symmetry of a basis and give the cached half-matrices, and `CeedTensorContractApplyEvenOdd` applies a contraction with them, so it is available to every CPU backend rather than only `/cpu/self/avx/*`.
+It only pays off once the contraction is large enough, so it is applied from `CEED_EVEN_ODD_MIN_DIM` upwards and skipped below that.
+It reorders the summation, so results move by about an ulp; use `CeedBasisSetUseEvenOdd` per basis or the `CEED_BASIS_USE_EVEN_ODD` environment variable to turn it off.
 
 ### Examples
 
