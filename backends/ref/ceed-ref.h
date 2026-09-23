@@ -31,19 +31,10 @@ typedef struct {
                CeedRequest *);
 } CeedElemRestriction_Ref;
 
-/// Whether the user has asked for the even-odd decomposition on this basis.
-/// Unset leaves the choice to the size threshold; the other two override it.
-typedef enum {
-  CEED_BASIS_EVEN_ODD_UNSET = 0,
-  CEED_BASIS_EVEN_ODD_ALWAYS,
-  CEED_BASIS_EVEN_ODD_NEVER,
-} CeedBasisEvenOddRequest_Ref;
-
 typedef struct {
-  // The collocated gradient itself lives on the CeedBasis; only its decomposition is backend data
-  CeedSymmetryType            collo_grad_symmetry;
-  CeedScalar                 *collo_grad_1d_even, *collo_grad_1d_odd;
-  CeedBasisEvenOddRequest_Ref even_odd_request;
+  CeedSymmetryType collo_grad_symmetry;
+  CeedScalar      *collo_grad_1d_even, *collo_grad_1d_odd;
+  bool             use_even_odd, use_even_odd_is_set;
 } CeedBasis_Ref;
 
 typedef struct {

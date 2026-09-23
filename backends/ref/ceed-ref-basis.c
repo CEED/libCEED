@@ -15,15 +15,11 @@
 #include "ceed-ref.h"
 
 //------------------------------------------------------------------------------
-// The decomposition needs a centro-symmetric matrix, so that is checked first.
-// Past that, an explicit request from the user decides, and only when there is
-// none does the size threshold choose: below it the fold and unfold cost more
-// than the halved contraction saves.
+// Check user setting or default to order rule of thumb
 //------------------------------------------------------------------------------
 static inline bool CeedBasisUseEvenOdd_Ref(const CeedBasis_Ref *impl, CeedSymmetryType symmetry_type, CeedInt B, CeedInt J) {
   if (symmetry_type != CEED_SYMMETRY_SYMMETRIC && symmetry_type != CEED_SYMMETRY_ANTISYMMETRIC) return false;
-  if (impl->even_odd_request == CEED_BASIS_EVEN_ODD_ALWAYS) return true;
-  if (impl->even_odd_request == CEED_BASIS_EVEN_ODD_NEVER) return false;
+  if (impl->use_even_odd_is_set) return impl->use_even_odd;
   return B >= CEED_EVEN_ODD_MIN_DIM && J >= CEED_EVEN_ODD_MIN_DIM;
 }
 
@@ -365,7 +361,8 @@ static int CeedBasisSetUseEvenOdd_Ref(CeedBasis basis, bool use_even_odd) {
   CeedBasis_Ref *impl;
 
   CeedCallBackend(CeedBasisGetData(basis, &impl));
-  impl->even_odd_request = use_even_odd ? CEED_BASIS_EVEN_ODD_ALWAYS : CEED_BASIS_EVEN_ODD_NEVER;
+  impl->use_even_odd        = use_even_odd;
+  impl->use_even_odd_is_set = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -406,7 +403,6 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
 
   {
-    // With nothing set the size threshold decides; the environment variable is a request like any other
     const char *env_val = getenv("CEED_BASIS_USE_EVEN_ODD");
 
     if (env_val) CeedCallBackend(CeedBasisSetUseEvenOdd(basis, strcmp(env_val, "0") && strcmp(env_val, "false")));

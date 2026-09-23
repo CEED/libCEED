@@ -420,10 +420,8 @@ static int CeedBasisComputeHalfMatrices(CeedInt num_rows, CeedInt num_cols, cons
 /**
   @brief Compute the even-odd decomposition of a row-major matrix
 
-  Detects centro-symmetry and, when the matrix has it, allocates and fills the even and odd half-matrices of shape
-  `[(num_rows + 1) / 2, (num_cols + 1) / 2]`.
-  `even` and `odd` are left untouched when no centro-symmetry is found, so the caller should initialize them to `NULL`.
-  The caller owns the returned arrays and must free them with @ref CeedFree().
+  Allocates the half-matrices only if the matrix is centro-symmetric, leaving `even` and `odd` untouched otherwise.
+  The caller owns the returned arrays.
 
   @param[in]  num_rows      Number of rows
   @param[in]  num_cols      Number of columns
@@ -2750,13 +2748,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 /**
   @brief Enable or disable the even-odd decomposition for a `CeedBasis`
 
-  The decomposition halves the arithmetic in a tensor contraction when the 1D matrix is centro-symmetric, at the cost of folding the input and
-  unfolding the output.
-  It only pays off once the contraction is large enough, so it is applied from @ref CEED_EVEN_ODD_MIN_DIM upwards and skipped below that.
-  It also reorders the summation, so results move by about an ulp; turn it off for a basis that needs the plain contraction bit for bit.
-  Backends that do not implement the even-odd path ignore this setting.
-
-  The default follows the `CEED_BASIS_USE_EVEN_ODD` environment variable, which is enabled unless set to `0` or `false`.
+  Overrides the size based default; the decomposition is faster for large enough contractions but moves results by about an ulp.
 
   @param[in,out] basis         `CeedBasis`
   @param[in]     use_even_odd  Boolean flag to enable the even-odd decomposition

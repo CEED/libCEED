@@ -1,16 +1,15 @@
 /// @file
-/// Test tensor basis apply against a reference contraction for centro-symmetric and general 1D matrices
-/// \test Test tensor basis apply against a reference contraction for centro-symmetric and general 1D matrices
+/// Test tensor basis apply against a reference contraction
+/// \test Test tensor basis apply against a reference contraction
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 
-// Kinds of 1D matrix to build
 typedef enum {
-  MATRIX_SYMMETRIC     = 0,  // t[i][j] = t[Q-1-i][P-1-j]
-  MATRIX_ANTISYMMETRIC = 1,  // t[i][j] = -t[Q-1-i][P-1-j]
-  MATRIX_QUADRANT_ONLY = 2,  // centro-symmetric only over the top-left quadrant pairs
-  MATRIX_GENERAL       = 3,  // no centro-symmetry at all
+  MATRIX_SYMMETRIC     = 0,
+  MATRIX_ANTISYMMETRIC = 1,
+  MATRIX_QUADRANT_ONLY = 2,  // symmetric in the top-left quadrant only
+  MATRIX_GENERAL       = 3,
 } MatrixKind;
 
 static CeedScalar Entry(CeedInt i, CeedInt j) { return cos(0.7 * (i + 1) + 0.3 * (j + 1)); }
@@ -24,14 +23,14 @@ static void BuildMatrix(MatrixKind kind, CeedInt num_rows, CeedInt num_cols, Cee
     case MATRIX_ANTISYMMETRIC: {
       const CeedScalar sign = kind == MATRIX_SYMMETRIC ? 1.0 : -1.0;
 
-      // Mirror the top half of the rows onto the bottom half, over every column
+      // Mirror over every column
       for (CeedInt i = 0; i < (num_rows + 1) / 2; i++) {
         for (CeedInt j = 0; j < num_cols; j++) matrix[(num_rows - 1 - i) * num_cols + (num_cols - 1 - j)] = sign * matrix[i * num_cols + j];
       }
       break;
     }
     case MATRIX_QUADRANT_ONLY:
-      // Mirror only the top-left quadrant, which leaves the top-right and bottom-left halves unrelated
+      // Mirror the top-left quadrant only
       for (CeedInt i = 0; i < (num_rows + 1) / 2; i++) {
         for (CeedInt j = 0; j < (num_cols + 1) / 2; j++) matrix[(num_rows - 1 - i) * num_cols + (num_cols - 1 - j)] = matrix[i * num_cols + j];
       }
@@ -41,7 +40,7 @@ static void BuildMatrix(MatrixKind kind, CeedInt num_rows, CeedInt num_cols, Cee
   }
 }
 
-// Reference contraction, contracting on the middle index
+// Contract on the middle index
 static void ContractReference(CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *t, CeedTransposeMode t_mode, const CeedScalar *u,
                               CeedScalar *v) {
   for (CeedInt a = 0; a < A; a++) {
@@ -63,8 +62,7 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  // Orders straddle CEED_EVEN_ODD_MIN_DIM so both the plain and the even-odd contraction are covered.
-  // The high orders are kept to one and two dimensions to hold the test's run time down.
+  // Orders either side of CEED_EVEN_ODD_MIN_DIM
   const CeedInt orders[] = {4, 5, 10, 11, 12};
 
   for (CeedInt dim = 1; dim <= 3; dim++) {
@@ -80,14 +78,14 @@ int main(int argc, char **argv) {
           CeedInt    p_dim = CeedIntPow(p, dim), q_dim = CeedIntPow(q, dim);
 
           BuildMatrix((MatrixKind)kind, q, p, interp_1d);
-          // Pair a symmetric interp with an antisymmetric grad, as a Lagrange basis on symmetric nodes does
+          // Lagrange bases pair a symmetric interp with an antisymmetric grad
           BuildMatrix(kind == MATRIX_SYMMETRIC ? MATRIX_ANTISYMMETRIC : (MatrixKind)kind, q, p, grad_1d);
           for (CeedInt i = 0; i < q; i++) {
             q_ref_1d[i]    = -1.0 + 2.0 * i / (q - 1);
             q_weight_1d[i] = 2.0 / q;
           }
           CeedBasisCreateTensorH1(ceed, dim, num_comp, p, q, interp_1d, grad_1d, q_ref_1d, q_weight_1d, &basis);
-          // Exercise the even-odd path explicitly so this test does not depend on the default
+          // Do not depend on the size based default
           CeedBasisSetUseEvenOdd(basis, true);
 
           for (CeedInt t_mode = 0; t_mode < 2; t_mode++) {
@@ -106,7 +104,7 @@ int main(int argc, char **argv) {
 
             CeedBasisApply(basis, num_elem, mode, CEED_EVAL_INTERP, u, v);
 
-            // Reference: one contraction per dimension
+            // One contraction per dimension
             {
               const CeedScalar *in  = u_array;
               CeedInt           pre = num_comp * CeedIntPow(B, dim - 1), post = num_elem;
