@@ -942,9 +942,6 @@ $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath 
 # Testing
 # ------------------------------------------------------------
 
-# Enable the SME state test only when the compiler and ABI runtime are usable.
-$(OBJDIR)/t309-tensor-contract-sme$(EXE_SUFFIX) : CPPFLAGS += $(if $(filter 1,$(SME)),-DCEED_TEST_SME)
-
 # Set number processes for testing
 NPROC_TEST ?= 1
 export NPROC_TEST
