@@ -11,42 +11,47 @@ fixes:
 ignore:
   - "julia/LibCEED.jl/src/generated/*.jl"
 
-# CodeCov shows up in the checks on GitHub pull requests
 comment: false
 
 coverage:
   status:
     project:
       default: off
-      interface:
-        flags:
-          - interface
-      backends:
-        flags:
-          - backends
     patch:
       default: off
-      interface:
-        flags:
-          - interface
-      backends:
-        flags:
-          - backends
 
-flags:
-  interface:
-    paths:
-      - interface/
-  gallery:
-    paths:
-      - gallery/
-      - include/ceed/jit-source/gallery/
-  backends:
-    paths:
-      - backends/
-  tests:
-    paths:
-      - tests/
-  examples:
-    paths:
-      - examples/
+# Replace `flags` with `component_management`
+component_management:
+  individual_components:
+    - component_id: interface
+      name: interface
+      paths:
+        - interface/
+      statuses:
+        - type: project
+        - type: patch
+    - component_id: backends
+      name: backends
+      paths:
+        - backends/
+        - include/ceed/jit-source/cpu-gen/
+        - include/ceed/jit-source/cuda/
+        - include/ceed/jit-source/hip/
+        - include/ceed/jit-source/magma/
+        - include/ceed/jit-source/sycl/
+      statuses:
+        - type: project
+        - type: patch
+    - component_id: gallery
+      name: gallery
+      paths:
+        - gallery/
+        - include/ceed/jit-source/gallery/
+    - component_id: tests
+      name: tests
+      paths:
+        - tests/
+    - component_id: examples
+      name: examples
+      paths:
+        - examples/
