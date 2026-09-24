@@ -12,13 +12,13 @@
 
 static int CheckTensorContract(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, CeedTransposeMode t_mode, CeedInt add) {
   const CeedSize   num_t = (CeedSize)J * B, num_u = (CeedSize)A * B * C, num_v = (CeedSize)A * J * C;
-  const CeedScalar guard = 12345;
-  CeedScalar     *t_storage = malloc((num_t + 2) * sizeof(*t_storage)), *t_copy = malloc((num_t + 2) * sizeof(*t_copy));
-  CeedScalar     *u_storage = malloc((num_u + 2) * sizeof(*u_storage)), *u_copy = malloc((num_u + 2) * sizeof(*u_copy));
-  CeedScalar     *v_storage = malloc((num_v + 2) * sizeof(*v_storage));
-  long double    *v_ref = malloc(num_v * sizeof(*v_ref));
-  int             error = 0;
-  CeedInt         call = 0;
+  const CeedScalar guard     = 12345;
+  CeedScalar      *t_storage = malloc((num_t + 2) * sizeof(*t_storage)), *t_copy = malloc((num_t + 2) * sizeof(*t_copy));
+  CeedScalar      *u_storage = malloc((num_u + 2) * sizeof(*u_storage)), *u_copy = malloc((num_u + 2) * sizeof(*u_copy));
+  CeedScalar      *v_storage = malloc((num_v + 2) * sizeof(*v_storage));
+  long double     *v_ref     = malloc(num_v * sizeof(*v_ref));
+  int              error     = 0;
+  CeedInt          call      = 0;
 
   if (!t_storage || !t_copy || !u_storage || !u_copy || !v_storage || !v_ref) {
     fprintf(stderr, "Tensor contraction test allocation failed\n");
@@ -67,7 +67,7 @@ static int CheckTensorContract(CeedTensorContract contract, CeedInt A, CeedInt B
     for (CeedInt a = 0; a < A; a++) {
       for (CeedInt j = 0; j < J; j++) {
         for (CeedInt c = 0; c < C; c++) {
-          const CeedSize out = ((CeedSize)a * J + j) * C + c;
+          const CeedSize out      = ((CeedSize)a * J + j) * C + c;
           long double    expected = add ? v_ref[out] : 0, magnitude = fabsl(expected);
 
           for (CeedInt b = 0; b < B; b++) {
@@ -94,8 +94,8 @@ static int CheckTensorContract(CeedTensorContract contract, CeedInt A, CeedInt B
 
 cleanup:
   if (error) {
-    printf("A=%" CeedInt_FMT " B=%" CeedInt_FMT " C=%" CeedInt_FMT " J=%" CeedInt_FMT " mode=%s add=%" CeedInt_FMT " call=%" CeedInt_FMT "\n",
-           A, B, C, J, t_mode == CEED_TRANSPOSE ? "transpose" : "notranspose", add, call);
+    printf("A=%" CeedInt_FMT " B=%" CeedInt_FMT " C=%" CeedInt_FMT " J=%" CeedInt_FMT " mode=%s add=%" CeedInt_FMT " call=%" CeedInt_FMT "\n", A, B,
+           C, J, t_mode == CEED_TRANSPOSE ? "transpose" : "notranspose", add, call);
   }
   free(t_storage);
   free(t_copy);
@@ -109,7 +109,7 @@ cleanup:
 int main(int argc, char **argv) {
   Ceed                    ceed;
   CeedTensorContract      contract;
-  const CeedTransposeMode t_modes[] = {CEED_NOTRANSPOSE, CEED_TRANSPOSE};
+  const CeedTransposeMode t_modes[]   = {CEED_NOTRANSPOSE, CEED_TRANSPOSE};
   const CeedInt           add_modes[] = {0, 1, -1};
   // A, B, C, J: singleton dimensions, rectangular shapes, long reductions, and vector/tile tails.
   const CeedInt dims[][4] = {

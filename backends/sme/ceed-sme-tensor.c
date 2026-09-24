@@ -7,8 +7,8 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <arm_sve.h>
 #include <arm_sme.h>
+#include <arm_sve.h>
 #include <stdint.h>
 
 #include "ceed-sme.h"
@@ -35,47 +35,36 @@
 #define fmopa(tile, pg_col, pg_row, src_col, src_row) svmopa_za32_f32_m(tile, pg_col, pg_row, src_col, src_row)
 #endif
 
-
 //------------------------------------------------------------------------------
 // Tensor Contract Slice
 //------------------------------------------------------------------------------
 // v[j,c] (+)= sum_b t[j,b] u[b,c] for one a; vectorized over c, tiled over j.
-__arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
-                                               const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) __arm_streaming {
-
+__arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+                                                               CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
+                                                               CeedScalar *restrict v) __arm_streaming {
   CeedInt s0 = B, s1 = 1;
 
-  if(t_mode == CEED_TRANSPOSE){
+  if (t_mode == CEED_TRANSPOSE) {
     s0 = 1;
     s1 = J;
   }
 
   svbool_t pg_col;
-  for(CeedSize j = 0;
-      svptest_first(ptrue(), pg_col = whilelt(j, J));
-      j += vlength())
-  {
-
+  for (CeedSize j = 0; svptest_first(ptrue(), pg_col = whilelt(j, J)); j += vlength()) {
     svbool_t pg_row;
-    for(CeedSize c = 0;
-        svptest_first(ptrue(), pg_row = whilelt(c, C));
-        c += vlength())
-    {
+    for (CeedSize c = 0; svptest_first(ptrue(), pg_row = whilelt(c, C)); c += vlength()) {
       svzero_za();
       const CeedInt n = cntp(ptrue(), pg_col);
 
-      if(add)
-        for(CeedInt i = 0; i < n; i++)
-        {
+      if (add)
+        for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg_row, v + ((CeedSize)j + i) * C + c);
         }
 
-      for(CeedInt b = 0; b < B; b++)
-      {
+      for (CeedInt b = 0; b < B; b++) {
         CeedScalar tmp[vlength()];
 
-        for(CeedInt i = 0; i < n; i++)
-          tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
+        for (CeedInt i = 0; i < n; i++) tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
         rtype tt = load_vec(pg_col, tmp);
 
         rtype uu = load_vec(pg_row, u + (CeedSize)b * C + c);
@@ -83,15 +72,13 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedIn
         fmopa(0, pg_col, pg_row, tt, uu);
       }
 
-      for(CeedInt i = 0; i < n; i++)
-      {
+      for (CeedInt i = 0; i < n; i++) {
         store_za_row(0, i, pg_row, v + ((CeedSize)j + i) * C + c);
       }
     }
   }
   return CEED_ERROR_SUCCESS;
 }
-
 
 //------------------------------------------------------------------------------
 // Tensor Contract Apply
