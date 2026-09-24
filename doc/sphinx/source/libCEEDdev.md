@@ -60,7 +60,7 @@ The `/cpu/self/ref/blocked` backend updates the {ref}`CeedOperator` to use an E-
 The `/cpu/self/opt/*` backends update the {ref}`CeedOperator` to apply the action of the operator in 1 or 8 element batches, depending upon if the blocking strategy is used.
 This reduced the memory required to utilize this backend significantly.
 
-The `/cpu/self/avx/*`, `/cpu/self/sve/*`, `/cpu/self/sme/*`, and `/cpu/self/xsmm/*` backends delegate to the corresponding `/cpu/self/opt/*` backends. These backends update the `CeedTensorContract` objects using AVX intrinsics, vector-length-agnostic Arm SVE intrinsics, vector-length-agnostic Arm SME outer-product intrinsics, and libXSMM functions, respectively.
+The `/cpu/self/avx/*`, `/cpu/self/sve/*`, `/cpu/self/sme/*`, and `/cpu/self/xsmm/*` backends delegate to the corresponding `/cpu/self/opt/*` backends. These backends update the `CeedTensorContract` objects using AVX intrinsics, vector-length-agnostic ARM SVE intrinsics, vector-length-agnostic ARM SME outer-product intrinsics, and libXSMM functions, respectively.
 
 The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
