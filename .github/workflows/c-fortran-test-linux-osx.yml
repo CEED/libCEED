@@ -40,6 +40,8 @@ jobs:
             else
               echo "CC=clang" >> $GITHUB_ENV
               echo "CXX=clang++" >> $GITHUB_ENV
+              # Test that the default compiler works at runtime
+              echo "CEED_CPU_JIT_CXX=" >> $GITHUB_ENV
             fi
             ;;
           apple-clang)
@@ -58,5 +60,6 @@ jobs:
         if [[ "${{ matrix.os }}" == macos-* ]]; then
           	NUM_JOBS=2
         fi
-        make -j$NUM_JOBS
+        # Note: set CEED_CPU_JIT_CXX here to ensure value is stored in the binary
+        CEED_CPU_JIT_CXX="$CXX" make -j$NUM_JOBS
         make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j$NUM_JOBS

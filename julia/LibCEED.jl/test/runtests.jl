@@ -44,10 +44,13 @@ else
             @test !iscuda(c)
             @test get_preferred_memtype(c) == MEM_HOST
             @test_throws LibCEED.CeedError create_interior_qfunction(c, "")
-            @test showstr(c) == """
-                Ceed
-                  Ceed Resource: $res
-                  Preferred MemType: host"""
+            @test startswith(
+                showstr(c),
+                """
+Ceed
+  Ceed Resource: $res
+  Preferred MemType: host""",
+            )
         end
 
         @testset "Context" begin
