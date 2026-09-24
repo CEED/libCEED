@@ -335,6 +335,8 @@ avx.c          := $(sort $(wildcard backends/avx/*.c))
 avx.h          := $(sort $(wildcard backends/avx/*.h))
 sve.c          := $(sort $(wildcard backends/sve/*.c))
 sve.h          := $(sort $(wildcard backends/sve/*.h))
+sme.c          := $(sort $(wildcard backends/sme/*.c))
+sme.h          := $(sort $(wildcard backends/sme/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
 cpu-gen.c      := $(sort $(wildcard backends/cpu-gen/*.c))
@@ -489,6 +491,7 @@ info:
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
 	$(info SVE_STATUS    = $(SVE_STATUS)$(call backend_status,$(SVE_BACKENDS)))
+	$(info SME_STATUS    = $(SME_STATUS)$(call backend_status,$(SME_BACKENDS)))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
@@ -570,7 +573,7 @@ ifneq ($(AVX),)
   BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
-# Arm SVE Backends
+# ARM SVE Backends
 SVE_STATUS   = Disabled
 SVE         := $(shell printf '%s\n' \
   '$(HASH)include <arm_sve.h>' \
@@ -584,6 +587,41 @@ ifeq ($(SVE),1)
   libceed.c += $(sve.c)
   libceed.h += $(sve.h)
   BACKENDS_MAKE += $(SVE_BACKENDS)
+endif
+
+# ARM SME Backends
+# Check the configured precision and link the SME ABI runtime without executing target code.
+SME_STATUS   = Disabled
+SME         := $(shell printf '%s\n' \
+  '$(HASH)include <ceed/types.h>' \
+  '$(HASH)include <arm_sve.h>' \
+  '$(HASH)include <arm_sme.h>' \
+  '$(HASH)include <stdint.h>' \
+  '__arm_new("za") __attribute__((noinline)) static void f(CeedScalar *v) __arm_streaming {' \
+  '  svzero_za();' \
+  '$(HASH)ifdef CEED_SCALAR_IS_FP64' \
+  '  svbool_t p = svwhilelt_b64((int64_t)0, (int64_t)1);' \
+  '  svfloat64_t x = svld1_f64(p, v);' \
+  '  svld1_hor_za64(0, 0, p, v);' \
+  '  svmopa_za64_f64_m(0, p, p, x, x);' \
+  '  svst1_hor_za64(0, 0, p, v);' \
+  '$(HASH)else' \
+  '  svbool_t p = svwhilelt_b32((int64_t)0, (int64_t)1);' \
+  '  svfloat32_t x = svld1_f32(p, v);' \
+  '  svld1_hor_za32(0, 0, p, v);' \
+  '  svmopa_za32_f32_m(0, p, p, x, x);' \
+  '  svst1_hor_za32(0, 0, p, v);' \
+  '$(HASH)endif' \
+  '}' \
+  'int main(int argc, char **argv) { (void)argv; CeedScalar v = (CeedScalar)argc; f(&v); return v == 0; }' \
+  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror $(LDFLAGS) $(CEED_LDFLAGS) \
+    -x c - -x none -o /dev/null $(CEED_LDLIBS) $(LDLIBS) >/dev/null 2>&1 && echo 1)
+SME_BACKENDS = /cpu/self/sme/serial /cpu/self/sme/blocked
+ifeq ($(SME),1)
+  SME_STATUS = Enabled
+  libceed.c += $(sme.c)
+  libceed.h += $(sme.h)
+  BACKENDS_MAKE += $(SME_BACKENDS)
 endif
 
 # Collect list of libraries and paths for use in linking and pkg-config

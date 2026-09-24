@@ -161,8 +161,10 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/cpu/self/opt/blocked`    | Blocked optimized C implementation                     | Yes                   |
 | `/cpu/self/avx/serial`     | Serial AVX implementation                              | Yes                   |
 | `/cpu/self/avx/blocked`    | Blocked AVX implementation                             | Yes                   |
-| `/cpu/self/sve/serial`     | Serial Arm SVE implementation                          | Yes                   |
-| `/cpu/self/sve/blocked`    | Blocked Arm SVE implementation                         | Yes                   |
+| `/cpu/self/sve/serial`     | Serial ARM SVE implementation                          | Yes                   |
+| `/cpu/self/sve/blocked`    | Blocked ARM SVE implementation                         | Yes                   |
+| `/cpu/self/sme/serial`     | Serial ARM SME implementation                          | Yes                   |
+| `/cpu/self/sme/blocked`    | Blocked ARM SME implementation                         | Yes                   |
 | `/cpu/self/gen/serial`     | Optimized serial implementation using code generation  | Yes                   |
 | `/cpu/self/gen/blocked`    | Optimized blocked implementation using code generation | Yes                   |
 ||
@@ -203,7 +205,11 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The `/cpu/self/sve/*` backends use vector-length-agnostic Arm SVE instructions for tensor contractions, delegating other operations to the corresponding `/cpu/self/opt/*` backend. They are built when the active compiler target supports SVE, and the resulting library must run on an SVE-capable target.
+The `/cpu/self/sve/*` backends use vector-length-agnostic ARM SVE instructions for tensor contractions, delegating other operations to the corresponding `/cpu/self/opt/*` backend. They are built when the active compiler target supports SVE, and the resulting library must run on an SVE-capable target.
+
+The `/cpu/self/sme/*` backends use vector-length-agnostic ARM Scalable Matrix Extension (SME) outer-product instructions for tensor contractions in single or double precision, delegating other operations to the corresponding `/cpu/self/opt/*` backend. Selecting `/cpu/self/sme` uses the blocked backend.
+
+These backends are built when the configured compiler and target can compile the required SME intrinsics and streaming/ZA attributes and link the SME ABI support routines for the selected precision. Double precision additionally requires SME-F64F64 support. Use `make info` to check `SME_STATUS`. Execution requires a processor with the corresponding SME features and operating system support for SME state.
 
 The `/cpu/self/gen/*` backends use code generation to write a function to perform the action of the Operator and compile it at runtime.
 You can configure the compiler and optimization options at compile or runtime with the options `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
