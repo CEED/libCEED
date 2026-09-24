@@ -9,4 +9,5 @@
 // This will be expanded inside CeedRegisterAll() to call each registration function.
 // This is also used to create weakly linked registration functions in `backends/weak/ceed-*-weak.c'.
 
+CEED_BACKEND(CeedRegister_Sme_Blocked, 1, "/cpu/self/sme/blocked")
 CEED_BACKEND(CeedRegister_Sme_Serial, 1, "/cpu/self/sme/serial")
