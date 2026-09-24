@@ -335,7 +335,7 @@ avx.c          := $(sort $(wildcard backends/avx/*.c))
 avx.h          := $(sort $(wildcard backends/avx/*.h))
 sve.c          := $(sort $(wildcard backends/sve/*.c))
 sve.h          := $(sort $(wildcard backends/sve/*.h))
-sme.c          := backends/sme/ceed-sme-tensor.c backends/sme/ceed-sme-serial.c
+sme.c          := $(sort $(wildcard backends/sme/*.c))
 sme.h          := $(sort $(wildcard backends/sme/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
@@ -616,7 +616,7 @@ SME         := $(shell printf '%s\n' \
   'int main(int argc, char **argv) { (void)argv; CeedScalar v = (CeedScalar)argc; f(&v); return v == 0; }' \
   | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror $(LDFLAGS) $(CEED_LDFLAGS) \
     -x c - -x none -o /dev/null $(CEED_LDLIBS) $(LDLIBS) >/dev/null 2>&1 && echo 1)
-SME_BACKENDS = /cpu/self/sme/serial
+SME_BACKENDS = /cpu/self/sme/serial /cpu/self/sme/blocked
 ifeq ($(SME),1)
   SME_STATUS = Enabled
   libceed.c += $(sme.c)
