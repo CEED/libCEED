@@ -24,7 +24,15 @@
 #define store_za_row(tile, row, pg_row, dst) svst1_hor_za64(tile, row, pg_row, dst)
 #define fmopa(tile, pg_col, pg_row, src_col, src_row) svmopa_za64_f64_m(tile, pg_col, pg_row, src_col, src_row)
 #else
-
+#define rtype svfloat32_t
+#define vlength() ((CeedSize)svcntw())
+#define whilelt(i, n) svwhilelt_b32((int64_t)(i), (int64_t)(n))
+#define ptrue() svptrue_b32()
+#define cntp(g, pg) svcntp_b32(g, pg)
+#define load_vec(pg, src) svld1_f32(pg, src)
+#define load_za_row(tile, row, pg_row, src) svld1_hor_za32(tile, row, pg_row, src)
+#define store_za_row(tile, row, pg_row, dst) svst1_hor_za32(tile, row, pg_row, dst)
+#define fmopa(tile, pg_col, pg_row, src_col, src_row) svmopa_za32_f32_m(tile, pg_col, pg_row, src_col, src_row)
 #endif
 
 
@@ -54,7 +62,7 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedIn
         c += vlength())
     {
       svzero_za();
-      const CeedInt n = svcntp_b64(ptrue(), pg_col);
+      const CeedInt n = cntp(ptrue(), pg_col);
 
       if(add)
         for(CeedInt i = 0; i < n; i++)
