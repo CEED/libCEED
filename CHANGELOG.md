@@ -44,6 +44,7 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add string names of `ElemRestrictionType`s for human-readable output.
 - Add vector-length-agnostic Arm SVE serial and blocked CPU backends.
 - Add `/cpu/self/gen/serial` and `/cpu/self/gen/blocked` CPU just-in-time (JiT) compiled backends, inspired by the CUDA and ROCm JiT complied backends. JiT compiler and optimizer options can be set at compile or runtime with the environment variables `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
+- Add Arm SME CPU backends with FP32 and FP64 support.
 
 ### Examples
 
