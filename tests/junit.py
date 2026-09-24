@@ -144,8 +144,6 @@ class CeedSuiteSpec(SuiteSpec):
             return f'Device memory not supported'
         elif 'Test not implemented in single precision' in stderr:
             return f'Test not implemented in single precision'
-        elif 'Test requires SME support' in stderr:
-            return 'Test requires SME compiler and ABI runtime support'
         elif 'No SYCL devices of the requested type are available' in stderr:
             return f'SYCL device type not available'
         elif 'You may need to add --download-ctetgen or --download-tetgen' in stderr:
