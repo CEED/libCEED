@@ -42,7 +42,7 @@
 // v[j,c] (+)= sum_b t[j,b] u[b,c] for one a; vectorized over c, tiled over j.
 __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
                                                const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) __arm_streaming {
-  
+
   CeedInt s0 = B, s1 = 1;
 
   if(t_mode == CEED_TRANSPOSE){
@@ -66,14 +66,14 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedIn
 
       if(add)
         for(CeedInt i = 0; i < n; i++)
-        {          
+        {
           load_za_row(0, i, pg_row, v + ((CeedSize)j + i) * C + c);
         }
 
       for(CeedInt b = 0; b < B; b++)
       {
         CeedScalar tmp[vlength()];
-  
+
         for(CeedInt i = 0; i < n; i++)
           tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
         rtype tt = load_vec(pg_col, tmp);
@@ -84,7 +84,7 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedIn
       }
 
       for(CeedInt i = 0; i < n; i++)
-      {          
+      {
         store_za_row(0, i, pg_row, v + ((CeedSize)j + i) * C + c);
       }
     }
