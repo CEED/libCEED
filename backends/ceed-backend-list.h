@@ -17,9 +17,9 @@
 #include "ceed-backend-list-cpu-gen.h"
 // Requires AVX support
 #include "ceed-backend-list-avx.h"
-// Requires Arm SVE support
+// Requires ARM SVE support
 #include "ceed-backend-list-sve.h"
-// Requires Arm SME support
+// Requires ARM SME support
 #include "ceed-backend-list-sme.h"
 // Requires Valgrind
 #include "ceed-backend-list-memcheck.h"

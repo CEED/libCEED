@@ -573,7 +573,7 @@ ifneq ($(AVX),)
   BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
-# Arm SVE Backends
+# ARM SVE Backends
 SVE_STATUS   = Disabled
 SVE         := $(shell printf '%s\n' \
   '$(HASH)include <arm_sve.h>' \
@@ -589,7 +589,7 @@ ifeq ($(SVE),1)
   BACKENDS_MAKE += $(SVE_BACKENDS)
 endif
 
-# Arm SME Backends
+# ARM SME Backends
 # Check the configured precision and link the SME ABI runtime without executing target code.
 SME_STATUS   = Disabled
 SME         := $(shell printf '%s\n' \
