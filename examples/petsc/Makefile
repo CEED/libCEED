@@ -5,25 +5,46 @@
 #
 # This file is part of CEED:  http://github.com/ceed
 
+CONFIG ?= ../../config.mk
+-include $(CONFIG)
 COMMON ?= ../../common.mk
 -include $(COMMON)
 
-# Note: PETSC_ARCH can be undefined or empty for installations which do not use
-#       PETSC_ARCH - for example when using PETSc installed through Spack.
-PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
-CEED_DIR ?= ../..
-ceed.pc  := $(CEED_DIR)/lib/pkgconfig/ceed.pc
+SED ?= sed
+PKGCONF ?= pkgconf
+pkgconf = $(shell env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) $1 | $(SED) -e 's/^"//g' -e 's/"$$//g')
 
-CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
+ifneq ($(wildcard $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc),)
+  export PKG_CONFIG_PATH := $(abspath $(PETSC_DIR))/$(PETSC_ARCH)/lib/pkgconfig$(if $(PKG_CONFIG_PATH),:$(PKG_CONFIG_PATH),)
+endif
+PETSc.pc = PETSc
+
+CEED_DIR ?= ../..
+ifneq ($(wildcard $(CEED_DIR)/lib/pkgconfig/ceed.pc),)
+  export PKG_CONFIG_PATH := $(abspath $(CEED_DIR))/lib/pkgconfig$(if $(PKG_CONFIG_PATH),:$(PKG_CONFIG_PATH),)
+endif
+ceed.pc = ceed
+ceed_pc_flags =
+ifneq ($(wildcard $(call pkgconf, --variable=prefix $(ceed.pc))/lib/libceed.a),)
+  ceed_pc_flags := --static
+endif
+
+PETSC_PC_PATH = $(call pkgconf, --path $(PETSc.pc))
+CEED_PC_PATH = $(call pkgconf, --path $(ceed.pc))
+
+CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc))
 CFLAGS = -std=c11 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
-  $(OPT)
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+  $(OPT) $(OPT_EXAMPLES)
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc)) \
+  $(call pkgconf, --cflags-only-I $(ceed_pc_flags) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-LDFLAGS  = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
-LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS   = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc)) \
+  $(call pkgconf, --libs-only-L --libs-only-other $(ceed_pc_flags) $(ceed.pc))
+LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc))) \
+  $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(ceed_pc_flags) $(ceed.pc)))
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc)) $(call pkgconf, --libs-only-l $(ceed_pc_flags) $(ceed.pc)) -lm
 
 OBJDIR := build
 SRCDIR := src
@@ -37,39 +58,39 @@ libutils.a: $(utils.o)
 
 area.c := area.c
 area.o = $(area.c:%.c=$(OBJDIR)/%.o)
-area: $(area.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+area: $(area.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 bps.c := bps.c
 bps.o = $(bps.c:%.c=$(OBJDIR)/%.o)
-bps: $(bps.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+bps: $(bps.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 bpsraw.c := bpsraw.c
 bpsraw.o = $(bpsraw.c:%.c=$(OBJDIR)/%.o)
-bpsraw: $(bpsraw.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+bpsraw: $(bpsraw.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 bpssphere.c := bpssphere.c
 bpssphere.o = $(bpssphere.c:%.c=$(OBJDIR)/%.o)
-bpssphere: $(bpssphere.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+bpssphere: $(bpssphere.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 bpsswarm.c := bpsswarm.c
 bpsswarm.o = $(bpsswarm.c:%.c=$(OBJDIR)/%.o)
-bpsswarm: $(bpsswarm.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+bpsswarm: $(bpsswarm.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 
 dmswarm.c := dmswarm.c
 dmswarm.o = $(dmswarm.c:%.c=$(OBJDIR)/%.o)
-dmswarm: $(dmswarm.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+dmswarm: $(dmswarm.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 multigrid.c := multigrid.c
 multigrid.o = $(multigrid.c:%.c=$(OBJDIR)/%.o)
-multigrid: $(multigrid.o) libutils.a | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+multigrid: $(multigrid.o) libutils.a | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(call quiet,LINK.o) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :
@@ -85,7 +106,7 @@ $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 # Rules for building the examples
 #%: %.c
 
-print: $(PETSc.pc) $(ceed.pc)
+info: $(PETSC_PC_PATH) $(CEED_PC_PATH)
 	$(info CC      : $(CC))
 	$(info CFLAGS  : $(CFLAGS))
 	$(info CPPFLAGS: $(CPPFLAGS))
@@ -96,12 +117,10 @@ print: $(PETSc.pc) $(ceed.pc)
 clean:
 	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere bpsswarm dmswarm multigrid libutils.a
 
-$(PETSc.pc):
+$(PETSC_PC_PATH):
 	$(if $(wildcard $@),,$(error \
 	  PETSc config not found at $@. Please set PETSC_DIR and PETSC_ARCH))
 
 .PHONY: all print clean
-
-pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
 
 -include $(src.o:%.o=%.d)
