@@ -42,12 +42,12 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add `CeedVectorFilter` to zero out components of a `CeedVector` that have absolute value below a specified threshold value.
 - Add `CeedOperatorSetEnableCudaGraph` for CUDA Graph capture/replay on `/gpu/cuda/gen` composite operators. Enabled by default; use `CEED_CUDA_ENABLE_GRAPH=0` to turn off.
 - Add string names of `ElemRestrictionType`s for human-readable output.
-- Add vector-length-agnostic ARM SVE serial and blocked CPU backends.
+- Add `/cpu/self/sve/serial` and `/cpu/self/sve/blocked` vector-length-agnostic ARM SVE CPU backends.
 - Add `/cpu/self/gen/serial` and `/cpu/self/gen/blocked` CPU just-in-time (JiT) compiled backends, inspired by the CUDA and ROCm JiT complied backends. JiT compiler and optimizer options can be set at compile or runtime with the environment variables `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
 - Add unified environment variable interface. Supported variables are shown with `CeedView()` and can be get/set programmatically with `CeedGet*()` functions.
 - Add even-odd (centro-symmetry) decomposition for tensor contractions, which halves the arithmetic when the 1D basis matrix is centro-symmetric.
 This reorders the summation, so results move by about an ulp; use `CeedBasisSetUseEvenOdd` per basis or the `CEED_BASIS_USE_EVEN_ODD` environment variable to turn it off.
-- Add ARM SME CPU backends with FP32 and FP64 support.
+- Add `/cpu/self/sme/serial` and `/cpu/self/sme/blocked` ARM Scalable Matrix Extension (SME) CPU backends with SME outer-product instructions for tensor contractions.
 
 ### Examples
 
