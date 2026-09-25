@@ -749,7 +749,6 @@ ifeq ($(STATIC),1)
   $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
-pkgconfig-libs-private = $(PKG_LIBS)
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
   ifneq ($(SYCL_LIB_DIR),)
     $(libceeds) : LINK = $(SYCLCXX)
@@ -759,10 +758,9 @@ ifeq ($(LIBCEED_CONTAINS_CXX),1)
   endif
   ifeq ($(STATIC),1)
     $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
-    pkgconfig-libs-private += $(LIBCXX)
   endif
 endif
-
+pkgconfig-libs-private = $(PKG_LIBS)
 
 # ------------------------------------------------------------
 # Building core library components
@@ -963,6 +961,9 @@ $(bench_targets): bench-%: $(OBJDIR)/%
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
 benchmarks: $(bench_targets)
 
+COLON := :
+ESCAPED_COLON := \:
+pkgconfig-libs-private.clean = $(shell echo $(pkgconfig-libs-private) | $(SED) 's/:/\\:/g')
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 .INTERMEDIATE : $(OBJDIR)/ceed.pc
@@ -970,7 +971,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%opt%:$(OPT):" \
-	    -e "s:%libs_private%:$(patsubst,:,\:,pkgconfig-libs-private):" $< > $@
+	    -e "s:%libs_private%:$(pkgconfig-libs-private.clean):" $< > $@
 
 GIT_DESCRIBE = $(shell git -c safe.directory=$PWD describe --always --dirty 2>/dev/null || printf "unknown\n")
 
