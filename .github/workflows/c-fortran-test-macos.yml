@@ -64,6 +64,7 @@ jobs:
       uses: codecov/codecov-action@v5
       if: ${{ matrix.compiler == 'gcc' }}
       with:
+        verbose: true
         files: coverage.info
         plugins: noop
         token: ${{ secrets.CODECOV_TOKEN }}
