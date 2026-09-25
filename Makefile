@@ -618,9 +618,9 @@ SME         := $(shell printf '%s\n' \
     -x c - -x none -o /dev/null $(CEED_LDLIBS) $(LDLIBS) >/dev/null 2>&1 && echo 1)
 SME_BACKENDS = /cpu/self/sme/serial /cpu/self/sme/blocked
 ifeq ($(SME),1)
-  SME_STATUS = Enabled
-  libceed.c += $(sme.c)
-  libceed.h += $(sme.h)
+  SME_STATUS     = Enabled
+  libceed.c     += $(sme.c)
+  libceed.h     += $(sme.h)
   BACKENDS_MAKE += $(SME_BACKENDS)
 endif
 
