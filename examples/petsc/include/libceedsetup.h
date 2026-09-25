@@ -15,9 +15,12 @@
 #include "structs.h"
 
 PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data);
+PetscErrorCode CeedDataBDDCDestroy(CeedDataBDDC data);
 PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt topo_dim, CeedInt q_extra, PetscInt num_comp_x, PetscInt num_comp_u,
                                     PetscInt g_size, PetscInt xl_size, BPData bp_data, CeedData data, PetscBool setup_rhs, PetscBool is_fine_level,
                                     CeedVector rhs_ceed, CeedVector *target);
 PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level, CeedInt num_comp_u, CeedData *data, BPData bp_data, Vec fine_mult);
+PetscErrorCode SetupLibceedBDDC(DM dm_Pi, CeedData data_fine, CeedDataBDDC data_bddc, PetscInt g_vertex_size, PetscInt xl_vertex_size,
+                                BPData bp_data);
 PetscErrorCode SetupErrorOperator(DM dm, Ceed ceed, BPData bp_data, CeedInt topo_dim, PetscInt num_comp_x, PetscInt num_comp_u,
                                   CeedOperator *op_error);
