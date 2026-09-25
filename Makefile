@@ -750,6 +750,7 @@ ifeq ($(STATIC),1)
 endif
 
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
+  PKG_LIBS += $(LIBCXX)
   ifneq ($(SYCL_LIB_DIR),)
     $(libceeds) : LINK = $(SYCLCXX)
     $(libceeds) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
