@@ -1,0 +1,70 @@
+name: C/Fortran - MacOS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [macos-15]
+        compiler: [gcc, clang, apple-clang]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Environment setup
+      uses: actions/checkout@v5
+    - name: Install LCOV
+      if: ${{ matrix.compiler == 'gcc' }}
+      run: |
+        brew install -y lcov
+    - name: Set compiler
+      run: |
+        case "${{ matrix.compiler }}" in
+          gcc)
+            echo "CC=gcc-15" >> $GITHUB_ENV
+            echo "CXX=g++-15" >> $GITHUB_ENV
+            echo "GCOV=gcov-15" >> $GITHUB_ENV
+            echo "FC=gfortran-15" >> $GITHUB_ENV
+            echo "COVERAGE=1" >> $GITHUB_ENV
+            ;;
+          clang)
+            echo "CC=$(brew --prefix llvm@18)/bin/clang" >> $GITHUB_ENV
+            echo "CXX=$(brew --prefix llvm@18)/bin/clang++" >> $GITHUB_ENV
+            echo "FC=" >> $GITHUB_ENV
+            echo "GCOV=" >> $GITHUB_ENV
+            ;;
+          apple-clang)
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
+            echo "FC=" >> $GITHUB_ENV
+            echo "GCOV=" >> $GITHUB_ENV
+            ;;
+        esac
+    - name: Show compiler version
+      run: $CC --version | head -1
+    - name: Build and test libCEED
+      env:
+        NUM_JOBS: 2
+        OPT: -O2 -g -ffp-contract=fast
+      run: |
+        make info
+        NUM_JOBS=2
+        make -j$NUM_JOBS
+        make JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j$NUM_JOBS
+    - name: Collect coverage
+      if: ${{ matrix.compiler == 'gcc' }}
+      run: |
+        $(brew --prefix lcov)/bin/lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+    - name: Codecov upload
+      uses: codecov/codecov-action@v5
+      if: ${{ matrix.compiler == 'gcc' }}
+      with:
+        verbose: true
+        files: coverage.info
+        plugins: noop
+        token: ${{ secrets.CODECOV_TOKEN }}
