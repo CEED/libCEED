@@ -22,17 +22,23 @@ COMMON ?= ../../common.mk
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
+ifneq ($(wildcard $(CEED_DIR)/lib/libceed.a),)
+  pc_flags := --static
+endif
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c11 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
   $(OPT) $(OPT_EXAMPLES)
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc)) \
+  $(call pkgconf, $(pc_flags) --cflags-only-I $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
-LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc)) \
+  $(call pkgconf, $(pc_flags) --libs-only-L --libs-only-other $(ceed.pc))
+LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc))) \
+  $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, $(pc_flags) --libs-only-L $(ceed.pc)))
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc)) $(call pkgconf, $(pc_flags) --libs-only-l $(ceed.pc)) -lm
 
 # Address Sanitizer Setup
 # ASAN must be left empty if you don't want to use it

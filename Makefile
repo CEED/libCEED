@@ -697,10 +697,12 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
   ifeq ($(MAGMA_ARCH), 0)  # CUDA MAGMA
     ifneq ($(CUDA_LIB_DIR),)
-      cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link_static = -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link_shared = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link = $(if $(wildcard $(CUDA_LIB_DIR)/libcublas.${SO_EXT}),$(cuda_link_shared),$(cuda_link_static))
       omp_link = -fopenmp
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(cuda_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -714,9 +716,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
       omp_link = -fopenmp
-      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR)) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link_static = -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link_shared = -Wl,-rpath,$(HIP_LIB_DIR) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link = $(if $(wildcard $(HIP_LIB_DIR)/libhipblas.${SO_EXT}),$(hip_link_shared),$(hip_link_static))
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -742,10 +746,10 @@ export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
+$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
 $(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-  $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
+  $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
   $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
@@ -756,9 +760,6 @@ ifeq ($(LIBCEED_CONTAINS_CXX),1)
     $(libceeds) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
   else
     $(libceeds) : LINK = $(CXX)
-  endif
-  ifeq ($(STATIC),1)
-    $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
   endif
 endif
 pkgconfig-libs-private = $(PKG_LIBS)
@@ -804,16 +805,17 @@ $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
-
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
-
 
 # ------------------------------------------------------------
 # Building examples
 # ------------------------------------------------------------
+
+# CEED examples
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c lib | $$(@D)/.DIR
+	+$(MAKE) -C examples/ceed CEED_DIR=`pwd` OPT="$(OPT)" LDFLAGS="$(if $(ASAN),$(AFLAGS))" $*
+	cp examples/ceed/$* $@
 
 # deal.II
 # Note: Invoking deal.II's CMAKE build system here
@@ -823,11 +825,11 @@ dealii :
 	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
 	+$(call quiet,MAKE) -C examples/deal.II/build
 
-$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) dealii | $$(@D)/.DIR
+$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h lib dealii | $$(@D)/.DIR
 	cp examples/deal.II/build/$* $@
 
 # MFEM
-$(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/mfem-% : examples/mfem/%.cpp lib | $$(@D)/.DIR
 	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
 	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
 	cp examples/mfem/$* $@
@@ -836,13 +838,13 @@ $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
 #       this single Nek bps file to be built in parallel with other examples,
 #       such as when calling `make prove-all -j2`.
-$(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh lib | $$(@D)/.DIR
 	+$(MAKE) -C examples MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
 # Rust QFunctions
-$(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c $(libceed) | $$(@D)/.DIR
+$(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c lib | $$(@D)/.DIR
 	+$(MAKE) -C examples/rust-qfunctions CEED_DIR=`pwd`
 	cp examples/rust-qfunctions/$* $@
 
@@ -852,17 +854,17 @@ $(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c $(libceed) | $$(@D)/.D
 # other/corrupt output. So we put it in this utility library, but we don't want
 # to manually list source dependencies up at this level, so we'll just always
 # call recursive make to check that this utility is up to date.
-examples/petsc/libutils.a.PHONY: $(libceed) $(ceed.pc)
+examples/petsc/libutils.a.PHONY: lib
 	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` AR=$(AR) ARFLAGS=$(ARFLAGS) \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $(basename $(@F))
 
-$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY lib | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
 # Fluid dynamics proxy application
-$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/include/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) examples/fluids/Makefile | $$(@D)/.DIR
+$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/include/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h lib examples/fluids/Makefile | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
@@ -871,7 +873,7 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids
 $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
     examples/solids/problems/*.c examples/solids/src/*.c \
     examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
-    $(libceed) $(ceed.pc) | $$(@D)/.DIR
+    lib | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
@@ -895,8 +897,8 @@ external_examples := \
 
 allexamples = $(examples) $(external_examples)
 
-$(examples) : $(libceed)
-$(tests) : $(libceed)
+$(examples) : lib
+$(tests) : lib
 $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
 
 
@@ -988,7 +990,7 @@ $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUR
 # Installation
 # ------------------------------------------------------------
 
-install : $(libceed) $(OBJDIR)/ceed.pc
+install : lib $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
 	  "$(includedir)/ceed/jit-source/cpu-gen/"\
