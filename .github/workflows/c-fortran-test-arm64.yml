@@ -20,7 +20,7 @@ jobs:
     - name: Environment setup
       uses: actions/checkout@v5
     - name: Install QEMU
-      run: sudo apt-get update && sudo apt-get install -y qemu-user lcov llvm
+      run: sudo apt-get update && sudo apt-get install -y qemu-user lcov llvm pkgconf
     - name: Set compiler
       run: |
         case "${{ matrix.compiler }}" in
