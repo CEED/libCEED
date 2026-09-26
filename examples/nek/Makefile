@@ -30,8 +30,16 @@ else
 endif
 
 CEED_DIR ?= $(abspath ../..)
-CEED_FLAGS ?= -I$(CEED_DIR)/include
-CEED_LIBS ?= -Wl,-rpath,$(CEED_DIR)/lib -L$(CEED_DIR)/lib -lceed
+ifneq ($(wildcard $(CEED_DIR)/lib/libceed.a),)
+  pc_flags := --static
+endif
+
+CEED_PC = $(abspath $(CEED_DIR))/lib/pkgconfig/ceed.pc
+CEED_LDPATHS = $(call pkgconf, $(pc_flags) --libs-only-L $(CEED_PC))
+CEED_LIBS = $(call pkgconf, $(pc_flags) --libs-only-l $(CEED_PC))
+RPATH = -Wl,-rpath,
+CEED_LDFLAGS = $(CEED_LDPATHS) $(CEED_LDPATHS:-L%=-Wl,-rpath,%) $(CEED_LIBS) \
+	$(call pkgconf, $(pc_flags) --libs-only-other $(CEED_PC))
 
 .PHONY: all bps clean
 

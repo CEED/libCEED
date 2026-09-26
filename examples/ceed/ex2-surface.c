@@ -123,6 +123,7 @@ int main(int argc, const char *argv[]) {
   Ceed ceed;
 
   CeedInit(ceed_spec, &ceed);
+  CeedAddJitSourceRoot(ceed, CEED_EXAMPLES_SOURCE_ROOT);
 
   // Construct the mesh and solution bases.
   CeedBasis mesh_basis, sol_basis;
