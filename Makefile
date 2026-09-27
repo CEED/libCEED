@@ -226,12 +226,13 @@ ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
   CXXFLAGS += --coverage
   CEED_LDFLAGS += --coverage
+  FFLAGS += --coverage -fprofile-abs-path
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS += -I./include
+CPPFLAGS += -I$(abspath ./include)
 CEED_LDLIBS = -lm
 OBJDIR := build
 for_install := $(filter install,$(MAKECMDGOALS))
@@ -577,7 +578,7 @@ SVE         := $(shell printf '%s\n' \
   '$(HASH)include <stdint.h>' \
   'void f32(float *v, const float *u, uint64_t n) { svbool_t p = svwhilelt_b32((uint64_t)0, n); svfloat32_t x = svld1_f32(p, u); svst1_f32(p, v, svmla_f32_m(p, x, x, x)); }' \
   'void f64(double *v, const double *u, uint64_t n) { svbool_t p = svwhilelt_b64((uint64_t)0, n); svfloat64_t x = svld1_f64(p, u); svst1_f64(p, v, svmla_f64_m(p, x, x, x)); }' \
-  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
+  | $(CC) $(CPPFLAGS) $(filter-out --coverage,$(CFLAGS:-M%=)) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
 SVE_BACKENDS = /cpu/self/sve/serial /cpu/self/sve/blocked
 ifeq ($(SVE),1)
   SVE_STATUS = Enabled
@@ -748,8 +749,8 @@ ifeq ($(STATIC),1)
   $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
-pkgconfig-libs-private = $(PKG_LIBS)
 ifeq ($(LIBCEED_CONTAINS_CXX),1)
+  PKG_LIBS += $(LIBCXX)
   ifneq ($(SYCL_LIB_DIR),)
     $(libceeds) : LINK = $(SYCLCXX)
     $(libceeds) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
@@ -758,10 +759,9 @@ ifeq ($(LIBCEED_CONTAINS_CXX),1)
   endif
   ifeq ($(STATIC),1)
     $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
-    pkgconfig-libs-private += $(LIBCXX)
   endif
 endif
-
+pkgconfig-libs-private = $(PKG_LIBS)
 
 # ------------------------------------------------------------
 # Building core library components
@@ -962,6 +962,9 @@ $(bench_targets): bench-%: $(OBJDIR)/%
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
 benchmarks: $(bench_targets)
 
+COLON := :
+ESCAPED_COLON := \:
+pkgconfig-libs-private.clean = $(shell echo $(pkgconfig-libs-private) | $(SED) 's/:/\\:/g')
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 .INTERMEDIATE : $(OBJDIR)/ceed.pc
@@ -969,7 +972,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%opt%:$(OPT):" \
-	    -e "s:%libs_private%:$(patsubst,:,\:,pkgconfig-libs-private):" $< > $@
+	    -e "s:%libs_private%:$(pkgconfig-libs-private.clean):" $< > $@
 
 GIT_DESCRIBE = $(shell git -c safe.directory=$PWD describe --always --dirty 2>/dev/null || printf "unknown\n")
 
@@ -1000,6 +1003,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/macros.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-env.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-env-list.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"

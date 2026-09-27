@@ -716,6 +716,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   std::ostringstream    code;
   Tab                   tab;
 
+  CeedCallBackend(CeedOperatorGetData(op, &data));
   {
     bool is_setup_done;
 
@@ -726,7 +727,6 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     }
   }
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (!is_at_points) {
     Ceed_Cpu_Gen *ceed_data;

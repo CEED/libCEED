@@ -2243,12 +2243,10 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
   // Create if needed
   if (!op->op_fallback) CeedCall(CeedOperatorCreateFallback(op));
   if (op->op_fallback) {
-    bool is_debug;
     Ceed ceed;
 
     CeedCall(CeedOperatorGetCeed(op, &ceed));
-    CeedCall(CeedIsDebug(ceed, &is_debug));
-    if (is_debug) {
+    if (CeedDebugFlag(ceed)) {
       Ceed        ceed_fallback;
       const char *resource, *resource_fallback, *op_name;
 

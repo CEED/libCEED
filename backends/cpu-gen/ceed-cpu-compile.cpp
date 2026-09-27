@@ -29,8 +29,7 @@
 
 #define CEED_QUOTE(name) #name
 #define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
-const char *CeedJitOpt = CEED_STRINGIFY(CEED_CPU_JIT_OPT);
-const char *CeedJitCxx = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
+const char *CeedJitCxxDefault = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
 #undef CEED_QUOTE
 #undef CEED_STRINGIFY
 
@@ -66,7 +65,12 @@ static inline int CeedJitGetOpts_Cpu(Ceed ceed, const char ***opts, int *num_opt
 
   // Standard options
   CeedCallBackend(CeedCalloc(opts_count, opts));
-  CeedCallBackend(CeedStringAllocCopy(CeedJitOpt, (char **)&(*opts)[0]));
+  {
+    const char *jit_opt;
+
+    CeedCallBackend(CeedGetCpuJitOpt(ceed, &jit_opt));
+    CeedCallBackend(CeedStringAllocCopy(jit_opt, (char **)&(*opts)[0]));
+  }
 
   // Additional include dirs
   {
@@ -186,11 +190,13 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
     // First check for user JiT compiler
     if (!cxx) {
-      const char *user_cxx = getenv("CEED_CPU_JIT_CXX");
+      const char *user_cxx;
+      bool        is_valid = false;
+
+      CeedCall(CeedGetCpuJitCxx(ceed, &user_cxx));
       CeedDebug(ceed, "Attempting to detect user specified JiT compiler\nUser JiT compiler: %s\n", user_cxx);
 
-      // Check if valid Clang
-      bool is_valid = false;
+      // Check if valid compiler
       if (user_cxx) {
         std::string command = std::string(user_cxx) + " --version 2>&1";
 
@@ -210,10 +216,9 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     if (!cxx) {
       bool is_valid = false;
 
-      CeedDebug(ceed, "Default JiT compiler: %s\n", CeedJitCxx);
-
+      CeedDebug(ceed, "Default JiT compiler: %s\n", CeedJitCxxDefault);
       {
-        std::string command = std::string(CeedJitCxx) + " --version 2>&1";
+        std::string command = std::string(CeedJitCxxDefault) + " --version 2>&1";
 
         CeedDebug(ceed, "Checking default JiT compiler...");
         CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default JiT compiler", &is_valid);
@@ -221,7 +226,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       if (is_valid) {
         CeedDebug(ceed, "Default JiT compiler is valid\n");
-        CeedCall(CeedStringAllocCopy(CeedJitCxx, &ceed_data->cxx));
+        CeedCall(CeedStringAllocCopy(CeedJitCxxDefault, &ceed_data->cxx));
         cxx = ceed_data->cxx;
       } else {
         CeedDebug(ceed, "Could not invoke default JiT compiler\n");

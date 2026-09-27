@@ -34,14 +34,15 @@ jobs:
         FC: gfortran
       run: |
         export CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline"
-        cargo llvm-cov test --doctests --lcov --output-path lcov.info
+        cargo llvm-cov test --doctests --lcov --output-path coverage.info
     - name: Codecov upload
       uses: codecov/codecov-action@v5
       if: ${{ runner.os == 'Linux' }}
       with:
-        files: lcov.info
-        exclude: interface,gallery,backends,tests,examples
+        files: coverage.info
+        plugins: noop
         token: ${{ secrets.CODECOV_TOKEN }}
+
 
   style:
     strategy:

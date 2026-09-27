@@ -103,6 +103,8 @@ typedef struct CeedOperator_private *CeedOperator;
 /// @ingroup CeedUser
 typedef struct CeedObject_private *CeedObject;
 
+#include "ceed-env.h"
+
 CEED_EXTERN int  CeedObjectView(CeedObject obj, FILE *stream);
 CEED_EXTERN int  CeedObjectSetNumViewTabs(CeedObject obj, CeedInt num_tabs);
 CEED_EXTERN int  CeedObjectGetNumViewTabs(CeedObject obj, CeedInt *num_tabs);
@@ -124,6 +126,7 @@ CEED_EXTERN int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
+CEED_EXTERN int CeedGetEnableDebug(Ceed ceed, bool *is_debug);
 
 /// Raise an error on `Ceed` object
 ///
@@ -178,9 +181,6 @@ CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, cons
 CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release);
 CEED_EXTERN int CeedGetGitVersion(const char **git_version);
 CEED_EXTERN int CeedGetBuildConfiguration(const char **build_config);
-
-CEED_EXTERN int CeedSetIsClang(Ceed ceed, bool isClang);
-CEED_EXTERN int CeedGetIsClang(Ceed ceed, bool *isClang);
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 

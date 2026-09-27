@@ -28,16 +28,30 @@
 #define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
 #endif
 
+/// This macro provides the appropriate assumption built-in for the compiler
+/// @ingroup Ceed
+#if defined(__clang__)
+#define CEED_ASSUME(expr) __builtin_assume(expr)
+#elif defined(__GNUC__)
+#define CEED_ASSUME(expr) \
+  if (!(expr)) __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define CEED_ASSUME(expr) __assume(expr)
+#else
+#define CEED_ASSUME(expr)
+#endif
+
 /**
   @brief Calls a libCEED function and then checks the resulting error code.
   If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
 
   @ref Developer
 **/
-#define CeedCall(...)        \
-  do {                       \
-    int ierr_ = __VA_ARGS__; \
-    if (ierr_) return ierr_; \
+#define CeedCall(...)                         \
+  do {                                        \
+    int ierr_ = __VA_ARGS__;                  \
+    CEED_ASSUME(ierr_ == CEED_ERROR_SUCCESS); \
+    if (ierr_) return ierr_;                  \
   } while (0)
 
 /**

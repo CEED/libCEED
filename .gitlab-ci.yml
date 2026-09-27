@@ -122,12 +122,12 @@ noether-cpu:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+        # Load the virtual environment with codecovcli
+        source /projects/.venv_libceed_ci/bin/activate
+        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+        export CODECOV_NAME=$CI_JOB_NAME
+        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
       fi
   artifacts:
     paths:
@@ -135,7 +135,6 @@ noether-cpu:
     reports:
       junit: build/*.junit
       performance: performance.json
-
 
 # ----------------------------------------------------------------------------------------
 # Check SYCL backends build
@@ -168,7 +167,6 @@ noether-cpu:
 #    # Report status
 #    - touch .SUCCESS
 
-
 # ----------------------------------------------------------------------------------------
 # Rust + CUDA
 # ----------------------------------------------------------------------------------------
@@ -179,7 +177,7 @@ noether-rust-qfunctions:
   interruptible: true
   before_script:
     # Environment
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_USE_CLANG_CUDA=1
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
     - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -196,6 +194,7 @@ noether-rust-qfunctions:
     - rustup component add rust-src --toolchain nightly
     - rustup component add llvm-tools --toolchain nightly
     # libCEED
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
     - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
     - echo "-------------- libCEED -------------" && make info
     - make clean
@@ -205,16 +204,20 @@ noether-rust-qfunctions:
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
+    - export CEED_CUDA_CLANG_CXX=
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     # Report status
     - touch .SUCCESS
   after_script:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+        # Load the virtual environment with codecovcli
+        source /projects/.venv_libceed_ci/bin/activate
+        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+        export CODECOV_NAME=$CI_JOB_NAME
+        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
       fi
   artifacts:
     paths:
@@ -304,12 +307,12 @@ noether-cuda:
     - |
       if [ -f .SUCCESS ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+        # Load the virtual environment with codecovcli
+        source /projects/.venv_libceed_ci/bin/activate
+        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+        export CODECOV_NAME=$CI_JOB_NAME
+        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
       fi
   artifacts:
     paths:
@@ -373,12 +376,12 @@ noether-cuda:
 #    - |
 #      if [ -f .SUCCESS ]; then
 #        source job.env;
-#        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-#        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+#        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+#        # Load the virtual environment with codecovcli
+#        source /projects/.venv_libceed_ci/bin/activate
+#        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+#        export CODECOV_NAME=$CI_JOB_NAME
+#        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
 #      fi
 #  artifacts:
 #    paths:
@@ -477,12 +480,12 @@ noether-float:
     - |
       if [ $(cat .job_status) == "SUCCESS" ]; then
         source job.env;
-        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --ignore-errors source,mismatch;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+        # Load the virtual environment with codecovcli
+        source /projects/.venv_libceed_ci/bin/activate
+        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+        export CODECOV_NAME=$CI_JOB_NAME
+        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
       fi
     - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:

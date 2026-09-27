@@ -1109,10 +1109,9 @@ int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda_gen));
 
   {
-    const char *env_val      = getenv("CEED_ENABLE_CUDA_GRAPH");
-    bool        enable_graph = true;
+    bool enable_graph;
 
-    if (env_val) enable_graph = strcmp(env_val, "0") && strcmp(env_val, "false");
+    CeedCallBackend(CeedGetCudaEnableGraph(ceed, &enable_graph));
     CeedCallBackend(CeedOperatorSetEnableCudaGraph(op, enable_graph));
   }
 
