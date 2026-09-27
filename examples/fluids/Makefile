@@ -19,20 +19,41 @@ CONFIG ?= ../../config.mk
 COMMON ?= ../../common.mk
 -include $(COMMON)
 
-PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
-CEED_DIR ?= ../..
-ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
+SED ?= sed
+PKGCONF ?= pkgconf
+pkgconf = $(shell env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) $1 | $(SED) -e 's/^"//g' -e 's/"$$//g')
 
-CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
+ifneq ($(wildcard $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc),)
+  export PKG_CONFIG_PATH := $(abspath $(PETSC_DIR))/$(PETSC_ARCH)/lib/pkgconfig$(if $(PKG_CONFIG_PATH),:$(PKG_CONFIG_PATH),)
+endif
+PETSc.pc = PETSc
+
+CEED_DIR ?= ../..
+ifneq ($(wildcard $(CEED_DIR)/lib/pkgconfig/ceed.pc),)
+  export PKG_CONFIG_PATH := $(abspath $(CEED_DIR))/lib/pkgconfig$(if $(PKG_CONFIG_PATH),:$(PKG_CONFIG_PATH),)
+endif
+ceed.pc = ceed
+ceed_pc_flags =
+ifneq ($(wildcard $(call pkgconf, --variable=prefix $(ceed.pc))/lib/libceed.a),)
+  ceed_pc_flags := --static
+endif
+
+PETSC_PC_PATH = $(call pkgconf, --path $(PETSc.pc))
+CEED_PC_PATH = $(call pkgconf, --path $(ceed.pc))
+
+CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc))
 CFLAGS = -std=c11 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
   $(OPT) $(OPT_EXAMPLES)
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc)) \
+  $(call pkgconf, --cflags-only-I $(ceed_pc_flags) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
-LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc)) \
+  $(call pkgconf, --libs-only-L --libs-only-other $(ceed_pc_flags) $(ceed.pc))
+LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc))) \
+  $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(ceed_pc_flags) $(ceed.pc)))
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc)) $(call pkgconf, --libs-only-l $(ceed_pc_flags) $(ceed.pc)) -lm
 
 # Address Sanitizer Setup
 # ASAN must be left empty if you don't want to use it
@@ -54,8 +75,8 @@ src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: navierstokes
 
-navierstokes: $(src.o) | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+navierstokes: $(src.o) | $(PETSC_PC_PATH) $(CEED_PC_PATH)
+	$(LINK.o) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :
@@ -68,7 +89,7 @@ quiet ?= $($(1))
 $(OBJDIR)/%.o : %.c  Makefile | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
 
-print: $(PETSc.pc) $(ceed.pc)
+info: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
 	$(info CFLAGS  : $(CFLAGS))
 	$(info CPPFLAGS: $(CPPFLAGS))
@@ -77,24 +98,13 @@ print: $(PETSc.pc) $(ceed.pc)
 	$(info OPT     : $(OPT))
 	@true
 
-print-% :
-	$(info [ variable name]: $*)
-	$(info [        origin]: $(origin $*))
-	$(info [        flavor]: $(flavor $*))
-	$(info [         value]: $(value $*))
-	$(info [expanded value]: $($*))
-	$(info )
-	@true
-
 clean:
 	$(RM) -r $(OBJDIR) navierstokes *.vtu *.bin* *.csv *.png
 
-$(PETSc.pc):
+$(PETSC_PC_PATH):
 	$(if $(wildcard $@),,$(error \
 	  PETSc config not found. Please set PETSC_DIR and PETSC_ARCH))
 
-.PHONY: all print clean
-
-pkgconf = $(shell pkg-config $(if $(STATIC),--static) $1 | sed -e 's/^"//g' -e 's/"$$//g')
+.PHONY: all info clean
 
 -include $(src.o:%.o=%.d)

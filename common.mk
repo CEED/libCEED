@@ -32,3 +32,16 @@ quiet = $(if $(V),$($(1)),$(call output,$1,$@);$($(1)))
 #
 # Older versions work if you spell it "\#foo", but 4.3 will include the backslash. We define $(HASH), which works consistently across versions.
 HASH := \#
+
+# ------------------------------------------------------------
+# Variable printing for debugging
+# ------------------------------------------------------------
+
+print-% :
+	$(info [ variable name]: $*)
+	$(info [        origin]: $(origin $*))
+	$(info [        flavor]: $(flavor $*))
+	$(info [         value]: $(value $*))
+	$(info [expanded value]: $($*))
+	$(info )
+	@true

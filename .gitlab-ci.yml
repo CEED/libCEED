@@ -136,6 +136,76 @@ noether-cpu:
       junit: build/*.junit
       performance: performance.json
 
+
+# ----------------------------------------------------------------------------------------
+# CPU backends static build
+# ----------------------------------------------------------------------------------------
+noether-cpu-static:
+  stage: test:cpu-and-tidy
+  tags:
+    - cpu
+  interruptible: true
+  before_script:
+    # Environment
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
+    - export NPROC_POOL=8
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- GCOV ----------------" && $GCOV --version
+    - echo "GCOV=$GCOV" > job.env
+    # Libraries for backends
+    # -- LIBXSMM 25 May 2026
+    - cd .. && export XSMM_HASH=5ce29626ddad947f0d5c433ce78c58ff64dfbbdb && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
+  script:
+    - rm -f .SUCCESS
+    # libCEED
+    - export STATIC=1
+    - make configure OPT='-g -O1 -fno-inline -march=native -ffp-contract=fast'
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - make clean
+    - PEDANTIC=1 make -j$NPROC_CPU
+    # -- libCEED only tests
+    - echo "-------------- core tests ----------"
+    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+    #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu-static" junit realsearch=%
+    # Libraries for examples
+    # -- PETSc (minimal)
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cpu-int64 && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
+    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu-static" junit search="petsc fluids-navierstokes solids"
+    # -- MFEM v4.7
+    - cd .. && export MFEM_VERSION=mfem-4.7 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.7 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
+    - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu-static" junit search=mfem
+    # -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
+    # TODO: Figure out how to use pkgconfig correctly in CMake
+    - touch .SUCCESS
+  after_script:
+    - |
+      if [ -f .SUCCESS ]; then
+        source job.env;
+        lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
+        # Load the virtual environment with codecovcli
+        source /projects/.venv_libceed_ci/bin/activate
+        export GIT_BRANCH=$CI_COMMIT_REF_NAME
+        export CODECOV_NAME=$CI_JOB_NAME
+        codecov-cli --verbose upload-coverage -f coverage.info --git-service github -t "${CODECOV_ACCESS_TOKEN}" --plugin noop --slug CEED/libCEED -B "${GIT_BRANCH}" -C "${CI_COMMIT_SHA}" -n "${CODECOV_NAME}"
+      fi
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+      performance: performance.json
+
+
 # ----------------------------------------------------------------------------------------
 # Check SYCL backends build
 # ----------------------------------------------------------------------------------------

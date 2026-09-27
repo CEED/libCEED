@@ -21,7 +21,7 @@ jobs:
     - name: Install cross toolchain and QEMU
       run: |
         sudo apt-get update
-        sudo apt-get install -y lcov qemu-user gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu
+        sudo apt-get install -y lcov qemu-user gcc-powerpc64le-linux-gnu g++-powerpc64le-linux-gnu gfortran-powerpc64le-linux-gnu pkgconf
         echo "CC=powerpc64le-linux-gnu-gcc" >> $GITHUB_ENV
         echo "CXX=powerpc64le-linux-gnu-g++" >> $GITHUB_ENV
         echo "FC=powerpc64le-linux-gnu-gfortran" >> $GITHUB_ENV

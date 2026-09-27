@@ -12,8 +12,22 @@ OPT ?= -O -g
 
 # Ceed directory
 CEED_DIR ?= ../..
-CEED_FLAGS ?= -I$(CEED_DIR)/include $(OPT)
-CEED_LIBS ?= -Wl,-rpath,$(abspath $(CEED_DIR)/lib) -L$(CEED_DIR)/lib -lceed
+SED ?= sed
+PKGCONF ?= pkgconf
+pkgconf = $(shell env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) $1 | $(SED) -e 's/^"//g' -e 's/"$$//g')
+ifneq ($(wildcard $(CEED_DIR)/lib/pkgconfig/ceed.pc),)
+  export PKG_CONFIG_PATH := $(abspath $(CEED_DIR))/lib/pkgconfig$(if $(PKG_CONFIG_PATH),:$(PKG_CONFIG_PATH),)
+endif
+CEED_PC = ceed
+ifneq ($(wildcard $(call pkgconf, --variable=prefix $(CEED_PC))/lib/libceed.a),)
+  pc_flags := --static
+endif
+
+CEED_FLAGS = $(call pkgconf, $(pc_flags) --cflags $(CEED_PC)) $(call pkgconf, $(pc_flags) --variable=cflags_extra $(CEED_PC))
+CEED_LIBS = $(call pkgconf, $(pc_flags) --libs-only-l $(CEED_PC))
+CEED_LDPATHS = $(call pkgconf, $(pc_flags) --libs-only-L $(CEED_PC))
+CEED_LDFLAGS = $(CEED_LDPATHS) $(CEED_LDPATHS:-L%=-Wl,-rpath,%) \
+	$(call pkgconf, $(pc_flags) --libs-only-other $(CEED_PC))
 
 # Use an MFEM build directory or an MFEM install directory
 MFEM_DIR ?= ../../../mfem
@@ -37,16 +51,15 @@ quiet ?= $($(1))
 
 # Rules for building the examples
 %: %.cpp $(CONFIG_MK) $(MFEM_LIB_FILE)
-	$(call quiet,MFEM_CXX) $(CEED_FLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ \
-	  $(CEED_LIBS) $(MFEM_LIBS)
+	echo "$(CEED_FLAGS)"
+	$(call quiet,MFEM_CXX) $(CEED_FLAGS) $(CEED_LDFLAGS) $(MFEM_FLAGS) $(MFEM_DEF) $(abspath $<) -o $@ $(CEED_LIBS) $(MFEM_LIBS)
 
 # Generate an error message if the MFEM library is not built and exit
 $(MFEM_LIB_FILE):
 	$(if $(wildcard $@),,$(error The MFEM library is not built))
 
 $(CONFIG_MK):
-	$(if $(wildcard $@),,$(error \
-	  MFEM config file not found. Please set MFEM_DIR))
+	$(if $(wildcard $@),,$(error MFEM config file not found. Please set MFEM_DIR))
 
 clean:
 	rm -f *~ $(MFEM_EXAMPLES)
