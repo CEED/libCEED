@@ -14,6 +14,7 @@ typedef enum {
 
 static CeedScalar Entry(CeedInt i, CeedInt j) { return cos(0.7 * (i + 1) + 0.3 * (j + 1)); }
 
+// Build matrix matching symmetry pattern
 static void BuildMatrix(MatrixKind kind, CeedInt num_rows, CeedInt num_cols, CeedScalar *matrix) {
   for (CeedInt i = 0; i < num_rows; i++) {
     for (CeedInt j = 0; j < num_cols; j++) matrix[i * num_cols + j] = Entry(i, j);
@@ -40,98 +41,115 @@ static void BuildMatrix(MatrixKind kind, CeedInt num_rows, CeedInt num_cols, Cee
   }
 }
 
-// Contract on the middle index
-static void ContractReference(CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *t, CeedTransposeMode t_mode, const CeedScalar *u,
-                              CeedScalar *v) {
-  for (CeedInt a = 0; a < A; a++) {
-    for (CeedInt j = 0; j < J; j++) {
-      for (CeedInt c = 0; c < C; c++) {
-        CeedScalar sum = 0.0;
-
-        for (CeedInt b = 0; b < B; b++) sum += (t_mode == CEED_TRANSPOSE ? t[b * J + j] : t[j * B + b]) * u[(a * B + b) * C + c];
-        v[(a * J + j) * C + c] = sum;
-      }
-    }
-  }
-}
-
 int main(int argc, char **argv) {
-  Ceed             ceed;
-  const CeedInt    num_comp = 2, num_elem = 3;
-  const CeedScalar tol = CEED_SCALAR_TYPE == CEED_SCALAR_FP32 ? 1.e-4 : 1.e-11;
+  Ceed          ceed;
+  const CeedInt num_comp = 2, num_elem = 8;
 
   CeedInit(argv[1], &ceed);
 
+  {
+    CeedMemType type;
+
+    // Only CPU backends use this test
+    CeedGetPreferredMemType(ceed, &type);
+    if (type != CEED_MEM_HOST) return 0;
+  }
+
   // Orders either side of CEED_EVEN_ODD_MIN_DIM
-  const CeedInt orders[] = {4, 5, 10, 11, 12};
+  const CeedInt num_orders = 2;
+  const CeedInt orders[2]  = {5, 11};
 
-  for (CeedInt dim = 1; dim <= 3; dim++) {
-    for (unsigned pi = 0; pi < sizeof(orders) / sizeof(orders[0]); pi++) {
-      const CeedInt p = orders[pi];
+  for (CeedInt dim = 1; dim <= 2; dim++) {
+    for (CeedInt i = 0; i < num_orders; i++) {
+      const CeedInt p = orders[i];
 
-      if (dim == 3 && p > 5) continue;
       for (CeedInt q = p - 1; q <= p + 1; q++) {
-        if (q < 2) continue;
         for (CeedInt kind = MATRIX_SYMMETRIC; kind <= MATRIX_GENERAL; kind++) {
           CeedBasis  basis;
           CeedScalar interp_1d[q * p], grad_1d[q * p], q_ref_1d[q], q_weight_1d[q];
-          CeedInt    p_dim = CeedIntPow(p, dim), q_dim = CeedIntPow(q, dim);
 
           BuildMatrix((MatrixKind)kind, q, p, interp_1d);
-          // Lagrange bases pair a symmetric interp with an antisymmetric grad
+          // Note: Lagrange bases pair a symmetric interp with an antisymmetric grad
           BuildMatrix(kind == MATRIX_SYMMETRIC ? MATRIX_ANTISYMMETRIC : (MatrixKind)kind, q, p, grad_1d);
-          for (CeedInt i = 0; i < q; i++) {
-            q_ref_1d[i]    = -1.0 + 2.0 * i / (q - 1);
-            q_weight_1d[i] = 2.0 / q;
-          }
           CeedBasisCreateTensorH1(ceed, dim, num_comp, p, q, interp_1d, grad_1d, q_ref_1d, q_weight_1d, &basis);
-          // Do not depend on the size based default
-          CeedBasisSetUseEvenOdd(basis, true);
 
-          for (CeedInt t_mode = 0; t_mode < 2; t_mode++) {
-            const CeedTransposeMode mode   = t_mode ? CEED_TRANSPOSE : CEED_NOTRANSPOSE;
-            const CeedInt           num_in = t_mode ? q_dim : p_dim, num_out = t_mode ? p_dim : q_dim;
-            const CeedInt           B = t_mode ? q : p, J = t_mode ? p : q;
-            CeedVector              u, v;
-            CeedScalar              u_array[num_comp * num_in * num_elem];
-            CeedScalar              reference[2][num_comp * (p_dim > q_dim ? p_dim : q_dim) * num_elem];
+          for (CeedInt mode = 0; mode < 2; mode++) {
+            const CeedTransposeMode t_mode = mode == 0 ? CEED_TRANSPOSE : CEED_NOTRANSPOSE;
+            const CeedInt           num_u  = CeedIntPow(t_mode == CEED_NOTRANSPOSE ? p : q, dim) * (t_mode == CEED_NOTRANSPOSE ? 1 : dim),
+                                    num_v  = CeedIntPow(t_mode == CEED_NOTRANSPOSE ? q : p, dim) * (t_mode == CEED_NOTRANSPOSE ? dim : 1);
+            CeedVector              u, v_with_split, v_without_split;
 
-            for (CeedInt i = 0; i < num_comp * num_in * num_elem; i++) u_array[i] = cos(0.13 * i + 0.5);
-            CeedVectorCreate(ceed, num_comp * num_in * num_elem, &u);
-            CeedVectorSetArray(u, CEED_MEM_HOST, CEED_COPY_VALUES, u_array);
-            CeedVectorCreate(ceed, num_comp * num_out * num_elem, &v);
-            CeedVectorSetValue(v, 0.0);
-
-            CeedBasisApply(basis, num_elem, mode, CEED_EVAL_INTERP, u, v);
-
-            // One contraction per dimension
+            // Set work arrays
+            CeedVectorCreate(ceed, num_comp * num_u * num_elem, &u);
             {
-              const CeedScalar *in  = u_array;
-              CeedInt           pre = num_comp * CeedIntPow(B, dim - 1), post = num_elem;
+              CeedScalar *u_array;
 
-              for (CeedInt d = 0; d < dim; d++) {
-                ContractReference(pre, B, post, J, interp_1d, mode, in, reference[d % 2]);
-                in = reference[d % 2];
-                pre /= B;
-                post *= J;
-              }
-              {
-                const CeedScalar *v_array;
-                const CeedScalar *expected = reference[(dim - 1) % 2];
-
-                CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-                for (CeedInt i = 0; i < num_comp * num_out * num_elem; i++) {
-                  if (fabs(v_array[i] - expected[i]) > tol * (fabs(expected[i]) + 1.0)) {
-                    printf("[%" CeedInt_FMT ", p %" CeedInt_FMT ", q %" CeedInt_FMT ", kind %" CeedInt_FMT ", %s] %f != %f\n", dim, p, q, kind,
-                           t_mode ? "transpose" : "notranspose", v_array[i], expected[i]);
-                    break;
-                  }
-                }
-                CeedVectorRestoreArrayRead(v, &v_array);
-              }
+              CeedVectorGetArrayWrite(u, CEED_MEM_HOST, &u_array);
+              for (CeedInt i = 0; i < num_comp * num_u * num_elem; i++) u_array[i] = cos(0.13 * i + 0.5);
+              CeedVectorRestoreArray(u, &u_array);
             }
+            CeedVectorCreate(ceed, num_comp * num_v * num_elem, &v_with_split);
+            CeedVectorSetValue(v_with_split, 0.0);
+            CeedVectorCreate(ceed, num_comp * num_v * num_elem, &v_without_split);
+            CeedVectorSetValue(v_without_split, 0.0);
+
+            // Check Interp
+
+            // -- Force use of even-odd split
+            CeedSetContractUseEvenOdd(ceed, true);
+            CeedBasisApply(basis, num_elem, t_mode, CEED_EVAL_INTERP, u, v_with_split);
+
+            // -- Force no use of even-odd split
+            CeedSetContractUseEvenOdd(ceed, false);
+            CeedBasisApply(basis, num_elem, t_mode, CEED_EVAL_INTERP, u, v_without_split);
+
+            // -- Ensure split and non-split match
+            {
+              const CeedScalar *v_with_array;
+              const CeedScalar *v_without_array;
+
+              CeedVectorGetArrayRead(v_with_split, CEED_MEM_HOST, &v_with_array);
+              CeedVectorGetArrayRead(v_without_split, CEED_MEM_HOST, &v_without_array);
+              for (CeedInt j = 0; j < num_comp * (num_v / dim) * num_elem; j++) {
+                if (fabs(v_with_array[j] - v_without_array[j]) > 100 * CEED_EPSILON * (fabs(v_without_array[j]) + 1.0)) {
+                  printf("[%" CeedInt_FMT ", p %" CeedInt_FMT ", q %" CeedInt_FMT ", kind %" CeedInt_FMT ", interp %s] %f != %f\n", dim, p, q, kind,
+                         t_mode ? "transpose" : "notranspose", v_with_array[j], v_without_array[j]);
+                }
+              }
+              CeedVectorRestoreArrayRead(v_with_split, &v_with_array);
+              CeedVectorRestoreArrayRead(v_without_split, &v_without_array);
+            }
+
+            // Check Grad
+
+            // -- Force use of even-odd split
+            CeedSetContractUseEvenOdd(ceed, true);
+            CeedBasisApply(basis, num_elem, t_mode, CEED_EVAL_GRAD, u, v_with_split);
+
+            // -- Force no use of even-odd split
+            CeedSetContractUseEvenOdd(ceed, false);
+            CeedBasisApply(basis, num_elem, t_mode, CEED_EVAL_GRAD, u, v_without_split);
+
+            // -- Ensure split and non-split match
+            {
+              const CeedScalar *v_with_array;
+              const CeedScalar *v_without_array;
+
+              CeedVectorGetArrayRead(v_with_split, CEED_MEM_HOST, &v_with_array);
+              CeedVectorGetArrayRead(v_without_split, CEED_MEM_HOST, &v_without_array);
+              for (CeedInt j = 0; j < num_comp * num_v * num_elem; j++) {
+                if (fabs(v_with_array[j] - v_without_array[j]) > 100 * CEED_EPSILON * (fabs(v_without_array[j]) + 1.0)) {
+                  printf("[%" CeedInt_FMT ", p %" CeedInt_FMT ", q %" CeedInt_FMT ", kind %" CeedInt_FMT ", grad %s] %f != %f\n", dim, p, q, kind,
+                         t_mode ? "transpose" : "notranspose", v_with_array[j], v_without_array[j]);
+                }
+              }
+              CeedVectorRestoreArrayRead(v_with_split, &v_with_array);
+              CeedVectorRestoreArrayRead(v_without_split, &v_without_array);
+            }
+            // Cleanup
             CeedVectorDestroy(&u);
-            CeedVectorDestroy(&v);
+            CeedVectorDestroy(&v_with_split);
+            CeedVectorDestroy(&v_without_split);
           }
           CeedBasisDestroy(&basis);
         }

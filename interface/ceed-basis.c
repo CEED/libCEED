@@ -432,10 +432,10 @@ static int CeedBasisComputeHalfMatrices(CeedInt num_rows, CeedInt num_cols, cons
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Developer
 **/
-int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type, CeedScalar **even,
-                                    CeedScalar **odd) {
+static inline int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type,
+                                                  CeedScalar **even, CeedScalar **odd) {
   CeedCall(CeedBasisDetectSymmetry(num_rows, num_cols, matrix, symmetry_type));
   if (*symmetry_type == CEED_SYMMETRY_SYMMETRIC || *symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC) {
     const CeedInt num_rows_half = (num_rows + 1) / 2, num_cols_half = (num_cols + 1) / 2;
@@ -444,72 +444,6 @@ int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const Ce
     CeedCall(CeedMalloc(num_rows_half * num_cols_half, odd));
     CeedCall(CeedBasisComputeHalfMatrices(num_rows, num_cols, matrix, num_rows_half, num_cols_half, *even, *odd));
   }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the even-odd decomposition of the 1D interpolation matrix
-
-  Lazily detects centro-symmetry and computes half-matrices on first call.
-  The half-matrices are stored in the basis and reused on subsequent calls.
-
-  @param[in]  basis          `CeedBasis`
-  @param[out] symmetry_type  Detected symmetry type
-  @param[out] interp_1d_even Even half-matrix (may be NULL if no symmetry)
-  @param[out] interp_1d_odd  Odd half-matrix (may be NULL if no symmetry)
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **interp_1d_even,
-                                             const CeedScalar **interp_1d_odd) {
-  bool is_tensor_basis;
-
-  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
-  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
-
-  if (basis->interp_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
-    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type, &basis->interp_1d_even,
-                                             &basis->interp_1d_odd));
-  }
-
-  *symmetry_type = basis->interp_1d_symmetry_type;
-  if (interp_1d_even) *interp_1d_even = basis->interp_1d_even;
-  if (interp_1d_odd) *interp_1d_odd = basis->interp_1d_odd;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the even-odd decomposition of the 1D gradient matrix
-
-  Lazily detects centro-symmetry and computes half-matrices on first call.
-  The half-matrices are stored in the basis and reused on subsequent calls.
-
-  @param[in]  basis          `CeedBasis`
-  @param[out] symmetry_type  Detected symmetry type
-  @param[out] grad_1d_even   Even half-matrix (may be NULL if no symmetry)
-  @param[out] grad_1d_odd    Odd half-matrix (may be NULL if no symmetry)
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type, const CeedScalar **grad_1d_even,
-                                           const CeedScalar **grad_1d_odd) {
-  bool is_tensor_basis;
-
-  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
-  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
-
-  if (basis->grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
-    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type, &basis->grad_1d_even,
-                                             &basis->grad_1d_odd));
-  }
-
-  *symmetry_type = basis->grad_1d_symmetry_type;
-  if (grad_1d_even) *grad_1d_even = basis->grad_1d_even;
-  if (grad_1d_odd) *grad_1d_odd = basis->grad_1d_odd;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2716,6 +2650,165 @@ int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_
 }
 
 /**
+  @brief Get the even-odd symmetry of the 1D interpolation matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->interp_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type));
+  }
+  *symmetry_type = basis->interp_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd symmetry of the 1D gradient matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type));
+  }
+  *symmetry_type = basis->grad_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd symmetry of the 1D collocated gradient matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeCollocatedGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis, has_collo_grad;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not have collocated gradient");
+
+  if (basis->collo_grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    const CeedScalar *collo_grad_1d;
+
+    CeedCall(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->Q_1d, basis->collo_grad_1d, &basis->collo_grad_1d_symmetry_type));
+  }
+  *symmetry_type = basis->grad_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D interpolation matrix
+
+  @param[in]  basis          `CeedBasis`
+  @param[out] interp_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] interp_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, const CeedScalar **interp_1d_even, const CeedScalar **interp_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (!basis->interp_1d_even && basis->interp_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type, &basis->interp_1d_even,
+                                             &basis->interp_1d_odd));
+  }
+  *interp_1d_even = basis->interp_1d_even;
+  *interp_1d_odd  = basis->interp_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D gradient matrix
+
+  @param[in]  basis        `CeedBasis`
+  @param[out] grad_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] grad_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, const CeedScalar **grad_1d_even, const CeedScalar **grad_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (!basis->grad_1d_even && basis->grad_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type, &basis->grad_1d_even,
+                                             &basis->grad_1d_odd));
+  }
+  *grad_1d_even = basis->grad_1d_even;
+  *grad_1d_odd  = basis->grad_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D collocated gradient matrix
+
+  @param[in]  basis              `CeedBasis`
+  @param[out] collo_grad_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] collo_grad_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionCollocatedGrad1D(CeedBasis basis, const CeedScalar **collo_grad_1d_even, const CeedScalar **collo_grad_1d_odd) {
+  bool is_tensor_basis, has_collo_grad;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not have collocated gradient");
+
+  if (!basis->collo_grad_1d_even && basis->collo_grad_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    const CeedScalar *collo_grad_1d;
+
+    CeedCall(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->collo_grad_1d, &basis->collo_grad_1d_symmetry_type,
+                                             &basis->collo_grad_1d_even, &basis->collo_grad_1d_odd));
+  }
+  *collo_grad_1d_even = basis->collo_grad_1d_even;
+  *collo_grad_1d_odd  = basis->collo_grad_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get divergence matrix of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
@@ -2746,27 +2839,6 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 }
 
 /**
-  @brief Enable or disable the even-odd decomposition for a `CeedBasis`
-
-  Overrides the size based default; the decomposition is faster for large enough contractions but moves results by about an ulp.
-
-  @param[in,out] basis         `CeedBasis`
-  @param[in]     use_even_odd  Boolean flag to enable the even-odd decomposition
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedBasisSetUseEvenOdd(CeedBasis basis, bool use_even_odd) {
-  if (!basis->SetUseEvenOdd) {
-    CeedDebug(CeedBasisReturnCeed(basis), "Backend does not implement the even-odd decomposition for bases.");
-  } else {
-    CeedCall(basis->SetUseEvenOdd(basis, use_even_odd));
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Destroy a @ref CeedBasis
 
   @param[in,out] basis `CeedBasis` to destroy
@@ -2790,9 +2862,11 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->interp_1d_odd));
   CeedCall(CeedFree(&(*basis)->grad));
   CeedCall(CeedFree(&(*basis)->grad_1d));
-  CeedCall(CeedFree(&(*basis)->collo_grad_1d));
   CeedCall(CeedFree(&(*basis)->grad_1d_even));
   CeedCall(CeedFree(&(*basis)->grad_1d_odd));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d_even));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d_odd));
   CeedCall(CeedFree(&(*basis)->div));
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));

@@ -27,7 +27,8 @@ static inline int CeedTensorContractApply_Core_Opt(CeedTensorContract contract, 
     for (CeedInt b = 0; b < B; b++) {
       for (CeedInt j = 0; j < J; j++) {
         CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
+
+        CeedPragmaSIMD for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
       }
     }
   }
@@ -40,7 +41,7 @@ static inline int CeedTensorContractApply_Core_Opt(CeedTensorContract contract, 
 static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                                        CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   if (!add) {
-    for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
+    CeedPragmaSIMD for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
   }
 
   if (C == 1) {
