@@ -98,6 +98,115 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
 }
 
 /**
+  @brief Apply tensor contraction using even-odd (centro-symmetry) decomposition
+
+  Exploits the centro-symmetry of the 1D basis matrix to halve the contraction work.
+  The input is folded into even/odd components, two half-size contractions are performed,
+  and the output is unfolded by recombining the results.
+
+  The half-matrices `t_even` and `t_odd` must be precomputed from the base (non-transposed) matrix.
+  The same half-matrices work for both @ref CEED_NOTRANSPOSE and @ref CEED_TRANSPOSE modes.
+
+  @param[in]  contract      `CeedTensorContract` to use
+  @param[in]  A             First index of `u`, `v`
+  @param[in]  B             Middle index of `u`, one index of `t`
+  @param[in]  C             Last index of `u`, `v`
+  @param[in]  J             Middle index of `v`, one index of `t`
+  @param[in]  t_even        Even half-matrix
+  @param[in]  t_odd         Odd half-matrix
+  @param[in]  symmetry_type Centro-symmetry type (must be SYMMETRIC or ANTISYMMETRIC)
+  @param[in]  t_mode        Transpose mode for `t`
+  @param[in]  add           Add mode
+  @param[in]  u             Input array
+  @param[out] v             Output array
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedTensorContractApplyEvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t_even,
+                                   const CeedScalar *restrict t_odd, CeedSymmetryType symmetry_type, CeedTransposeMode t_mode, const CeedInt add,
+                                   const CeedScalar *restrict u, CeedScalar *restrict v) {
+  const CeedInt B_half = (B + 1) / 2;
+  const CeedInt J_half = (J + 1) / 2;
+
+  CeedScalar u_even[A * B_half * C], u_odd[A * B_half * C];
+  CeedScalar w_even[A * J_half * C], w_odd[A * J_half * C];
+
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt b = 0; b < B / 2; b++) {
+      const CeedInt index_lower  = (a * B + b) * C;
+      const CeedInt index_upper  = (a * B + (B - 1 - b)) * C;
+      const CeedInt index_folded = (a * B_half + b) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        u_even[index_folded + c] = u[index_lower + c] + u[index_upper + c];
+        u_odd[index_folded + c]  = u[index_lower + c] - u[index_upper + c];
+      }
+    }
+    if (B % 2) {
+      const CeedInt index_middle_in  = (a * B + B / 2) * C;
+      const CeedInt index_middle_out = (a * B_half + B / 2) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        u_even[index_middle_out + c] = u[index_middle_in + c];
+        u_odd[index_middle_out + c]  = (CeedScalar)0.0;
+      }
+    }
+  }
+
+  // For antisymmetric matrices in TRANSPOSE mode, the column-folded half-matrices must be
+  // swapped: t_odd pairs with u_even and t_even pairs with u_odd, and the symmetric unfold is used.
+  const bool antisym_transpose = (symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC && t_mode == CEED_TRANSPOSE);
+
+  if (antisym_transpose) {
+    CeedCall(CeedTensorContractApply(contract, A, B_half, C, J_half, t_odd, t_mode, 0, u_even, w_even));
+    CeedCall(CeedTensorContractApply(contract, A, B_half, C, J_half, t_even, t_mode, 0, u_odd, w_odd));
+  } else {
+    CeedCall(CeedTensorContractApply(contract, A, B_half, C, J_half, t_even, t_mode, 0, u_even, w_even));
+    CeedCall(CeedTensorContractApply(contract, A, B_half, C, J_half, t_odd, t_mode, 0, u_odd, w_odd));
+  }
+
+  const bool antisym_unfold = (symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC);
+
+  for (CeedInt a = 0; a < A; a++) {
+    for (CeedInt j = 0; j < J / 2; j++) {
+      const CeedInt index_half  = (a * J_half + j) * C;
+      const CeedInt index_lower = (a * J + j) * C;
+      const CeedInt index_upper = (a * J + (J - 1 - j)) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        CeedScalar w_sum  = w_even[index_half + c] + w_odd[index_half + c];
+        CeedScalar w_diff = w_even[index_half + c] - w_odd[index_half + c];
+
+        if (add) {
+          v[index_lower + c] += w_sum;
+          v[index_upper + c] += antisym_unfold ? -w_diff : w_diff;
+        } else {
+          v[index_lower + c] = w_sum;
+          v[index_upper + c] = antisym_unfold ? -w_diff : w_diff;
+        }
+      }
+    }
+    if (J % 2) {
+      const CeedInt index_half   = (a * J_half + J / 2) * C;
+      const CeedInt index_middle = (a * J + J / 2) * C;
+
+      for (CeedInt c = 0; c < C; c++) {
+        CeedScalar w_mid = w_even[index_half + c] + w_odd[index_half + c];
+
+        if (add) {
+          v[index_middle + c] += w_mid;
+        } else {
+          v[index_middle + c] = w_mid;
+        }
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Apply tensor contraction
 
   Contracts on the middle index

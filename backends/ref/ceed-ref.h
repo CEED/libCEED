@@ -31,23 +31,11 @@ typedef struct {
                CeedRequest *);
 } CeedElemRestriction_Ref;
 
-// TODO: Remove these ignores after merging even-odd decomposition
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-empty-struct"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#endif
-
 typedef struct {
+  CeedSymmetryType collo_grad_symmetry;
+  CeedScalar      *collo_grad_1d_even, *collo_grad_1d_odd;
+  bool             use_even_odd, use_even_odd_is_set;
 } CeedBasis_Ref;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 
 typedef struct {
   const CeedScalar **inputs;

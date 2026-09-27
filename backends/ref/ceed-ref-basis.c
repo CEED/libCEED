@@ -9,9 +9,19 @@
 #include <ceed/backend.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ceed-ref.h"
+
+//------------------------------------------------------------------------------
+// Check user setting or default to order rule of thumb
+//------------------------------------------------------------------------------
+static inline bool CeedBasisUseEvenOdd_Ref(const CeedBasis_Ref *impl, CeedSymmetryType symmetry_type, CeedInt B, CeedInt J) {
+  if (symmetry_type != CEED_SYMMETRY_SYMMETRIC && symmetry_type != CEED_SYMMETRY_ANTISYMMETRIC) return false;
+  if (impl->use_even_odd_is_set) return impl->use_even_odd;
+  return B >= CEED_EVEN_ODD_MIN_DIM && J >= CEED_EVEN_ODD_MIN_DIM;
+}
 
 //------------------------------------------------------------------------------
 // Basis Apply
@@ -54,6 +64,7 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
   CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor_basis));
   CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
   CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
+  CeedCallBackend(CeedBasisGetData(basis, &impl));
   if (is_tensor_basis) {
     // Tensor basis
     CeedInt P_1d, Q_1d;
@@ -75,11 +86,19 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           CeedInt           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           CeedScalar        tmp[2][num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
           const CeedScalar *interp_1d;
+          CeedSymmetryType  interp_symmetry;
+          const CeedScalar *interp_1d_even = NULL, *interp_1d_odd = NULL;
 
           CeedCallBackend(CeedBasisGetInterp1D(basis, &interp_1d));
+          CeedCallBackend(CeedBasisGetEvenOddDecompositionInterp1D(basis, &interp_symmetry, &interp_1d_even, &interp_1d_odd));
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, interp_1d, t_mode, add && (d == dim - 1), d == 0 ? u : tmp[d % 2],
-                                                    d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            if (CeedBasisUseEvenOdd_Ref(impl, interp_symmetry, P, Q)) {
+              CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, interp_1d_even, interp_1d_odd, interp_symmetry, t_mode,
+                                                             add && (d == dim - 1), d == 0 ? u : tmp[d % 2], d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            } else {
+              CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, interp_1d, t_mode, add && (d == dim - 1), d == 0 ? u : tmp[d % 2],
+                                                      d == dim - 1 ? v : tmp[(d + 1) % 2]));
+            }
             pre /= P;
             post *= Q;
           }
@@ -103,16 +122,25 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
         CeedCallBackend(CeedBasisGetInterp1D(basis, &interp_1d));
         if (is_collocated) {  // Qpts collocated with nodes
           const CeedScalar *grad_1d;
+          CeedSymmetryType  grad_symmetry;
+          const CeedScalar *grad_1d_even = NULL, *grad_1d_odd = NULL;
 
           CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
+          CeedCallBackend(CeedBasisGetEvenOddDecompositionGrad1D(basis, &grad_symmetry, &grad_1d_even, &grad_1d_odd));
 
           // Dim contractions, identity in other directions
           CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
 
           for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
-                                                    t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
-                                                    t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
+            const CeedScalar *in  = t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem];
+            CeedScalar       *out = t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem];
+
+            if (CeedBasisUseEvenOdd_Ref(impl, grad_symmetry, P, Q)) {
+              CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, grad_1d_even, grad_1d_odd, grad_symmetry, t_mode,
+                                                             add && (d > 0), in, out));
+            } else {
+              CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0), in, out));
+            }
             pre /= P;
             post *= Q;
           }
@@ -121,16 +149,33 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
           CeedScalar        interp[num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
           const CeedScalar *collo_grad_1d;
 
+          CeedSymmetryType  interp_symmetry;
+          const CeedScalar *interp_1d_even = NULL, *interp_1d_odd = NULL;
+
           CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+          CeedCallBackend(CeedBasisGetEvenOddDecompositionInterp1D(basis, &interp_symmetry, &interp_1d_even, &interp_1d_odd));
           // Interpolate to quadrature points (NoTranspose)
           //  or Grad to quadrature points (Transpose)
-          for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? interp_1d : collo_grad_1d), t_mode,
-                                                    (t_mode == CEED_TRANSPOSE) && (d > 0),
-                                                    (t_mode == CEED_NOTRANSPOSE ? (d == 0 ? u : tmp[d % 2]) : &u[d * num_qpts * num_comp * num_elem]),
-                                                    (t_mode == CEED_NOTRANSPOSE ? (d == dim - 1 ? interp : tmp[(d + 1) % 2]) : interp)));
-            pre /= P;
-            post *= Q;
+          {
+            const bool             is_notranspose = t_mode == CEED_NOTRANSPOSE;
+            const CeedScalar      *t_matrix       = is_notranspose ? interp_1d : collo_grad_1d;
+            const CeedSymmetryType t_symmetry     = is_notranspose ? interp_symmetry : impl->collo_grad_symmetry;
+            const CeedScalar      *t_even         = is_notranspose ? interp_1d_even : impl->collo_grad_1d_even;
+            const CeedScalar      *t_odd          = is_notranspose ? interp_1d_odd : impl->collo_grad_1d_odd;
+
+            for (CeedInt d = 0; d < dim; d++) {
+              const CeedInt     is_add = (t_mode == CEED_TRANSPOSE) && (d > 0);
+              const CeedScalar *in     = is_notranspose ? (d == 0 ? u : tmp[d % 2]) : &u[d * num_qpts * num_comp * num_elem];
+              CeedScalar       *out    = is_notranspose ? (d == dim - 1 ? interp : tmp[(d + 1) % 2]) : interp;
+
+              if (CeedBasisUseEvenOdd_Ref(impl, t_symmetry, P, Q)) {
+                CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, t_even, t_odd, t_symmetry, t_mode, is_add, in, out));
+              } else {
+                CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, t_matrix, t_mode, is_add, in, out));
+              }
+              pre /= P;
+              post *= Q;
+            }
           }
           // Grad to quadrature points (NoTranspose)
           //  or Interpolate to nodes (Transpose)
@@ -140,19 +185,36 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
             Q = P_1d;
           }
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
-          for (CeedInt d = 0; d < dim; d++) {
-            CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? collo_grad_1d : interp_1d), t_mode,
-                                                    (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
-                                                    (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
-                                                    (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem]
-                                                                                : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
-            pre /= P;
-            post *= Q;
+          {
+            const bool             is_notranspose = t_mode == CEED_NOTRANSPOSE;
+            const CeedScalar      *t_matrix       = is_notranspose ? collo_grad_1d : interp_1d;
+            const CeedSymmetryType t_symmetry     = is_notranspose ? impl->collo_grad_symmetry : interp_symmetry;
+            const CeedScalar      *t_even         = is_notranspose ? impl->collo_grad_1d_even : interp_1d_even;
+            const CeedScalar      *t_odd          = is_notranspose ? impl->collo_grad_1d_odd : interp_1d_odd;
+
+            for (CeedInt d = 0; d < dim; d++) {
+              const CeedInt     is_add = (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1));
+              const CeedScalar *in     = is_notranspose ? interp : (d == 0 ? interp : tmp[d % 2]);
+              CeedScalar       *out    = is_notranspose ? &v[d * num_qpts * num_comp * num_elem] : (d == dim - 1 ? v : tmp[(d + 1) % 2]);
+
+              if (CeedBasisUseEvenOdd_Ref(impl, t_symmetry, P, Q)) {
+                CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, t_even, t_odd, t_symmetry, t_mode, is_add, in, out));
+              } else {
+                CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, t_matrix, t_mode, is_add, in, out));
+              }
+              pre /= P;
+              post *= Q;
+            }
           }
         } else {  // Underintegration, P > Q
           const CeedScalar *grad_1d;
+          CeedSymmetryType  interp_symmetry, grad_symmetry;
+          const CeedScalar *interp_1d_even = NULL, *interp_1d_odd = NULL;
+          const CeedScalar *grad_1d_even = NULL, *grad_1d_odd = NULL;
 
           CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
+          CeedCallBackend(CeedBasisGetEvenOddDecompositionInterp1D(basis, &interp_symmetry, &interp_1d_even, &interp_1d_odd));
+          CeedCallBackend(CeedBasisGetEvenOddDecompositionGrad1D(basis, &grad_symmetry, &grad_1d_even, &grad_1d_odd));
 
           if (t_mode == CEED_TRANSPOSE) {
             P = Q_1d;
@@ -165,10 +227,19 @@ static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_e
             CeedInt pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
 
             for (CeedInt d = 0; d < dim; d++) {
-              CeedCallBackend(CeedTensorContractApply(
-                  contract, pre, P, post, Q, (p == d) ? grad_1d : interp_1d, t_mode, add && (d == dim - 1),
-                  (d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : &u[p * num_comp * num_qpts * num_elem]) : tmp[d % 2]),
-                  (d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : &v[p * num_comp * num_qpts * num_elem]) : tmp[(d + 1) % 2])));
+              const CeedScalar      *t_matrix   = (p == d) ? grad_1d : interp_1d;
+              const CeedSymmetryType t_symmetry = (p == d) ? grad_symmetry : interp_symmetry;
+              const CeedScalar      *t_even     = (p == d) ? grad_1d_even : interp_1d_even;
+              const CeedScalar      *t_odd      = (p == d) ? grad_1d_odd : interp_1d_odd;
+              const CeedScalar      *in         = d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : &u[p * num_comp * num_qpts * num_elem]) : tmp[d % 2];
+              CeedScalar            *out = d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : &v[p * num_comp * num_qpts * num_elem]) : tmp[(d + 1) % 2];
+
+              if (CeedBasisUseEvenOdd_Ref(impl, t_symmetry, P, Q)) {
+                CeedCallBackend(CeedTensorContractApplyEvenOdd(contract, pre, P, post, Q, t_even, t_odd, t_symmetry, t_mode, add && (d == dim - 1),
+                                                               in, out));
+              } else {
+                CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, t_matrix, t_mode, add && (d == dim - 1), in, out));
+              }
               pre /= P;
               post *= Q;
             }
@@ -277,7 +348,21 @@ static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
   CeedBasis_Ref *impl;
 
   CeedCallBackend(CeedBasisGetData(basis, &impl));
+  CeedCallBackend(CeedFree(&impl->collo_grad_1d_even));
+  CeedCallBackend(CeedFree(&impl->collo_grad_1d_odd));
   CeedCallBackend(CeedFree(&impl));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Set even-odd decomposition use
+//------------------------------------------------------------------------------
+static int CeedBasisSetUseEvenOdd_Ref(CeedBasis basis, bool use_even_odd) {
+  CeedBasis_Ref *impl;
+
+  CeedCallBackend(CeedBasisGetData(basis, &impl));
+  impl->use_even_odd        = use_even_odd;
+  impl->use_even_odd_is_set = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -294,6 +379,18 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
   CeedCallBackend(CeedCalloc(1, &impl));
+  {
+    bool has_collocated_grad;
+
+    CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
+    if (has_collocated_grad) {
+      const CeedScalar *collo_grad_1d;
+
+      CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+      CeedCallBackend(CeedComputeEvenOddDecomposition(Q_1d, Q_1d, collo_grad_1d, &impl->collo_grad_symmetry, &impl->collo_grad_1d_even,
+                                                      &impl->collo_grad_1d_odd));
+    }
+  }
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
   CeedCallBackend(CeedTensorContractCreate(ceed_parent, &contract));
@@ -302,7 +399,15 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "SetUseEvenOdd", CeedBasisSetUseEvenOdd_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
+
+  {
+    const char *env_val = getenv("CEED_BASIS_USE_EVEN_ODD");
+
+    if (env_val) CeedCallBackend(CeedBasisSetUseEvenOdd(basis, strcmp(env_val, "0") && strcmp(env_val, "false")));
+  }
+
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedDestroy(&ceed_parent));
   return CEED_ERROR_SUCCESS;
