@@ -598,7 +598,10 @@ endif
 # ARM SME Backends
 # Check the configured precision and link the SME ABI runtime without executing target code.
 SME_STATUS   = Disabled
-SME         := $(shell printf '%s\n' \
+SME         := $(shell \
+  sme_tmp=$$(mktemp -d "$${TMPDIR:-/tmp}/libceed-sme.XXXXXX") || exit; \
+  trap 'rm -rf "$$sme_tmp"' 0; \
+  printf '%s\n' \
   '$(HASH)include <ceed/types.h>' \
   '$(HASH)include <arm_sve.h>' \
   '$(HASH)include <arm_sme.h>' \
@@ -620,8 +623,10 @@ SME         := $(shell printf '%s\n' \
   '$(HASH)endif' \
   '}' \
   'int main(int argc, char **argv) { (void)argv; CeedScalar v = (CeedScalar)argc; f(&v); return v == 0; }' \
-  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror $(LDFLAGS) $(CEED_LDFLAGS) \
-    -x c - -x none -o /dev/null $(CEED_LDLIBS) $(LDLIBS) >/dev/null 2>&1 && echo 1)
+  | $(CC) $(CPPFLAGS) $(CFLAGS:-M%=) -Werror \
+    -x c -c -o "$$sme_tmp/probe.o" - >/dev/null 2>&1 && \
+  $(CC) -Werror $(LDFLAGS) $(CEED_LDFLAGS) \
+    "$$sme_tmp/probe.o" -o /dev/null $(CEED_LDLIBS) $(LDLIBS) >/dev/null 2>&1 && echo 1)
 SME_BACKENDS = /cpu/self/sme/serial /cpu/self/sme/blocked
 ifeq ($(SME),1)
   SME_STATUS     = Enabled
