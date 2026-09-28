@@ -22,6 +22,7 @@ noether-asan:
     # Environment
     #    Note: COVERAGE=0 is needed when using ASAN
     - export COVERAGE=0 CC=gcc CXX=g++ FC=gfortran
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -70,6 +71,7 @@ noether-cpu:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -148,6 +150,7 @@ noether-cpu-static:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -221,6 +224,7 @@ noether-cpu-static:
 #    # Environment
 #    - . /opt/intel/oneapi/setvars.sh
 #    - export COVERAGE=1 CC=icx CXX=icpx
+#    - export CEED_CACHE_BASE_DIR=$PWD/temp
 #    - export NPROC_POOL=8
 #    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
 #    - echo "-------------- CC ------------------" && $CC --version
@@ -248,6 +252,7 @@ noether-rust-qfunctions:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=1
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -307,6 +312,7 @@ noether-cuda:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -405,6 +411,7 @@ noether-cuda:
 #  before_script:
 #    # Environment
 #    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc GCOV=gcov
+#    - export CEED_CACHE_BASE_DIR=$PWD/temp
 #    - export NPROC_POOL=4
 #    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
 #    - echo "-------------- CC ------------------" && $CC --version
@@ -469,6 +476,7 @@ noether-rocm:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc GCOV=gcov
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
@@ -509,6 +517,7 @@ noether-float:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC= NVCC=nvcc GCOV=gcov-14
+    - export CEED_CACHE_BASE_DIR=$PWD/temp
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version

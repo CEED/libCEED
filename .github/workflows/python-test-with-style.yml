@@ -31,6 +31,7 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran
+        CEED_CACHE_BASE_DIR: $PWD/temp
       run: |
         make info
         make -j2

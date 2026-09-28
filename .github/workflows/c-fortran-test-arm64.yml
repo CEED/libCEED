@@ -53,6 +53,8 @@ jobs:
         cat build/sve_err.txt || echo "SVE ENABLED"
         grep -F 'SVE_STATUS    = Enabled' build/sve-info.log
     - name: Run SVE full suite at multiple vector lengths
+      env:
+        CEED_CACHE_BASE_DIR: $PWD/temp
       run: |
         cat >build/sve-vector-length.c <<'EOF'
         #include <arm_sve.h>

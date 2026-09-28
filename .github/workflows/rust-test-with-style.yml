@@ -32,6 +32,7 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran
+        CEED_CACHE_BASE_DIR: $PWD/temp
       run: |
         export CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline"
         cargo llvm-cov test --doctests --lcov --output-path coverage.info

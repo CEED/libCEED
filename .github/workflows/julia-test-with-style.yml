@@ -28,6 +28,8 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - name: Julia test and style
+        env:
+          CEED_CACHE_BASE_DIR: $PWD/temp
         run: |
           make info
           make -j2
