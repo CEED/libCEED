@@ -38,10 +38,9 @@
 //------------------------------------------------------------------------------
 // Tensor Contract Slice
 //------------------------------------------------------------------------------
-// v[j,c] (+)= sum_b t[j,b] u[b,c] for one a; vectorized over c, tiled over j.
-__arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                                                               CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
-                                                               CeedScalar *restrict v) __arm_streaming {
+static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
+                                               const CeedInt add, const CeedScalar *restrict u,
+                                               CeedScalar *restrict v) __arm_streaming __arm_inout("za") {
   CeedInt s0 = B, s1 = 1;
 
   if (t_mode == CEED_TRANSPOSE) {
@@ -81,13 +80,23 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedIn
 }
 
 //------------------------------------------------------------------------------
+// Tensor Contract Batch
+//------------------------------------------------------------------------------
+__arm_new("za") static inline int CeedTensorContract_Sme_Batch(CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+                                                               CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
+                                                               CeedScalar *restrict v) __arm_streaming {
+  for (CeedInt a = 0; a < A; a++)
+    CeedCallBackend(CeedTensorContract_Sme_Slice(B, C, J, t, t_mode, add, &u[(CeedSize)a * B * C], &v[(CeedSize)a * J * C]));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Tensor Contract Apply
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Sme(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                                        CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  for (CeedInt a = 0; a < A; a++) {
-    CeedCallBackend(CeedTensorContract_Sme_Slice(B, C, J, t, t_mode, add, &u[(CeedSize)a * B * C], &v[(CeedSize)a * J * C]));
-  }
+  CeedCallBackend(CeedTensorContract_Sme_Batch(A, B, C, J, t, t_mode, add, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
