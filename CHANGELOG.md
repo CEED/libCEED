@@ -10,6 +10,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+- Add `CeedOperatorApply` for `/cpu/self/opt/*` backends that writes the output on first touch instead of zeroing it first.
+
 ### Examples
 
 (v1-0)=
