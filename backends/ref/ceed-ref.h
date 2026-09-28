@@ -11,6 +11,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/// Smallest contraction dimension worth splitting with the even-odd decomposition.
+/// Below this the fold and unfold cost more than the halved contraction saves, and the extra rounding is not worth paying for.
+/// Measured on Apple M4 for `/cpu/self/ref/*` and `/cpu/self/opt/*`: the decomposition loses up to 0.63x around order 4 and breaks even near
+/// order 8, so the threshold sits where no measured configuration regresses.
+#define CEED_EVEN_ODD_MIN_DIM 10
+
 typedef struct {
   CeedScalar *array;
   CeedScalar *array_borrowed;
@@ -30,24 +36,6 @@ typedef struct {
   int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
                CeedRequest *);
 } CeedElemRestriction_Ref;
-
-// TODO: Remove these ignores after merging even-odd decomposition
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-empty-struct"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-#endif
-
-typedef struct {
-} CeedBasis_Ref;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 
 typedef struct {
   const CeedScalar **inputs;

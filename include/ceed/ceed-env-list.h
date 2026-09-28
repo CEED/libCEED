@@ -30,6 +30,9 @@ CEED_ENV_ONLY_STRING(ErrorHandler, "abort", "CEED_ERROR_HANDLER")
 CEED_ENV_STRING(CpuJitCxx, CEED_STRINGIFY(CEED_CPU_JIT_CXX), "CEED_CPU_JIT_CXX")
 CEED_ENV_STRING(CpuJitOpt, CEED_STRINGIFY(CEED_CPU_JIT_OPT), "CEED_CPU_JIT_OPT")
 
+// Tensor contraction even-odd decomposition
+CEED_ENV_FLAG(ContractUseEvenOdd, false, "CEED_CONTRACT_USE_EVEN_ODD")
+
 // HIP backend environment variables
 CEED_ENV_ONLY_FLAG(HipHsaXnack, false, "HSA_XNACK")
 

@@ -313,9 +313,21 @@ CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, Ceed
 CEED_EXTERN int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev);
 CEED_EXTERN int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d);
 
+CEED_EXTERN int CeedBasisGetSymmetryTypeInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetSymmetryTypeGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetSymmetryTypeCollocatedGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, const CeedScalar **interp_1d_even, const CeedScalar **interp_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, const CeedScalar **grad_1d_even, const CeedScalar **grad_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionCollocatedGrad1D(CeedBasis basis, const CeedScalar **collo_grad_1d_even,
+                                                                 const CeedScalar **collo_grad_1d_odd);
+
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                          CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractApplyEvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                                const CeedScalar *__restrict__ t_even, const CeedScalar *__restrict__ t_odd,
+                                                CeedSymmetryType symmetry_type, CeedTransposeMode t_mode, const CeedInt add,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int  CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
                                                 const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
                                                 const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);

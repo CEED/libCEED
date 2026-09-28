@@ -37,6 +37,13 @@ const char *const CeedTransposeModes[] = {
     [CEED_NOTRANSPOSE] = "no transpose",
 };
 
+const char *const CeedSymmetryTypes[] = {
+    [CEED_SYMMETRY_UNKNOWN]       = "unknown",
+    [CEED_SYMMETRY_NONE]          = "none",
+    [CEED_SYMMETRY_SYMMETRIC]     = "centro-symmetric",
+    [CEED_SYMMETRY_ANTISYMMETRIC] = "centro-antisymmetric",
+};
+
 const char *const CeedEvalModes[] = {
     [CEED_EVAL_NONE] = "none", [CEED_EVAL_INTERP] = "interpolation",      [CEED_EVAL_GRAD] = "gradient", [CEED_EVAL_DIV] = "divergence",
     [CEED_EVAL_CURL] = "curl", [CEED_EVAL_WEIGHT] = "quadrature weights",

@@ -189,6 +189,7 @@ CEED_EXTERN const char *const *CeedErrorTypes;
 CEED_EXTERN const char *const  CeedMemTypes[];
 CEED_EXTERN const char *const  CeedCopyModes[];
 CEED_EXTERN const char *const  CeedTransposeModes[];
+CEED_EXTERN const char *const  CeedSymmetryTypes[];
 CEED_EXTERN const char *const  CeedEvalModes[];
 CEED_EXTERN const char *const  CeedQuadModes[];
 CEED_EXTERN const char *const  CeedElemTopologies[];
