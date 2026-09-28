@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cstdlib>
@@ -24,6 +25,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
 #define CEED_QUOTE(name) #name
 #define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
@@ -31,20 +33,21 @@ const char *CeedJitCxxDefault = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
 #undef CEED_QUOTE
 #undef CEED_STRINGIFY
 
-#define CeedCallSystem(ceed, command, message) CeedCallBackend(CeedCallSystem_Core(ceed, command, message, true, NULL))
-#define CeedCallSystem_Unchecked(ceed, command, message, is_success) CeedCallBackend(CeedCallSystem_Core(ceed, command, message, false, is_success))
+#define CeedCallSystem(ceed, command, message, output) CeedCallBackend(CeedCallSystem_Core(ceed, command, message, output, true, NULL))
+#define CeedCallSystem_Unchecked(ceed, command, message, output, is_success) \
+  CeedCallBackend(CeedCallSystem_Core(ceed, command, message, output, false, is_success))
 
 //------------------------------------------------------------------------------
 // Call system command and capture stdout + stderr
 //------------------------------------------------------------------------------
-static inline int CeedCallSystem_Core(Ceed ceed, const char *command, const char *message, bool err_on_fail, bool *is_success) {
+static inline int CeedCallSystem_Core(Ceed ceed, const char *command, const char *message, std::string &output, bool err_on_fail, bool *is_success) {
   CeedDebug(ceed, "Running command:\n$ %s", command);
   FILE *output_stream = popen((command + std::string(" 2>&1")).c_str(), "r");
 
   CeedCheck(output_stream != nullptr, ceed, CEED_ERROR_BACKEND, "Failed to %s\ncommand:\n$ %s", message, command);
 
-  char        line[CEED_MAX_RESOURCE_LEN] = "";
-  std::string output                      = "";
+  char line[CEED_MAX_RESOURCE_LEN] = "";
+  output                           = "";
 
   while (fgets(line, sizeof(line), output_stream) != nullptr) output += line;
   CeedDebug(ceed, "output:\n%s\n", output.c_str());
@@ -154,20 +157,21 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     // Place lower bound for uniformity of ids
     std::uniform_int_distribution<CeedInt> dist(1000000000);
     const CeedInt                          build_id = dist(gen);
-    std::string                            filename_base;
+    std::string                            cache_dir, filename_base, filename_cpp, filename_so;
 
     {
-      const char *cache_dir;
+      const char *dir;
 
-      CeedCallBackend(CeedGetCacheDir(ceed, &cache_dir));
-      filename_base = std::string(cache_dir) + std::string("/function_") + std::to_string(build_id) + "_" + name;
-      CeedCallBackend(CeedRestoreCacheDir(ceed, &cache_dir));
+      CeedCallBackend(CeedGetCacheDir(ceed, &dir));
+      cache_dir = std::string(dir) + "/";
+      CeedCallBackend(CeedRestoreCacheDir(ceed, &dir));
     }
+
+    filename_cpp = cache_dir + std::string("/function_") + std::to_string(build_id) + "_" + name + ".cpp";
 
     // Write code to temp file
     {
-      std::string filename = filename_base + ".cpp";
-      FILE       *file     = fopen(filename.c_str(), "w");
+      FILE *file = fopen(filename_cpp.c_str(), "w");
 
       CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cpu-jit");
       fputs(code.str().c_str(), file);
@@ -190,10 +194,10 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       // Check if valid compiler
       if (user_cxx) {
-        std::string command = std::string(user_cxx) + " --version 2>&1";
+        std::string command = std::string(user_cxx) + " --version 2>&1", output;
 
         CeedDebug(ceed, "Checking user JiT compiler...");
-        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking user JiT compiler", &is_valid);
+        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking user JiT compiler", output, &is_valid);
       }
 
       if (is_valid) {
@@ -210,10 +214,10 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       CeedDebug(ceed, "Default JiT compiler: %s\n", CeedJitCxxDefault);
       {
-        std::string command = std::string(CeedJitCxxDefault) + " --version 2>&1";
+        std::string command = std::string(CeedJitCxxDefault) + " --version 2>&1", output;
 
         CeedDebug(ceed, "Checking default JiT compiler...");
-        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default JiT compiler", &is_valid);
+        CeedCallSystem_Unchecked(ceed, command.c_str(), "checking default JiT compiler", output, &is_valid);
       }
 
       if (is_valid) {
@@ -226,32 +230,71 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     }
 
     if (cxx) {
+      std::size_t cpp_hash;
+      bool        exists;
+
+      // Preprocess & check if identical file has been compiled
+      {
+        // -E: preprocess only
+        // -P: exclude line info (needed to support different filenames)
+        std::string command = std::string(cxx) + " -E -P " + filename_cpp, output;
+
+        for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
+        CeedCallSystem(ceed, command.c_str(), "JiT preprocess function source into memory", output);
+        cpp_hash    = std::hash<std::string>{}(output);
+        filename_so = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".so";
+
+        // Fast way to check if a file exists
+        struct stat buffer;
+        exists = (stat((filename_so).c_str(), &buffer) == 0);
+      }
+
       // Compile wrapper kernel
-      std::string command = std::string(cxx) + " -shared -fPIC -rdynamic";
+      if (!exists) {
+        std::string command         = std::string(cxx) + " -shared -fPIC -rdynamic", output;
+        std::string tmp_so_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".so";
 
-      for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
-      command += " " + filename_base + ".cpp -o " + filename_base + ".so";
-      CeedCallSystem(ceed, command.c_str(), "JiT function source");
-      CeedCallSystem(ceed, (std::string("chmod 0777 ") + filename_base + ".so").c_str(), "update JiT file permissions");
+        // As of now, the .so doesn't exist, but another process might be compiling simultaneously
+        // So, compile to temporary file and use link() (guaranteed atomic by POSIX) to try to move
+        for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
+        command += " " + filename_cpp + " -o " + tmp_so_filename;
+        CeedCallSystem(ceed, command.c_str(), "JiT compile function source to disk", output);
+        CeedCallSystem(ceed, (std::string("chmod 0777 ") + tmp_so_filename).c_str(), "update JiT file permissions", output);
 
-      // Load function from object file
-      CeedDebug(ceed, (std::string("Loading object file: ") + filename_base + ".so").c_str());
-      *handle          = dlopen((filename_base + ".so").c_str(), RTLD_NOW | RTLD_LOCAL);
-      *is_compile_good = *handle != NULL;
+        // Atomicly try to move to final location
+        if (link(tmp_so_filename.c_str(), filename_so.c_str()) < 0) {
+          // EEXIST means another process beat us to it, so succeed silently
+          CeedCheck(errno == EEXIST, ceed, CEED_ERROR_BACKEND, "Failed to write '%s' to disk: %s", filename_so.c_str(), strerror(errno));
+          errno = 0;
+        } else {
+          // Note, not entirely sure this is necessary
+        }
 
-      // Check load
-      if (*is_compile_good) {
-        void *function;
+        int err = errno;
 
-        CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
-        function         = (void *)dlsym(*handle, name);
-        *is_compile_good = function != NULL;
+        unlink(tmp_so_filename.c_str());
+        errno = err;
       }
     } else {
       // LCOV_EXCL_START
       *is_compile_good = false;
       // LCOV_EXCL_STOP
     }
+
+    // Load function from object file
+    CeedDebug(ceed, (std::string("Loading object file: ") + filename_so).c_str());
+    *handle          = dlopen((filename_so).c_str(), RTLD_NOW | RTLD_LOCAL);
+    *is_compile_good = *handle != NULL;
+
+    // Check load
+    if (*is_compile_good) {
+      void *function;
+
+      CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
+      function         = (void *)dlsym(*handle, name);
+      *is_compile_good = function != NULL;
+    }
+
     for (CeedInt i = 0; i < num_opts; i++) {
       CeedCall(CeedFree(&opts[i]));
     }
