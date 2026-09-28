@@ -223,8 +223,9 @@ CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_ro
 CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots);
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
-CEED_EXTERN int CeedRegisterEnvironmentVariable(Ceed ceed, const char *name, void (*get_default)(void));
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
+CEED_EXTERN int CeedGetCacheDir(Ceed ceed, const char **cache_dir);
+CEED_EXTERN int CeedRestoreCacheDir(Ceed ceed, const char **cache_dir);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);

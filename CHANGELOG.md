@@ -47,6 +47,8 @@ Specifically, directories set with `CeedAddJitSourceRoot(ceed, "foo/bar")` will 
 - Add unified environment variable interface. Supported variables are shown with `CeedView()` and can be get/set programmatically with `CeedGet*()` functions.
 - Add even-odd (centro-symmetry) decomposition for tensor contractions, which halves the arithmetic when the 1D basis matrix is centro-symmetric.
 This reorders the summation, so results move by about an ulp; use `CeedBasisSetUseEvenOdd` per basis or the `CEED_BASIS_USE_EVEN_ODD` environment variable to turn it off.
+- Add support for user-defined cache directory for `/cpu/self/gen` and CUDA Clang compilation pipelines.
+  Defaults to `$CEED_CACHE_BASE_DIR`, `$XDG_CACHE_HOME`, or `$HOME/.cache`, in that order, and can be accessed and set programmatically via `CeedGetCacheBaseDir` and `CeedSetCacheBaseDir`, respectively.
 
 ### Examples
 

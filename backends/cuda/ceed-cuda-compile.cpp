@@ -16,7 +16,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cstdlib>
@@ -244,21 +243,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     srand(time(NULL));
     const int             build_id = rand();
     struct cudaDeviceProp prop;
-    std::string           filename_base = std::string("temp/kernel_") + std::to_string(build_id) + "_" + name;
+    std::string           filename_base;
 
-    // Create temp dir if needed
     {
-      DIR *dir = opendir("temp");
+      const char *cache_dir;
 
-      if (dir) {
-        closedir(dir);
-      } else {
-        // In parallel multiple processes may attempt
-        // Only one process needs to succeed
-        mkdir("temp", 0777);
-        chmod("temp", 0777);
-      }
+      CeedCallBackend(CeedGetCacheDir(ceed, &cache_dir));
+      filename_base = std::string(cache_dir) + std::string("/kernel_") + std::to_string(build_id) + "_" + name;
+      CeedCallBackend(CeedRestoreCacheDir(ceed, &cache_dir));
     }
+
     // Write code to temp file
     {
       std::string filename = filename_base + "_0_source.cu";
