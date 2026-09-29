@@ -1046,14 +1046,14 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     std::size_t hash = std::hash<std::string>{}(code.str());
 
     // Wrapper function with hash
-    code << tab << "extern \"C\" int CeedOperator_" << hash
+    code << tab << "extern \"C\" int " << operator_name << "_" << hash
          << "(void *ctx, const PointsData_Cpu_Gen *points, const InputFieldData_Cpu_Gen *inputs, OutputFieldData_Cpu_Gen *outputs) {\n";
     tab.push();
     code << tab << "CeedCall(" << operator_name << "(ctx, points, inputs, outputs));\n";
     code << tab << "return CEED_ERROR_SUCCESS;\n";
     tab.pop();
     code << tab << "}\n\n";
-    operator_name = "CeedOperator_" + std::to_string(hash);
+    operator_name += "_" + std::to_string(hash);
   }
 
   // Compile
