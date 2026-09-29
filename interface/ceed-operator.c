@@ -2035,7 +2035,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           new_field_label->sub_labels[i] = new_field_label_i;
           new_field_label->name          = new_field_label_i->name;
           new_field_label->description   = new_field_label_i->description;
-          if (new_field_label->type && new_field_label->type != new_field_label_i->type) {
+          if (field_found && new_field_label->type != new_field_label_i->type) {
             CeedContextFieldType type = new_field_label->type;
 
             CeedCall(CeedFree(&new_field_label->sub_labels));
