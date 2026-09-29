@@ -54,6 +54,7 @@ jobs:
       env:
         NUM_JOBS: 2
         OPT: -O2 -g -ffp-contract=fast
+        CEED_CACHE_BASE_DIR: $PWD/temp
       run: |
         make info
         NUM_JOBS=2

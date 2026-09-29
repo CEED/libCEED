@@ -85,6 +85,7 @@ jobs:
     - name: Build and test libCEED examples
       env:
         OPT: -O2 -g -ffp-contract=fast
+        XDB_CACHE_DIR: $PWD/temp
       shell: spack-bash {0}
       run: |
         spack env activate .

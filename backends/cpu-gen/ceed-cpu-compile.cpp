@@ -11,12 +11,10 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <dirent.h>
 #include <dlfcn.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 #include <cstdlib>
@@ -155,21 +153,15 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     std::default_random_engine gen(r());
     // Place lower bound for uniformity of ids
     std::uniform_int_distribution<CeedInt> dist(1000000000);
-    const CeedInt                          build_id      = dist(gen);
-    std::string                            filename_base = std::string("temp/function_") + std::to_string(build_id) + "_" + name;
+    const CeedInt                          build_id = dist(gen);
+    std::string                            filename_base;
 
-    // Create temp dir if needed
     {
-      DIR *dir = opendir("temp");
+      const char *cache_dir;
 
-      if (dir) {
-        closedir(dir);
-      } else {
-        // In parallel multiple processes may attempt
-        // Only one process needs to succeed
-        mkdir("temp", 0777);
-        chmod("temp", 0777);
-      }
+      CeedCallBackend(CeedGetCacheDir(ceed, &cache_dir));
+      filename_base = std::string(cache_dir) + std::string("/function_") + std::to_string(build_id) + "_" + name;
+      CeedCallBackend(CeedRestoreCacheDir(ceed, &cache_dir));
     }
 
     // Write code to temp file

@@ -46,6 +46,7 @@ jobs:
       env:
         OPT: -O2 -g -ffp-contract=fast
         COVERAGE: 1
+        CEED_CACHE_BASE_DIR: $PWD/temp
       run: |
         make info
         NUM_JOBS=$(getconf _NPROCESSORS_ONLN)

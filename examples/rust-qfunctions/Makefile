@@ -22,7 +22,7 @@ ifneq ($(wildcard $(call pkgconf, --variable=prefix $(CEED_PC))/lib/libceed.a),)
 endif
 CEED_FLAGS = $(call pkgconf, --cflags $(CEED_PC)) $(call pkgconf, --variable=cflags_extra $(CEED_PC))
 CEED_LDPATHS = $(call pkgconf, $(pc_flags) --libs-only-L $(CEED_PC))
-CEED_LIBS = $(call pkgconf, -$(pc_flags) --libs-only-l $(CEED_PC))
+CEED_LIBS = $(call pkgconf, $(pc_flags) --libs-only-l $(CEED_PC))
 CEED_LDFLAGS = $(CEED_LDPATHS) $(CEED_LDPATHS:-L%=-Wl,-rpath,%) $(CEED_LIBS) \
 	$(call pkgconf, $(pc_flags) --libs-only-other $(CEED_PC))
 

@@ -35,6 +35,7 @@ jobs:
         file lib/libceed.so | grep -F 'PowerPC'
     - name: Test libCEED under QEMU
       env:
+        CEED_CACHE_BASE_DIR: $PWD/temp
         CEED_TEST_RUNNER: qemu-ppc64le -L /usr/powerpc64le-linux-gnu
       run: |
         make -j build/t000-ceed
