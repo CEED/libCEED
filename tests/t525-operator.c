@@ -10,11 +10,15 @@
 typedef struct {
   int    count;
   double other;
+  double type_mismatch;
+  double num_values_mismatch[2];
 } TestContext1;
 
 typedef struct {
   double time;
   double other;
+  int    type_mismatch;
+  double num_values_mismatch[3];
 } TestContext2;
 
 int main(int argc, char **argv) {
@@ -40,6 +44,9 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(qf_ctx_sub_1, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(TestContext1), &ctx_data_1);
   CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count", offsetof(TestContext1, count), 1, "some sort of counter");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other", offsetof(TestContext1, other), 1, "some other value");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "type mismatch", offsetof(TestContext1, type_mismatch), 1, "double here, int32 on sub 2");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "num values mismatch", offsetof(TestContext1, num_values_mismatch), 2,
+                                     "2 values here, 3 on sub 2");
 
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_sub_1);
   CeedQFunctionSetContext(qf_sub_1, qf_ctx_sub_1);
@@ -67,6 +74,9 @@ int main(int argc, char **argv) {
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "time", offsetof(TestContext2, time), 1, "current time");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "other", offsetof(TestContext2, other), 1, "some other value");
 
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_2, "type mismatch", offsetof(TestContext2, type_mismatch), 1, "int32 here, double on sub 1");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "num values mismatch", offsetof(TestContext2, num_values_mismatch), 3,
+                                     "3 values here, 2 on sub 1");
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_sub_2);
   CeedQFunctionSetContext(qf_sub_2, qf_ctx_sub_2);
 
@@ -105,6 +115,22 @@ int main(int argc, char **argv) {
   // Check requesting label for field that doesn't exist returns NULL
   CeedOperatorGetContextFieldLabel(op_composite, "bad", &bad_label);
   if (bad_label) printf("Incorrect context label returned\n");
+
+  // Check requesting label for fields that don't match across sub-operators returns an error
+  {
+    int                   ierr;
+    const char           *err_msg;
+    CeedContextFieldLabel mismatch_label = NULL;
+
+    CeedSetErrorHandler(ceed, CeedErrorStore);
+    ierr = CeedOperatorGetContextFieldLabel(op_composite, "type mismatch", &mismatch_label);
+    if (ierr != CEED_ERROR_INCOMPATIBLE) printf("Incompatible field types on sub-operators not detected\n");
+    CeedResetErrorMessage(ceed, &err_msg);
+    ierr = CeedOperatorGetContextFieldLabel(op_composite, "num values mismatch", &mismatch_label);
+    if (ierr != CEED_ERROR_INCOMPATIBLE) printf("Incompatible field number of values on sub-operators not detected\n");
+    CeedResetErrorMessage(ceed, &err_msg);
+    CeedSetErrorHandler(ceed, CeedErrorAbort);
+  }
 
   {
     // Check getting reference to QFunctionContext

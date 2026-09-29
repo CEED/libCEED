@@ -86,9 +86,11 @@ static inline int CeedQFunctionContextSyncD2H_Sycl(const CeedQFunctionContext ct
 static inline int CeedQFunctionContextSync_Sycl(const CeedQFunctionContext ctx, CeedMemType mem_type) {
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedQFunctionContextSyncD2H_Sycl(ctx);
+      CeedCallBackend(CeedQFunctionContextSyncD2H_Sycl(ctx));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedQFunctionContextSyncH2D_Sycl(ctx);
+      CeedCallBackend(CeedQFunctionContextSyncH2D_Sycl(ctx));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -245,9 +247,11 @@ static int CeedQFunctionContextSetData_Sycl(const CeedQFunctionContext ctx, cons
   CeedCallBackend(CeedQFunctionContextSetAllInvalid_Sycl(ctx));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedQFunctionContextSetDataHost_Sycl(ctx, copy_mode, data);
+      CeedCallBackend(CeedQFunctionContextSetDataHost_Sycl(ctx, copy_mode, data));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedQFunctionContextSetDataDevice_Sycl(ctx, copy_mode, data);
+      CeedCallBackend(CeedQFunctionContextSetDataDevice_Sycl(ctx, copy_mode, data));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -321,7 +325,8 @@ static int CeedQFunctionContextGetDataCore_Sycl(const CeedQFunctionContext ctx, 
 // Get read-only access to the data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetDataRead_Sycl(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
-  return CeedQFunctionContextGetDataCore_Sycl(ctx, mem_type, data);
+  CeedCallBackend(CeedQFunctionContextGetDataCore_Sycl(ctx, mem_type, data));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

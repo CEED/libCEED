@@ -340,7 +340,7 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunction
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &size));
     // Restrict block active input
-    if (is_active && impl->block_rstr[i]) {
+    if (is_active && impl->block_rstr[i] && !impl->skip_rstr_in[i]) {
       CeedCallBackend(CeedElemRestrictionApplyBlock(impl->block_rstr[i], e / block_size, CEED_NOTRANSPOSE, in_vec, impl->e_vecs_in[i], request));
     }
     // Basis action
@@ -742,14 +742,16 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunction_Opt(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Opt(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Opt(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionUpdate_Opt(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Opt(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Opt(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

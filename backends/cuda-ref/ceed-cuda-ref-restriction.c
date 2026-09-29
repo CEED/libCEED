@@ -294,7 +294,8 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
 // Apply restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
-  return CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, true, true, u, v, request);
+  CeedCallBackend(CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, true, true, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -302,7 +303,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction rstr, CeedTranspose
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApplyUnsigned_Cuda(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                                  CeedRequest *request) {
-  return CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, false, true, u, v, request);
+  CeedCallBackend(CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, false, true, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -310,7 +312,8 @@ static int CeedElemRestrictionApplyUnsigned_Cuda(CeedElemRestriction rstr, CeedT
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApplyUnoriented_Cuda(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                                    CeedRequest *request) {
-  return CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, false, false, u, v, request);
+  CeedCallBackend(CeedElemRestrictionApply_Cuda_Core(rstr, t_mode, false, false, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

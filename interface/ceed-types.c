@@ -37,6 +37,13 @@ const char *const CeedTransposeModes[] = {
     [CEED_NOTRANSPOSE] = "no transpose",
 };
 
+const char *const CeedSymmetryTypes[] = {
+    [CEED_SYMMETRY_UNKNOWN]       = "unknown",
+    [CEED_SYMMETRY_NONE]          = "none",
+    [CEED_SYMMETRY_SYMMETRIC]     = "centro-symmetric",
+    [CEED_SYMMETRY_ANTISYMMETRIC] = "centro-antisymmetric",
+};
+
 const char *const CeedEvalModes[] = {
     [CEED_EVAL_NONE] = "none", [CEED_EVAL_INTERP] = "interpolation",      [CEED_EVAL_GRAD] = "gradient", [CEED_EVAL_DIV] = "divergence",
     [CEED_EVAL_CURL] = "curl", [CEED_EVAL_WEIGHT] = "quadrature weights",
@@ -64,4 +71,9 @@ const char *const CeedFESpaces[] = {
     [CEED_FE_SPACE_H1]    = "H^1 space",
     [CEED_FE_SPACE_HDIV]  = "H(div) space",
     [CEED_FE_SPACE_HCURL] = "H(curl) space",
+};
+
+const char *const CeedRestrictionTypes[] = {
+    [CEED_RESTRICTION_STANDARD] = "offset", [CEED_RESTRICTION_ORIENTED] = "oriented", [CEED_RESTRICTION_CURL_ORIENTED] = "curl-oriented",
+    [CEED_RESTRICTION_STRIDED] = "strided", [CEED_RESTRICTION_POINTS] = "at points",
 };

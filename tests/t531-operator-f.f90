@@ -9,8 +9,8 @@
       include 'ceed/fortran.h'
 
       integer ceed,err,i,j,k
-      integer stridesu(3),stridesqd(3)
-      integer erestrictx,erestrictu,erestrictui
+      integer stridesqd(3)
+      integer erestrictx,erestrictu
       integer erestrictqi,erestrictlini
       integer bx,bu
       integer qf_setup,qf_diff,qf_diff_lin
@@ -83,9 +83,6 @@
 
       call ceedelemrestrictioncreate(ceed,nelem,p*p,1,1,ndofs,&
      & ceed_mem_host,ceed_use_pointer,indx,erestrictu,err)
-      stridesu=[1,q*q,q*q]
-      call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,1,nqpts,&
-     & stridesu,erestrictui,err)
 
       stridesqd=[1,q*q,q*q*d*(d+1)/2]
       call ceedelemrestrictioncreatestrided(ceed,nelem,q*q,d*(d+1)/2,&
@@ -187,7 +184,6 @@
       call ceedoperatordestroy(op_diff_lin,err)
       call ceedelemrestrictiondestroy(erestrictu,err)
       call ceedelemrestrictiondestroy(erestrictx,err)
-      call ceedelemrestrictiondestroy(erestrictui,err)
       call ceedelemrestrictiondestroy(erestrictqi,err)
       call ceedelemrestrictiondestroy(erestrictlini,err)
       call ceedbasisdestroy(bu,err)

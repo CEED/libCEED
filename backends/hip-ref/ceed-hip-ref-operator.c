@@ -1128,14 +1128,16 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunction_Hip(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Hip(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Hip(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionUpdate_Hip(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Hip(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Hip(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

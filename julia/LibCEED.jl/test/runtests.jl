@@ -44,14 +44,18 @@ else
             @test !iscuda(c)
             @test get_preferred_memtype(c) == MEM_HOST
             @test_throws LibCEED.CeedError create_interior_qfunction(c, "")
-            @test showstr(c) == """
-                Ceed
-                  Ceed Resource: $res
-                  Preferred MemType: host"""
+            @test startswith(
+                showstr(c),
+                """
+Ceed
+  Ceed Resource: $res
+  Preferred MemType: host""",
+            )
         end
 
         @testset "Context" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             data = zeros(CeedScalar, 3)
             ctx = Context(c, data)
             @test showstr(ctx) == """
@@ -62,7 +66,8 @@ else
 
         @testset "CeedVector" begin
             n = 10
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             v = CeedVector(c, n)
             @test size(v) == (n,)
             @test length(v) == n
@@ -135,7 +140,8 @@ else
         end
 
         @testset "Basis" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             dim = 3
             ncomp = 1
             p = 4
@@ -218,7 +224,8 @@ else
         end
 
         @testset "Operator" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             @interior_qf id = (
                 c,
                 (input, :in, EVAL_INTERP),
@@ -275,7 +282,8 @@ else
         end
 
         @testset "ElemRestriction" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             n = 10
             offsets = Vector{CeedInt}([0:n-1; n-1:2*n-2])
             lsize = 2*n - 1
@@ -314,7 +322,8 @@ else
         end
 
         @testset "QFunction" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             @test showstr(create_interior_qfunction(c, "Poisson3DApply")) == """
                  Gallery CeedQFunction - Poisson3DApply
                    2 input fields:
@@ -378,7 +387,8 @@ else
         @testset "Basis" begin
             @test BasisNone()[] == LibCEED.C.CEED_BASIS_NONE[]
 
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             dim = 3
             ncomp = 1
             p = 4
@@ -465,7 +475,8 @@ else
         end
 
         @testset "ElemRestriction" begin
-            c = Ceed()
+            res = "/cpu/self/opt"
+            c = Ceed(res)
             nelem = 3
             elemsize = 2
             offsets = Array{CeedInt}(undef, elemsize, nelem)

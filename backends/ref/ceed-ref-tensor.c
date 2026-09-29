@@ -23,14 +23,15 @@ static int CeedTensorContractApply_Ref(CeedTensorContract contract, CeedInt A, C
   }
 
   if (!add) {
-    for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
+    CeedPragmaSIMD for (CeedInt q = 0; q < A * J * C; q++) v[q] = (CeedScalar)0.0;
   }
 
   for (CeedInt a = 0; a < A; a++) {
     for (CeedInt b = 0; b < B; b++) {
       for (CeedInt j = 0; j < J; j++) {
         CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
-        for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
+
+        CeedPragmaSIMD for (CeedInt c = 0; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
       }
     }
   }

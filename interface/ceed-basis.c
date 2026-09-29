@@ -327,6 +327,127 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 }
 
 /**
+  @brief Detect centro-symmetry of a row-major matrix
+
+  Checks whether matrix[row][col] = +/- matrix[num_rows-1-row][num_cols-1-col] using a relative tolerance based on `CEED_EPSILON`.
+
+  @param[in]  num_rows      Number of rows
+  @param[in]  num_cols      Number of columns
+  @param[in]  matrix        Row-major matrix data
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisDetectSymmetry(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type) {
+  const CeedScalar tolerance = 100 * CEED_EPSILON;
+
+  *symmetry_type = CEED_SYMMETRY_UNKNOWN;
+  // The map (row, col) -> (num_rows - 1 - row, num_cols - 1 - col) pairs up every entry, so sweeping the top half of the rows over all columns
+  // visits each pair at least once. A middle row, when num_rows is odd, revisits its own pairs, which is harmless.
+  for (CeedInt row = 0; row < (num_rows + 1) / 2; row++) {
+    for (CeedInt col = 0; col < num_cols; col++) {
+      CeedScalar value              = matrix[row * num_cols + col];
+      CeedScalar mirror_value       = matrix[(num_rows - 1 - row) * num_cols + (num_cols - 1 - col)];
+      CeedScalar scale              = fabs(value) + fabs(mirror_value);
+      CeedScalar symmetric_diff     = fabs(mirror_value - value);
+      CeedScalar antisymmetric_diff = fabs(mirror_value + value);
+
+      if (scale < tolerance) continue;
+      if (*symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+        if (symmetric_diff / scale < tolerance) {
+          *symmetry_type = CEED_SYMMETRY_SYMMETRIC;
+        } else if (antisymmetric_diff / scale < tolerance) {
+          *symmetry_type = CEED_SYMMETRY_ANTISYMMETRIC;
+        } else {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      } else if (*symmetry_type == CEED_SYMMETRY_SYMMETRIC) {
+        if (symmetric_diff / scale >= tolerance) {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      } else {
+        if (antisymmetric_diff / scale >= tolerance) {
+          *symmetry_type = CEED_SYMMETRY_NONE;
+          return CEED_ERROR_SUCCESS;
+        }
+      }
+    }
+  }
+  if (*symmetry_type == CEED_SYMMETRY_UNKNOWN) *symmetry_type = CEED_SYMMETRY_NONE;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute even and odd half-matrices from a centro-symmetric row-major matrix
+
+  The half-matrices fold along the column dimension: even[row][col] = (matrix[row][col] + matrix[row][num_cols-1-col]) / 2.
+  Only the first `num_rows_half` rows are stored; the rest are recoverable via the symmetry relation.
+
+  @param[in]  num_rows      Number of rows in original matrix
+  @param[in]  num_cols      Number of columns in original matrix
+  @param[in]  matrix        Row-major original matrix
+  @param[in]  num_rows_half (num_rows + 1) / 2
+  @param[in]  num_cols_half (num_cols + 1) / 2
+  @param[out] even          Even half-matrix, shape [num_rows_half, num_cols_half]
+  @param[out] odd           Odd half-matrix, shape [num_rows_half, num_cols_half]
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisComputeHalfMatrices(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedInt num_rows_half, CeedInt num_cols_half,
+                                        CeedScalar *even, CeedScalar *odd) {
+  for (CeedInt row = 0; row < num_rows_half; row++) {
+    for (CeedInt col = 0; col < num_cols / 2; col++) {
+      CeedScalar value        = matrix[row * num_cols + col];
+      CeedScalar mirror_value = matrix[row * num_cols + (num_cols - 1 - col)];
+
+      even[row * num_cols_half + col] = (value + mirror_value) * (CeedScalar)0.5;
+      odd[row * num_cols_half + col]  = (value - mirror_value) * (CeedScalar)0.5;
+    }
+    if (num_cols % 2) {
+      even[row * num_cols_half + num_cols / 2] = matrix[row * num_cols + num_cols / 2];
+      odd[row * num_cols_half + num_cols / 2]  = (CeedScalar)0.0;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute the even-odd decomposition of a row-major matrix
+
+  Allocates the half-matrices only if the matrix is centro-symmetric, leaving `even` and `odd` untouched otherwise.
+  The caller owns the returned arrays.
+
+  @param[in]  num_rows      Number of rows
+  @param[in]  num_cols      Number of columns
+  @param[in]  matrix        Row-major matrix data
+  @param[out] symmetry_type Detected symmetry type
+  @param[out] even          Variable to store the newly allocated even half-matrix
+  @param[out] odd           Variable to store the newly allocated odd half-matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static inline int CeedComputeEvenOddDecomposition(CeedInt num_rows, CeedInt num_cols, const CeedScalar *matrix, CeedSymmetryType *symmetry_type,
+                                                  CeedScalar **even, CeedScalar **odd) {
+  CeedCall(CeedBasisDetectSymmetry(num_rows, num_cols, matrix, symmetry_type));
+  if (*symmetry_type == CEED_SYMMETRY_SYMMETRIC || *symmetry_type == CEED_SYMMETRY_ANTISYMMETRIC) {
+    const CeedInt num_rows_half = (num_rows + 1) / 2, num_cols_half = (num_cols + 1) / 2;
+
+    CeedCall(CeedMalloc(num_rows_half * num_cols_half, even));
+    CeedCall(CeedMalloc(num_rows_half * num_cols_half, odd));
+    CeedCall(CeedBasisComputeHalfMatrices(num_rows, num_cols, matrix, num_rows_half, num_cols_half, *even, *odd));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check input vector dimensions for CeedBasisApply[Add]
 
   @param[in]  basis     `CeedBasis` to evaluate
@@ -480,7 +601,10 @@ static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, co
 **/
 static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
                                        CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
-  CeedInt dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  CeedInt            dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  CeedVector         vec_chebyshev;
+  CeedBasis          basis_chebyshev;
+  CeedTensorContract contract;
 
   CeedCall(CeedBasisGetDimension(basis, &dim));
   // Inserting check because clang-tidy doesn't understand this cannot occur
@@ -503,29 +627,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
     CeedCall(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
   }
-  if (!basis->basis_chebyshev) {
-    // Build basis mapping from nodes to Chebyshev coefficients
-    CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
-    const CeedScalar *q_ref_1d;
-    Ceed              ceed;
-
-    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
-    CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
-    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
-    CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
-
-    CeedCall(CeedBasisGetCeed(basis, &ceed));
-    CeedCall(CeedVectorCreate(ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
-    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
-                                     &basis->basis_chebyshev));
-
-    // Cleanup
-    CeedCall(CeedFree(&chebyshev_interp_1d));
-    CeedCall(CeedFree(&chebyshev_grad_1d));
-    CeedCall(CeedFree(&chebyshev_q_weight_1d));
-    CeedCall(CeedDestroy(&ceed));
-  }
+  CeedCall(CeedBasisGetChebyshevData(basis, &basis_chebyshev, &vec_chebyshev));
 
   // Create TensorContract object if needed, such as a basis from the GPU backends
   if (!basis->contract) {
@@ -542,6 +644,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
     CeedCall(CeedBasisDestroy(&basis_ref));
     CeedCall(CeedDestroy(&ceed_ref));
   }
+  CeedCall(CeedBasisGetTensorContract(basis, &contract));
 
   // Basis evaluation
   switch (t_mode) {
@@ -551,10 +654,10 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       const CeedScalar *chebyshev_coeffs, *x_array_read;
 
       // -- Interpolate to Chebyshev coefficients
-      CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, basis->vec_chebyshev));
+      CeedCall(CeedBasisApply(basis_chebyshev, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, vec_chebyshev));
 
       // -- Evaluate Chebyshev polynomials at arbitrary points
-      CeedCall(CeedVectorGetArrayRead(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
+      CeedCall(CeedVectorGetArrayRead(vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
       CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
       CeedCall(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &v_array));
       switch (eval_mode) {
@@ -568,8 +671,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
             for (CeedInt d = 0; d < dim; d++) {
               // ------ Tensor contract with current Chebyshev polynomial values
               CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-              CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
-                                               d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
+              CeedCall(CeedTensorContractApply(contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false, d == 0 ? chebyshev_coeffs : tmp[d % 2],
+                                               tmp[(d + 1) % 2]));
               pre /= Q_1d;
               post *= 1;
             }
@@ -593,8 +696,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
                 } else {
                   CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
                 }
-                CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
-                                                 d == 0 ? chebyshev_coeffs : tmp[d % 2], tmp[(d + 1) % 2]));
+                CeedCall(CeedTensorContractApply(contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false, d == 0 ? chebyshev_coeffs : tmp[d % 2],
+                                                 tmp[(d + 1) % 2]));
                 pre /= Q_1d;
                 post *= 1;
               }
@@ -609,7 +712,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           break;
           // LCOV_EXCL_STOP
       }
-      CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
+      CeedCall(CeedVectorRestoreArrayRead(vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
       CeedCall(CeedVectorRestoreArray(v, &v_array));
       break;
@@ -620,7 +723,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
       const CeedScalar *u_array, *x_array_read;
 
       // -- Transpose of evaluation of Chebyshev polynomials at arbitrary points
-      CeedCall(CeedVectorGetArrayWrite(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
+      CeedCall(CeedVectorGetArrayWrite(vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
       CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
       CeedCall(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array));
 
@@ -636,7 +739,7 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
             for (CeedInt d = 0; d < dim; d++) {
               // ------ Tensor contract with current Chebyshev polynomial values
               CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
-              CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, p > 0 && d == (dim - 1), tmp[d % 2],
+              CeedCall(CeedTensorContractApply(contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, p > 0 && d == (dim - 1), tmp[d % 2],
                                                d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
               pre /= 1;
               post *= Q_1d;
@@ -661,9 +764,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
                 } else {
                   CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[d * total_num_points + p], Q_1d, chebyshev_x));
                 }
-                CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode,
-                                                 (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1), tmp[d % 2],
-                                                 d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
+                CeedCall(CeedTensorContractApply(contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, (p > 0 || (p == 0 && pass > 0)) && d == (dim - 1),
+                                                 tmp[d % 2], d == (dim - 1) ? chebyshev_coeffs : tmp[(d + 1) % 2]));
                 pre /= 1;
                 post *= Q_1d;
               }
@@ -677,19 +779,22 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
           break;
           // LCOV_EXCL_STOP
       }
-      CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
+      CeedCall(CeedVectorRestoreArray(vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
       CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
 
       // -- Interpolate transpose from Chebyshev coefficients
       if (apply_add) {
-        CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+        CeedCall(CeedBasisApplyAdd(basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, vec_chebyshev, v));
       } else {
-        CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+        CeedCall(CeedBasisApply(basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, vec_chebyshev, v));
       }
       break;
     }
   }
+  // Cleanup
+  CeedCall(CeedVectorDestroy(&vec_chebyshev));
+  CeedCall(CeedBasisDestroy(&basis_chebyshev));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -734,39 +839,6 @@ int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
   CeedCall(delegate->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, basis));
   CeedCall(CeedDestroy(&delegate));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Return collocated gradient matrix
-
-  @param[in]  basis         `CeedBasis`
-  @param[out] collo_grad_1d Row-major (`Q_1d * Q_1d`) matrix expressing derivatives of basis functions at quadrature points
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
-  Ceed              ceed;
-  CeedInt           P_1d, Q_1d;
-  CeedScalar       *interp_1d_pinv;
-  const CeedScalar *grad_1d, *interp_1d;
-
-  // Note: This function is for backend use, so all errors are terminal and we do not need to clean up memory on failure.
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
-  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-
-  // Compute interp_1d^+, pseudoinverse of interp_1d
-  CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
-  CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
-  CeedCall(CeedMatrixPseudoinverse(ceed, interp_1d, Q_1d, P_1d, interp_1d_pinv));
-  CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
-  CeedCall(CeedMatrixMatrixMultiply(ceed, grad_1d, (const CeedScalar *)interp_1d_pinv, collo_grad_1d, Q_1d, Q_1d, P_1d));
-
-  CeedCall(CeedFree(&interp_1d_pinv));
-  CeedCall(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -835,9 +907,9 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Developer
 **/
-int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+static int CeedBasisComputeIsCollocated(CeedBasis basis, bool *is_collocated) {
   if (basis->is_tensor_basis && (basis->Q_1d == basis->P_1d)) {
     *is_collocated = true;
 
@@ -850,6 +922,36 @@ int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
   } else {
     *is_collocated = false;
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if given `CeedBasis` has nodes collocated with quadrature points
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] is_collocated Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated) {
+  *is_collocated = basis->is_collocated;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Determine if given `CeedBasis` supports collocated gradient application
+
+  @param[in]  basis               `CeedBasis`
+  @param[out] has_collocated_grad Variable to store collocated status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisHasCollocatedGrad(CeedBasis basis, bool *has_collocated_grad) {
+  *has_collocated_grad = basis->is_tensor_basis && basis->Q_1d >= basis->P_1d;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1140,6 +1242,55 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
 int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
   basis->contract = contract;
   CeedCall(CeedTensorContractReference(contract));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get Chebyshev `CeedBasis` and scratch `CeedVector` for applying a `CeedBasis` at points
+
+  @param[in,out] basis           `CeedBasis`
+  @param[out]    basis_chebyshev Pointer to store `CeedBasis`, or `NULL` if not needed
+  @param[out]    vec_chebyshev   Pointer to store `CeedVector`, or `NULL` if not needed
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev) {
+  bool is_tensor;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+  CeedCheck(is_tensor, CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Chebyshev basis only defined for tensor basis");
+  if (basis_chebyshev) *basis_chebyshev = NULL;
+  if (vec_chebyshev) *vec_chebyshev = NULL;
+  if (!basis->basis_chebyshev) {
+    // Build basis mapping from nodes to Chebyshev coefficients
+    CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
+    const CeedScalar *q_ref_1d;
+    CeedInt           Q_1d, P_1d, dim, num_comp;
+
+    CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+    CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+    CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
+    CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
+    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
+    CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+
+    CeedCall(CeedVectorCreate(CeedBasisReturnCeed(basis), num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
+    CeedCall(CeedBasisCreateTensorH1(CeedBasisReturnCeed(basis), dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d,
+                                     chebyshev_q_weight_1d, &basis->basis_chebyshev));
+
+    // Cleanup
+    CeedCall(CeedFree(&chebyshev_interp_1d));
+    CeedCall(CeedFree(&chebyshev_grad_1d));
+    CeedCall(CeedFree(&chebyshev_q_weight_1d));
+  }
+  if (basis_chebyshev) CeedCall(CeedBasisReferenceCopy(basis->basis_chebyshev, basis_chebyshev));
+  if (vec_chebyshev) CeedCall(CeedVectorReferenceCopy(basis->vec_chebyshev, vec_chebyshev));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1594,6 +1745,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedCall(CeedCalloc(Q_1d * P_1d, &(*basis)->grad_1d));
   if (interp_1d) memcpy((*basis)->interp_1d, interp_1d, Q_1d * P_1d * sizeof(interp_1d[0]));
   if (grad_1d) memcpy((*basis)->grad_1d, grad_1d, Q_1d * P_1d * sizeof(grad_1d[0]));
+  CeedCall(CeedBasisComputeIsCollocated((*basis), &(*basis)->is_collocated));
   CeedCall(ceed->BasisCreateTensorH1(dim, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, *basis));
   return CEED_ERROR_SUCCESS;
 }
@@ -2455,6 +2607,208 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
 }
 
 /**
+  @brief Return collocated gradient matrix
+
+  @param[in]  basis              `CeedBasis`
+  @param[out] collocated_grad_1d Row-major (`Q_1d * Q_1d`) matrix expressing derivatives of basis functions at quadrature points
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d) {
+  bool has_collo_grad;
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not support collocated gradient application");
+
+  if (!basis->collo_grad_1d) {
+    Ceed              ceed;
+    CeedScalar       *interp_1d_pinv;
+    const CeedScalar *grad_1d, *interp_1d;
+    CeedInt           P_1d, Q_1d;
+
+    CeedCall(CeedBasisGetCeed(basis, &ceed));
+    CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+    CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+
+    // Allocate array for collocated grad
+    CeedCall(CeedCalloc(Q_1d * Q_1d, &basis->collo_grad_1d));
+
+    // Compute interp_1d^+, pseudoinverse of interp_1d
+    CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
+    CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
+    CeedCall(CeedMatrixPseudoinverse(ceed, interp_1d, Q_1d, P_1d, interp_1d_pinv));
+    CeedCall(CeedBasisGetGrad1D(basis, &grad_1d));
+    CeedCall(CeedMatrixMatrixMultiply(ceed, grad_1d, (const CeedScalar *)interp_1d_pinv, basis->collo_grad_1d, Q_1d, Q_1d, P_1d));
+
+    CeedCall(CeedFree(&interp_1d_pinv));
+    CeedCall(CeedDestroy(&ceed));
+  }
+  *collocated_grad_1d = basis->collo_grad_1d;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd symmetry of the 1D interpolation matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->interp_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type));
+  }
+  *symmetry_type = basis->interp_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd symmetry of the 1D gradient matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (basis->grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type));
+  }
+  *symmetry_type = basis->grad_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd symmetry of the 1D collocated gradient matrix
+
+  @param[in]  basis         `CeedBasis`
+  @param[out] symmetry_type Detected symmetry type
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetSymmetryTypeCollocatedGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type) {
+  bool is_tensor_basis, has_collo_grad;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not have collocated gradient");
+
+  if (basis->collo_grad_1d_symmetry_type == CEED_SYMMETRY_UNKNOWN) {
+    const CeedScalar *collo_grad_1d;
+
+    CeedCall(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+    CeedCall(CeedBasisDetectSymmetry(basis->Q_1d, basis->Q_1d, basis->collo_grad_1d, &basis->collo_grad_1d_symmetry_type));
+  }
+  *symmetry_type = basis->grad_1d_symmetry_type;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D interpolation matrix
+
+  @param[in]  basis          `CeedBasis`
+  @param[out] interp_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] interp_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, const CeedScalar **interp_1d_even, const CeedScalar **interp_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (!basis->interp_1d_even && basis->interp_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->interp_1d, &basis->interp_1d_symmetry_type, &basis->interp_1d_even,
+                                             &basis->interp_1d_odd));
+  }
+  *interp_1d_even = basis->interp_1d_even;
+  *interp_1d_odd  = basis->interp_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D gradient matrix
+
+  @param[in]  basis        `CeedBasis`
+  @param[out] grad_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] grad_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, const CeedScalar **grad_1d_even, const CeedScalar **grad_1d_odd) {
+  bool is_tensor_basis;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  if (!basis->grad_1d_even && basis->grad_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->grad_1d, &basis->grad_1d_symmetry_type, &basis->grad_1d_even,
+                                             &basis->grad_1d_odd));
+  }
+  *grad_1d_even = basis->grad_1d_even;
+  *grad_1d_odd  = basis->grad_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the even-odd decomposition of the 1D collocated gradient matrix
+
+  @param[in]  basis              `CeedBasis`
+  @param[out] collo_grad_1d_even Even half-matrix (will be NULL if no symmetry)
+  @param[out] collo_grad_1d_odd  Odd half-matrix (will be NULL if no symmetry)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetEvenOddDecompositionCollocatedGrad1D(CeedBasis basis, const CeedScalar **collo_grad_1d_even, const CeedScalar **collo_grad_1d_odd) {
+  bool is_tensor_basis, has_collo_grad;
+
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+
+  CeedCall(CeedBasisHasCollocatedGrad(basis, &has_collo_grad));
+  CeedCheck(has_collo_grad, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis does not have collocated gradient");
+
+  if (!basis->collo_grad_1d_even && basis->collo_grad_1d_symmetry_type != CEED_SYMMETRY_NONE) {
+    const CeedScalar *collo_grad_1d;
+
+    CeedCall(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
+    CeedCall(CeedComputeEvenOddDecomposition(basis->Q_1d, basis->P_1d, basis->collo_grad_1d, &basis->collo_grad_1d_symmetry_type,
+                                             &basis->collo_grad_1d_even, &basis->collo_grad_1d_odd));
+  }
+  *collo_grad_1d_even = basis->collo_grad_1d_even;
+  *collo_grad_1d_odd  = basis->collo_grad_1d_odd;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get divergence matrix of a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
@@ -2504,8 +2858,15 @@ int CeedBasisDestroy(CeedBasis *basis) {
   CeedCall(CeedFree(&(*basis)->q_weight_1d));
   CeedCall(CeedFree(&(*basis)->interp));
   CeedCall(CeedFree(&(*basis)->interp_1d));
+  CeedCall(CeedFree(&(*basis)->interp_1d_even));
+  CeedCall(CeedFree(&(*basis)->interp_1d_odd));
   CeedCall(CeedFree(&(*basis)->grad));
   CeedCall(CeedFree(&(*basis)->grad_1d));
+  CeedCall(CeedFree(&(*basis)->grad_1d_even));
+  CeedCall(CeedFree(&(*basis)->grad_1d_odd));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d_even));
+  CeedCall(CeedFree(&(*basis)->collo_grad_1d_odd));
   CeedCall(CeedFree(&(*basis)->div));
   CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedVectorDestroy(&(*basis)->vec_chebyshev));

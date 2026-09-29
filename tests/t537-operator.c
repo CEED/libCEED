@@ -1,6 +1,6 @@
 /// @file
-/// Test assembly of mass matrix operator point block diagonal
-/// \test Test assembly of mass matrix operator point block diagonal
+/// Test point-block-diagonal assembly and FLOP estimation of mass matrix operator
+/// \test Test point-block-diagonal assembly and FLOP estimation of mass matrix operator
 #include "t537-operator.h"
 
 #include <ceed.h>
@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   CeedInt             num_dofs = (n_x * 2 + 1) * (n_y * 2 + 1), num_qpts = num_elem * q * q;
   CeedInt             ind_x[num_elem * p * p];
   CeedInt            *rows, *cols;
-  CeedSize            num_entries;
+  CeedSize            num_entries, flop_estimate;
   CeedScalar          assembled_true[num_comp * num_comp * num_dofs];
   CeedScalar          assembled_full_true[num_comp * num_dofs][num_comp * num_dofs];
 
@@ -87,10 +87,26 @@ int main(int argc, char **argv) {
   // Apply Setup Operator
   CeedOperatorApply(op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
+  // Estimate assembly FLOPs before assembling QFunction data
+  CeedQFunctionSetUserFlopsEstimate(qf_mass, 1);
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 69312) printf("Incorrect full assembly FLOP estimate, %" CeedSize_FMT " != 69312\n", flop_estimate);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 5484) printf("Incorrect diagonal assembly FLOP estimate, %" CeedSize_FMT " != 5484\n", flop_estimate);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 10992) printf("Incorrect point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 10992\n", flop_estimate);
+
   // Assemble diagonal
+  CeedOperatorSetQFunctionAssemblyReuse(op_mass, true);
   CeedVectorCreate(ceed, num_comp * num_comp * num_dofs, &assembled);
   CeedOperatorLinearAssemblePointBlockDiagonal(op_mass, assembled, CEED_REQUEST_IMMEDIATE);
   CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(op_mass, &num_entries, &rows, &cols);
+  CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 69120) printf("Incorrect cached full assembly FLOP estimate, %" CeedSize_FMT " != 69120\n", flop_estimate);
+  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 5292) printf("Incorrect cached diagonal assembly FLOP estimate, %" CeedSize_FMT " != 5292\n", flop_estimate);
+  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
+  if (flop_estimate != 10800) printf("Incorrect cached point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != 10800\n", flop_estimate);
 
   // Manually assemble point-block diagonal
   CeedVectorCreate(ceed, num_comp * num_dofs, &u);

@@ -669,14 +669,16 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunction_Ref(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Ref(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Ref(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionUpdate_Ref(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionCore_Ref(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionCore_Ref(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1335,7 +1337,8 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionAtPoints_Ref(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(op, true, assembled, rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(op, true, assembled, rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1343,7 +1346,8 @@ static int CeedOperatorLinearAssembleQFunctionAtPoints_Ref(CeedOperator op, Ceed
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleQFunctionAtPointsUpdate_Ref(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr,
                                                                  CeedRequest *request) {
-  return CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(op, false, &assembled, &rstr, request);
+  CeedCallBackend(CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(op, false, &assembled, &rstr, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

@@ -103,9 +103,11 @@ static int CeedVectorSyncArray_Cuda(const CeedVector vec, CeedMemType mem_type) 
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSyncD2H_Cuda(vec);
+      CeedCallBackend(CeedVectorSyncD2H_Cuda(vec));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSyncH2D_Cuda(vec);
+      CeedCallBackend(CeedVectorSyncH2D_Cuda(vec));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -215,9 +217,11 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
   CeedCallBackend(CeedVectorSetAllInvalid_Cuda(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSetArrayHost_Cuda(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayHost_Cuda(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -228,7 +232,7 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
 // Copy host array to value strided
 //------------------------------------------------------------------------------
 static int CeedHostCopyStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *h_copy_array) {
-  for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
+  CeedPragmaSIMD for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -292,7 +296,7 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
 // Set host array to value
 //------------------------------------------------------------------------------
 static int CeedHostSetValue_Cuda(CeedScalar *h_array, CeedSize length, CeedScalar val) {
-  for (CeedSize i = 0; i < length; i++) h_array[i] = val;
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -342,7 +346,7 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
 // Set host array to value strided
 //------------------------------------------------------------------------------
 static int CeedHostSetValueStrided_Cuda(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar val) {
-  for (CeedSize i = start; i < stop; i += step) h_array[i] = val;
+  CeedPragmaSIMD for (CeedSize i = start; i < stop; i += step) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -425,7 +429,8 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec, const CeedMemType m
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Cuda(const CeedVector vec, const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Cuda(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -478,7 +483,8 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
         }
     }
   }
-  return CeedVectorGetArray_Cuda(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArray_Cuda(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -647,7 +653,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 // Take reciprocal of a vector on host
 //------------------------------------------------------------------------------
 static int CeedHostReciprocal_Cuda(CeedScalar *h_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) {
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
     if (fabs(h_array[i]) > CEED_EPSILON) h_array[i] = 1. / h_array[i];
   }
   return CEED_ERROR_SUCCESS;
@@ -677,7 +683,7 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
 // Compute x = alpha x on the host
 //------------------------------------------------------------------------------
 static int CeedHostScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -751,7 +757,7 @@ static int CeedVectorFilter_Cuda(CeedVector vec, CeedScalar threshold) {
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -798,7 +804,7 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -833,7 +839,7 @@ static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta,
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
 static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 

@@ -56,6 +56,9 @@ LLMs may be used to aid the development of code for pull requests (PR); however,
 The human creating the PR is ultimately responsible for the content in the PR.
 PRs must disclose and describe all LLM usage.
 
+If a reviewer requests that the review conversation be conducted with human-to-human communication and not LLMs, this request should be respected.
+The individual submitting the PR is responsible for being able to articulate and discuss the changes in the PR with reviewers, even if an LLM was used to generate the code changes in the PR.
+
 ## Authorship
 
 libCEED contains components authored by many individuals.

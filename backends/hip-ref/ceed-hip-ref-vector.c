@@ -111,9 +111,11 @@ static int CeedVectorSyncArray_Hip(const CeedVector vec, CeedMemType mem_type) {
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      return CeedVectorSyncD2H_Hip(vec);
+      CeedCallBackend(CeedVectorSyncD2H_Hip(vec));
+      return CEED_ERROR_SUCCESS;
     case CEED_MEM_DEVICE:
-      return CeedVectorSyncH2D_Hip(vec);
+      CeedCallBackend(CeedVectorSyncH2D_Hip(vec));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -265,12 +267,15 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
   switch (mem_type) {
     case CEED_MEM_HOST:
       if (impl->has_unified_addressing) {
-        return CeedVectorSetArrayUnifiedHostToDevice_Hip(vec, copy_mode, array);
+        CeedCallBackend(CeedVectorSetArrayUnifiedHostToDevice_Hip(vec, copy_mode, array));
+        return CEED_ERROR_SUCCESS;
       } else {
-        return CeedVectorSetArrayHost_Hip(vec, copy_mode, array);
+        CeedCallBackend(CeedVectorSetArrayHost_Hip(vec, copy_mode, array));
+        return CEED_ERROR_SUCCESS;
       }
     case CEED_MEM_DEVICE:
-      return CeedVectorSetArrayDevice_Hip(vec, copy_mode, array);
+      CeedCallBackend(CeedVectorSetArrayDevice_Hip(vec, copy_mode, array));
+      return CEED_ERROR_SUCCESS;
   }
   // LCOV_EXCL_START
   return CEED_ERROR_UNSUPPORTED;
@@ -281,7 +286,7 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
 // Copy host array to value strided
 //------------------------------------------------------------------------------
 static int CeedHostCopyStrided_Hip(CeedScalar *h_array, CeedSize start, CeedSize stop, CeedSize step, CeedScalar *h_copy_array) {
-  for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
+  CeedPragmaSIMD for (CeedSize i = start; i < stop; i += step) h_copy_array[i] = h_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -347,7 +352,7 @@ static int CeedVectorCopyStrided_Hip(CeedVector vec, CeedSize start, CeedSize st
 // Set host array to value
 //------------------------------------------------------------------------------
 static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedSize length, CeedScalar val) {
-  for (CeedSize i = 0; i < length; i++) h_array[i] = val;
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -489,7 +494,8 @@ static int CeedVectorGetArrayCore_Hip(const CeedVector vec, CeedMemType mem_type
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayRead_Hip(const CeedVector vec, const CeedMemType mem_type, const CeedScalar **array) {
-  return CeedVectorGetArrayCore_Hip(vec, mem_type, (CeedScalar **)array);
+  CeedCallBackend(CeedVectorGetArrayCore_Hip(vec, mem_type, (CeedScalar **)array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -554,7 +560,8 @@ static int CeedVectorGetArrayWrite_Hip(const CeedVector vec, CeedMemType mem_typ
         }
     }
   }
-  return CeedVectorGetArray_Hip(vec, mem_type, array);
+  CeedCallBackend(CeedVectorGetArray_Hip(vec, mem_type, array));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -753,7 +760,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 // Take reciprocal of a vector on host
 //------------------------------------------------------------------------------
 static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) {
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
     if (fabs(h_array[i]) > CEED_EPSILON) h_array[i] = 1. / h_array[i];
   }
   return CEED_ERROR_SUCCESS;
@@ -783,7 +790,7 @@ static int CeedVectorReciprocal_Hip(CeedVector vec) {
 // Compute x = alpha x on the host
 //------------------------------------------------------------------------------
 static int CeedHostScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -828,10 +835,40 @@ static int CeedVectorScale_Hip(CeedVector x, CeedScalar alpha) {
 }
 
 //------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value on the host
+//------------------------------------------------------------------------------
+static int CeedHostFilter_Hip(CeedScalar *x_array, CeedScalar threshold, CeedSize length) {
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) {
+    if (fabs(x_array[i]) <= threshold) x_array[i] = 0.0;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceFilter_Hip(CeedScalar *x_array, CeedScalar threshold, CeedSize length);
+
+//------------------------------------------------------------------------------
+// Filter or clip a vector using a threshold value
+//------------------------------------------------------------------------------
+static int CeedVectorFilter_Hip(CeedVector vec, CeedScalar threshold) {
+  CeedSize        length;
+  CeedVector_Hip *impl;
+
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+  // Set value for synced device/host array
+  if (impl->d_array) CeedCallBackend(CeedDeviceFilter_Hip(impl->d_array, threshold, length));
+  if (impl->h_array) CeedCallBackend(CeedHostFilter_Hip(impl->h_array, threshold, length));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -881,7 +918,7 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -916,7 +953,7 @@ static int CeedVectorAXPBY_Hip(CeedVector y, CeedScalar alpha, CeedScalar beta, 
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
 static int CeedHostPointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
-  for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
+  CeedPragmaSIMD for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -990,6 +1027,7 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Norm", CeedVectorNorm_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal", CeedVectorReciprocal_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", CeedVectorScale_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Filter", CeedVectorFilter_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", CeedVectorAXPY_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Hip));

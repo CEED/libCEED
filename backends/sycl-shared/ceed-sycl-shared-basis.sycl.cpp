@@ -176,6 +176,7 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   const char            *basis_kernel_path;
   CeedInt                num_comp;
   CeedBasis_Sycl_shared *impl;
+  bool                   has_collocated_grad;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
@@ -222,18 +223,16 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
 
   // Compute collocated gradient and copy to GPU
-  impl->d_collo_grad_1d          = NULL;
-  const bool has_collocated_grad = (dim == 3) && (Q_1d >= P_1d);
-
+  impl->d_collo_grad_1d = NULL;
+  CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
+  has_collocated_grad = has_collocated_grad && dim == 3;
   if (has_collocated_grad) {
-    CeedScalar   *collo_grad_1d;
-    const CeedInt cgrad_length = Q_1d * Q_1d;
+    const CeedScalar *collo_grad_1d;
+    const CeedInt     cgrad_length = Q_1d * Q_1d;
 
-    CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &collo_grad_1d));
-    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, collo_grad_1d));
+    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, &collo_grad_1d));
     CeedCallSycl(ceed, impl->d_collo_grad_1d = sycl::malloc_device<CeedScalar>(cgrad_length, data->sycl_device, data->sycl_context));
     CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(collo_grad_1d, impl->d_collo_grad_1d, cgrad_length, e).wait_and_throw());
-    CeedCallBackend(CeedFree(&collo_grad_1d));
   }
 
   // ---[Refactor into separate function]------>

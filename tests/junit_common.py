@@ -13,7 +13,7 @@ import subprocess
 import multiprocessing as mp
 import sys
 import time
-from typing import Optional, Tuple, List, Dict, Callable, Iterable, get_origin
+from typing import Optional, Tuple, List, Dict, Callable, Iterable, Union, get_origin
 import shutil
 
 sys.path.insert(0, str(Path(__file__).parent / "junit-xml"))
@@ -97,14 +97,15 @@ class SuiteSpec(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_run_path(self, test: str) -> Path:
+    def get_run_path(self, test: str) -> Union[Path, List[str]]:
         """Compute path to built test executable file
 
         Args:
             test (str): Name of test
 
         Returns:
-            Path: Path to test executable
+            Union[Path, List[str]]: Path to test executable, or list of command arguments ending in the test executable
+                                    (e.g. an emulator or other wrapper followed by the executable)
         """
         raise NotImplementedError
 
@@ -600,7 +601,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
         TestCase: Test case result
     """
     source_path: Path = suite_spec.get_source_path(test)
-    run_args: List = [f'{suite_spec.get_run_path(test)}', *map(str, spec.args)]
+    run_path: Union[Path, List[str]] = suite_spec.get_run_path(test)
+    run_args: List = [*(run_path if isinstance(run_path, list) else [f'{run_path}']), *map(str, spec.args)]
 
     if '{ceed_resource}' in run_args:
         run_args[run_args.index('{ceed_resource}')] = backend

@@ -1193,7 +1193,8 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 **/
 int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                         const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_BOOL, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_BOOL, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1211,7 +1212,8 @@ int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *fi
 **/
 int CeedQFunctionContextRegisterByte(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                      const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_BYTE, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_BYTE, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1229,7 +1231,8 @@ int CeedQFunctionContextRegisterByte(CeedQFunctionContext ctx, const char *field
 **/
 int CeedQFunctionContextRegisterCeedInt8(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                          const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT8, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT8, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1247,7 +1250,8 @@ int CeedQFunctionContextRegisterCeedInt8(CeedQFunctionContext ctx, const char *f
 **/
 int CeedQFunctionContextRegisterCeedInt(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                         const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1265,7 +1269,8 @@ int CeedQFunctionContextRegisterCeedInt(CeedQFunctionContext ctx, const char *fi
 **/
 int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                       const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT32, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT32, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1283,7 +1288,8 @@ int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *fiel
 **/
 int CeedQFunctionContextRegisterInt64(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                       const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT64, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT64, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1302,7 +1308,8 @@ int CeedQFunctionContextRegisterInt64(CeedQFunctionContext ctx, const char *fiel
 
 int CeedQFunctionContextRegisterCeedSize(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                          const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_SIZE, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_SIZE, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1320,7 +1327,8 @@ int CeedQFunctionContextRegisterCeedSize(CeedQFunctionContext ctx, const char *f
 **/
 int CeedQFunctionContextRegisterCeedScalar(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                            const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_SCALAR, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_SCALAR, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1338,7 +1346,8 @@ int CeedQFunctionContextRegisterCeedScalar(CeedQFunctionContext ctx, const char 
  **/
 int CeedQFunctionContextRegisterFloat(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                       const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_FLOAT, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_FLOAT, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1356,7 +1365,8 @@ int CeedQFunctionContextRegisterFloat(CeedQFunctionContext ctx, const char *fiel
 **/
 int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                        const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_DOUBLE, num_values);
+  CeedCall(CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_DOUBLE, num_values));
+  return CEED_ERROR_SUCCESS;
 }
 
 /**

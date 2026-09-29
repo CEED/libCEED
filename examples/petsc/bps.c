@@ -93,6 +93,18 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   PetscCall(DMSetVecType(dm, vec_type));
   PetscCall(DMSetFromOptions(dm));
 
+  // DMSetFromOptions() may redistribute the mesh and replace the sections.
+  PetscBool is_simplex = PETSC_TRUE;
+  PetscCall(DMPlexIsSimplex(dm, &is_simplex));
+
+  // Restore tensor closure permutations for the solution and coordinate DMs.
+  if (!is_simplex) {
+    DM dm_coord;
+    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+    PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
+    PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
+  }
+
   // Create global and local solution vectors
   PetscCall(DMCreateGlobalVector(dm, &X));
   PetscCall(VecGetLocalSize(X, &l_size));

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <ceed.h>
+#include <ceed/macros.h>
 #include <limits.h>
 #include <stdbool.h>
 
@@ -57,23 +58,6 @@
 #endif
 #endif
 
-/// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
-/// @ingroup Ceed
-#ifndef CeedPragmaOMP
-#ifdef _OPENMP
-#define CeedPragmaOMPHelper(x) _Pragma(#x)
-#define CeedPragmaOMP(x) CeedPragmaOMPHelper(omp x)
-#else
-#define CeedPragmaOMP(x)
-#endif
-#endif
-#ifndef CeedPragmaAtomic
-#define CeedPragmaAtomic CeedPragmaOMP(atomic update)
-#endif
-#ifndef CeedPragmaCritical
-#define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
-#endif
-
 /// This macro provides the tab width for viewing Ceed objects.
 /// @ingroup Ceed
 #define CEED_TAB_WIDTH 2
@@ -98,7 +82,7 @@ typedef enum {
 
 CEED_EXTERN void CeedDebugImpl256(const unsigned char, const char *, ...);
 CEED_EXTERN bool CeedDebugFlag(const Ceed ceed);
-CEED_EXTERN bool CeedDebugFlagEnv(void);
+
 /**
   Print debugging information in color
 
@@ -129,9 +113,12 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ingroup Ceed
   @ref     Backend
 **/
-#define CeedDebugEnv256(color, ...)                                 \
-  {                                                                 \
-    if (CeedDebugFlagEnv()) CeedDebugImpl256(color, ##__VA_ARGS__); \
+#define CeedDebugEnv256(color, ...)                    \
+  {                                                    \
+    bool debug;                                        \
+                                                       \
+    CeedGetEnvEnableDebug(&debug, NULL);               \
+    if (debug) CeedDebugImpl256(color, ##__VA_ARGS__); \
   }
 /**
   Print debugging information to terminal without Ceed to reference
@@ -201,41 +188,6 @@ CEED_INTERN int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedC
                                            const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
                                            const CeedScalar **target_array);
 
-/**
-  @brief Calls a libCEED function and then checks the resulting error code.
-  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
-
-  @ref Developer
-**/
-#define CeedCall(...)        \
-  do {                       \
-    int ierr_ = __VA_ARGS__; \
-    if (ierr_) return ierr_; \
-  } while (0)
-
-/**
-  @brief Calls a libCEED function and then checks the resulting error code.
-  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
-  All interface level error codes are upgraded to `CEED_ERROR_BACKEND`.
-
-  @ref Developer
-**/
-#define CeedCallBackend(...)                                                     \
-  do {                                                                           \
-    int ierr_ = __VA_ARGS__;                                                     \
-    if (ierr_) return (ierr_ > CEED_ERROR_SUCCESS) ? CEED_ERROR_BACKEND : ierr_; \
-  } while (0)
-
-/**
-  @brief Check that a particular condition is true and returns a `CeedError` if not.
-
-  @ref Developer
-**/
-#define CeedCheck(cond, ceed, ecode, ...)                    \
-  do {                                                       \
-    if (!(cond)) return CeedError(ceed, ecode, __VA_ARGS__); \
-  } while (0)
-
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
@@ -248,7 +200,6 @@ CEED_INTERN int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedC
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 CEED_EXTERN int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 
-CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *is_debug);
 CEED_EXTERN int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator, char **resource_root);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
@@ -272,7 +223,7 @@ CEED_EXTERN int CeedRestoreJitSourceRoots(Ceed ceed, const char ***jit_source_ro
 CEED_EXTERN int CeedRestoreRustSourceRoots(Ceed ceed, const char ***rust_source_roots);
 CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char ***jit_defines);
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
-
+CEED_EXTERN int CeedRegisterEnvironmentVariable(Ceed ceed, const char *name, void (*get_default)(void));
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
@@ -289,16 +240,19 @@ CEED_EXTERN int CeedVectorReference(CeedVector vec);
 **/
 typedef enum {
   /// Standard element restriction with offsets
-  CEED_RESTRICTION_STANDARD = 1,
+  CEED_RESTRICTION_STANDARD = 0,
   /// Oriented element restriction
-  CEED_RESTRICTION_ORIENTED = 2,
+  CEED_RESTRICTION_ORIENTED = 1,
   /// Curl-oriented element restriction
-  CEED_RESTRICTION_CURL_ORIENTED = 3,
+  CEED_RESTRICTION_CURL_ORIENTED = 2,
   /// Strided element restriction
-  CEED_RESTRICTION_STRIDED = 4,
+  CEED_RESTRICTION_STRIDED = 3,
   /// Point-in-cell element restriction
-  CEED_RESTRICTION_POINTS = 5,
+  CEED_RESTRICTION_POINTS = 4,
 } CeedRestrictionType;
+
+/// String names for enum pretty printing
+CEED_EXTERN const char *const CeedRestrictionTypes[];
 
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
@@ -339,10 +293,10 @@ typedef enum {
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
-CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisIsCollocated(CeedBasis basis, bool *is_collocated);
+CEED_EXTERN int CeedBasisHasCollocatedGrad(CeedBasis basis, bool *has_collocated_grad);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
@@ -356,10 +310,24 @@ CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract c
 CEED_EXTERN int CeedBasisCreateH1Fallback(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts,
                                           const CeedScalar *interp, const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights,
                                           CeedBasis basis);
+CEED_EXTERN int CeedBasisGetChebyshevData(CeedBasis basis, CeedBasis *basis_chebyshev, CeedVector *vec_chebyshev);
+CEED_EXTERN int CeedBasisGetCollocatedGrad1D(CeedBasis basis, const CeedScalar **collocated_grad_1d);
+
+CEED_EXTERN int CeedBasisGetSymmetryTypeInterp1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetSymmetryTypeGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetSymmetryTypeCollocatedGrad1D(CeedBasis basis, CeedSymmetryType *symmetry_type);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionInterp1D(CeedBasis basis, const CeedScalar **interp_1d_even, const CeedScalar **interp_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionGrad1D(CeedBasis basis, const CeedScalar **grad_1d_even, const CeedScalar **grad_1d_odd);
+CEED_EXTERN int CeedBasisGetEvenOddDecompositionCollocatedGrad1D(CeedBasis basis, const CeedScalar **collo_grad_1d_even,
+                                                                 const CeedScalar **collo_grad_1d_odd);
 
 CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                          CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractApplyEvenOdd(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J,
+                                                const CeedScalar *__restrict__ t_even, const CeedScalar *__restrict__ t_odd,
+                                                CeedSymmetryType symmetry_type, CeedTransposeMode t_mode, const CeedInt add,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int  CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
                                                 const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
                                                 const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);

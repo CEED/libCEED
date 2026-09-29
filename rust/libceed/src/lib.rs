@@ -323,7 +323,7 @@ impl Ceed {
     #[doc(hidden)]
     pub fn default_init() -> Self {
         // Convert to C string
-        let resource = "/cpu/self/ref/serial";
+        let resource = "/cpu/self/opt";
         crate::Ceed::init(resource)
     }
 

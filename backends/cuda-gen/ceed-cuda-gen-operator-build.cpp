@@ -213,8 +213,14 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   // Get field data
   CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_field, &elem_rstr));
   if (elem_rstr != CEED_ELEMRESTRICTION_NONE) {
+    CeedRestrictionType rstr_type;
+
+    CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+    code << tab << "// ------ Restriction Type: " << CeedRestrictionTypes[rstr_type] << "\n";
+  } else {
+    code << tab << "// ------ Restriction Type: none\n";
   }
   CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   if (basis != CEED_BASIS_NONE) {
@@ -242,7 +248,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   }
 
   // Load basis data
-  code << tab << "// EvalMode: " << CeedEvalModes[eval_mode] << "\n";
+  code << tab << "// Basis Evaluation Mode: " << CeedEvalModes[eval_mode] << "\n";
   switch (eval_mode) {
     case CEED_EVAL_NONE:
       break;
@@ -250,16 +256,17 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       if (is_at_points) {
         // AtPoints
         if (!basis_data->d_chebyshev_interp_1d) {
-          CeedSize    interp_bytes;
-          CeedScalar *chebyshev_interp_1d;
+          CeedSize          interp_bytes;
+          const CeedScalar *chebyshev_interp_1d;
+          CeedBasis         basis_chebyshev;
 
+          CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+          CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, &chebyshev_interp_1d));
           interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-          CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-          CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
           CeedCallCuda(CeedBasisReturnCeed(basis), cudaMalloc((void **)&basis_data->d_chebyshev_interp_1d, interp_bytes));
           CeedCallCuda(CeedBasisReturnCeed(basis),
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-          CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+          CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         }
         if (is_input) {
           data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
@@ -294,16 +301,17 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
       if (is_at_points) {
         // AtPoints
         if (!basis_data->d_chebyshev_interp_1d) {
-          CeedSize    interp_bytes;
-          CeedScalar *chebyshev_interp_1d;
+          CeedSize          interp_bytes;
+          const CeedScalar *chebyshev_interp_1d;
+          CeedBasis         basis_chebyshev;
 
+          CeedCallBackend(CeedBasisGetChebyshevData(basis, &basis_chebyshev, NULL));
+          CeedCallBackend(CeedBasisGetInterp1D(basis_chebyshev, &chebyshev_interp_1d));
           interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
-          CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-          CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
           CeedCallCuda(CeedBasisReturnCeed(basis), cudaMalloc((void **)&basis_data->d_chebyshev_interp_1d, interp_bytes));
           CeedCallCuda(CeedBasisReturnCeed(basis),
                        cudaMemcpy(basis_data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-          CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+          CeedCallBackend(CeedBasisDestroy(&basis_chebyshev));
         }
         if (is_input) {
           data->B.inputs[i] = basis_data->d_chebyshev_interp_1d;
@@ -2162,11 +2170,13 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
 }
 
 extern "C" int CeedOperatorBuildKernelDiagonalAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, false, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, false, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 
 extern "C" int CeedOperatorBuildKernelFullAssemblyAtPoints_Cuda_gen(CeedOperator op, bool *is_good_build) {
-  return CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, true, is_good_build);
+  CeedCallBackend(CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(op, true, is_good_build));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

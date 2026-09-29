@@ -13,8 +13,12 @@
 
 // Always compiled
 #include "ceed-backend-list-ref.h"
+// CPU JiT, always compiled
+#include "ceed-backend-list-cpu-gen.h"
 // Requires AVX support
 #include "ceed-backend-list-avx.h"
+// Requires Arm SVE support
+#include "ceed-backend-list-sve.h"
 // Requires Valgrind
 #include "ceed-backend-list-memcheck.h"
 // Requires LIBXSMM

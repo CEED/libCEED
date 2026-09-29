@@ -13,3 +13,4 @@
 #include <cuda.h>
 
 CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f);
+CEED_EXTERN int CeedOperatorSetEnableCudaGraph(CeedOperator op, bool enable_graph);

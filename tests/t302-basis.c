@@ -9,8 +9,8 @@
 int main(int argc, char **argv) {
   Ceed              ceed;
   CeedInt           p = 4;
-  CeedScalar        collocated_gradient_1d[(p + 2) * (p + 2)], x_2[p + 2];
-  const CeedScalar *gradient_1d, *q_ref;
+  CeedScalar        x_2[p + 2];
+  const CeedScalar *gradient_1d, *collocated_gradient_1d, *q_ref;
   CeedScalar        sum = 0.0;
   CeedBasis         basis;
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
   // Already collocated, GetCollocatedGrad will return grad_1d
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p, p, CEED_GAUSS_LOBATTO, &basis);
-  CeedBasisGetCollocatedGrad(basis, collocated_gradient_1d);
+  CeedBasisGetCollocatedGrad1D(basis, &collocated_gradient_1d);
   CeedBasisGetGrad(basis, &gradient_1d);
 
   for (CeedInt i = 0; i < p; i++) {
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
   // Q = P, not already collocated
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p, p, CEED_GAUSS, &basis);
-  CeedBasisGetCollocatedGrad(basis, collocated_gradient_1d);
+  CeedBasisGetCollocatedGrad1D(basis, &collocated_gradient_1d);
 
   CeedBasisGetQRef(basis, &q_ref);
   for (CeedInt i = 0; i < p; i++) x_2[i] = q_ref[i] * q_ref[i];
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
   // Q = P + 2, not already collocated
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p, p + 2, CEED_GAUSS, &basis);
-  CeedBasisGetCollocatedGrad(basis, collocated_gradient_1d);
+  CeedBasisGetCollocatedGrad1D(basis, &collocated_gradient_1d);
 
   CeedBasisGetQRef(basis, &q_ref);
   for (CeedInt i = 0; i < p + 2; i++) x_2[i] = q_ref[i] * q_ref[i];

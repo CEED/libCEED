@@ -1,0 +1,104 @@
+name: Spack
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        # GPU builds are extremely slow, need to set up build caching to be able to use them
+        # gpu: [+cuda+magma cuda_arch=80 ^magma cuda_arch=80, +rocm+magma amdgpu_target=gfx942 ^magma amdgpu_target=gfx942, '']
+        # exclude:
+        #   - os: macos-15
+        #     gpu: +cuda+magma cuda_arch=80 ^magma cuda_arch=80
+        #   - os: macos-15
+        #     gpu: +rocm+magma amdgpu_target=gfx942 ^magma amdgpu_target=gfx942
+        gpu: ['']
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Set up Spack
+      uses: spack/setup-spack@v3
+      with:
+        buildcache: true
+    - name: Install libCEED
+      shell: spack-bash {0}
+      run: |
+        spack repo update
+        spack env create .
+        spack env activate .
+        spack compiler find
+        spack external find
+        spack add libceed@${GITHUB_SHA}=develop+libxsmm+openmp${{ matrix.gpu }}
+        spack concretize
+        spack install -j$(getconf _NPROCESSORS_ONLN)
+
+
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        libxsmm: ['+libxsmm', '~libxsmm']
+        openmp: ['+openmp', '~openmp']
+        shared: ['+shared', '~shared']
+        include:
+        - os: ubuntu-24.04-arm
+          libxsmm: +libxsmm
+          openmp: +openmp
+          shared: +shared
+        - os: macos-15
+          libxsmm: +libxsmm
+          openmp: +openmp
+          shared: +shared
+        exclude:
+        - os: ubuntu-24.04
+          libxsmm: +libxsmm
+          openmp: +openmp
+          shared: +shared
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+    - name: Set up Spack
+      uses: spack/setup-spack@v3
+      with:
+        buildcache: true
+    - name: Install libCEED
+      shell: spack-bash {0}
+      run: |
+        spack repo update
+        spack env create .
+        spack env activate .
+        spack compiler find
+        spack external find
+        spack add libceed@${GITHUB_SHA}=develop${{ matrix.libxsmm }}${{ matrix.openmp }}${{ matrix.shared }}
+        spack concretize
+        spack install -j$(getconf _NPROCESSORS_ONLN)
+    - name: Build and test libCEED examples
+      env:
+        OPT: -O2 -g -ffp-contract=fast
+      shell: spack-bash {0}
+      run: |
+        spack env activate .
+        spack load libceed@${GITHUB_SHA}=develop${{ matrix.libxsmm }}${{ matrix.openmp }}${{ matrix.shared }}
+        make CEED_DIR="$(spack find -p libceed | awk '/^libceed/ {print $2}')" -C examples/ceed all --debug
+        mkdir -p build
+        cp "examples/ceed/ex1-volume" build/ex1-volume
+        cp "examples/ceed/ex2-surface" build/ex2-surface
+        cp "examples/ceed/ex3-volume" build/ex3-volume
+        set +e
+        BACKENDS_CPU=$(./build/ex1-volume -ceed help 2>&1 | grep -o '/cpu/[^ ]*' | tr '\n' ' ')
+        set -e
+        export NPROC_POOL=4
+        echo "Running smoke tests (ex1-3) on backends: $BACKENDS"
+        python3 tests/junit.py --junit-batch "spack-ex1" --ceed-backends `echo $BACKENDS_CPU` --nproc 1 --pool-size ${NPROC_POOL} ex1-volume
+        python3 tests/junit.py --junit-batch "spack-ex2" --ceed-backends `echo $BACKENDS_CPU` --nproc 1 --pool-size ${NPROC_POOL} ex2-surface
+        python3 tests/junit.py --junit-batch "spack-ex3" --ceed-backends `echo $BACKENDS_CPU` --nproc 1 --pool-size ${NPROC_POOL} ex3-volume

@@ -187,7 +187,11 @@ OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
-LIBCXX ?= -lstdc++
+ifeq ($(shell uname -s),Darwin)
+    LIBCXX ?= -lc++
+else
+    LIBCXX ?= -lstdc++
+endif
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
 CUDA_TARGETS_UNKNOWN := $(filter-out sm_%,$(CUDA_TARGETS))
 CUDA_SMS := $(patsubst sm_%,%,$(filter sm_%,$(CUDA_TARGETS)))
@@ -216,19 +220,21 @@ ifneq ($(OPENMP),)
   OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
   CFLAGS += $(OMP_FLAG)
   CEED_LDFLAGS += $(OMP_FLAG)
+  PKG_LIBS += $(OMP_FLAG)
 endif
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage
   CXXFLAGS += --coverage
   CEED_LDFLAGS += --coverage
+  FFLAGS += --coverage -fprofile-abs-path
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
-CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS += -I./include
-CEED_LDLIBS = -lm
+CEED_LDFLAGS += $(OMP_SIMD_FLAG) $(if $(ASAN),$(AFLAGS))
+CPPFLAGS += -I$(abspath ./include)
+CEED_LDLIBS += -lm
 OBJDIR := build
 for_install := $(filter install,$(MAKECMDGOALS))
 LIBDIR := $(if $(for_install),$(OBJDIR),lib)
@@ -259,10 +265,10 @@ libceed.so := $(LIBDIR)/libceed.$(SO_EXT)
 libceed.a := $(LIBDIR)/libceed.a
 libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
 CEED_LIBS = -lceed
-libceeds = $(libceed)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
+BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/gen/serial /cpu/self/gen/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
-
+PKGCONF ?= pkgconf
+pkgconf = $(shell env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) $1 | $(SED) -e 's/^"//g' -e 's/"$$//g')
 
 # ------------------------------------------------------------
 # Root directories for examples using external libraries
@@ -329,8 +335,13 @@ opt.c          := $(sort $(wildcard backends/opt/*.c))
 opt.h          := $(sort $(wildcard backends/opt/*.h))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 avx.h          := $(sort $(wildcard backends/avx/*.h))
+sve.c          := $(sort $(wildcard backends/sve/*.c))
+sve.h          := $(sort $(wildcard backends/sve/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
+cpu-gen.c      := $(sort $(wildcard backends/cpu-gen/*.c))
+cpu-gen.cpp    := $(sort $(wildcard backends/cpu-gen/*.cpp))
+cpu-gen.h      := $(sort $(wildcard backends/cpu-gen/*.h))
 # - GPU
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
 cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
@@ -479,6 +490,7 @@ info:
 	$(info Backend Dependencies:)
 	$(info MEMCHK_STATUS = $(MEMCHK_STATUS)$(call backend_status,$(MEMCHK_BACKENDS)))
 	$(info AVX_STATUS    = $(AVX_STATUS)$(call backend_status,$(AVX_BACKENDS)))
+	$(info SVE_STATUS    = $(SVE_STATUS)$(call backend_status,$(SVE_BACKENDS)))
 	$(info XSMM_DIR      = $(XSMM_DIR)$(call backend_status,$(XSMM_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
@@ -528,6 +540,15 @@ libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
 libceed.h += $(ref.h) $(blocked.h) $(opt.h)
 
+# CPU Codegen Backends
+LIBCEED_CONTAINS_CXX = 1
+libceed.c        += $(cpu-gen.c)
+libceed.cpp      += $(cpu-gen.cpp)
+libceed.h        += $(cpu-gen.h)
+CEED_CPU_JIT_CXX ?= $(CXX)
+CEED_CPU_JIT_OPT ?= $(OPT)
+CPPFLAGS         += -DCEED_CPU_JIT_OPT='$(CEED_CPU_JIT_OPT)' -DCEED_CPU_JIT_CXX='$(CEED_CPU_JIT_CXX)'
+
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
 MEMCHK         := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
@@ -551,30 +572,60 @@ ifneq ($(AVX),)
   BACKENDS_MAKE += $(AVX_BACKENDS)
 endif
 
-# Collect list of libraries and paths for use in linking and pkg-config
-PKG_LIBS =
+# Arm SVE Backends
+SVE_STATUS   = Disabled
+SVE         := $(shell printf '%s\n' \
+  '$(HASH)include <arm_sve.h>' \
+  '$(HASH)include <stdint.h>' \
+  'void f32(float *v, const float *u, uint64_t n) { svbool_t p = svwhilelt_b32((uint64_t)0, n); svfloat32_t x = svld1_f32(p, u); svst1_f32(p, v, svmla_f32_m(p, x, x, x)); }' \
+  'void f64(double *v, const double *u, uint64_t n) { svbool_t p = svwhilelt_b64((uint64_t)0, n); svfloat64_t x = svld1_f64(p, u); svst1_f64(p, v, svmla_f64_m(p, x, x, x)); }' \
+  | $(CC) $(CPPFLAGS) $(filter-out --coverage,$(CFLAGS:-M%=)) -Werror -x c -c -o /dev/null - >/dev/null 2>&1 && echo 1)
+SVE_BACKENDS = /cpu/self/sve/serial /cpu/self/sve/blocked
+ifeq ($(SVE),1)
+  SVE_STATUS = Enabled
+  libceed.c += $(sve.c)
+  libceed.h += $(sve.h)
+  BACKENDS_MAKE += $(SVE_BACKENDS)
+endif
+
+# Collect list of libraries and paths for use in linking and pkgconf
+PKG_LIBS = $(OMP_SIMD_FLAG) -lm
 # Stubs that will not be RPATH'd
 PKG_STUBS_LIBS =
 
+# OpenMP support
+ifneq ($(OPENMP),)
+  PKG_LIBS += $(OMP_FLAG)
+endif
+
 # libXSMM Backends
 XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
+MKL ?=
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
-  PKG_LIBS += -L$(abspath $(XSMM_DIR))/lib -lxsmm
-  MKL ?=
-  ifeq (,$(MKL)$(MKLROOT))
-    BLAS_LIB ?= -lblas -ldl
-  else
+  XSMM_CFLAGS ?= -I$(XSMM_DIR)/include
+  XSMM_LIBS ?= -L$(abspath $(XSMM_DIR))/lib -lxsmm
+  ifneq (,$(MKL)$(MKLROOT))
     ifneq ($(MKLROOT),)
       # Some installs put everything inside an intel64 subdirectory, others not
       MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
       MKL_LINK = -L$(MKL_LIBDIR)
     endif
     BLAS_LIB ?= $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
+    XSMM_LIBS += $(BLAS_LIB)
+  else
+    ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm.pc),)
+      XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
+      XSMM_CFLAGS = $(call pkgconf, --cflags $(XSMM_PC))
+      XSMM_LIBS = $(call pkgconf, --libs $(XSMM_PC))
+    else
+      BLAS_LIB ?=
+      XSMM_LIBS += $(BLAS_LIB)
+    endif
   endif
-  PKG_LIBS += $(BLAS_LIB)
+  PKG_LIBS += $(XSMM_LIBS)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
-  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += -I$(XSMM_DIR)/include -I$(XSMM_DIR)/include/libxsmm
+  $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += $(XSMM_CFLAGS)
   BACKENDS_MAKE += $(XSMM_BACKENDS)
 endif
 
@@ -652,10 +703,12 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
   ifeq ($(MAGMA_ARCH), 0)  # CUDA MAGMA
     ifneq ($(CUDA_LIB_DIR),)
-      cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link_static = -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link_shared = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link = $(if $(wildcard $(CUDA_LIB_DIR)/libcublas.${SO_EXT}),$(cuda_link_shared),$(cuda_link_static))
       omp_link = -fopenmp
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(cuda_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -669,9 +722,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
       omp_link = -fopenmp
-      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR)) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link_static = -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link_shared = -Wl,-rpath,$(HIP_LIB_DIR) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link = $(if $(wildcard $(HIP_LIB_DIR)/libhipblas.${SO_EXT}),$(hip_link_shared),$(hip_link_static))
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -690,34 +745,34 @@ endif
 BACKENDS ?= $(BACKENDS_MAKE)
 export BACKENDS
 
+# ------------------------------------------------------------
+# CXX
+# ------------------------------------------------------------
+
+ifeq ($(LIBCEED_CONTAINS_CXX),1)
+  PKG_LIBS += $(LIBCXX)
+  ifneq ($(SYCL_LIB_DIR),)
+    $(libceed) : LINK = $(SYCLCXX)
+    $(libceed) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
+  else
+    $(libceed) : LINK = $(CXX)
+  endif
+endif
 
 # ------------------------------------------------------------
 # Linker Flags
 # ------------------------------------------------------------
 
-_pkg_ldflags = $(filter -L%,$(PKG_LIBS))
-_pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
-$(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
+_pkg_ldflags = $(sort $(filter -L%,$(PKG_LIBS)))
+_pkg_ldlibs = $(sort $(filter-out -Wl%,$(filter-out -L%,$(PKG_LIBS))))
+pkgconfig-libs-private = $(_pkg_ldflags) $(sort $(CEED_LDFLAGS) $(_pkg_ldlibs) $(CEED_LDLIBS))
+
+$(libceed) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(libceed) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-  $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
+  $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
   $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
-
-pkgconfig-libs-private = $(PKG_LIBS)
-ifeq ($(LIBCEED_CONTAINS_CXX),1)
-  ifneq ($(SYCL_LIB_DIR),)
-    $(libceeds) : LINK = $(SYCLCXX)
-    $(libceeds) : CEED_LDFLAGS += $(filter -fsycl -fno-sycl-id-queries-fit-in-int,$(SYCLFLAGS))
-  else
-    $(libceeds) : LINK = $(CXX)
-  endif
-  ifeq ($(STATIC),1)
-    $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
-    pkgconfig-libs-private += $(LIBCXX)
-  endif
-endif
-
 
 # ------------------------------------------------------------
 # Building core library components
@@ -760,46 +815,46 @@ $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
-	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
-
 $(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
-
 
 # ------------------------------------------------------------
 # Building examples
 # ------------------------------------------------------------
+
+# CEED examples
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c lib | $$(@D)/.DIR
+	+$(MAKE) -C examples/ceed CEED_DIR="$(PWD)" OPT="$(OPT)" LDFLAGS="$(CEED_LDFLAGS)" $*
+	cp examples/ceed/$* $@
 
 # deal.II
 # Note: Invoking deal.II's CMAKE build system here
 .NOPARALLEL: dealii
 dealii :
 	mkdir -p examples/deal.II/build
-	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
+	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR="$(PWD)"
 	+$(call quiet,MAKE) -C examples/deal.II/build
 
-$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) dealii | $$(@D)/.DIR
+$(OBJDIR)/dealii-% : examples/deal.II/*.cc examples/deal.II/*.h lib dealii | $$(@D)/.DIR
 	cp examples/deal.II/build/$* $@
 
 # MFEM
-$(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
-	+$(MAKE) -C examples/mfem CEED_DIR=`pwd` \
-	  MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
+$(OBJDIR)/mfem-% : examples/mfem/%.cpp lib | $$(@D)/.DIR
+	+$(MAKE) -C examples/mfem CEED_DIR="$(PWD)" MFEM_DIR="$(abspath $(MFEM_DIR))" CXX=$(CXX) $*
 	cp examples/mfem/$* $@
 
 # Nek5000
 # Note: Multiple Nek files cannot be built in parallel. The '+' here enables
 #       this single Nek bps file to be built in parallel with other examples,
 #       such as when calling `make prove-all -j2`.
-$(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libceed) | $$(@D)/.DIR
-	+$(MAKE) -C examples MPI=$(MPI) CEED_DIR=`pwd` NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
+$(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh lib | $$(@D)/.DIR
+	+$(MAKE) -C examples MPI=$(MPI) CEED_DIR="$(PWD)" NEK5K_DIR="$(abspath $(NEK5K_DIR))" nek
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
 # Rust QFunctions
-$(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c $(libceed) | $$(@D)/.DIR
-	+$(MAKE) -C examples/rust-qfunctions CEED_DIR=`pwd`
+$(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c lib | $$(@D)/.DIR
+	+$(MAKE) -C examples/rust-qfunctions CEED_DIR="$(PWD)"
 	cp examples/rust-qfunctions/$* $@
 
 # PETSc
@@ -808,17 +863,17 @@ $(OBJDIR)/rustqfunctions-% : examples/rust-qfunctions/%.c $(libceed) | $$(@D)/.D
 # other/corrupt output. So we put it in this utility library, but we don't want
 # to manually list source dependencies up at this level, so we'll just always
 # call recursive make to check that this utility is up to date.
-examples/petsc/libutils.a.PHONY: $(libceed) $(ceed.pc)
+examples/petsc/libutils.a.PHONY: lib
 	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` AR=$(AR) ARFLAGS=$(ARFLAGS) \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $(basename $(@F))
 
-$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY lib | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
 # Fluid dynamics proxy application
-$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/include/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) examples/fluids/Makefile | $$(@D)/.DIR
+$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/include/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h lib examples/fluids/Makefile | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
@@ -827,7 +882,7 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids
 $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
     examples/solids/problems/*.c examples/solids/src/*.c \
     examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
-    $(libceed) $(ceed.pc) | $$(@D)/.DIR
+    lib | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/solids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/solids/$* $@
@@ -851,8 +906,8 @@ external_examples := \
 
 allexamples = $(examples) $(external_examples)
 
-$(examples) : $(libceed)
-$(tests) : $(libceed)
+$(examples) : lib
+$(tests) : lib
 $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
 
 
@@ -918,6 +973,9 @@ $(bench_targets): bench-%: $(OBJDIR)/%
 	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
 benchmarks: $(bench_targets)
 
+COLON := :
+ESCAPED_COLON := \:
+pkgconfig-libs-private.clean = $(shell echo $(pkgconfig-libs-private) | $(SED) 's/:/\\:/g')
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
 $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 .INTERMEDIATE : $(OBJDIR)/ceed.pc
@@ -925,7 +983,7 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	@$(SED) \
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%opt%:$(OPT):" \
-	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
+	    -e "s:%libs_private%:$(pkgconfig-libs-private.clean):" $< > $@
 
 GIT_DESCRIBE = $(shell git -c safe.directory=$PWD describe --always --dirty 2>/dev/null || printf "unknown\n")
 
@@ -941,9 +999,10 @@ $(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUR
 # Installation
 # ------------------------------------------------------------
 
-install : $(libceed) $(OBJDIR)/ceed.pc
+install : lib $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
+	  "$(includedir)/ceed/jit-source/cpu-gen/"\
 	  "$(includedir)/ceed/jit-source/cuda/" "$(includedir)/ceed/jit-source/hip/"\
 	  "$(includedir)/ceed/jit-source/gallery/" "$(includedir)/ceed/jit-source/magma/"\
 	  "$(includedir)/ceed/jit-source/sycl/" "$(libdir)" "$(pkgconfigdir)")
@@ -954,12 +1013,16 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/macros.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-env.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/ceed-env-list.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
+	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/cpu-gen/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/cpu-gen/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/cuda/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/cuda/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/hip/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/hip/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/gallery/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/gallery/"
@@ -1007,7 +1070,7 @@ TIDY_FIX_OPTS   ?= --quiet --header-filter='$(abspath .)/.*' --config-file=.clan
 
 # clang-tidy doesn't like the missing AD includes or the model lists
 tidy-fix-excl.h := include/ceedf.h include/ceed/fortran.h include/ceed/cuda.h include/ceed/hip.h include/ceed/deprecated.h $(wildcard tests/t*-f.h) $(wildcard examples/ceed/ex*-f.h) $(wildcard backends/ceed-backend-list*.h)
-tidy-fix-excl.h += $(wildcard include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/hip/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
+tidy-fix-excl.h += $(wildcard $(wildcard include/ceed/jit-source/cpu-gen/*.h) $(wildcard include/ceed/jit-source/cuda/*.h) $(wildcard include/ceed/jit-source/hip/*.h) include/ceed/jit-source/sycl/*.h) $(wildcard include/ceed/jit-source/magma/*.h)
 tidy-fix.h      := $(filter-out $(tidy-fix-excl.h), $(libceed.h))
 
 tidy-fix-h   : $(tidy-fix.h:%=%.tidy-fix)
@@ -1045,33 +1108,35 @@ format-c  :
 	@$(MAKE) -j1 --no-print-directory --no-keep-going tidy-fix
 
 format-py :
-	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
+	$(call quiet,AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
-format-ot:
-	@$(SED) -r 's/\s+$$//' -i $(format.ot)
+format-ot :
+	@$(call quiet,SED) -r 's/\s+$$//' -i $(format.ot)
 
-format    : format-c format-py format-ot
-
-# Vermin - python version requirements
-VERMIN            ?= vermin
-VERMIN_OPTS       += -t=3.8- --violations
-
-vermin    :
-	$(VERMIN) $(VERMIN_OPTS) $(format.py)
+format : format-c format-py format-ot
 
 # Tidy
 CLANG_TIDY ?= clang-tidy
 
-%.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
-
+%.c.tidy  : %.c
+	$(call quiet,CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\"" -DCEED_GIT_VERSION="\"$(GIT_DESCRIBE)\"" -DCEED_BUILD_CONFIGURATION="\"// Build Configuration:$(foreach v,$(CONFIG_VARS),\n$(v) = $($(v)))\""
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include
+	$(call quiet,CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include
 
 tidy-c   : $(libceed.c:%=%.tidy)
 tidy-cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy-c tidy-cpp
+
+# Combined
+lint : format tidy
+
+# Vermin - python version requirements
+VERMIN      ?= vermin
+VERMIN_OPTS += -t=3.8- --violations
+
+vermin :
+	$(VERMIN) $(VERMIN_OPTS) $(format.py)
 
 # Include-What-You-Use
 ifneq ($(wildcard ../iwyu/*),)
@@ -1081,23 +1146,8 @@ endif
 iwyu :
 	$(MAKE) -B CC=$(IWYU_CC)
 
-
-# ------------------------------------------------------------
-# Variable printing for debugging
-# ------------------------------------------------------------
-
 print :
 	@echo $(VAR)=$($(VAR))
-
-print-% :
-	$(info [ variable name]: $*)
-	$(info [        origin]: $(origin $*))
-	$(info [        flavor]: $(flavor $*))
-	$(info [         value]: $(value $*))
-	$(info [expanded value]: $($*))
-	$(info )
-	@true
-
 
 # ------------------------------------------------------------
 # Configuration caching

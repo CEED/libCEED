@@ -103,6 +103,8 @@ typedef struct CeedOperator_private *CeedOperator;
 /// @ingroup CeedUser
 typedef struct CeedObject_private *CeedObject;
 
+#include "ceed-env.h"
+
 CEED_EXTERN int  CeedObjectView(CeedObject obj, FILE *stream);
 CEED_EXTERN int  CeedObjectSetNumViewTabs(CeedObject obj, CeedInt num_tabs);
 CEED_EXTERN int  CeedObjectGetNumViewTabs(CeedObject obj, CeedInt *num_tabs);
@@ -124,6 +126,7 @@ CEED_EXTERN int CeedGetNumViewTabs(Ceed ceed, CeedInt *num_tabs);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
+CEED_EXTERN int CeedGetEnableDebug(Ceed ceed, bool *is_debug);
 
 /// Raise an error on `Ceed` object
 ///
@@ -179,9 +182,6 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release
 CEED_EXTERN int CeedGetGitVersion(const char **git_version);
 CEED_EXTERN int CeedGetBuildConfiguration(const char **build_config);
 
-CEED_EXTERN int CeedSetIsClang(Ceed ceed, bool isClang);
-CEED_EXTERN int CeedGetIsClang(Ceed ceed, bool *isClang);
-
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
 /// String names for enum pretty printing
@@ -189,6 +189,7 @@ CEED_EXTERN const char *const *CeedErrorTypes;
 CEED_EXTERN const char *const  CeedMemTypes[];
 CEED_EXTERN const char *const  CeedCopyModes[];
 CEED_EXTERN const char *const  CeedTransposeModes[];
+CEED_EXTERN const char *const  CeedSymmetryTypes[];
 CEED_EXTERN const char *const  CeedEvalModes[];
 CEED_EXTERN const char *const  CeedQuadModes[];
 CEED_EXTERN const char *const  CeedElemTopologies[];
@@ -471,13 +472,16 @@ CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator o
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                   CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int  CeedOperatorLinearAssembleGetNumEntries(CeedOperator op, CeedSize *num_entries);
+CEED_EXTERN int  CeedOperatorLinearAssembleGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int  CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
 CEED_EXTERN int  CeedOperatorCompositeGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
 CEED_EXTERN int  CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,

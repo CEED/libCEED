@@ -98,6 +98,21 @@ typedef struct CeedObject_private {
   CeedInt num_view_tabs;
 } CeedObject_private;
 
+typedef struct {
+  bool value;
+  bool is_set_by_user;
+  bool is_set_in_environment;
+  bool have_checked_environment;
+} CeedEnvFlag;
+
+typedef struct {
+  const char *value;
+  bool        is_set_by_user;
+  bool        is_set_in_environment;
+  bool        have_checked_environment;
+} CeedEnvString;
+
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding)
 struct Ceed_private {
   CeedObject_private obj;
   const char        *resource;
@@ -110,7 +125,6 @@ struct Ceed_private {
   char             **rust_source_roots;
   CeedInt            num_rust_source_roots, max_rust_source_roots, num_rust_source_roots_readers;
   CeedInt            num_jit_source_roots, max_jit_source_roots, num_jit_source_roots_readers;
-  bool               cuda_compile_with_clang;
   char             **jit_defines;
   CeedInt            num_jit_defines, max_jit_defines, num_jit_defines_readers;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
@@ -134,13 +148,33 @@ struct Ceed_private {
   int (*OperatorCreate)(CeedOperator);
   int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
-  void           *data;
-  bool            is_debug;
+  void *data;
+// Environment variables, generated
+#define CEED_ENV_FLAG(suffix, default, ...) CeedEnvFlag ceed_env_##suffix;
+#define CEED_ENV_STRING(suffix, default, ...) CeedEnvString ceed_env_##suffix;
+#include <ceed/ceed-env-list.h>
+#undef CEED_ENV_FLAG
+#undef CEED_ENV_STRING
   bool            is_deterministic;
   char            err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset        *f_offsets;
   CeedWorkVectors work_vectors;
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding)
+
+/**
+  @brief Return value of `CEED_DEBUG` environment variable
+
+  @note This macro is to override the non-inlined version when `ceed-impl.h` is included
+
+  @param[in] ceed `Ceed` context
+
+  @return Boolean value: true  - debugging mode enabled
+                         false - debugging mode disabled
+
+  @ref Backend
+**/
+#define CeedDebugFlag(ceed) (ceed->ceed_env_EnableDebug.value)
 
 struct CeedVector_private {
   CeedObject_private obj;
@@ -210,6 +244,7 @@ struct CeedBasis_private {
   int (*ApplyAddAtPoints)(CeedBasis, CeedInt, const CeedInt *, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   bool               is_tensor_basis; /* flag for tensor basis */
+  bool               is_collocated;   /* flag for collocated basis */
   CeedInt            dim;             /* topological dimension */
   CeedElemTopology   topo;            /* element topology */
   CeedInt            num_comp;        /* number of field components (1 for scalar fields) */
@@ -223,9 +258,19 @@ struct CeedBasis_private {
   CeedScalar        *q_weight_1d;     /* array of length Q1d holding the quadrature weights on the reference element */
   CeedScalar *interp; /* row-major matrix of shape [Q, P] or [dim * Q, P] expressing the values of nodal basis functions or vector basis functions at
                          quadrature points */
-  CeedScalar *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
-  CeedScalar *grad;      /* row-major matrix of shape [dim * Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
-  CeedScalar *grad_1d;   /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *interp_1d;     /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
+  CeedScalar *grad;          /* row-major matrix of shape [dim * Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *grad_1d;       /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar *collo_grad_1d; /* row-major matrix of shape [Q1d, Q1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedSymmetryType interp_1d_symmetry_type;     /* centro-symmetry type of interp_1d */
+  CeedScalar      *interp_1d_even;              /* even half-matrix for interp_1d, shape [(Q1d+1)/2, (P1d+1)/2] */
+  CeedScalar      *interp_1d_odd;               /* odd half-matrix for interp_1d */
+  CeedSymmetryType grad_1d_symmetry_type;       /* centro-symmetry type of grad_1d */
+  CeedScalar      *grad_1d_even;                /* even half-matrix for grad_1d */
+  CeedScalar      *grad_1d_odd;                 /* odd half-matrix for grad_1d */
+  CeedSymmetryType collo_grad_1d_symmetry_type; /* centro-symmetry type of collo_grad_1d  */
+  CeedScalar      *collo_grad_1d_even;          /* even half-matrix for collo_grad_1d */
+  CeedScalar      *collo_grad_1d_odd;           /* odd half-matrix for collo_grad_1d */
   CeedScalar *div; /* row-major matrix of shape [Q, P] expressing the divergence of basis functions at quadrature points for H(div) discretizations */
   CeedScalar *curl; /* row-major matrix of shape [curl_dim * Q, P], curl_dim = 1 if dim < 3 else dim, expressing the curl of basis functions at
                        quadrature points for H(curl) discretizations */
@@ -368,6 +413,7 @@ struct CeedOperator_private {
   int (*ApplyAdd)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyAddComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector, CeedRequest *);
+  int (*SetEnableCudaGraph)(CeedOperator, bool);
   int (*Destroy)(CeedOperator);
   CeedOperatorField        *input_fields;
   CeedOperatorField        *output_fields;
