@@ -2222,7 +2222,7 @@ int CeedOperatorRestoreContextByteRead(CeedOperator op, CeedContextFieldLabel fi
   @ref User
 **/
 int CeedOperatorSetContextCeedInt8(CeedOperator op, CeedContextFieldLabel field_label, CeedInt8 *values) {
-  CeedCall(eedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT8, values));
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT8, values));
   return CEED_ERROR_SUCCESS;
 }
 
