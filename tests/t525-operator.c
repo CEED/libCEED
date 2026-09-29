@@ -10,14 +10,14 @@
 typedef struct {
   int    count;
   double other;
-  double type_mismatch;
+  bool   type_mismatch;
   double num_values_mismatch[2];
 } TestContext1;
 
 typedef struct {
   double time;
   double other;
-  int    type_mismatch;
+  double type_mismatch;
   double num_values_mismatch[3];
 } TestContext2;
 
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(qf_ctx_sub_1, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(TestContext1), &ctx_data_1);
   CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count", offsetof(TestContext1, count), 1, "some sort of counter");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other", offsetof(TestContext1, other), 1, "some other value");
-  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "type mismatch", offsetof(TestContext1, type_mismatch), 1, "double here, int32 on sub 2");
+  CeedQFunctionContextRegisterBoolean(qf_ctx_sub_1, "type mismatch", offsetof(TestContext1, type_mismatch), 1, "bool here, double on sub 2");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "num values mismatch", offsetof(TestContext1, num_values_mismatch), 2,
                                      "2 values here, 3 on sub 2");
 
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "time", offsetof(TestContext2, time), 1, "current time");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "other", offsetof(TestContext2, other), 1, "some other value");
 
-  CeedQFunctionContextRegisterInt32(qf_ctx_sub_2, "type mismatch", offsetof(TestContext2, type_mismatch), 1, "int32 here, double on sub 1");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "type mismatch", offsetof(TestContext2, type_mismatch), 1, "double here, bool on sub 1");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "num values mismatch", offsetof(TestContext2, num_values_mismatch), 3,
                                      "3 values here, 2 on sub 1");
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_sub_2);

@@ -112,6 +112,8 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Rename and move {c:func}`CeedCompositeOperatorGetNumSub` and {c:func}`CeedCompositeOperatorGetSubList` to public interface.
 - Renamed `CEED_BASIS_COLLOCATED` to `CEED_BASIS_NONE` for clarity.
 Some users previously misinterpreted a `CeedOperator` field using `CEED_BASIS_COLLOCATED` as meaning that the entire `CeedOperator` used a quadrature space that is collocated with the nodal space of the active bases.
+- Add support for byte, `CeedInt8`, `CeedInt`, int64, `CeedSize`, `CeedScalar`, and float `CeedContextFieldType` values in addition to the existing double, int32, and bool types.
+- Add `CeedQFunctionContextRegisterCeed*`, `Set*`, `Get*Read`, and `Restore*Read` functions for the supported context field types, together with the corresponding `CeedOperator` context accessors.
 
 ### New features
 

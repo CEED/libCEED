@@ -2032,11 +2032,10 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
 
         CeedCall(CeedQFunctionContextGetFieldLabel(sub_operators[i]->qf->ctx, field_name, &new_field_label_i));
         if (new_field_label_i) {
-          field_found                    = true;
           new_field_label->sub_labels[i] = new_field_label_i;
           new_field_label->name          = new_field_label_i->name;
           new_field_label->description   = new_field_label_i->description;
-          if (new_field_label->type && new_field_label->type != new_field_label_i->type) {
+          if (field_found && new_field_label->type != new_field_label_i->type) {
             CeedContextFieldType type = new_field_label->type;
 
             CeedCall(CeedFree(&new_field_label->sub_labels));
@@ -2056,6 +2055,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           } else {
             new_field_label->num_values = new_field_label_i->num_values;
           }
+          field_found = true;
         }
       }
     }
@@ -2103,7 +2103,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
 }
 
 /**
-  @brief Set `CeedQFunctionContext` field holding double precision values.
+  @brief Set `CeedQFunctionContext` field holding boolean values.
 
   For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
 
@@ -2115,8 +2115,114 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
 
   @ref User
 **/
-int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values) {
-  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, values));
+int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_BOOL, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding boolean values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of boolean values in `values`
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding boolean values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding byte values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextByte(CeedOperator op, CeedContextFieldLabel field_label, char *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_BYTE, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding byte values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextByteRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const char **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_BYTE, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding byte values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextByteRead(CeedOperator op, CeedContextFieldLabel field_label, const char **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_BYTE, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding int8_t values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextCeedInt8(CeedOperator op, CeedContextFieldLabel field_label, CeedInt8 *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT8, values));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2134,8 +2240,8 @@ int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_la
 
   @ref User
 **/
-int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values) {
-  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, num_values, values));
+int CeedOperatorGetContextCeedInt8Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedInt8 **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT8, num_values, values));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2150,8 +2256,61 @@ int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel fiel
 
   @ref User
 **/
-int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values) {
-  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, values));
+int CeedOperatorRestoreContextCeedInt8Read(CeedOperator op, CeedContextFieldLabel field_label, const CeedInt8 **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT8, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding `int` values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextCeedInt(CeedOperator op, CeedContextFieldLabel field_label, CeedInt *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding `int` values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of `int32` values in `values`
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextCeedIntRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedInt **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding `int` values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextCeedIntRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedInt **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT, values));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2209,7 +2368,7 @@ int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel f
 }
 
 /**
-  @brief Set `CeedQFunctionContext` field holding boolean values.
+  @brief Set `CeedQFunctionContext` field holding int64_t values.
 
   For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
 
@@ -2221,43 +2380,255 @@ int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel f
 
   @ref User
 **/
-int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values) {
-  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_BOOL, values));
+int CeedOperatorSetContextInt64(CeedOperator op, CeedContextFieldLabel field_label, int64_t *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT64, values));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get `CeedQFunctionContext` field holding boolean values, read-only.
+  @brief Get `CeedQFunctionContext` field holding int64_t values, read-only.
 
   For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
 
   @param[in]  op          `CeedOperator`
   @param[in]  field_label Label of field to get
-  @param[out] num_values  Number of boolean values in `values`
+  @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values) {
-  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, num_values, values));
+int CeedOperatorGetContextInt64Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int64_t **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT64, num_values, values));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Restore `CeedQFunctionContext` field holding boolean values, read-only.
+  @brief Restore `CeedQFunctionContext` field holding int64_t values, read-only.
 
   @param[in]  op          `CeedOperator`
-  @param[in]  field_label Label of field to get
+  @param[in]  field_label Label of field to restore
   @param[out] values      Pointer to context values
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values) {
-  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, values));
+int CeedOperatorRestoreContextInt64Read(CeedOperator op, CeedContextFieldLabel field_label, const int64_t **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT64, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding CeedSize values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextCeedSize(CeedOperator op, CeedContextFieldLabel field_label, CeedSize *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_SIZE, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding CeedSize values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextCeedSizeRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedSize **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_SIZE, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding double precision values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextCeedSizeRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedSize **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_SIZE, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding scalar values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextCeedScalar(CeedOperator op, CeedContextFieldLabel field_label, CeedScalar *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_SCALAR, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding scalar values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const CeedScalar **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_SCALAR, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding scalar values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextCeedScalarRead(CeedOperator op, CeedContextFieldLabel field_label, const CeedScalar **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_SCALAR, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding float precision values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextFloat(CeedOperator op, CeedContextFieldLabel field_label, float *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_FLOAT, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding float precision values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const float **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_FLOAT, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding float precision values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextFloatRead(CeedOperator op, CeedContextFieldLabel field_label, const float **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_FLOAT, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set `CeedQFunctionContext` field holding double precision values.
+
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
+
+  @param[in,out] op          `CeedOperator`
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values) {
+  CeedCall(CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get `CeedQFunctionContext` field holding double precision values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values) {
+  CeedCall(CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore `CeedQFunctionContext` field holding double precision values, read-only.
+
+  @param[in]  op          `CeedOperator`
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values) {
+  CeedCall(CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, values));
   return CEED_ERROR_SUCCESS;
 }
 
