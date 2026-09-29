@@ -8,17 +8,37 @@
 #include "t500-operator.h"
 
 typedef struct {
-  int    count;
-  double other;
-  bool   type_mismatch;
-  double num_values_mismatch[2];
+  bool       value_bool;
+  char       value_byte;
+  CeedInt8   value_int8;
+  CeedInt    value_int;
+  int32_t    value_int32;
+  int64_t    value_int64;
+  CeedSize   value_size;
+  CeedScalar value_scalar;
+  float      value_float;
+  double     value_double;
+  int32_t    count;
+  double     other;
+  bool       type_mismatch;
+  double     num_values_mismatch[2];
 } TestContext1;
 
 typedef struct {
-  double time;
-  double other;
-  double type_mismatch;
-  double num_values_mismatch[3];
+  bool       value_bool;
+  char       value_byte;
+  CeedInt8   value_int8;
+  CeedInt    value_int;
+  int32_t    value_int32;
+  int64_t    value_int64;
+  CeedSize   value_size;
+  CeedScalar value_scalar;
+  float      value_float;
+  double     value_double;
+  double     time;
+  double     other;
+  double     type_mismatch;
+  double     num_values_mismatch[3];
 } TestContext2;
 
 int main(int argc, char **argv) {
@@ -42,8 +62,18 @@ int main(int argc, char **argv) {
   // First sub-operator
   CeedQFunctionContextCreate(ceed, &qf_ctx_sub_1);
   CeedQFunctionContextSetData(qf_ctx_sub_1, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(TestContext1), &ctx_data_1);
-  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count", offsetof(TestContext1, count), 1, "some sort of counter");
-  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other", offsetof(TestContext1, other), 1, "some other value");
+  CeedQFunctionContextRegisterBoolean(qf_ctx_sub_1, "bool", offsetof(TestContext1, value_bool), 1, "boolean value");
+  CeedQFunctionContextRegisterByte(qf_ctx_sub_1, "byte", offsetof(TestContext1, value_byte), 1, "byte value");
+  CeedQFunctionContextRegisterCeedInt8(qf_ctx_sub_1, "int8", offsetof(TestContext1, value_int8), 1, "8 bit integer value");
+  CeedQFunctionContextRegisterCeedInt(qf_ctx_sub_1, "int", offsetof(TestContext1, value_int), 1, "CeedInt value");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "int32", offsetof(TestContext1, value_int32), 1, "some sort of int32er");
+  CeedQFunctionContextRegisterInt64(qf_ctx_sub_1, "int64", offsetof(TestContext1, value_int64), 1, "64 bit integer value");
+  CeedQFunctionContextRegisterCeedSize(qf_ctx_sub_1, "size", offsetof(TestContext1, value_size), 1, "CeedSize value");
+  CeedQFunctionContextRegisterCeedScalar(qf_ctx_sub_1, "scalar", offsetof(TestContext1, value_scalar), 1, "CeedScalar value");
+  CeedQFunctionContextRegisterFloat(qf_ctx_sub_1, "float", offsetof(TestContext1, value_float), 1, "float value");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "double", offsetof(TestContext1, value_double), 1, "double value");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "count", offsetof(TestContext1, count), 1, "count value");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "other", offsetof(TestContext1, other), 1, "other value");
   CeedQFunctionContextRegisterBoolean(qf_ctx_sub_1, "type mismatch", offsetof(TestContext1, type_mismatch), 1, "bool here, double on sub 2");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_1, "num values mismatch", offsetof(TestContext1, num_values_mismatch), 2,
                                      "2 values here, 3 on sub 2");
@@ -73,7 +103,16 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(qf_ctx_sub_2, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(TestContext2), &ctx_data_2);
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "time", offsetof(TestContext2, time), 1, "current time");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "other", offsetof(TestContext2, other), 1, "some other value");
-
+  CeedQFunctionContextRegisterBoolean(qf_ctx_sub_2, "bool", offsetof(TestContext2, value_bool), 1, "boolean value");
+  CeedQFunctionContextRegisterByte(qf_ctx_sub_2, "byte", offsetof(TestContext2, value_byte), 1, "byte value");
+  CeedQFunctionContextRegisterCeedInt8(qf_ctx_sub_2, "int8", offsetof(TestContext2, value_int8), 1, "8 bit integer value");
+  CeedQFunctionContextRegisterCeedInt(qf_ctx_sub_2, "int", offsetof(TestContext2, value_int), 1, "CeedInt value");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_2, "int32", offsetof(TestContext2, value_int32), 1, "some sort of int32er");
+  CeedQFunctionContextRegisterInt64(qf_ctx_sub_2, "int64", offsetof(TestContext2, value_int64), 1, "64 bit integer value");
+  CeedQFunctionContextRegisterCeedSize(qf_ctx_sub_2, "size", offsetof(TestContext2, value_size), 1, "CeedSize value");
+  CeedQFunctionContextRegisterCeedScalar(qf_ctx_sub_2, "scalar", offsetof(TestContext2, value_scalar), 1, "CeedScalar value");
+  CeedQFunctionContextRegisterFloat(qf_ctx_sub_2, "float", offsetof(TestContext2, value_float), 1, "float value");
+  CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "double", offsetof(TestContext2, value_double), 1, "double value");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "type mismatch", offsetof(TestContext2, type_mismatch), 1, "double here, bool on sub 1");
   CeedQFunctionContextRegisterDouble(qf_ctx_sub_2, "num values mismatch", offsetof(TestContext2, num_values_mismatch), 3,
                                      "3 values here, 2 on sub 1");
@@ -86,6 +125,35 @@ int main(int argc, char **argv) {
   CeedOperatorCreateComposite(ceed, &op_composite);
   CeedOperatorCompositeAddSub(op_composite, op_sub_1);
   CeedOperatorCompositeAddSub(op_composite, op_sub_2);
+
+// Check setting field in context of single sub-operator for composite operator
+#define TEST_TYPE(TYPE, TYPE_CAPS, FIELD_NAME, VALUE_SET, FMT)                                                                             \
+  {                                                                                                                                        \
+    TYPE                  value_set = VALUE_SET;                                                                                           \
+    const TYPE           *value_read;                                                                                                      \
+    CeedContextFieldLabel label;                                                                                                           \
+    size_t                num_values;                                                                                                      \
+                                                                                                                                           \
+    CeedOperatorGetContextFieldLabel(op_composite, #FIELD_NAME, &label);                                                                   \
+    CeedOperatorSetContext##TYPE_CAPS(op_composite, label, &value_set);                                                                    \
+    if (ctx_data_2.value_##FIELD_NAME != VALUE_SET)                                                                                        \
+      printf("Incorrect context data for " #FIELD_NAME ": %" FMT " != %" FMT "\n", ctx_data_2.value_##FIELD_NAME, VALUE_SET);              \
+                                                                                                                                           \
+    CeedOperatorGetContext##TYPE_CAPS##Read(op_composite, label, &num_values, &value_read);                                                \
+    if (num_values != 1) printf("Incorrect number of " #FIELD_NAME "values, found %zu but expected 1\n", num_values);                      \
+    if (value_read[0] != VALUE_SET) printf("Incorrect value found for " #FIELD_NAME ": %" FMT " != %" FMT "\n", value_read[0], VALUE_SET); \
+    CeedOperatorRestoreContext##TYPE_CAPS##Read(op_composite, label, &value_read);                                                         \
+  }
+
+  TEST_TYPE(bool, Boolean, bool, true, "d");
+  TEST_TYPE(char, Byte, byte, 7, "u");
+  TEST_TYPE(CeedInt8, CeedInt8, int8, -3, CeedInt8_FMT);
+  TEST_TYPE(CeedInt, CeedInt, int, 74, CeedInt_FMT);
+  TEST_TYPE(int32_t, Int32, int32, 111023, "d");
+  TEST_TYPE(int64_t, Int64, int64, 0x1FFFFFFFF, "ld");
+  TEST_TYPE(CeedScalar, CeedScalar, scalar, 1.1254e3f, "g");
+  TEST_TYPE(float, Float, float, 4.22e-6f, "g");
+  TEST_TYPE(double, Double, double, 5.66e21, "g");
 
   // Check setting field in context of single sub-operator for composite operator
   CeedOperatorGetContextFieldLabel(op_composite, "time", &time_label);
