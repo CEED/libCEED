@@ -13,9 +13,9 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+- Add `CeedOperatorApply` for `/cpu/self/opt/*` backends, including composite operators, that writes the output on first touch instead of zeroing it first.
 - Add `/gpu/cuda/cublas` and `/gpu/cuda/cublas/det` backends for computing non-tensor basis operations with cuBLAS GEMM.
 - Add `/gpu/hip/hipblas` and `/gpu/hip/hipblas/det` backends for computing non-tensor basis operations with hipBLAS GEMM.
-- Add `CeedOperatorApply` for `/cpu/self/opt/*` backends that writes the output on first touch instead of zeroing it first.
 
 ### Examples
 

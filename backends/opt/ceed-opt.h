@@ -36,7 +36,8 @@ typedef struct {
   bool                 use_first_touch;
   uint8_t             *first_touch; /* Lanes with the first contribution, for each block node */
   CeedSize             num_untouched;
-  CeedSize            *untouched; /* Output entries without contributions */
+  CeedSize            *untouched;       /* Output entries without contributions */
+  uint8_t            **sub_first_touch; /* Lanes with the first contribution for each suboperator, for composite operators */
 } CeedOperator_Opt;
 
 CEED_INTERN int CeedTensorContractCreate_Opt(CeedTensorContract contract);
