@@ -10,6 +10,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "ceed-opt.h"
 
@@ -617,12 +620,18 @@ static int CeedOperatorApplyFirstTouch_Opt(CeedInt num_ops, CeedOperator *ops, u
 // Operator Apply
 //------------------------------------------------------------------------------
 static int CeedOperatorApply_Opt(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
-  bool              is_first_touch;
+  bool              is_first_touch = true;
   CeedOperator_Opt *impl;
 
-  CeedCallBackend(CeedOperatorSetup_Opt(op));
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-  is_first_touch = impl->use_first_touch;
+#ifdef _OPENMP
+  // Threads in a parallel region may share the output memory, so they keep the zero and ApplyAdd path
+  is_first_touch = !omp_in_parallel();
+#endif
+  if (is_first_touch) {
+    CeedCallBackend(CeedOperatorSetup_Opt(op));
+    CeedCallBackend(CeedOperatorGetData(op, &impl));
+    is_first_touch = impl->use_first_touch;
+  }
   // Output vectors longer than the L-vector also need their tail zeroed
   if (is_first_touch) {
     CeedSize out_size, l_size;
@@ -705,14 +714,20 @@ static int CeedOperatorSetupFirstTouchComposite_Opt(CeedOperator op, CeedOperato
 // Composite Operator Apply
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyComposite_Opt(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
-  bool              is_first_touch;
+  bool              is_first_touch = true;
   CeedInt           num_sub;
   CeedOperator     *sub_ops;
   CeedOperator_Opt *impl;
 
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedCallBackend(CeedOperatorSetupFirstTouchComposite_Opt(op, impl));
-  is_first_touch = impl->use_first_touch;
+#ifdef _OPENMP
+  // Threads in a parallel region may share the output memory, so they keep the zero and ApplyAdd path
+  is_first_touch = !omp_in_parallel();
+#endif
+  if (is_first_touch) {
+    CeedCallBackend(CeedOperatorGetData(op, &impl));
+    CeedCallBackend(CeedOperatorSetupFirstTouchComposite_Opt(op, impl));
+    is_first_touch = impl->use_first_touch;
+  }
   // Output vectors longer than the L-vector also need their tail zeroed
   if (is_first_touch) {
     CeedSize out_size, l_size;
