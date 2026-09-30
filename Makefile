@@ -31,6 +31,8 @@ quiet ?= $($(1))
 
 .PRECIOUS: %/.DIR
 
+XDG_CACHE_HOME      ?= $(HOME)/.cache
+CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
 DARWIN := $(filter Darwin,$(shell uname -s))
 
@@ -466,24 +468,26 @@ info:
 	$(info -----------------------------------------)
 	$(info )
 	$(info Compiler Flags:)
-	$(info CC            = $(CC))
-	$(info CXX           = $(CXX))
-	$(info FC            = $(FC))
-	$(info CPPFLAGS      = $(CPPFLAGS))
-	$(info CFLAGS        = $(CFLAGS))
-	$(info CXXFLAGS      = $(CXXFLAGS))
-	$(info FFLAGS        = $(FFLAGS))
-	$(info NVCCFLAGS     = $(NVCCFLAGS))
-	$(info HIPCCFLAGS    = $(HIPCCFLAGS))
-	$(info SYCLFLAGS     = $(SYCLFLAGS))
-	$(info CEED_LDFLAGS  = $(CEED_LDFLAGS))
-	$(info CEED_LDLIBS   = $(CEED_LDLIBS))
-	$(info AR            = $(AR))
-	$(info ARFLAGS       = $(ARFLAGS))
-	$(info OPT           = $(OPT))
-	$(info AFLAGS        = $(AFLAGS))
-	$(info ASAN          = $(or $(ASAN),(empty)))
-	$(info VERBOSE       = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
+	$(info Compiler Flags:)
+	$(info CC                  = $(CC))
+	$(info CXX                 = $(CXX))
+	$(info FC                  = $(FC))
+	$(info CPPFLAGS            = $(CPPFLAGS))
+	$(info CFLAGS              = $(CFLAGS))
+	$(info CXXFLAGS            = $(CXXFLAGS))
+	$(info FFLAGS              = $(FFLAGS))
+	$(info NVCCFLAGS           = $(NVCCFLAGS))
+	$(info HIPCCFLAGS          = $(HIPCCFLAGS))
+	$(info SYCLFLAGS           = $(SYCLFLAGS))
+	$(info CEED_LDFLAGS        = $(CEED_LDFLAGS))
+	$(info CEED_LDLIBS         = $(CEED_LDLIBS))
+	$(info AR                  = $(AR))
+	$(info ARFLAGS             = $(ARFLAGS))
+	$(info OPT                 = $(OPT))
+	$(info CEED_CACHE_BASE_DIR = $(CEED_CACHE_BASE_DIR))
+	$(info AFLAGS              = $(AFLAGS))
+	$(info ASAN                = $(or $(ASAN),(empty)))
+	$(info VERBOSE             = $(or $(V),(empty)) [verbose=$(if $(V),on,off)])
 	$(info )
 	$(info -----------------------------------------)
 	$(info )
@@ -1042,10 +1046,6 @@ cln clean :
 
 distclean : clean clean-cache
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
-
-
-XDG_CACHE_HOME ?= $(HOME)/.cache
-CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
 clean-cache:
 	rm -rf $(CEED_CACHE_BASE_DIR)/libCEED
