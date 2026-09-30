@@ -275,6 +275,7 @@ CEED_EXTERN int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction 
 CEED_EXTERN int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize e_size);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data);
+CEED_EXTERN int CeedElemRestrictionGetBlockedElemRestriction(CeedElemRestriction rstr, CeedInt block_size, CeedElemRestriction *rstr_blocked);
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);
 CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops);
 
