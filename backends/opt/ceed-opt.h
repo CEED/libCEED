@@ -34,7 +34,9 @@ typedef struct {
   CeedVector           qf_l_vec;
   CeedElemRestriction  qf_block_rstr;
   bool                 use_first_touch;
-  uint64_t            *touched; /* Bitmap of output entries written so far by first touch Apply */
+  uint8_t             *first_touch; /* Lanes with the first contribution, for each block node */
+  CeedSize             num_untouched;
+  CeedSize            *untouched; /* Output entries without contributions */
 } CeedOperator_Opt;
 
 CEED_INTERN int CeedTensorContractCreate_Opt(CeedTensorContract contract);
