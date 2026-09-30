@@ -148,10 +148,14 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
 // Setup First Touch Output
 //------------------------------------------------------------------------------
 static int CeedOperatorSetupFirstTouch_Opt(CeedOperator op, CeedOperator_Opt *impl) {
-  bool                is_active;
+  bool                is_active, is_exact = true;
+  uint8_t            *marks;
   CeedSize            l_size;
+  CeedInt             num_elem, elem_size, num_comp, comp_stride, block_size, num_blocks;
+  const CeedInt      *offsets;
   CeedRestrictionType rstr_type;
   CeedVector          vec;
+  CeedElemRestriction block_rstr;
   CeedOperatorField  *op_output_fields;
 
   // Single active output with standard restriction
@@ -161,11 +165,53 @@ static int CeedOperatorSetupFirstTouch_Opt(CeedOperator op, CeedOperator_Opt *im
   is_active = vec == CEED_VECTOR_ACTIVE;
   CeedCallBackend(CeedVectorDestroy(&vec));
   if (!is_active) return CEED_ERROR_SUCCESS;
-  CeedCallBackend(CeedElemRestrictionGetType(impl->block_rstr[impl->num_inputs], &rstr_type));
+  block_rstr = impl->block_rstr[impl->num_inputs];
+  CeedCallBackend(CeedElemRestrictionGetType(block_rstr, &rstr_type));
   if (rstr_type != CEED_RESTRICTION_STANDARD) return CEED_ERROR_SUCCESS;
-  CeedCallBackend(CeedElemRestrictionGetLVectorSize(impl->block_rstr[impl->num_inputs], &l_size));
-  CeedCallBackend(CeedCalloc((l_size + 63) / 64, &impl->touched));
-  impl->use_first_touch = true;
+  CeedCallBackend(CeedElemRestrictionGetNumElements(block_rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(block_rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(block_rstr, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetCompStride(block_rstr, &comp_stride));
+  CeedCallBackend(CeedElemRestrictionGetBlockSize(block_rstr, &block_size));
+  CeedCallBackend(CeedElemRestrictionGetNumBlocks(block_rstr, &num_blocks));
+  CeedCallBackend(CeedElemRestrictionGetLVectorSize(block_rstr, &l_size));
+
+  // Find the first contribution to each entry, in transpose restriction order
+  // Bit 0 marks offsets seen, bit 1 marks entries touched
+  CeedCallBackend(CeedCalloc(l_size, &marks));
+  CeedCallBackend(CeedCalloc((CeedSize)num_blocks * elem_size, &impl->first_touch));
+  CeedCallBackend(CeedElemRestrictionGetOffsets(block_rstr, CEED_MEM_HOST, &offsets));
+  for (CeedSize b = 0; b < num_blocks && is_exact; b++) {
+    for (CeedSize n = 0; n < elem_size && is_exact; n++) {
+      for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - b * block_size) && is_exact; j++) {
+        const CeedInt offset = offsets[(b * elem_size + n) * block_size + j];
+
+        if (marks[offset] & 1) continue;
+        marks[offset] |= 1;
+        // One bit per lane, opt block sizes are 1 and 8
+        impl->first_touch[b * elem_size + n] |= 1 << j;
+        // Entries reached from two offsets keep the zero and add path
+        for (CeedSize k = 0; k < num_comp && is_exact; k++) {
+          is_exact = !(marks[offset + k * comp_stride] & 2);
+          marks[offset + k * comp_stride] |= 2;
+        }
+      }
+    }
+  }
+  CeedCallBackend(CeedElemRestrictionRestoreOffsets(block_rstr, &offsets));
+
+  // Entries without contributions, zeroed by Apply
+  if (is_exact) {
+    for (CeedSize i = 0; i < l_size; i++) impl->num_untouched += !(marks[i] & 2);
+    CeedCallBackend(CeedCalloc(impl->num_untouched, &impl->untouched));
+    for (CeedSize i = 0, j = 0; i < l_size; i++) {
+      if (!(marks[i] & 2)) impl->untouched[j++] = i;
+    }
+  } else {
+    CeedCallBackend(CeedFree(&impl->first_touch));
+  }
+  impl->use_first_touch = is_exact;
+  CeedCallBackend(CeedFree(&marks));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -347,7 +393,6 @@ static inline int CeedOperatorOutputRestrictFirstTouch_Opt(CeedInt e, CeedInt bl
                                                            CeedOperator_Opt *impl, CeedRequest *request) {
   CeedInt             num_elem, elem_size, num_comp, comp_stride;
   const CeedScalar   *e_array;
-  uint64_t           *touched    = impl->touched;
   CeedElemRestriction block_rstr = impl->block_rstr[impl->num_inputs];
 
   CeedCallBackend(CeedElemRestrictionGetNumElements(block_rstr, &num_elem));
@@ -360,14 +405,13 @@ static inline int CeedOperatorOutputRestrictFirstTouch_Opt(CeedInt e, CeedInt bl
   // Transpose restriction order, with the first contribution to each entry overwriting it
   for (CeedSize k = 0; k < num_comp; k++) {
     for (CeedInt n = 0; n < elem_size; n++) {
-      for (CeedInt j = 0; j < num_lanes; j++) {
-        const CeedSize ind      = offsets[(CeedSize)e * elem_size + n * block_size + j] + k * comp_stride;
-        const uint64_t bit      = (uint64_t)1 << (ind % 64);
-        const bool     is_first = !(touched[ind / 64] & bit);
+      const uint8_t first_touch = impl->first_touch[(CeedSize)(e / block_size) * elem_size + n];
 
-        if (is_first) touched[ind / 64] |= bit;
+      for (CeedInt j = 0; j < num_lanes; j++) {
+        const CeedSize ind = offsets[(CeedSize)e * elem_size + n * block_size + j] + k * comp_stride;
+
         // 0.0 + e_array gives the same +0.0 as zeroing and adding when e_array is -0.0
-        out_array[ind] = (is_first ? (CeedScalar)0.0 : out_array[ind]) + e_array[(k * elem_size + n) * block_size + j];
+        out_array[ind] = ((first_touch >> j) & 1 ? (CeedScalar)0.0 : out_array[ind]) + e_array[(k * elem_size + n) * block_size + j];
       }
     }
   }
@@ -506,14 +550,11 @@ static inline int CeedOperatorApplyCore_Opt(CeedOperator op, CeedVector in_vec, 
     }
   }
 
-  // First touch output
+  // First touch output, zero entries without contributions
   if (is_first_touch) {
-    CeedSize l_size;
-
     CeedCallBackend(CeedVectorGetArrayWrite(out_vec, CEED_MEM_HOST, &out_array));
     CeedCallBackend(CeedElemRestrictionGetOffsets(impl->block_rstr[num_input_fields], CEED_MEM_HOST, &out_offsets));
-    CeedCallBackend(CeedElemRestrictionGetLVectorSize(impl->block_rstr[num_input_fields], &l_size));
-    memset(impl->touched, 0, (l_size + 63) / 64 * sizeof(uint64_t));
+    for (CeedSize i = 0; i < impl->num_untouched; i++) out_array[impl->untouched[i]] = 0.0;
   }
 
   // Loop through elements
@@ -532,17 +573,8 @@ static inline int CeedOperatorApplyCore_Opt(CeedOperator op, CeedVector in_vec, 
                                                 impl->apply_add_basis_out, impl->skip_rstr_out, op, out_vec, out_offsets, out_array, impl, request));
   }
 
-  // Zero entries without contributions, restore output and input arrays
+  // Restore output and input arrays
   if (is_first_touch) {
-    CeedSize l_size;
-
-    CeedCallBackend(CeedElemRestrictionGetLVectorSize(impl->block_rstr[num_input_fields], &l_size));
-    for (CeedSize w = 0; w < (l_size + 63) / 64; w++) {
-      if (impl->touched[w] == UINT64_MAX) continue;
-      for (CeedSize i = 64 * w; i < 64 * (w + 1) && i < l_size; i++) {
-        if (!(impl->touched[w] & ((uint64_t)1 << (i % 64)))) out_array[i] = 0.0;
-      }
-    }
     CeedCallBackend(CeedElemRestrictionRestoreOffsets(impl->block_rstr[num_input_fields], &out_offsets));
     CeedCallBackend(CeedVectorRestoreArray(out_vec, &out_array));
   }
@@ -843,7 +875,8 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
   CeedCallBackend(CeedFree(&impl->skip_rstr_in));
   CeedCallBackend(CeedFree(&impl->skip_rstr_out));
   CeedCallBackend(CeedFree(&impl->apply_add_basis_out));
-  CeedCallBackend(CeedFree(&impl->touched));
+  CeedCallBackend(CeedFree(&impl->first_touch));
+  CeedCallBackend(CeedFree(&impl->untouched));
 
   for (CeedInt i = 0; i < impl->num_inputs; i++) {
     CeedCallBackend(CeedVectorDestroy(&impl->e_vecs_in[i]));
