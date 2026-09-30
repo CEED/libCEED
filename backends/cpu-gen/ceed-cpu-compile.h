@@ -8,18 +8,11 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/cpu-gen/cpu-gen-types.h>
 
 #include <dlfcn.h>
 
-#define CeedRunFunction_Cpu(ceed, handle, name, function, ...)                 \
-  do {                                                                         \
-    *(void **)(&op_function) = (void *)dlsym(handle, name);                    \
-    if (function == NULL) {                                                    \
-      return CeedError((ceed), CEED_ERROR_BACKEND, "Failed to load function"); \
-    }                                                                          \
-    CeedCallBackend((*function)(__VA_ARGS__));                                 \
-  } while (0)
-
-CEED_INTERN int CeedCompile_Cpu(Ceed ceed, const char *source, const char *name, void **handle, const CeedInt num_defines, ...);
-CEED_INTERN int CeedTryCompile_Cpu(Ceed ceed, const char *source, const char *name, bool *is_compile_good, void **handle, const CeedInt num_defines,
-                                   ...);
+CEED_INTERN int CeedCompile_Cpu(Ceed ceed, const char *source, const char *name, void **handle, CeedOperatorFunction_Cpu_Gen *function,
+                                const CeedInt num_defines, ...);
+CEED_INTERN int CeedTryCompile_Cpu(Ceed ceed, const char *source, const char *name, bool *is_compile_good, void **handle,
+                                   CeedOperatorFunction_Cpu_Gen *function, const CeedInt num_defines, ...);

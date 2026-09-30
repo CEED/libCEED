@@ -94,7 +94,7 @@ using std::ofstream;
 using std::ostringstream;
 
 static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char *name, const bool throw_error, bool *is_compile_good, void **handle,
-                                      const CeedInt num_defines, va_list args) {
+                                      CeedOperatorFunction_Cpu_Gen *function, const CeedInt num_defines, va_list args) {
   const char       **opts;
   int                num_opts;
   std::ostringstream code;
@@ -275,17 +275,15 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     }
 
     // Load function from object file
-    CeedDebug(ceed, (std::string("Loading object file: ") + filename_so).c_str());
+    CeedDebug(ceed, "Loading object file: %s", filename_so.c_str());
     *handle = dlopen((filename_so).c_str(), RTLD_NOW | RTLD_LOCAL);
     if (*handle == NULL) CeedDebug(ceed, "Error loading object file: %s", dlerror());
     *is_compile_good = *handle != NULL;
 
     // Check load
     if (*is_compile_good) {
-      void *function;
-
-      CeedDebug(ceed, (std::string("Loading function: ") + name).c_str());
-      function = (void *)dlsym(*handle, name);
+      CeedDebug(ceed, "Loading function: %s", name);
+      *function = (CeedOperatorFunction_Cpu_Gen)dlsym(*handle, name);
       if (function == NULL) CeedDebug(ceed, "Error loading function: %s", dlerror());
       *is_compile_good = function != NULL;
     }
@@ -310,23 +308,25 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedCompile_Cpu(Ceed ceed, const char *source, const char *name, void **handle, const CeedInt num_defines, ...) {
+int CeedCompile_Cpu(Ceed ceed, const char *source, const char *name, void **handle, CeedOperatorFunction_Cpu_Gen *function, const CeedInt num_defines,
+                    ...) {
   bool    is_compile_good = true;
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Cpu(ceed, source, name, true, &is_compile_good, handle, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Cpu(ceed, source, name, true, &is_compile_good, handle, function, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedTryCompile_Cpu(Ceed ceed, const char *source, const char *name, bool *is_compile_good, void **handle, const CeedInt num_defines, ...) {
+int CeedTryCompile_Cpu(Ceed ceed, const char *source, const char *name, bool *is_compile_good, void **handle, CeedOperatorFunction_Cpu_Gen *function,
+                       const CeedInt num_defines, ...) {
   va_list args;
 
   va_start(args, num_defines);
-  const CeedInt ierr = CeedCompileCore_Cpu(ceed, source, name, false, is_compile_good, handle, num_defines, args);
+  const CeedInt ierr = CeedCompileCore_Cpu(ceed, source, name, false, is_compile_good, handle, function, num_defines, args);
 
   va_end(args);
   CeedCallBackend(ierr);

@@ -1057,18 +1057,8 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
 
   // Compile
-  {
-    bool is_compile_good = false;
-
-    CeedCallBackend(CeedTryCompile_Cpu(ceed, code.str().c_str(), operator_name.c_str(), &is_compile_good, &data->handle, 0));
-    if (is_compile_good) {
-      *is_good_build = true;
-      CeedCallBackend(CeedStringAllocCopy(operator_name.c_str(), &data->op_function_name));
-    } else {
-      *is_good_build     = false;
-      data->use_fallback = true;
-    }
-  }
+  CeedCallBackend(CeedTryCompile_Cpu(ceed, code.str().c_str(), operator_name.c_str(), is_good_build, &data->handle, &data->function, 0));
+  if (!*is_good_build) data->use_fallback = true;
 
   // Cleanup
   CeedCallBackend(CeedOperatorSetSetupDone(op));
