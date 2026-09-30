@@ -1,6 +1,6 @@
 /// @file
-/// Test CeedOperatorApply for a composite operator overwrites the output, including entries shared by suboperators and entries no element contributes to
-/// \test Test CeedOperatorApply for a composite operator overwrites the output, including entries shared by suboperators and entries no element contributes to
+/// Test CeedOperatorApply for a composite operator overwrites the output, including entries shared by suboperators of different element sizes and entries no element contributes to
+/// \test Test CeedOperatorApply for a composite operator overwrites the output, including entries shared by suboperators of different element sizes and entries no element contributes to
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -11,13 +11,13 @@
 int main(int argc, char **argv) {
   Ceed                ceed;
   CeedElemRestriction elem_restriction_x[2], elem_restriction_u[2], elem_restriction_q_data[2];
-  CeedBasis           basis_x, basis_u;
+  CeedBasis           basis_x, basis_u[2];
   CeedQFunction       qf_setup, qf_mass;
   CeedOperator        op_setup[2], op_mass[2], op_composite;
   CeedVector          q_data[2], x, u, v;
-  CeedInt             num_elem = 15, p = 5, q = 8;
-  CeedInt             num_elem_part[2] = {7, num_elem - 7}, first_elem_part[2] = {0, 7};
-  CeedInt             num_nodes_x = num_elem + 1, num_nodes_u = num_elem * (p - 1) + 1;
+  CeedInt             num_elem = 15, q = 8;
+  CeedInt             num_elem_part[2] = {7, num_elem - 7}, first_elem_part[2] = {0, 7}, p_part[2] = {5, 3}, first_node_part[2] = {0, 7 * (5 - 1)};
+  CeedInt             num_nodes_x = num_elem + 1, num_nodes_u = 7 * (5 - 1) + (num_elem - 7) * (3 - 1) + 1;
 
   CeedInit(argv[1], &ceed);
 
@@ -32,7 +32,8 @@ int main(int argc, char **argv) {
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, q, CEED_GAUSS, &basis_x);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p, q, CEED_GAUSS, &basis_u);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p_part[0], q, CEED_GAUSS, &basis_u[0]);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p_part[1], q, CEED_GAUSS, &basis_u[1]);
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
@@ -45,10 +46,10 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
-  // Suboperators on the two parts of the mesh, which share the node between them
+  // Suboperators of different orders on the two parts of the mesh, which share the node between them
   CeedOperatorCreateComposite(ceed, &op_composite);
   for (CeedInt part = 0; part < 2; part++) {
-    const CeedInt num_elem_p = num_elem_part[part], first_elem = first_elem_part[part];
+    const CeedInt num_elem_p = num_elem_part[part], first_elem = first_elem_part[part], p = p_part[part];
     CeedInt       ind_x[num_elem_p * 2], ind_u[num_elem_p * p];
 
     // Restrictions
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
 
     for (CeedInt i = 0; i < num_elem_p; i++) {
       for (CeedInt j = 0; j < p; j++) {
-        ind_u[p * i + j] = (first_elem + i) * (p - 1) + j;
+        ind_u[p * i + j] = first_node_part[part] + i * (p - 1) + j;
       }
     }
     // Last L-vector entry has no element contributions
@@ -79,8 +80,8 @@ int main(int argc, char **argv) {
 
     CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass[part]);
     CeedOperatorSetField(op_mass[part], "rho", elem_restriction_q_data[part], CEED_BASIS_NONE, q_data[part]);
-    CeedOperatorSetField(op_mass[part], "u", elem_restriction_u[part], basis_u, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_mass[part], "v", elem_restriction_u[part], basis_u, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_mass[part], "u", elem_restriction_u[part], basis_u[part], CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_mass[part], "v", elem_restriction_u[part], basis_u[part], CEED_VECTOR_ACTIVE);
     CeedOperatorCompositeAddSub(op_composite, op_mass[part]);
   }
 
@@ -113,7 +114,8 @@ int main(int argc, char **argv) {
     CeedOperatorDestroy(&op_mass[part]);
   }
   CeedBasisDestroy(&basis_x);
-  CeedBasisDestroy(&basis_u);
+  CeedBasisDestroy(&basis_u[0]);
+  CeedBasisDestroy(&basis_u[1]);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_composite);
