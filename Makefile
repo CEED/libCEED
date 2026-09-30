@@ -31,6 +31,8 @@ quiet ?= $($(1))
 
 .PRECIOUS: %/.DIR
 
+XDG_CACHE_HOME      ?= $(HOME)/.cache
+CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
 DARWIN := $(filter Darwin,$(shell uname -s))
 
@@ -1044,10 +1046,6 @@ cln clean :
 
 distclean : clean clean-cache
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
-
-
-XDG_CACHE_HOME ?= $(HOME)/.cache
-CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
 clean-cache:
 	rm -rf $(CEED_CACHE_BASE_DIR)/libCEED
