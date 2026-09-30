@@ -523,7 +523,9 @@ CEED_QFUNCTION(Advection_InOutFlowGeneric)(void *ctx, CeedInt Q, const CeedScala
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
 
-    CeedScalar wdetJb, norm[3];
+    CeedScalar wdetJb = 0.;
+    CeedScalar norm[3];
+
     QdataBoundaryUnpack_ND(dim, Q, i, q_data_sur, &wdetJb, NULL, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
