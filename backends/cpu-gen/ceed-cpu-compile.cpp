@@ -140,7 +140,9 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       CeedCall(CeedStringAllocCopy(CeedJitCxxDefault, &ceed_data->cxx));
       cxx = ceed_data->cxx;
     } else {
+      // LCOV_EXCL_START
       CeedDebug(ceed, "Could not invoke default JiT compiler\n");
+      // LCOV_EXCL_STOP
     }
   }
   // Fail early if compiler doesn't work
