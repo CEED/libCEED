@@ -48,67 +48,10 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {
-      Ceed                ceed_rstr;
-      CeedSize            l_size;
-      CeedInt             num_elem, elem_size, comp_stride;
-      CeedRestrictionType rstr_type;
       CeedElemRestriction rstr;
 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr));
-      CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed_rstr));
-      CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-      CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
-      CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
-      CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
-      CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
-
-      CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
-      switch (rstr_type) {
-        case CEED_RESTRICTION_STANDARD: {
-          const CeedInt *offsets = NULL;
-
-          CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-          CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed_rstr, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
-                                                           CEED_COPY_VALUES, offsets, &block_rstr[i + start_e]));
-          CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-        } break;
-        case CEED_RESTRICTION_ORIENTED: {
-          const bool    *orients = NULL;
-          const CeedInt *offsets = NULL;
-
-          CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-          CeedCallBackend(CeedElemRestrictionGetOrientations(rstr, CEED_MEM_HOST, &orients));
-          CeedCallBackend(CeedElemRestrictionCreateBlockedOriented(ceed_rstr, num_elem, elem_size, block_size, num_comp, comp_stride, l_size,
-                                                                   CEED_MEM_HOST, CEED_COPY_VALUES, offsets, orients, &block_rstr[i + start_e]));
-          CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-          CeedCallBackend(CeedElemRestrictionRestoreOrientations(rstr, &orients));
-        } break;
-        case CEED_RESTRICTION_CURL_ORIENTED: {
-          const CeedInt8 *curl_orients = NULL;
-          const CeedInt  *offsets      = NULL;
-
-          CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-          CeedCallBackend(CeedElemRestrictionGetCurlOrientations(rstr, CEED_MEM_HOST, &curl_orients));
-          CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed_rstr, num_elem, elem_size, block_size, num_comp, comp_stride, l_size,
-                                                                       CEED_MEM_HOST, CEED_COPY_VALUES, offsets, curl_orients,
-                                                                       &block_rstr[i + start_e]));
-          CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-          CeedCallBackend(CeedElemRestrictionRestoreCurlOrientations(rstr, &curl_orients));
-        } break;
-        case CEED_RESTRICTION_STRIDED: {
-          CeedInt strides[3];
-
-          CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
-          CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, block_size, num_comp, l_size, strides,
-                                                                  &block_rstr[i + start_e]));
-        } break;
-        // LCOV_EXCL_START
-        case CEED_RESTRICTION_POINTS:
-          // Empty case - won't occur
-          break;
-          // LCOV_EXCL_STOP
-      }
-      CeedCallBackend(CeedDestroy(&ceed_rstr));
+      CeedCallBackend(CeedElemRestrictionGetBlockedElemRestriction(rstr, block_size, &block_rstr[i + start_e]));
       CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
       CeedCallBackend(CeedElemRestrictionCreateVector(block_rstr[i + start_e], NULL, &e_vecs_full[i + start_e]));
     }

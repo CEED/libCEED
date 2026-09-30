@@ -222,7 +222,7 @@ struct CeedElemRestriction_private {
   CeedInt  elem_size;   /* number of nodes per element */
   CeedInt  num_points;  /* number of points, for points restriction */
   CeedInt  num_comp;    /* number of components */
-  CeedInt  comp_stride; /* Component stride for L-vector ordering */
+  CeedInt  comp_stride; /* component stride for L-vector ordering */
   CeedSize l_size;      /* size of the L-vector, can be used for checking for correct vector sizes */
   CeedSize e_size;      /* minimum size of the E-vector, can be used for checking for correct vector sizes */
   CeedInt  block_size;  /* number of elements in a batch */
@@ -231,9 +231,10 @@ struct CeedElemRestriction_private {
   CeedInt  l_layout[3]; /* L-vector layout [nodes, components, elements] */
   CeedInt  e_layout[3]; /* E-vector layout [nodes, components, elements] */
   CeedRestrictionType
-           rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
-  uint64_t num_readers; /* number of instances of offset read only access */
-  void    *data;        /* place for the backend to store any data */
+      rstr_type; /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
+  CeedElemRestriction rstr_blocked; /* blocked element restriction matching this elem restriction */
+  uint64_t            num_readers;  /* number of instances of offset read only access */
+  void               *data;         /* place for the backend to store any data */
 };
 
 struct CeedBasis_private {

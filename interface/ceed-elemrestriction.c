@@ -551,6 +551,109 @@ int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data) {
 }
 
 /**
+  @brief Get a blocked `CeedElemRestriction` corresponding to the input `CeedElemRestriction`.
+
+  Both pointers should be destroyed with @ref CeedElemRestrictionDestroy().
+
+  @param[in]  rstr         `CeedElemRestriction` to create blocked `CeedElemRestriction` for
+  @param[in]  block_size   Number of elements in a block
+  @param[out] rstr_blocked Variable to store unsigned `CeedElemRestriction`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetBlockedElemRestriction(CeedElemRestriction rstr, CeedInt block_size, CeedElemRestriction *rstr_blocked) {
+  *rstr_blocked = NULL;
+
+  // Return self if block sizes match
+  if (block_size == rstr->block_size) {
+    CeedCall(CeedElemRestrictionReferenceCopy(rstr, rstr_blocked));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Recycle old one if set
+  if (rstr->rstr_blocked) {
+    if (block_size == rstr->rstr_blocked->block_size) {
+      CeedCall(CeedElemRestrictionReferenceCopy(rstr->rstr_blocked, rstr_blocked));
+      return CEED_ERROR_SUCCESS;
+    }
+    // Block sizes don't match, so destroy the cached one
+    CeedCall(CeedElemRestrictionDestroy(&rstr->rstr_blocked));
+  }
+
+  // Build the blocked restriction
+  {
+    Ceed                ceed;
+    CeedSize            l_size;
+    CeedInt             num_elem, elem_size, comp_stride, num_comp;
+    CeedRestrictionType rstr_type;
+
+    CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+
+    // Just return the same one if it is AtPoints
+    if (rstr_type == CEED_RESTRICTION_POINTS) {
+      CeedCall(CeedElemRestrictionReferenceCopy(rstr, rstr_blocked));
+      return CEED_ERROR_SUCCESS;
+    }
+
+    CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+    CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+    CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STANDARD: {
+        const CeedInt *offsets = NULL;
+
+        CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+        CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
+                                                         CEED_COPY_VALUES, offsets, &rstr->rstr_blocked));
+        CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+      } break;
+      case CEED_RESTRICTION_ORIENTED: {
+        const bool    *orients = NULL;
+        const CeedInt *offsets = NULL;
+
+        CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+        CeedCallBackend(CeedElemRestrictionGetOrientations(rstr, CEED_MEM_HOST, &orients));
+        CeedCallBackend(CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
+                                                                 CEED_COPY_VALUES, offsets, orients, &rstr->rstr_blocked));
+        CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+        CeedCallBackend(CeedElemRestrictionRestoreOrientations(rstr, &orients));
+      } break;
+      case CEED_RESTRICTION_CURL_ORIENTED: {
+        const CeedInt8 *curl_orients = NULL;
+        const CeedInt  *offsets      = NULL;
+
+        CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+        CeedCallBackend(CeedElemRestrictionGetCurlOrientations(rstr, CEED_MEM_HOST, &curl_orients));
+        CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size,
+                                                                     CEED_MEM_HOST, CEED_COPY_VALUES, offsets, curl_orients, &rstr->rstr_blocked));
+        CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+        CeedCallBackend(CeedElemRestrictionRestoreCurlOrientations(rstr, &curl_orients));
+      } break;
+      case CEED_RESTRICTION_STRIDED: {
+        CeedInt strides[3];
+
+        CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
+        CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, block_size, num_comp, l_size, strides,
+                                                                &rstr->rstr_blocked));
+      } break;
+      // LCOV_EXCL_START
+      case CEED_RESTRICTION_POINTS:
+        // Handled above
+        break;
+        // LCOV_EXCL_STOP
+    }
+    CeedCallBackend(CeedDestroy(&ceed));
+  }
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr->rstr_blocked, rstr_blocked));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Increment the reference counter for a `CeedElemRestriction`
 
   @param[in,out] rstr `CeedElemRestriction` to increment the reference counter
@@ -1214,6 +1317,7 @@ int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRest
     for (CeedInt i = 0; i < 3; i++) (*rstr_unsigned)->strides[i] = rstr->strides[i];
   }
   CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_base));
+  (*rstr_unsigned)->rstr_blocked = NULL;
 
   // Override Apply
   (*rstr_unsigned)->Apply = rstr->ApplyUnsigned;
@@ -1245,6 +1349,7 @@ int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRe
     for (CeedInt i = 0; i < 3; i++) (*rstr_unoriented)->strides[i] = rstr->strides[i];
   }
   CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unoriented)->rstr_base));
+  (*rstr_unoriented)->rstr_blocked = NULL;
 
   // Override Apply
   (*rstr_unoriented)->Apply = rstr->ApplyUnoriented;
@@ -1841,6 +1946,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
     CeedCall((*rstr)->Destroy(*rstr));
   }
 
+  CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_blocked));
   CeedCall(CeedFree(&(*rstr)->strides));
   CeedCall(CeedObjectDestroy_Private(&(*rstr)->obj));
   CeedCall(CeedFree(rstr));

@@ -121,70 +121,16 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
 
   // Create blockend restriction
   if (elem_rstr != CEED_ELEMRESTRICTION_NONE && block_size != 1 && (!is_input || (field_input_buffer && field_input_buffer[i] == i))) {
-    CeedSize            l_size;
-    CeedInt             num_elem, comp_stride;
-    Ceed                ceed;
-    CeedElemRestriction block_rstr = NULL;
+    CeedElemRestriction block_rstr;
 
-    CeedCallBackend(CeedElemRestrictionGetCeed(elem_rstr, &ceed));
-    CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
-    CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_rstr, &l_size));
-    if (rstr_type != CEED_RESTRICTION_STRIDED && rstr_type != CEED_RESTRICTION_POINTS) {
-      CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-    }
-    switch (rstr_type) {
-      case CEED_RESTRICTION_STANDARD: {
-        const CeedInt *offsets = NULL;
-
-        CeedCallBackend(CeedElemRestrictionGetOffsets(elem_rstr, CEED_MEM_HOST, &offsets));
-        CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
-                                                         CEED_COPY_VALUES, offsets, &block_rstr));
-        CeedCallBackend(CeedElemRestrictionRestoreOffsets(elem_rstr, &offsets));
-      } break;
-      case CEED_RESTRICTION_ORIENTED: {
-        const bool    *orients = NULL;
-        const CeedInt *offsets = NULL;
-
-        CeedCallBackend(CeedElemRestrictionGetOffsets(elem_rstr, CEED_MEM_HOST, &offsets));
-        CeedCallBackend(CeedElemRestrictionGetOrientations(elem_rstr, CEED_MEM_HOST, &orients));
-        CeedCallBackend(CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
-                                                                 CEED_COPY_VALUES, offsets, orients, &block_rstr));
-        CeedCallBackend(CeedElemRestrictionRestoreOffsets(elem_rstr, &offsets));
-        CeedCallBackend(CeedElemRestrictionRestoreOrientations(elem_rstr, &orients));
-      } break;
-      case CEED_RESTRICTION_CURL_ORIENTED: {
-        const CeedInt8 *curl_orients = NULL;
-        const CeedInt  *offsets      = NULL;
-
-        CeedCallBackend(CeedElemRestrictionGetOffsets(elem_rstr, CEED_MEM_HOST, &offsets));
-        CeedCallBackend(CeedElemRestrictionGetCurlOrientations(elem_rstr, CEED_MEM_HOST, &curl_orients));
-        CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size,
-                                                                     CEED_MEM_HOST, CEED_COPY_VALUES, offsets, curl_orients, &block_rstr));
-        CeedCallBackend(CeedElemRestrictionRestoreOffsets(elem_rstr, &offsets));
-        CeedCallBackend(CeedElemRestrictionRestoreCurlOrientations(elem_rstr, &curl_orients));
-      } break;
-      case CEED_RESTRICTION_STRIDED: {
-        CeedInt strides[3];
-
-        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
-        CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, block_size, num_comp, l_size, strides, &block_rstr));
-      } break;
-      // LCOV_EXCL_START
-      case CEED_RESTRICTION_POINTS: {
-        CeedCallBackend(CeedElemRestrictionReferenceCopy(elem_rstr, &block_rstr));
-      }
-      // Empty case - won't occur
-      break;
-        // LCOV_EXCL_STOP
-    }
-    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
+    CeedCallBackend(CeedElemRestrictionGetBlockedElemRestriction(elem_rstr, block_size, &block_rstr));
     if (is_input) {
       CeedCallBackend(CeedElemRestrictionReferenceCopy(block_rstr, &data->inputs_block_elem_rstr[i]));
     } else {
       CeedCallBackend(CeedElemRestrictionReferenceCopy(block_rstr, &data->outputs_block_elem_rstr[i]));
     }
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     elem_rstr = block_rstr;
-    CeedCallBackend(CeedDestroy(&ceed));
   }
 
   // Restriction
