@@ -199,10 +199,12 @@ struct CeedVector_private {
   int (*PointwiseMult)(CeedVector, CeedVector, CeedVector);
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
-  CeedSize length;
-  uint64_t state;
-  uint64_t num_readers;
-  void    *data;
+  CeedSize  length;
+  uint64_t  state;
+  uint64_t  num_readers;
+  bool      is_overwriting;
+  uint64_t *overwrite_mask; /* bit i % 64 of word i / 64 set once entry i is written while overwriting */
+  void     *data;
 };
 
 struct CeedElemRestriction_private {
