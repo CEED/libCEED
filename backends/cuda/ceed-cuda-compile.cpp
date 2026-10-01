@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
 
@@ -187,6 +188,36 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
   CeedDebug(ceed, "Name:\n  %s\n", name);
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
+
+  // Write to disk in debug mode
+  if (CeedDebugFlag(ceed)) {
+    // Create filename with path and 'function_' prefix with uuid
+    std::random_device         r;
+    std::default_random_engine gen(r());
+    // Place lower bound for uniformity of ids
+    std::uniform_int_distribution<CeedInt> dist(1000000000);
+    const CeedInt                          build_id = dist(gen);
+    std::string                            filename_cpp;
+
+    {
+      const char *dir;
+
+      CeedCallBackend(CeedGetCacheDir(ceed, &dir));
+      filename_cpp = std::string(dir) + "/function_" + std::to_string(build_id) + "_" + name + ".cu";
+      CeedCallBackend(CeedRestoreCacheDir(ceed, &dir));
+    }
+
+    // Write code to temp file
+    if (CeedDebugFlag(ceed)) {
+      // LCOV_EXCL_START
+      FILE *file = fopen(filename_cpp.c_str(), "w");
+
+      CeedCheck(file, ceed, CEED_ERROR_BACKEND, "Failed to create file. Write access is required for cpu-jit");
+      fputs(code.str().c_str(), file);
+      fclose(file);
+      // LCOV_EXCL_STOP
+    }
+  }
 
   if (!using_clang) {
     CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
