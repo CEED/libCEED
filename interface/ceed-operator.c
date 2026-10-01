@@ -2640,6 +2640,9 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
   @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
+  @note With OpenMP threads, applying operators into output vectors that share memory is a race.
+        Zero the shared memory once and use @ref CeedOperatorApplyAdd() from each thread instead.
+
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
   @param[out] out     `CeedVector` to store result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
