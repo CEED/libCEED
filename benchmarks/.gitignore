@@ -1,3 +1,9 @@
 *.pdf
 *.txt
+*.csv
+*.tsv
+*.tex
 plot*.pdf
+temp
+*.png
+*.svg

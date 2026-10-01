@@ -25,6 +25,7 @@ dry_run="" # empty string = NO
 start_shell=""
 verbose=""
 cur_dir="$PWD"
+swarm_type="uniform"
 
 mpiexec="mpirun"
 mpiexec_np="-np"
@@ -166,6 +167,12 @@ case "$1" in
       [ $# -gt 0 ] || {
       echo "Missing \"list\" in --num-proc \"list\""; $exit_cmd 1; }
       num_proc_run="$1"
+      ;;
+   --swarm)
+      shift
+         [ $# -gt 0 ] || {
+      echo "Missing \"swarm type\" in --swarm \"swarm type\""; $exit_cmd 1; }
+      swarm_type="$1"
       ;;
    -p|--proc-node)
       shift
@@ -329,4 +336,3 @@ done ## Loop over $backend_list
 done ## Loop over $bp_list
 
 $exit_cmd 0
-
