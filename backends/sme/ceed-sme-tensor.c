@@ -36,6 +36,19 @@
 #endif
 
 //------------------------------------------------------------------------------
+// Tensor Load Helper
+//------------------------------------------------------------------------------
+static inline __attribute__((always_inline)) rtype CeedTensorContract_Sme_LoadT(const CeedScalar *base, CeedInt stride, svbool_t pg,
+                                                                                CeedInt n) __arm_streaming __arm_preserves("za") {
+  if (stride == 1) return load_vec(pg, base);
+
+  CeedScalar tmp[vlength()];
+  for (CeedInt i = 0; i < n; i++) tmp[i] = base[(CeedSize)i * stride];
+
+  return load_vec(pg, tmp);
+}
+
+//------------------------------------------------------------------------------
 // Tensor Contract Slice
 //------------------------------------------------------------------------------
 static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
@@ -70,10 +83,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
         }
 
       for (CeedInt b = 0; b < B; b++) {
-        CeedScalar tmp[vl];
-
-        for (CeedInt i = 0; i < n; i++) tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
-        rtype tt = load_vec(pg_col, tmp);
+        rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
 
         rtype uu0 = load_vec(pg, u + (CeedSize)b * C + c);
         rtype uu1 = load_vec(pg, u + (CeedSize)b * C + c + vl);
@@ -109,10 +119,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
         }
 
       for (CeedInt b = 0; b < B; b++) {
-        CeedScalar tmp[vl];
-
-        for (CeedInt i = 0; i < n; i++) tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
-        rtype tt = load_vec(pg_col, tmp);
+        rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
 
         rtype uu0 = load_vec(pg, u + (CeedSize)b * C + c);
         rtype uu1 = load_vec(pg_1, u + (CeedSize)b * C + c + vl);
@@ -140,10 +147,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
         }
 
       for (CeedInt b = 0; b < B; b++) {
-        CeedScalar tmp[vl];
-
-        for (CeedInt i = 0; i < n; i++) tmp[i] = t[((CeedSize)j + i) * s0 + (CeedSize)b * s1];
-        rtype tt = load_vec(pg_col, tmp);
+        rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
 
         rtype uu0 = load_vec(pg, u + (CeedSize)b * C + c);
 
