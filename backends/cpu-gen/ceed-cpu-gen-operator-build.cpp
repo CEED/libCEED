@@ -214,8 +214,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
           code << tab << "}\n";
         } break;
         case CEED_RESTRICTION_POINTS: {
-          code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, inputs["
-               << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
+          code << tab << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, num_comp" << var_suffix
+               << ", num_elem>(block, inputs[" << i << "].offsets, inputs[" << i << "].l_vec, e_vec" << var_suffix << ");\n";
           break;
         }
       }
@@ -284,8 +284,8 @@ static int CeedOperatorBuildKernelRestriction_Cpu_Gen(std::ostringstream &code, 
         code << tab << "}\n";
       } break;
       case CEED_RESTRICTION_POINTS: {
-        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, max_num_points, num_comp" << var_suffix << ">(block, outputs["
-             << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
+        code << tab << "CeedElemRestriction_ApplyAdd_Transpose_AtPoints<block_size, max_num_points, num_comp" << var_suffix
+             << ", num_elem>(block, outputs[" << i << "].offsets, e_vec" << var_suffix << ", outputs[" << i << "].l_vec);\n";
       } break;
     }
   }
@@ -628,21 +628,21 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
   code << tab << "};\n\n";
   // Call QFunction
   code << tab << "// ---- Call User QFunction\n";
-  if (is_at_points) {
-    code << tab << "{\n";
-    tab.push();
-    code << tab << "const CeedInt num_elem_apply = (block * block_size < num_elem) ? block_size : (num_elem % block_size);\n\n";
-    code << tab << "for (CeedInt elem = 0; elem < num_elem_apply; elem++) {\n";
-    tab.push();
-    code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
-    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
-    tab.pop();
-    code << tab << "}\n";
-    tab.pop();
-    code << tab << "}\n";
-  } else {
-    code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, Q * block_size, q_vecs_in, q_vecs_out));\n\n";
-  }
+  // if (is_at_points) {
+  //   code << tab << "{\n";
+  //   tab.push();
+  //   code << tab << "const CeedInt num_elem_apply = (block * block_size < num_elem) ? block_size : (num_elem % block_size);\n\n";
+  //   code << tab << "for (CeedInt elem = 0; elem < num_elem_apply; elem++) {\n";
+  //   tab.push();
+  //   code << tab << "const CeedInt num_points = points->offsets[block * block_size + elem + 1] - points->offsets[block * block_size + elem];\n\n";
+  //   code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, num_points, q_vecs_in, q_vecs_out));\n";
+  //   tab.pop();
+  //   code << tab << "}\n";
+  //   tab.pop();
+  //   code << tab << "}\n";
+  // } else {
+  code << tab << "CeedCall(" << std::string(qfunction_name) << "(ctx, Q * block_size, q_vecs_in, q_vecs_out));\n\n";
+  // }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -674,11 +674,11 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
-  if (!is_at_points) {
-    Ceed_Cpu_Gen *ceed_data;
+  Ceed_Cpu_Gen *ceed_data;
 
-    CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    block_size = ceed_data->block_size;
+  CeedCallBackend(CeedGetData(ceed, &ceed_data));
+  block_size = ceed_data->block_size;
+  if (!is_at_points) {
   } else {
     CeedElemRestriction      rstr_points;
     CeedElemRestriction_Ref *rstr_data;
@@ -982,7 +982,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
     code << tab << "// -- Points ElemRestriction\n";
     code << tab << "CeedScalar e_vec_points[block_size * max_num_points * dim_points];\n";
     code << tab
-         << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, dim_points>(block, points->offsets, points->l_vec, "
+         << "CeedElemRestriction_Apply_NoTranspose_AtPoints<block_size, max_num_points, dim_points, num_elem>(block, points->offsets, points->l_vec, "
             "e_vec_points);\n";
     code << tab << "// -- Points Chebyshev polynomials\n";
     if (has_interp_at_points || has_grad_at_points) {
