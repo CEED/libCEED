@@ -419,11 +419,12 @@ def main(args: Optional[Sequence[str]] = None) -> int:
         console.print(f"[bold red]Error:[/bold red] Test '{test_to_use}' not present in dataset.")
         return 1
 
-    test_short = (
-        test_to_use.strip().split()[0] + " BP" + test_to_use.strip().split()[-1]
-        if "CEED Benchmark Problem" in test_to_use
-        else test_to_use.strip()
-    )
+    if "CEED Benchmark Problem Points" in test_to_use:
+        test_short = test_to_use.strip().split()[0] + " BP" + test_to_use.strip().split()[-1] + "P"
+    elif "CEED Benchmark Problem" in test_to_use:
+        test_short = test_to_use.strip().split()[0] + " BP" + test_to_use.strip().split()[-1]
+    else:
+        test_short = test_to_use.strip()
 
     # Filter by case (scalar vs vector)
     cases: List[str] = sel_runs["case"].dropna().unique().tolist()
