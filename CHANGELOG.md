@@ -10,7 +10,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
-- Add `CeedOperatorApply` for `/cpu/self/opt/*` backends, including composite operators, that writes the output on first touch instead of zeroing it first.
+- `CeedOperatorApply` overwrites the output instead of zeroing it first, with the CPU element restrictions storing the first value written to each entry.
 
 ### Examples
 
