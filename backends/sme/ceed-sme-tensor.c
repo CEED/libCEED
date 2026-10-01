@@ -72,15 +72,16 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       svbool_t      pg   = ptrue();
       svbool_t      pg_3 = whilelt(c + 3 * vl, C);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)j + i) * C + c);
           load_za_row(1, i, pg, v + ((CeedSize)j + i) * C + c + vl);
           load_za_row(2, i, pg, v + ((CeedSize)j + i) * C + c + vl * 2);
           load_za_row(3, i, pg_3, v + ((CeedSize)j + i) * C + c + vl * 3);
         }
+      } else {
+        svzero_za();
+      }
 
       for (CeedInt b = 0; b < B; b++) {
         rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
@@ -110,13 +111,14 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       svbool_t      pg   = ptrue();
       svbool_t      pg_1 = whilelt(c + vl, C);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)j + i) * C + c);
           load_za_row(1, i, pg_1, v + ((CeedSize)j + i) * C + c + vl);
         }
+      } else {
+        svzero_za();
+      }
 
       for (CeedInt b = 0; b < B; b++) {
         rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
@@ -139,12 +141,13 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       const CeedInt n  = cntp(ptrue(), pg_col);
       svbool_t      pg = whilelt(c, C);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)j + i) * C + c);
         }
+      } else {
+        svzero_za();
+      }
 
       for (CeedInt b = 0; b < B; b++) {
         rtype tt = CeedTensorContract_Sme_LoadT(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n);
@@ -180,15 +183,16 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
       svbool_t      pg_3 = whilelt(j + 3 * vl, J);
       const CeedInt nn   = cntp(ptrue(), pg_3);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)a + i) * J + j);
           load_za_row(1, i, pg, v + ((CeedSize)a + i) * J + j + vl);
           load_za_row(2, i, pg, v + ((CeedSize)a + i) * J + j + vl * 2);
           load_za_row(3, i, pg_3, v + ((CeedSize)a + i) * J + j + vl * 3);
         }
+      } else {
+        svzero_za();
+      }
 
       if (t_mode == CEED_TRANSPOSE) {
         for (CeedInt b = 0; b < B; b++) {
@@ -235,13 +239,14 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
       svbool_t      pg_2 = whilelt(j + vl, J);
       const CeedInt nn   = cntp(ptrue(), pg_2);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)a + i) * J + j);
           load_za_row(1, i, pg_2, v + ((CeedSize)a + i) * J + j + vl);
         }
+      } else {
+        svzero_za();
+      }
 
       if (t_mode == CEED_TRANSPOSE) {
         for (CeedInt b = 0; b < B; b++) {
@@ -277,12 +282,13 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
       svbool_t      pg = whilelt(j, J);
       const CeedInt nn = cntp(ptrue(), pg);
 
-      svzero_za();
-
-      if (add)
+      if (add) {
         for (CeedInt i = 0; i < n; i++) {
           load_za_row(0, i, pg, v + ((CeedSize)a + i) * J + j);
         }
+      } else {
+        svzero_za();
+      }
 
       if (t_mode == CEED_TRANSPOSE) {
         for (CeedInt b = 0; b < B; b++) {
