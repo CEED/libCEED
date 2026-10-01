@@ -232,6 +232,9 @@ CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
+CEED_EXTERN int CeedVectorBeginOverwrite(CeedVector vec);
+CEED_EXTERN int CeedVectorGetArrayOverwrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array, uint64_t **overwrite_mask);
+CEED_EXTERN int CeedVectorEndOverwrite(CeedVector vec);
 
 /**
   Specify type of restriction operation.
