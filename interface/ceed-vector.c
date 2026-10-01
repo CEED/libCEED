@@ -285,6 +285,10 @@ int CeedVectorEndOverwrite(CeedVector vec) {
     const uint64_t is_written = vec->overwrite_mask[i / 64];
 
     if (is_written == UINT64_MAX) continue;
+    if (!is_written) {
+      for (CeedSize j = i; j < i + 64 && j < length; j++) array[j] = 0.0;
+      continue;
+    }
     for (CeedSize j = i; j < i + 64 && j < length; j++) {
       if (!(is_written & ((uint64_t)1 << (j - i)))) array[j] = 0.0;
     }
@@ -434,8 +438,8 @@ int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSiz
   CeedCheck(start >= 0 && start <= length && (start <= stop || stop == -1), CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Invalid value for start %" CeedSize_FMT ", must be in the range [0, stop]", start);
 
-  CeedCall(CeedVectorEndOverwrite(vec));
-  CeedCall(CeedVectorEndOverwrite(vec_copy));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec_copy->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec_copy));
 
   // Backend version
   if (vec->CopyStrided && vec_copy->CopyStrided) {
@@ -542,7 +546,7 @@ int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedSize stop, Cee
   CeedCheck(stop >= -1 && stop <= length, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Invalid value for stop %" CeedSize_FMT ", must be in the range [-1, length]", stop);
 
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
   if (vec->SetValueStrided) {
     CeedCall(vec->SetValueStrided(vec, start, stop, step, value));
     vec->state += 2;
@@ -575,7 +579,7 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
   CeedSize length;
 
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot sync CeedVector, the access lock is already in use");
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   // Don't sync empty array
   CeedCall(CeedVectorGetLength(vec, &length));
@@ -613,7 +617,7 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
 
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -657,7 +661,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -695,7 +699,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
   CeedCheck(vec->GetArrayRead, CeedVectorReturnCeed(vec), CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector read-only array access, the access lock is already in use");
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -817,7 +821,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
     return CEED_ERROR_SUCCESS;
   }
 
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   // Backend impl for GPU, if added
   if (vec->Norm) {
@@ -876,7 +880,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   CeedCall(CeedVectorGetLength(x, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(x));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
 
   // Backend implementation
   if (x->Scale) return x->Scale(x, alpha);
@@ -913,7 +917,7 @@ int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
   CeedCall(CeedVectorGetLength(x, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(x));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
 
   // Backend implementation
   if (x->Filter) {
@@ -981,8 +985,8 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   // Return early for empty vectors
   if (length_y == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(x));
-  CeedCall(CeedVectorEndOverwrite(y));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
 
   // Backend implementation
   if (y->AXPY) {
@@ -1055,8 +1059,8 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   // Return early for empty vectors
   if (length_y == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(x));
-  CeedCall(CeedVectorEndOverwrite(y));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
 
   // Backend implementation
   if (y->AXPBY) {
@@ -1134,9 +1138,9 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   // Return early for empty vectors
   if (length_w == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(w));
-  CeedCall(CeedVectorEndOverwrite(x));
-  CeedCall(CeedVectorEndOverwrite(y));
+  if (w->is_overwriting) CeedCall(CeedVectorEndOverwrite(w));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
 
   // Backend implementation
   if (w->PointwiseMult) {
@@ -1200,7 +1204,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
 
-  CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   // Backend impl for GPU, if added
   if (vec->Reciprocal) {
