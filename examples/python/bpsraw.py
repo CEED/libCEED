@@ -462,7 +462,7 @@ def example_bps(args):
         print(f"    libCEED Backend MemType            : {mem_type_backend}")
         print("  Mesh:")
         print(f"    Solution Order (P)                 : {P}")
-        print(f"    Quadrature  Order (Q)              : {Q}")
+        print(f"    Quadrature Order (Q)               : {Q}")
         print(f"    Global nodes                       : {gsize // num_comp_u}")
         print(f"    Process Decomposition              : "
               f"{p[0]} {p[1]} {p[2]}")

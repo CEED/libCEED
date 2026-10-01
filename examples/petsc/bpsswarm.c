@@ -22,9 +22,9 @@
 //     bpssphere -problem bp2 -degree 3
 //     bpssphere -problem bp3 -degree 3
 //
-//TESTARGS(name="BP2") -ceed {ceed_resource} -test -problem bp2 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64
-//TESTARGS(name="BP3") -ceed {ceed_resource} -test -problem bp3 -dm_plex_dim 3 -dm_plex_box_faces 4,4,4 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64 -tolerance 3e-2
-//TESTARGS(name="BP5") -ceed {ceed_resource} -test -problem bp5 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64
+//TESTARGS(name="BP2") -ceed {ceed_resource} -test -problem bp2 -dm_plex_box_faces 3,3,3 -swarm uniform -points_per_cell 64
+//TESTARGS(name="BP3") -ceed {ceed_resource} -test -problem bp3 -dm_plex_box_faces 4,4,4 -swarm uniform -points_per_cell 64 -tolerance 3e-2
+//TESTARGS(name="BP5") -ceed {ceed_resource} -test -problem bp5 -dm_plex_box_faces 3,3,3 -swarm uniform -points_per_cell 64
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -46,6 +46,19 @@ const char        DMSwarmPICField_u[] = "u";
 #include "include/petscutils.h"
 #include "include/petscversion.h"
 #include "include/swarmutils.h"
+
+static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
+  for (PetscInt d = 0, size_left = size; d < 3; d++) {
+    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(size_left, 1. / (3 - d)));
+    while (try * (size_left / try) != size_left) try++;
+    m[reverse ? 2 - d : d] = try;
+    size_left /= try;
+  }
+}
+
+static int Max3(const PetscInt a[3]) { return PetscMax(a[0], PetscMax(a[1], a[2])); }
+
+static int Min3(const PetscInt a[3]) { return PetscMin(a[0], PetscMin(a[1], a[2])); }
 
 int main(int argc, char **argv) {
   MPI_Comm             comm;
@@ -69,6 +82,7 @@ int main(int argc, char **argv) {
   PointSwarmType       point_swarm_type = SWARM_GAUSS;
   PetscMPIInt          ranks_per_node;
   char                 hostname[PETSC_MAX_PATH_LEN];
+  PetscInt             num_cells[] = {1, 1, 1};
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -100,7 +114,7 @@ int main(int argc, char **argv) {
                              &write_true_solution_swarm, NULL));
   degree = 2;
   PetscCall(PetscOptionsInt("-degree", "Polynomial degree of tensor product basis", NULL, degree, &degree, NULL));
-  q_extra = bp_options[bp_choice].q_extra;
+  q_extra = 0;
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
   PetscCall(PetscGetHostName(hostname, sizeof hostname));
@@ -112,23 +126,35 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsEnum("-swarm", "Swarm points distribution", NULL, point_swarm_types, (PetscEnum)point_swarm_type,
                              (PetscEnum *)&point_swarm_type, NULL));
   {
-    PetscBool user_set_num_points_per_cell = PETSC_FALSE;
-    PetscInt  num_cells_total = 1, tmp = dim;
-    PetscInt  num_cells[] = {1, 1, 1};
+    PetscBool user_set_num_points_per_cell = PETSC_FALSE, set_cells;
+    PetscInt  num_cells_total              = 1;
+    PetscInt  tmp                          = dim;
 
+    num_points_per_cell = CeedIntPow(degree + 2, dim);
     PetscCall(PetscOptionsInt("-points_per_cell", "Total number of swarm points in each cell", NULL, num_points_per_cell, &num_points_per_cell,
                               &user_set_num_points_per_cell));
-    PetscCall(PetscOptionsInt("-dm_plex_dim", "Background mesh dimension", NULL, dim, &dim, NULL));
-    PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &tmp, NULL));
+    PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &tmp, &set_cells));
+    if (!set_cells) {
+      PetscInt local_nodes = 2;
 
-    PetscCheck(tmp == dim, comm, PETSC_ERR_USER, "Number of values for -dm_plex_box_faces must match dimension");
+      PetscCall(PetscOptionsInt("-local_nodes", "Requested number of local nodes", NULL, local_nodes, &local_nodes, NULL));
+      // Find a nicely composite number of elements no less than global nodes
+      PetscMPIInt size;
+      PetscCall(MPI_Comm_size(comm, &size));
+      for (PetscInt g_elem = PetscMax(1, size * local_nodes / PetscPowInt(degree, dim));; g_elem++) {
+        Split3(g_elem, num_cells, true);
+        if (Max3(num_cells) / Min3(num_cells) <= 2) break;
+      }
+    }
 
     num_cells_total = num_cells[0] * num_cells[1] * num_cells[2];
     PetscCheck(!user_set_num_points_per_cell || point_swarm_type != SWARM_SINUSOIDAL, comm, PETSC_ERR_USER,
                "Cannot specify points per cell with sinusoidal points locations");
     if (!user_set_num_points_per_cell) {
-      PetscCall(PetscOptionsInt("-points", "Total number of swarm points", NULL, num_points, &num_points, NULL));
-      num_points_per_cell = PetscCeilInt(num_points, num_cells_total);
+      PetscBool set_points;
+
+      PetscCall(PetscOptionsInt("-points", "Total number of swarm points", NULL, num_points, &num_points, &set_points));
+      if (set_points) num_points_per_cell = PetscCeilInt(num_points, num_cells_total);
     }
     if (point_swarm_type != SWARM_SINUSOIDAL) {
       PetscInt num_points_per_cell_1d = round(cbrt(num_points_per_cell * 1.0));
@@ -173,17 +199,15 @@ int main(int argc, char **argv) {
   if (read_mesh) {
     PetscCall(DMPlexCreateFromFile(comm, filename, NULL, PETSC_TRUE, &dm_mesh));
   } else {
-    PetscCall(DMCreate(comm, &dm_mesh));
-    PetscCall(DMSetType(dm_mesh, DMPLEX));
+    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, num_cells, NULL, NULL, NULL, PETSC_TRUE, 0, PETSC_FALSE, &dm_mesh));
     PetscCall(DMSetFromOptions(dm_mesh));
+    PetscCall(DMViewFromOptions(dm_mesh, NULL, "-dm_view"));
+  }
+  {
+    PetscBool is_simplex;
 
-    // -- Check for tensor product mesh
-    {
-      PetscBool is_simplex;
-
-      PetscCall(DMPlexIsSimplex(dm_mesh, &is_simplex));
-      PetscCheck(!is_simplex, comm, PETSC_ERR_USER, "Only tensor-product background meshes supported");
-    }
+    PetscCall(DMPlexIsSimplex(dm_mesh, &is_simplex));
+    PetscCheck(!is_simplex, comm, PETSC_ERR_USER, "Only tensor-product background meshes supported");
   }
   PetscCall(DMSetVecType(dm_mesh, vec_type));
   PetscCall(DMSetFromOptions(dm_mesh));
@@ -271,7 +295,7 @@ int main(int argc, char **argv) {
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
                           "    Solution Order (P)                      : %" PetscInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
                           "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global nodes                            : %" PetscInt_FMT "\n"
                           "    Local Elements                          : %" PetscInt_FMT "\n"
@@ -319,11 +343,12 @@ int main(int argc, char **argv) {
   // First run, if benchmarking
   if (benchmark_mode) {
     PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1));
+    PetscCall(KSPSolve(ksp, rhs, X));
     my_rt_start = MPI_Wtime();
     PetscCall(KSPSolve(ksp, rhs, X));
     my_rt = MPI_Wtime() - my_rt_start;
     PetscCall(MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, comm));
-    // Set maxits based on first iteration timing
+    PetscCall(KSPSetMinimumIterations(ksp, 5));
     if (my_rt > 0.02) {
       PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 5));
     } else {
@@ -411,7 +436,7 @@ int main(int argc, char **argv) {
       }
     }
     if (benchmark_mode && (!test_mode)) {
-      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                            : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
+      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                          : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
                             1e-6 * g_size * its / rt_min));
     }
   }
