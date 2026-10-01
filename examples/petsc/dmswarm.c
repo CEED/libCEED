@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
   PetscCall(PetscOptionsInt("-num_comp", "Number of components in solution", NULL, num_comp, &num_comp, NULL));
-  PetscCall(PetscOptionsEnum("-swarm", "Swarm points distribution", NULL, point_swarm_types, (PetscEnum)point_swarm_type,
+  PetscCall(PetscOptionsEnum("-swarm", "Swarm points distribution", NULL, PointSwarmTypes, (PetscEnum)point_swarm_type,
                              (PetscEnum *)&point_swarm_type, NULL));
   {
     PetscBool user_set_num_points_per_cell = PETSC_FALSE;
@@ -187,7 +187,8 @@ int main(int argc, char **argv) {
     PetscCall(DMSetFromOptions(dm_swarm));
 
     // -- Set swarm point locations
-    PetscCall(DMSwarmInitalizePointLocations(dm_swarm, point_swarm_type, num_points, num_points_per_cell));
+    PetscInt num_points_per_cell_1d = round(cbrt(num_points_per_cell * 1.0));
+    PetscCall(DMSwarmInitalizePointLocations(dm_swarm, point_swarm_type, num_points, num_points_per_cell_1d));
 
     // -- Final particle swarm
     PetscCall(PetscObjectSetName((PetscObject)dm_swarm, "Particle Swarm"));

@@ -78,17 +78,31 @@ typedef enum {
   CEED_BP26 = 9,
 } BPType;
 
+// Swarm point distribution
+typedef enum {
+  SWARM_GAUSS       = 0,
+  SWARM_UNIFORM     = 1,
+  SWARM_CELL_RANDOM = 2,
+  SWARM_SINUSOIDAL  = 3,
+} PointSwarmType;
+static const char *const PointSwarmTypes[] = {
+    "gauss", "uniform", "cell_random", "sinusoidal", "PointSwarmType", "SWARM", 0,
+};
+
 // -----------------------------------------------------------------------------
 // Parameter structure for running problems
 // -----------------------------------------------------------------------------
 typedef struct RunParams_ *RunParams;
 struct RunParams_ {
-  MPI_Comm      comm;
-  PetscBool     test_mode, read_mesh, user_l_nodes, write_solution, simplex;
-  char         *filename, *hostname;
-  PetscInt      local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
-  PetscInt      ksp_max_it_clip[2];
-  PetscMPIInt   ranks_per_node;
-  BPType        bp_choice;
-  PetscLogStage solve_stage;
+  MPI_Comm       comm;
+  PetscBool      test_mode, read_mesh, user_l_nodes, write_solution, simplex, write_true_solution_swarm;
+  char          *filename, *hostname;
+  PetscInt       local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
+  PetscInt       ksp_max_it_clip[2];
+  PetscMPIInt    ranks_per_node;
+  BPType         bp_choice;
+  PetscLogStage  solve_stage;
+  PetscInt       swarm_num_points, swarm_num_points_per_cell_1d;
+  PetscReal      tolerance;
+  PointSwarmType swarm_type;
 };
