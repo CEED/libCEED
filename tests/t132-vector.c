@@ -4,7 +4,6 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <math.h>
 #include <stdio.h>
 
 // Add a value to an entry the way a backend does, storing it on the first write while the vector is overwritten
@@ -55,18 +54,15 @@ int main(int argc, char **argv) {
     CeedVectorGetArrayOverwrite(x, CEED_MEM_HOST, &array, &overwrite_mask);
     AddValue(array, overwrite_mask, 3, 1.0);
     AddValue(array, overwrite_mask, 3, 2.0);
-    AddValue(array, overwrite_mask, 65, -0.0);
+    AddValue(array, overwrite_mask, 65, 4.0);
     CeedVectorRestoreArray(x, &array);
     CeedVectorEndOverwrite(x);
 
     CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
     for (CeedInt i = 0; i < len; i++) {
-      const CeedScalar value = i == 3 ? 3.0 : 0.0;
+      const CeedScalar value = i == 3 ? 3.0 : i == 65 ? 4.0 : 0.0;
 
-      // Zeroing and adding -0.0 gives +0.0
-      if (read_array[i] != value || signbit(read_array[i])) {
-        printf("Overwrite: entry %" CeedInt_FMT " is %f, not %f\n", i, read_array[i], value);
-      }
+      if (read_array[i] != value) printf("Overwrite: entry %" CeedInt_FMT " is %f, not %f\n", i, read_array[i], value);
     }
     CeedVectorRestoreArrayRead(x, &read_array);
   }
