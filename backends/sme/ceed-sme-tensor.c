@@ -50,13 +50,10 @@ static inline __attribute__((always_inline)) rtype LoadStrided_Sme(const CeedSca
 //------------------------------------------------------------------------------
 // Tensor Contract Slice
 //------------------------------------------------------------------------------
-static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
-                                               const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v,
-                                               CeedScalar   *scratch) __arm_streaming __arm_inout("za") {
+static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t, const CeedInt add,
+                                               const CeedScalar *restrict u, CeedScalar *restrict v) __arm_streaming __arm_inout("za") {
   const CeedSize vl      = vlength();
   const svbool_t pg_full = ptrue();
-  const CeedInt  s0      = t_mode == CEED_TRANSPOSE ? 1 : B;
-  const CeedInt  s1      = t_mode == CEED_TRANSPOSE ? J : 1;
 
   svbool_t pg_col;
   for (CeedSize j = 0; svptest_first(pg_full, pg_col = whilelt(j, J)); j += vl) {
@@ -79,7 +76,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       }
 
       for (CeedInt b = 0; b < B; b++) {
-        rtype tt = LoadStrided_Sme(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n_col, scratch);
+        rtype tt = load_vec(pg_col, t + (CeedSize)b * J + j);
 
         rtype uu0 = load_vec(pg_full, u + (CeedSize)b * C + c);
         rtype uu1 = load_vec(pg_full, u + (CeedSize)b * C + c + vl);
@@ -114,7 +111,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       }
 
       for (CeedInt b = 0; b < B; b++) {
-        rtype tt = LoadStrided_Sme(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n_col, scratch);
+        rtype tt = load_vec(pg_col, t + (CeedSize)b * J + j);
 
         rtype uu0 = load_vec(pg_full, u + (CeedSize)b * C + c);
         rtype uu1 = load_vec(pg_1, u + (CeedSize)b * C + c + vl);
@@ -142,7 +139,7 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
       }
 
       for (CeedInt b = 0; b < B; b++) {
-        rtype tt = LoadStrided_Sme(t + j * s0 + (CeedSize)b * s1, s0, pg_col, n_col, scratch);
+        rtype tt = load_vec(pg_col, t + (CeedSize)b * J + j);
 
         rtype uu0 = load_vec(pg, u + (CeedSize)b * C + c);
 
@@ -160,9 +157,9 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
 //------------------------------------------------------------------------------
 // Tensor Contract C=1
 //------------------------------------------------------------------------------
-static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J, const CeedScalar *restrict t, CeedTransposeMode t_mode,
-                                                const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v,
-                                                CeedScalar   *scratch) __arm_streaming __arm_inout("za") {
+static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J, const CeedScalar *restrict t, const CeedInt add,
+                                                const CeedScalar *restrict u, CeedScalar *restrict v,
+                                                CeedScalar *scratch) __arm_streaming __arm_inout("za") {
   const CeedSize vl      = vlength();
   const svbool_t pg_full = ptrue();
 
@@ -173,8 +170,7 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
 
     // 4 tiles
     for (; j + 3 * vl < J; j += 4 * vl) {
-      svbool_t      pg_3   = whilelt(j + 3 * vl, J);
-      const CeedInt n_tail = cntp(pg_full, pg_3);
+      svbool_t pg_3 = whilelt(j + 3 * vl, J);
 
       if (add) {
         for (CeedInt i = 0; i < n_col; i++) {
@@ -187,34 +183,18 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
         svzero_za();
       }
 
-      if (t_mode == CEED_TRANSPOSE) {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
+      for (CeedInt b = 0; b < B; b++) {
+        rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
 
-          rtype tT0 = load_vec(pg_full, t + (CeedSize)b * J + j);
-          rtype tT1 = load_vec(pg_full, t + (CeedSize)b * J + j + vl);
-          rtype tT2 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 2);
-          rtype tT3 = load_vec(pg_3, t + (CeedSize)b * J + j + vl * 3);
+        rtype tT0 = load_vec(pg_full, t + (CeedSize)b * J + j);
+        rtype tT1 = load_vec(pg_full, t + (CeedSize)b * J + j + vl);
+        rtype tT2 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 2);
+        rtype tT3 = load_vec(pg_3, t + (CeedSize)b * J + j + vl * 3);
 
-          fmopa(0, pg_col, pg_full, uu, tT0);
-          fmopa(1, pg_col, pg_full, uu, tT1);
-          fmopa(2, pg_col, pg_full, uu, tT2);
-          fmopa(3, pg_col, pg_3, uu, tT3);
-        }
-      } else {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
-
-          rtype tT0 = LoadStrided_Sme(t + j * B + (CeedSize)b, B, pg_full, vl, scratch);
-          rtype tT1 = LoadStrided_Sme(t + (j + vl) * B + (CeedSize)b, B, pg_full, vl, scratch);
-          rtype tT2 = LoadStrided_Sme(t + (j + vl * 2) * B + (CeedSize)b, B, pg_full, vl, scratch);
-          rtype tT3 = LoadStrided_Sme(t + (j + vl * 3) * B + (CeedSize)b, B, pg_3, n_tail, scratch);
-
-          fmopa(0, pg_col, pg_full, uu, tT0);
-          fmopa(1, pg_col, pg_full, uu, tT1);
-          fmopa(2, pg_col, pg_full, uu, tT2);
-          fmopa(3, pg_col, pg_3, uu, tT3);
-        }
+        fmopa(0, pg_col, pg_full, uu, tT0);
+        fmopa(1, pg_col, pg_full, uu, tT1);
+        fmopa(2, pg_col, pg_full, uu, tT2);
+        fmopa(3, pg_col, pg_3, uu, tT3);
       }
 
       for (CeedInt i = 0; i < n_col; i++) {
@@ -227,8 +207,7 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
 
     // 2 tiles
     for (; j + vl < J; j += 2 * vl) {
-      svbool_t      pg_2   = whilelt(j + vl, J);
-      const CeedInt n_tail = cntp(pg_full, pg_2);
+      svbool_t pg_2 = whilelt(j + vl, J);
 
       if (add) {
         for (CeedInt i = 0; i < n_col; i++) {
@@ -239,26 +218,14 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
         svzero_za();
       }
 
-      if (t_mode == CEED_TRANSPOSE) {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
+      for (CeedInt b = 0; b < B; b++) {
+        rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
 
-          rtype tT0 = load_vec(pg_full, t + (CeedSize)b * J + j);
-          rtype tT1 = load_vec(pg_2, t + (CeedSize)b * J + j + vl);
+        rtype tT0 = load_vec(pg_full, t + (CeedSize)b * J + j);
+        rtype tT1 = load_vec(pg_2, t + (CeedSize)b * J + j + vl);
 
-          fmopa(0, pg_col, pg_full, uu, tT0);
-          fmopa(1, pg_col, pg_2, uu, tT1);
-        }
-      } else {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
-
-          rtype tT0 = LoadStrided_Sme(t + j * B + (CeedSize)b, B, pg_full, vl, scratch);
-          rtype tT1 = LoadStrided_Sme(t + (j + vl) * B + (CeedSize)b, B, pg_2, n_tail, scratch);
-
-          fmopa(0, pg_col, pg_full, uu, tT0);
-          fmopa(1, pg_col, pg_2, uu, tT1);
-        }
+        fmopa(0, pg_col, pg_full, uu, tT0);
+        fmopa(1, pg_col, pg_2, uu, tT1);
       }
 
       for (CeedInt i = 0; i < n_col; i++) {
@@ -269,8 +236,7 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
 
     // 1 tiles
     for (; j < J; j += vl) {
-      svbool_t      pg     = whilelt(j, J);
-      const CeedInt n_tail = cntp(pg_full, pg);
+      svbool_t pg = whilelt(j, J);
 
       if (add) {
         for (CeedInt i = 0; i < n_col; i++) {
@@ -280,22 +246,12 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
         svzero_za();
       }
 
-      if (t_mode == CEED_TRANSPOSE) {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
+      for (CeedInt b = 0; b < B; b++) {
+        rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
 
-          rtype tT0 = load_vec(pg, t + (CeedSize)b * J + j);
+        rtype tT0 = load_vec(pg, t + (CeedSize)b * J + j);
 
-          fmopa(0, pg_col, pg, uu, tT0);
-        }
-      } else {
-        for (CeedInt b = 0; b < B; b++) {
-          rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
-
-          rtype tT0 = LoadStrided_Sme(t + j * B + (CeedSize)b, B, pg, n_tail, scratch);
-
-          fmopa(0, pg_col, pg, uu, tT0);
-        }
+        fmopa(0, pg_col, pg, uu, tT0);
       }
 
       for (CeedInt i = 0; i < n_col; i++) {
@@ -312,16 +268,35 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
 __arm_new("za") static inline int CeedTensorContract_Sme_Batch(CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                                                                CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u,
                                                                CeedScalar *restrict v) __arm_streaming {
-  const CeedSize vl = vlength();
-  CeedScalar     scratch[vl];
+  if (t_mode == CEED_NOTRANSPOSE) {
+    CeedScalar tT[(CeedSize)B * J];
 
-  if (C == 1) {
-    CeedCallBackend(CeedTensorContract_Sme_Single(A, B, J, t, t_mode, add, u, v, scratch));
+    for (CeedInt b = 0; b < B; b++)
+      for (CeedInt j = 0; j < J; j++) tT[(CeedSize)b * J + j] = t[(CeedSize)j * B + b];
+
+    if (C == 1) {
+      const CeedSize vl = vlength();
+      CeedScalar     scratch[vl];
+
+      CeedCallBackend(CeedTensorContract_Sme_Single(A, B, J, tT, add, u, v, scratch));
+    } else {
+      for (CeedInt a = 0; a < A; a++) {
+        CeedCallBackend(CeedTensorContract_Sme_Slice(B, C, J, tT, add, &u[(CeedSize)a * B * C], &v[(CeedSize)a * J * C]));
+      }
+    }
   } else {
-    for (CeedInt a = 0; a < A; a++) {
-      CeedCallBackend(CeedTensorContract_Sme_Slice(B, C, J, t, t_mode, add, &u[(CeedSize)a * B * C], &v[(CeedSize)a * J * C], scratch));
+    if (C == 1) {
+      const CeedSize vl = vlength();
+      CeedScalar     scratch[vl];
+
+      CeedCallBackend(CeedTensorContract_Sme_Single(A, B, J, t, add, u, v, scratch));
+    } else {
+      for (CeedInt a = 0; a < A; a++) {
+        CeedCallBackend(CeedTensorContract_Sme_Slice(B, C, J, t, add, &u[(CeedSize)a * B * C], &v[(CeedSize)a * J * C]));
+      }
     }
   }
+
   return CEED_ERROR_SUCCESS;
 }
 
