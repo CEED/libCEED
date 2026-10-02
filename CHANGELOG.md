@@ -13,7 +13,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
-- `CeedOperatorApply` overwrites the output instead of zeroing it first, with the CPU element restrictions storing the first value written to each entry.
+- `CeedOperatorApply` overwrites the output instead of zeroing it first on CPU backends that use the ref element restrictions.
 - Add `/gpu/cuda/cublas` and `/gpu/cuda/cublas/det` backends for computing non-tensor basis operations with cuBLAS GEMM.
 - Add `/gpu/hip/hipblas` and `/gpu/hip/hipblas/det` backends for computing non-tensor basis operations with hipBLAS GEMM.
 
