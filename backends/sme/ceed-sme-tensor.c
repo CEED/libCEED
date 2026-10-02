@@ -60,6 +60,61 @@ static inline int CeedTensorContract_Sme_Slice(CeedInt B, CeedInt C, CeedInt J, 
     const CeedInt n_col = cntp(pg_full, pg_col);
     CeedSize      c     = 0;
 
+#ifdef CEED_SCALAR_IS_FP64
+    // 8 tiles
+    for (; c + 7 * vl < C; c += 8 * vl) {
+      svbool_t pg_7 = whilelt(c + 7 * vl, C);
+
+      if (add) {
+        for (CeedInt i = 0; i < n_col; i++) {
+          load_za_row(0, i, pg_full, v + ((CeedSize)j + i) * C + c);
+          load_za_row(1, i, pg_full, v + ((CeedSize)j + i) * C + c + vl);
+          load_za_row(2, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 2);
+          load_za_row(3, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 3);
+          load_za_row(4, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 4);
+          load_za_row(5, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 5);
+          load_za_row(6, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 6);
+          load_za_row(7, i, pg_7, v + ((CeedSize)j + i) * C + c + vl * 7);
+        }
+      } else {
+        svzero_za();
+      }
+
+      for (CeedInt b = 0; b < B; b++) {
+        rtype tt = load_vec(pg_col, t + (CeedSize)b * J + j);
+
+        rtype uu0 = load_vec(pg_full, u + (CeedSize)b * C + c);
+        rtype uu1 = load_vec(pg_full, u + (CeedSize)b * C + c + vl);
+        rtype uu2 = load_vec(pg_full, u + (CeedSize)b * C + c + vl * 2);
+        rtype uu3 = load_vec(pg_full, u + (CeedSize)b * C + c + vl * 3);
+        rtype uu4 = load_vec(pg_full, u + (CeedSize)b * C + c + vl * 4);
+        rtype uu5 = load_vec(pg_full, u + (CeedSize)b * C + c + vl * 5);
+        rtype uu6 = load_vec(pg_full, u + (CeedSize)b * C + c + vl * 6);
+        rtype uu7 = load_vec(pg_7, u + (CeedSize)b * C + c + vl * 7);
+
+        fmopa(0, pg_col, pg_full, tt, uu0);
+        fmopa(1, pg_col, pg_full, tt, uu1);
+        fmopa(2, pg_col, pg_full, tt, uu2);
+        fmopa(3, pg_col, pg_full, tt, uu3);
+        fmopa(4, pg_col, pg_full, tt, uu4);
+        fmopa(5, pg_col, pg_full, tt, uu5);
+        fmopa(6, pg_col, pg_full, tt, uu6);
+        fmopa(7, pg_col, pg_7, tt, uu7);
+      }
+
+      for (CeedInt i = 0; i < n_col; i++) {
+        store_za_row(0, i, pg_full, v + ((CeedSize)j + i) * C + c);
+        store_za_row(1, i, pg_full, v + ((CeedSize)j + i) * C + c + vl);
+        store_za_row(2, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 2);
+        store_za_row(3, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 3);
+        store_za_row(4, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 4);
+        store_za_row(5, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 5);
+        store_za_row(6, i, pg_full, v + ((CeedSize)j + i) * C + c + vl * 6);
+        store_za_row(7, i, pg_7, v + ((CeedSize)j + i) * C + c + vl * 7);
+      }
+    }
+#endif
+
     // 4 tiles
     for (; c + 3 * vl < C; c += 4 * vl) {
       svbool_t pg_3 = whilelt(c + 3 * vl, C);
@@ -167,6 +222,61 @@ static inline int CeedTensorContract_Sme_Single(CeedInt A, CeedInt B, CeedInt J,
   for (CeedSize a = 0; svptest_first(pg_full, pg_col = whilelt(a, A)); a += vl) {
     const CeedInt n_col = cntp(pg_full, pg_col);
     CeedSize      j     = 0;
+
+#ifdef CEED_SCALAR_IS_FP64
+    // 8 tiles
+    for (; j + 7 * vl < J; j += 8 * vl) {
+      svbool_t pg_7 = whilelt(j + 7 * vl, J);
+
+      if (add) {
+        for (CeedInt i = 0; i < n_col; i++) {
+          load_za_row(0, i, pg_full, v + ((CeedSize)a + i) * J + j);
+          load_za_row(1, i, pg_full, v + ((CeedSize)a + i) * J + j + vl);
+          load_za_row(2, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 2);
+          load_za_row(3, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 3);
+          load_za_row(4, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 4);
+          load_za_row(5, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 5);
+          load_za_row(6, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 6);
+          load_za_row(7, i, pg_7, v + ((CeedSize)a + i) * J + j + vl * 7);
+        }
+      } else {
+        svzero_za();
+      }
+
+      for (CeedInt b = 0; b < B; b++) {
+        rtype uu = LoadStrided_Sme(u + a * B + (CeedSize)b, B, pg_col, n_col, scratch);
+
+        rtype tT0 = load_vec(pg_full, t + (CeedSize)b * J + j);
+        rtype tT1 = load_vec(pg_full, t + (CeedSize)b * J + j + vl);
+        rtype tT2 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 2);
+        rtype tT3 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 3);
+        rtype tT4 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 4);
+        rtype tT5 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 5);
+        rtype tT6 = load_vec(pg_full, t + (CeedSize)b * J + j + vl * 6);
+        rtype tT7 = load_vec(pg_7, t + (CeedSize)b * J + j + vl * 7);
+
+        fmopa(0, pg_col, pg_full, uu, tT0);
+        fmopa(1, pg_col, pg_full, uu, tT1);
+        fmopa(2, pg_col, pg_full, uu, tT2);
+        fmopa(3, pg_col, pg_full, uu, tT3);
+        fmopa(4, pg_col, pg_full, uu, tT4);
+        fmopa(5, pg_col, pg_full, uu, tT5);
+        fmopa(6, pg_col, pg_full, uu, tT6);
+        fmopa(7, pg_col, pg_7, uu, tT7);
+      }
+
+      for (CeedInt i = 0; i < n_col; i++) {
+        store_za_row(0, i, pg_full, v + ((CeedSize)a + i) * J + j);
+        store_za_row(1, i, pg_full, v + ((CeedSize)a + i) * J + j + vl);
+        store_za_row(2, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 2);
+        store_za_row(3, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 3);
+        store_za_row(4, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 4);
+        store_za_row(5, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 5);
+        store_za_row(6, i, pg_full, v + ((CeedSize)a + i) * J + j + vl * 6);
+        store_za_row(7, i, pg_7, v + ((CeedSize)a + i) * J + j + vl * 7);
+      }
+    }
+#endif
 
     // 4 tiles
     for (; j + 3 * vl < J; j += 4 * vl) {
