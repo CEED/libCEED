@@ -117,7 +117,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       std::string command = std::string(user_cxx) + " --version 2>&1", output;
 
       CeedDebug(ceed, "Checking user JiT compiler...");
-      CeedCallSystemUnchecked(ceed, command, "checking user JiT compiler", result);
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, command, "checking user JiT compiler", result));
       if (result.is_success) {
         CeedDebug(ceed, "User JiT compiler is valid\n");
         CeedCall(CeedStringAllocCopy(user_cxx, &ceed_data->cxx));
@@ -134,7 +134,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
     CeedDebug(ceed, "Default JiT compiler: %s\n", CeedJitCxxDefault);
     CeedDebug(ceed, "Checking default JiT compiler...");
-    CeedCallSystemUnchecked(ceed, command, "checking default JiT compiler", result);
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, command, "checking default JiT compiler", result));
     if (result.is_success) {
       CeedDebug(ceed, "Default JiT compiler is valid\n");
       CeedCall(CeedStringAllocCopy(CeedJitCxxDefault, &ceed_data->cxx));
@@ -235,7 +235,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
       command += " -x c++ -E -P - ";
-      CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
       cpp_hash    = std::hash<std::string>{}(result.output);
       filename_so = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".so";
@@ -256,8 +256,8 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       // So, compile to temporary file and use link() (guaranteed atomic by POSIX) to try to move
       for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
       command += " -x c++ -o " + tmp_so_filename + " - ";
-      CeedCallSystem(ceed, command, "JiT compile function source to disk", code_str, result);
-      CeedCallSystem(ceed, std::string("chmod 0777 ") + tmp_so_filename, "update JiT file permissions", result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "JiT compile function source to disk", code_str, result));
+      CeedCallBackend(CeedCallSystem(ceed, std::string("chmod 0777 ") + tmp_so_filename, "update JiT file permissions", result));
 
       // Atomicly try to move to final location
       if (link(tmp_so_filename.c_str(), filename_so.c_str()) < 0) {

@@ -286,7 +286,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     for (CeedInt i = 0; i < num_rust_source_dirs; i++) {
       command = "cargo +" + std::string(rust_toolchain) + " build --release --target nvptx64-nvidia-cuda --config " + rust_dirs[i] +
                 "/.cargo/config.toml --manifest-path " + rust_dirs[i] + "/Cargo.toml";
-      CeedCallSystem(ceed, command, "build Rust crate", result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "build Rust crate", result));
     }
 
     // Get Clang version
@@ -306,7 +306,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       result.is_success = false;
       if (user_cxx && *user_cxx != '\0') {
         CeedDebug(ceed, "Checking user LLVM compiler...");
-        CeedCall(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
+        CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
       }
       if (result.is_success) {
         CeedDebug(ceed, "User specified LLVM compiler is valid\n");
@@ -319,7 +319,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     // Next query Rust for LLVM version
     if (!llvm_cxx) {
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
-      CeedCall(CeedCallSystemUnchecked(ceed, command, "detect Rust LLVM version", result));
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, command, "detect Rust LLVM version", result));
 
       if (result.is_success) {
         CeedDebug(ceed, "output:\n%s", result.output.c_str());
@@ -339,7 +339,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
           std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
 
           CeedDebug(ceed, "Checking Rust LLVM compiler...");
-          CeedCall(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
+          CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
 
           if (result.is_success) {
             CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
@@ -354,7 +354,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     if (!llvm_cxx) {
       CeedDebug(ceed, "Default LLVM compiler: clang++\n");
       CeedDebug(ceed, "Checking default LLVM compiler...");
-      CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result);
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result));
       if (result.is_success) {
         CeedCall(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
         llvm_cxx = ceed_data->llvm_cxx;
@@ -398,7 +398,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       std::string          command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" +
                                      std::to_string(prop.major) + std::to_string(prop.minor) + includes + " --cuda-device-only -x cu -E -P - -o -";
 
-      CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
       std::size_t cpp_hash = std::hash<std::string>{}(result.output);
       filename_ptx         = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".ptx";
@@ -414,9 +414,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // Compile wrapper kernel
       command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) +
                 std::to_string(prop.minor) + includes + " --cuda-device-only -emit-llvm -S -x cu - -o -";
-      CeedCall(CeedCallSystem(ceed, command, "JiT kernel source", code_str, result));
+      CeedCallBackend(CeedCallSystem(ceed, command, "JiT kernel source", code_str, result));
 
-      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".cubin";
+      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".ptx";
 
       // Find Rust's llvm-link tool and run it
       command = "$(find $(rustup run " + std::string(rust_toolchain) +
@@ -444,16 +444,16 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       command += "-o -";
 
       // Link, optimize, and compile final CUDA kernel
-      CeedCallSystem(ceed, command, "link C and Rust source", result.output, result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "link C and Rust source", result.output, result));
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name opt) --passes internalize,inline - -o - ";
-      CeedCallSystem(ceed, command, "optimize linked C and Rust source", result.output, result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "optimize linked C and Rust source", result.output, result));
 
       // As of now, the .ptx doesn't exist, but another process might be compiling simultaneously
       // So, compile to temporary file and use link() (guaranteed atomic by POSIX) to try to move
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
                 std::to_string(prop.major) + std::to_string(prop.minor) + " - -o " + tmp_ptx_filename;
-      CeedCallSystem(ceed, command, "compile final CUDA kernel", result.output, result);
-      CeedCallSystem(ceed, "chmod 0777 " + tmp_ptx_filename, "update JiT file permissions", result);
+      CeedCallBackend(CeedCallSystem(ceed, command, "compile final CUDA kernel", result.output, result));
+      CeedCallBackend(CeedCallSystem(ceed, "chmod 0777 " + tmp_ptx_filename, "update JiT file permissions", result));
 
       // Atomicly try to move to final location
       if (link(tmp_ptx_filename.c_str(), filename_ptx.c_str()) < 0) {
@@ -472,6 +472,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     }
 
     // Load module from final PTX
+    CeedDebug(ceed, "Loading module from PTX: %s", filename_ptx.c_str());
+
     ifstream    ptxfile(filename_ptx);
     std::string buf(std::istreambuf_iterator<char>(ptxfile), {});
     int         load_result = cuModuleLoadData(module, buf.c_str());
