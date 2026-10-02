@@ -55,6 +55,8 @@ HIP_ARCH ?=
 
 # env variable MAGMA_DIR can be used too
 MAGMA_DIR ?= ../magma
+# env variable CUTLASS_DIR can be used too
+CUTLASS_DIR ?= ../cutlass
 
 
 # ------------------------------------------------------------
@@ -381,6 +383,9 @@ magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
 magma.h        := $(sort $(wildcard backends/magma/*.h))
 magma.hpp      := $(sort $(wildcard backends/magma/*.hpp))
+cutlass.c      := $(sort $(wildcard backends/cutlass/*.c))
+cutlass.h      := $(sort $(wildcard backends/cutlass/*.h))
+cutlass.cu     := $(sort $(wildcard backends/cutlass/kernels/*.cu))
 
 # Tests
 tests.c := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -503,6 +508,7 @@ info:
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info SYCL_DIR      = $(SYCL_DIR)$(call backend_status,$(SYCL_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
+	$(info CUTLASS_DIR   = $(CUTLASS_DIR)$(call backend_status,$(CUTLASS_BACKENDS)))
 	$(info )
 	$(info -----------------------------------------)
 	$(info )
@@ -781,6 +787,20 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   LIBCEED_CONTAINS_CXX = 1
   BACKENDS_MAKE += $(MAGMA_BACKENDS)
 endif
+
+# CUTLASS Backend
+ifneq ($(wildcard $(CUTLASS_DIR)/include/cutlass/cutlass.h),)
+  ifneq ($(CUDA_LIB_DIR),)
+    libceed.c  += $(cutlass.c)
+    libceed.h  += $(cutlass.h)
+    libceed.cu += $(cutlass.cu)
+    $(cutlass.c:%.c=$(OBJDIR)/%.o) $(cutlass.c:%=%.tidy) $(cutlass.c:%=%.tidy-fix) $(cutlass.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include
+    $(cutlass.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUTLASS_DIR)/include -I$(CUDA_DIR)/include
+    $(cutlass.cu:%.cu=$(OBJDIR)/%.o) : NVCCFLAGS += -std=c++17 --expt-relaxed-constexpr
+    CUTLASS_BACKENDS = /gpu/cuda/cutlass
+  endif
+endif
+BACKENDS_MAKE += $(CUTLASS_BACKENDS)
 
 BACKENDS ?= $(BACKENDS_MAKE)
 export BACKENDS
@@ -1213,7 +1233,7 @@ print :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH CUDA_TARGETS MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  MAGMA_DIR CUTLASS_DIR XSMM_DIR CUDA_DIR CUDA_ARCH CUDA_TARGETS MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
