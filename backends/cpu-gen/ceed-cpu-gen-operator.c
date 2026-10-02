@@ -23,7 +23,6 @@ static int CeedOperatorDestroy_Cpu_Gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   if (impl->handle) dlclose(impl->handle);
-  CeedCallBackend(CeedFree(&impl->op_function_name));
   for (CeedInt i = 0; i < CEED_FIELD_MAX; i++) {
     CeedCallBackend(CeedElemRestrictionDestroy(&impl->inputs_block_elem_rstr[i]));
     CeedCallBackend(CeedElemRestrictionDestroy(&impl->outputs_block_elem_rstr[i]));
@@ -58,15 +57,14 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
 
   // Try to run kernel
   if (!impl->use_fallback) {
-    bool                         is_at_points = false;
-    void                        *ctx          = NULL;
-    const CeedScalar            *input_arr    = NULL;
-    CeedScalar                  *output_arr   = NULL;
-    CeedInt                      num_input_fields, num_output_fields;
-    CeedOperatorField           *op_input_fields, *op_output_fields;
-    CeedVector                   points;
-    CeedQFunction                qf;
-    CeedOperatorFunction_Cpu_Gen op_function;
+    bool               is_at_points = false;
+    void              *ctx          = NULL;
+    const CeedScalar  *input_arr    = NULL;
+    CeedScalar        *output_arr   = NULL;
+    CeedInt            num_input_fields, num_output_fields;
+    CeedOperatorField *op_input_fields, *op_output_fields;
+    CeedVector         points;
+    CeedQFunction      qf;
 
     CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
@@ -112,7 +110,7 @@ static int CeedOperatorApplyAdd_Cpu_Gen(CeedOperator op, CeedVector input_vec, C
     CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_HOST, &ctx));
 
     // Run JiTed function
-    CeedRunFunction_Cpu(ceed, impl->handle, impl->op_function_name, op_function, ctx, &impl->points, impl->inputs, impl->outputs);
+    CeedCallBackend((*impl->function)(ctx, &impl->points, impl->inputs, impl->outputs));
 
     // Restore context
     CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &ctx));
