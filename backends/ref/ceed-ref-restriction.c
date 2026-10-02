@@ -16,53 +16,8 @@
 //------------------------------------------------------------------------------
 // Core ElemRestriction Apply Code
 //------------------------------------------------------------------------------
-// Mask of the L-vector entries written while the L-vector is being overwritten.
-// Consecutive writes usually fall in the same mask word, and updating that word in memory makes each write wait for the previous one,
-// so a transpose keeps the word of the last entry written in `bits` and stores it when a write moves to another word.
-typedef struct {
-  uint64_t *mask;
-  CeedSize  word;
-  uint64_t  bits;
-} CeedElemRestrictionOverwrite_Ref;
-
-static inline CeedElemRestrictionOverwrite_Ref CeedElemRestrictionOverwriteBegin_Ref(uint64_t *overwrite_mask) {
-  return (CeedElemRestrictionOverwrite_Ref){overwrite_mask, 0, overwrite_mask ? overwrite_mask[0] : 0};
-}
-
-static inline void CeedElemRestrictionOverwriteEnd_Ref(CeedElemRestrictionOverwrite_Ref *overwrite) {
-  if (overwrite->mask) overwrite->mask[overwrite->word] = overwrite->bits;
-}
-
-// Sum a value into an L-vector entry that is being overwritten, storing it instead if it is the first value written to the entry
-static inline void CeedElemRestrictionOverwriteSum_Ref(CeedScalar *__restrict__ vv, CeedElemRestrictionOverwrite_Ref *overwrite, CeedSize i,
-                                                       CeedScalar value) {
-  const CeedSize word = i / 64;
-  const uint64_t bit  = (uint64_t)1 << (i % 64);
-
-  if (word != overwrite->word) {
-    overwrite->mask[overwrite->word] = overwrite->bits;
-    overwrite->word                  = word;
-    overwrite->bits                  = overwrite->mask[word];
-  }
-  // 0.0 + value gives the same +0.0 as zeroing and summing when value is -0.0
-  vv[i] = ((overwrite->bits & bit) ? vv[i] : (CeedScalar)0.0) + value;
-  overwrite->bits |= bit;
-}
-
-// Index of the lowest set bit of a nonzero word
-static inline CeedInt CeedElemRestrictionLowestBit_Ref(uint64_t bits) {
-#if defined(__GNUC__) || defined(__clang__)
-  return __builtin_ctzll(bits);
-#else
-  CeedInt b = 0;
-
-  for (; !(bits & 1); bits >>= 1) b++;
-  return b;
-#endif
-}
-
-// Zero the entries not yet written in the mask words that a block of the transpose writes, so the block can sum into them.
-// Zeroing every entry of the word, not only those the block writes, zeroes each word once, as the first block that writes it.
+// Zero the entries not yet written in the mask words a block of the transpose writes, so the block can sum into them.
+// Zeroing the whole word, not only the entries the block writes, zeroes each word once.
 static inline void CeedElemRestrictionOverwriteBlock_Ref(const CeedElemRestriction_Ref *impl, const CeedSize block, uint64_t *overwrite_mask,
                                                          CeedScalar *__restrict__ vv) {
   const CeedSize num_full_words = impl->l_size / 64;
@@ -76,9 +31,11 @@ static inline void CeedElemRestrictionOverwriteBlock_Ref(const CeedElemRestricti
     if (unwritten == all) {
       for (CeedSize i = 0; i < (word < num_full_words ? 64 : impl->l_size % 64); i++) vv[64 * word + i] = 0.0;
     } else {
-      for (uint64_t bits = unwritten; bits; bits &= bits - 1) vv[64 * word + CeedElemRestrictionLowestBit_Ref(bits)] = 0.0;
+      for (CeedInt i = 0; i < 64; i++) {
+        if ((unwritten >> i) & 1) vv[64 * word + i] = 0.0;
+      }
     }
-    // The L-vector may be longer than the restriction, so keep the bits of other entries in the last word
+    // Keep the bits past the end of the restriction, as the L-vector may be longer
     overwrite_mask[word] |= all;
   }
 }
@@ -86,10 +43,8 @@ static inline void CeedElemRestrictionOverwriteBlock_Ref(const CeedElemRestricti
 //------------------------------------------------------------------------------
 // Mask words written by each block of the transpose
 //------------------------------------------------------------------------------
-// Instead of checking the mask of an L-vector being overwritten on each write, a block of the transpose zeroes the entries not yet
-// written in the mask words it writes and then sums into them. This records, once, the mask words each block writes.
-// When the blocks write scattered mask words, checking them costs about as much as checking each write, so above one mask word per
-// eight writes the transpose instead ends the overwrite, zeroing the L-vector as on main, and the words are not kept.
+// Record the mask words each block of the transpose writes. With more than one mask word per eight writes, checking them costs about
+// as much as zeroing the L-vector, so the words are not kept and the transpose zeroes the L-vector instead.
 static int CeedElemRestrictionSetupBlockWords_Ref(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size,
                                                   const CeedInt comp_stride) {
   CeedInt                  num_elem, elem_size, num_blocks;
@@ -135,13 +90,14 @@ static int CeedElemRestrictionSetupBlockWords_Ref(CeedElemRestriction rstr, cons
   }
   block_words_offsets[num_blocks] = num_block_words;
   impl->has_scattered_block_words = 8 * num_block_words > (CeedSize)num_elem * elem_size * num_comp;
-  if (impl->has_scattered_block_words)
+  if (impl->has_scattered_block_words) {
     CeedCallBackend(CeedFree(&block_words));
-  else if (num_block_words > 0)
+  } else if (num_block_words > 0) {
     CeedCallBackend(CeedRealloc(num_block_words, &block_words));
+  }
   CeedCallBackend(CeedFree(&is_block_word));
   CeedCallBackend(CeedFree(&words));
-  // Store the words last, as the cores take a set block_words_offsets to mean the setup is done
+  // Set last, as a set block_words_offsets marks the setup as done
   impl->l_size              = l_size;
   impl->block_words         = block_words;
   impl->block_words_offsets = block_words_offsets;
@@ -313,11 +269,9 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Ref_Co
 static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size,
                                                                     const CeedInt start, const CeedInt stop, const CeedInt num_elem,
                                                                     const CeedInt elem_size, const CeedSize v_offset,
-                                                                    const CeedScalar *__restrict__ uu, CeedScalar *__restrict__ vv,
-                                                                    uint64_t *__restrict__ overwrite_mask) {
+                                                                    const CeedScalar *__restrict__ uu, CeedScalar *__restrict__ vv) {
   // No offsets provided, identity restriction
-  bool                             has_backend_strides;
-  CeedElemRestrictionOverwrite_Ref overwrite = CeedElemRestrictionOverwriteBegin_Ref(overwrite_mask);
+  bool has_backend_strides;
 
   CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
   if (has_backend_strides) {
@@ -326,17 +280,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
     for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
       for (CeedSize k = 0; k < num_comp; k++) {
         for (CeedSize n = 0; n < elem_size; n++) {
-          if (overwrite_mask) {
-            // Not SIMD, as the elements in a block may share a mask word
-            for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-              CeedElemRestrictionOverwriteSum_Ref(vv, &overwrite, n + k * elem_size + (e + j) * elem_size * num_comp,
-                                                  uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset]);
-            }
-          } else {
-            CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-              vv[n + k * elem_size + (e + j) * elem_size * num_comp] +=
-                  uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
-            }
+          CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
+            vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
@@ -349,23 +294,14 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
     for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
       for (CeedSize k = 0; k < num_comp; k++) {
         for (CeedSize n = 0; n < elem_size; n++) {
-          if (overwrite_mask) {
-            // Not SIMD, as the elements in a block may share a mask word
-            for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-              CeedElemRestrictionOverwriteSum_Ref(vv, &overwrite, n * strides[0] + k * strides[1] + (e + j) * strides[2],
-                                                  uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset]);
-            }
-          } else {
-            CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-              vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
-                  uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
-            }
+          CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
+            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
     }
   }
-  CeedElemRestrictionOverwriteEnd_Ref(&overwrite);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -530,11 +466,10 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core
 
 static inline int CeedElemRestrictionApplyAtPointsInElement_Ref_Core(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt start,
                                                                      const CeedInt stop, CeedTransposeMode t_mode, const CeedScalar *__restrict__ uu,
-                                                                     CeedScalar *__restrict__ vv, uint64_t *__restrict__ overwrite_mask) {
-  CeedInt                          num_points, l_vec_offset;
-  CeedSize                         e_vec_offset = 0;
-  CeedElemRestriction_Ref         *impl;
-  CeedElemRestrictionOverwrite_Ref overwrite = CeedElemRestrictionOverwriteBegin_Ref(overwrite_mask);
+                                                                     CeedScalar *__restrict__ vv) {
+  CeedInt                  num_points, l_vec_offset;
+  CeedSize                 e_vec_offset = 0;
+  CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   for (CeedInt e = start; e < stop; e++) {
@@ -546,21 +481,11 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Ref_Core(CeedElemRes
       }
     } else {
       for (CeedSize i = 0; i < num_points; i++) {
-        for (CeedSize j = 0; j < num_comp; j++) {
-          const CeedSize   ind   = impl->offsets[i + l_vec_offset] * num_comp + j;
-          const CeedScalar value = uu[j * num_points + i + e_vec_offset];
-
-          if (overwrite_mask) {
-            CeedElemRestrictionOverwriteSum_Ref(vv, &overwrite, ind, value);
-          } else {
-            vv[ind] += value;
-          }
-        }
+        for (CeedSize j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] += uu[j * num_points + i + e_vec_offset];
       }
     }
     e_vec_offset += num_points * (CeedSize)num_comp;
   }
-  CeedElemRestrictionOverwriteEnd_Ref(&overwrite);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -581,17 +506,25 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
   CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
 
   if (t_mode == CEED_TRANSPOSE) {
-    // Sum into for transpose mode, E-vector to L-vector, storing the first value written to each entry if the L-vector is being overwritten
+    // Sum into for transpose mode, E-vector to L-vector
     CeedCallBackend(CeedVectorGetArrayOverwrite(v, CEED_MEM_HOST, &vv, &overwrite_mask));
-    if (overwrite_mask && rstr_type != CEED_RESTRICTION_STRIDED && rstr_type != CEED_RESTRICTION_POINTS) {
-      CeedElemRestriction_Ref *impl;
+    // If the L-vector is being overwritten, each block zeroes the mask words it writes before summing, except that strided, at points,
+    // and scattered restrictions zero the L-vector first, as on main
+    if (overwrite_mask) {
+      bool zero_l_vec = rstr_type == CEED_RESTRICTION_STRIDED || rstr_type == CEED_RESTRICTION_POINTS;
 
-      CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-      if (!impl->block_words_offsets) CeedCallBackend(CeedElemRestrictionSetupBlockWords_Ref(rstr, num_comp, block_size, comp_stride));
-      if (impl->has_scattered_block_words) {
+      if (!zero_l_vec) {
+        CeedElemRestriction_Ref *impl;
+
+        CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+        if (!impl->block_words_offsets) CeedCallBackend(CeedElemRestrictionSetupBlockWords_Ref(rstr, num_comp, block_size, comp_stride));
+        zero_l_vec = impl->has_scattered_block_words;
+      }
+      if (zero_l_vec) {
         CeedCallBackend(CeedVectorRestoreArray(v, &vv));
         CeedCallBackend(CeedVectorEndOverwrite(v));
-        CeedCallBackend(CeedVectorGetArrayOverwrite(v, CEED_MEM_HOST, &vv, &overwrite_mask));
+        CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_HOST, &vv));
+        overwrite_mask = NULL;
       }
     }
   } else {
@@ -607,7 +540,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
         CeedCallBackend(CeedElemRestrictionApplyStridedTranspose_Ref_Core(rstr, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu,
-                                                                          vv, overwrite_mask));
+                                                                          vv));
         break;
       case CEED_RESTRICTION_STANDARD:
         CeedCallBackend(CeedElemRestrictionApplyOffsetTranspose_Ref_Core(rstr, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
@@ -635,7 +568,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
         }
         break;
       case CEED_RESTRICTION_POINTS:
-        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref_Core(rstr, num_comp, start, stop, t_mode, uu, vv, overwrite_mask));
+        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref_Core(rstr, num_comp, start, stop, t_mode, uu, vv));
         break;
     }
   } else {
@@ -675,7 +608,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
         }
         break;
       case CEED_RESTRICTION_POINTS:
-        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref_Core(rstr, num_comp, start, stop, t_mode, uu, vv, overwrite_mask));
+        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref_Core(rstr, num_comp, start, stop, t_mode, uu, vv));
         break;
     }
   }
