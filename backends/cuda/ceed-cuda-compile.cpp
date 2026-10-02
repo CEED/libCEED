@@ -390,6 +390,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
 
     // Preprocess & check if identical file has been compiled
+    // TODO: Add PTX caching and checking for NVRTC and HIPRTC
     {
       // -E: preprocess only
       // -P: exclude line info (needed to support different filenames)
@@ -404,6 +405,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
       // Fast way to check if a file exists
       struct stat buffer;
+
       ptx_file_exists = (stat(filename_ptx.c_str(), &buffer) == 0);
     }
 

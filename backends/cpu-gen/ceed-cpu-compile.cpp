@@ -242,6 +242,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
 
       // Fast way to check if a file exists
       struct stat buffer;
+
       so_file_exists = (stat((filename_so).c_str(), &buffer) == 0);
     }
 
