@@ -10,7 +10,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
-- `CeedOperatorApply` overwrites the output instead of zeroing it first, with the CPU element restrictions storing the first value written to each entry.
+- `CeedOperatorApply` overwrites the output instead of zeroing it first on CPU backends that use the ref element restrictions.
 
 ### Examples
 

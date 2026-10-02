@@ -182,15 +182,11 @@ int CeedVectorReference(CeedVector vec) {
 }
 
 /**
-  @brief Begin overwriting a `CeedVector`.
+  @brief Begin overwriting a `CeedVector`, so that its entries not yet written read as zero.
 
-  Until @ref CeedVectorEndOverwrite(), entries of `vec` not yet written are treated as zero.
-  Access with @ref CeedVectorGetArrayOverwrite() gives a mask of the entries written so far, so a backend can write the first value for an entry instead of adding it to zero.
-  Any other use of `vec` ends the overwrite first.
-  Setting every entry, with @ref CeedVectorSetValue(), @ref CeedVectorSetArray(), or @ref CeedVectorGetArrayWrite(), discards the mask, and any other access or vector operation sets the entries not yet written to zero.
-  Writes through another `CeedVector` that shares memory with `vec` are not tracked.
-
-  `vec` is set to zero instead if the backend prefers device memory, if `vec` has no valid data, or inside an OpenMP parallel region, where threads may share the memory of `vec`.
+  Backends write through @ref CeedVectorGetArrayOverwrite().
+  Any other use of `vec` ends the overwrite, zeroing the entries not yet written.
+  Vectors on device memory, without data, or in an OpenMP parallel region are zeroed instead.
 
   @param[in,out] vec `CeedVector` to overwrite
 
@@ -220,19 +216,16 @@ int CeedVectorBeginOverwrite(CeedVector vec) {
   if (!vec->overwrite_mask) CeedCall(CeedMalloc((length + 63) / 64, &vec->overwrite_mask));
   memset(vec->overwrite_mask, 0, (length + 63) / 64 * sizeof(uint64_t));
   vec->is_overwriting = true;
-  // The values are now zero, so anything computed from the old values, such as a restricted passive input, is stale
+  // The values are now zero, so data cached from the old values is stale
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get read/write access to a `CeedVector` via the specified memory type, with the mask of entries written if it is being overwritten.
+  @brief Get read/write access to a `CeedVector`, with the mask of written entries if it is being overwritten.
 
-  While `vec` is being overwritten, see @ref CeedVectorBeginOverwrite(), bit `i % 64` of `overwrite_mask[i / 64]` is set once entry `i` is written.
-  Entries without their bit set have undefined values, so the caller must write `0.0 + value` to them instead of adding `value`, which keeps the result of adding `-0.0` to zero, then set their bit.
-  The mask is not updated atomically, so the caller needs exclusive access to `vec`.
-  Otherwise, `overwrite_mask` is `NULL` and this is the same as @ref CeedVectorGetArray().
-
+  Bit `i % 64` of `overwrite_mask[i / 64]` is set once entry `i` is written; entries without their bit hold undefined values and read as zero.
+  `overwrite_mask` is `NULL` if `vec` is not being overwritten.
   Restore access with @ref CeedVectorRestoreArray().
 
   @param[in,out] vec            `CeedVector` to access
