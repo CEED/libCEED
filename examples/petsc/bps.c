@@ -160,7 +160,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
                           "    Solution Order (P)                      : %" PetscInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
                           "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global nodes                            : %" PetscInt_FMT "\n"
                           "    Local Elements                          : %" PetscInt_FMT "\n"
@@ -232,6 +232,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   my_rt = MPI_Wtime() - my_rt_start;
   PetscCall(MPI_Allreduce(MPI_IN_PLACE, &my_rt, 1, MPI_DOUBLE, MPI_MIN, rp->comm));
   // Set maxits based on first iteration timing
+  PetscCall(KSPSetMinimumIterations(ksp, rp->ksp_max_it_clip[0]));
   if (my_rt > 0.02) {
     PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[0]));
   } else {

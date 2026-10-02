@@ -1042,7 +1042,6 @@ cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
 	$(call quiet,MAKE) -C examples clean NEK5K_DIR="$(abspath $(NEK5K_DIR))"
 	$(call quiet,MAKE) -C python/tests clean
-	$(RM) benchmarks/*output.txt
 
 distclean : clean clean-cache
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)

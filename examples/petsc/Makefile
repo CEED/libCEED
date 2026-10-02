@@ -49,7 +49,7 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc)) $(call pkgconf, --libs-only-
 OBJDIR := build
 SRCDIR := src
 
-all: area bps bpsraw bpssphere dmswarm multigrid
+all: area bps bpsraw bpssphere bpsswarm dmswarm multigrid
 
 utils.c := $(sort $(wildcard $(SRCDIR)/*.c))
 utils.o = $(utils.c:%.c=$(OBJDIR)/%.o)

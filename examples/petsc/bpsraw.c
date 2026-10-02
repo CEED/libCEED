@@ -467,7 +467,7 @@ int main(int argc, char **argv) {
                           "    libCEED Backend MemType            : %s\n"
                           "  Mesh:\n"
                           "    Solution Order (P)                 : %" CeedInt_FMT "\n"
-                          "    Quadrature  Order (Q)              : %" CeedInt_FMT "\n"
+                          "    Quadrature Order (Q)               : %" CeedInt_FMT "\n"
                           "    Global nodes                       : %" PetscInt_FMT "\n"
                           "    Process Decomposition              : %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
                           "    Local Elements                     : %" PetscInt_FMT " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"

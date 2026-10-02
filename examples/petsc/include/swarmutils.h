@@ -28,17 +28,13 @@ struct DMSwarmCeedContext_ {
 PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, DMSwarmCeedContext *ctx);
 PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx);
 
-// Swarm point distribution
-typedef enum { SWARM_GAUSS = 0, SWARM_UNIFORM = 1, SWARM_CELL_RANDOM = 2, SWARM_SINUSOIDAL = 3 } PointSwarmType;
-static const char *const point_swarm_types[] = {"gauss", "uniform", "cell_random", "sinusoidal", "PointSwarmType", "SWARM", 0};
-
 // Memory utilities
 PetscErrorCode DMSwarmPICFieldP2C(DM dm_swarm, const char *field, CeedVector x_ceed);
 PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_ceed);
 
 // Swarm helper function
-PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_swarm_type, PetscInt num_points, PetscInt num_points_per_cell);
-PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
+PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType swarm_type, PetscInt num_points, PetscInt num_points_per_cell_1d);
+PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *X_points_ref);
 
 // Swarm to mesh projection
 PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec U_points, Vec B_mesh);

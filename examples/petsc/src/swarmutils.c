@@ -253,25 +253,31 @@ PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_c
 // ------------------------------------------------------------------------------------------------
 // Swarm point location utility
 // ------------------------------------------------------------------------------------------------
-PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_swarm_type, PetscInt num_points, PetscInt num_points_per_cell) {
+PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType swarm_type, PetscInt num_points, PetscInt num_points_per_cell_1d) {
+  const PetscInt dim             = 3;
+  PetscInt       points_per_cell = num_points_per_cell_1d > 0 ? PetscPowInt(num_points_per_cell_1d, dim) : 0;
+
   PetscFunctionBeginUser;
-  switch (point_swarm_type) {
+  switch (swarm_type) {
     case SWARM_GAUSS:
     case SWARM_UNIFORM: {
       // -- Set gauss or uniform point locations in each cell
-      PetscInt    num_points_per_cell_1d = round(cbrt(num_points_per_cell * 1.0)), dim = 3;
-      PetscScalar point_coords[num_points_per_cell * 3];
-      CeedScalar  points_1d[num_points_per_cell_1d], weights_1d[num_points_per_cell_1d];
+      PetscInt num_points_1d = num_points_per_cell_1d;
+      PetscCheck(num_points_1d > 0, PetscObjectComm((PetscObject)dm_swarm), PETSC_ERR_USER, "Must have at least 1 point in each cell");
+      PetscScalar point_coords[points_per_cell * dim];
+      CeedScalar  points_1d[num_points_1d], weights_1d[num_points_1d];
 
-      if (point_swarm_type == SWARM_GAUSS) {
-        PetscCall(CeedGaussQuadrature(num_points_per_cell_1d, points_1d, weights_1d));
+      if (swarm_type == SWARM_GAUSS) {
+        PetscCall(CeedGaussQuadrature(num_points_1d, points_1d, weights_1d));
       } else {
-        for (PetscInt i = 0; i < num_points_per_cell_1d; i++) points_1d[i] = 2.0 * (PetscReal)(i + 0.5) / (PetscReal)num_points_per_cell_1d - 1;
+        for (PetscInt i = 0; i < num_points_1d; i++) {
+          points_1d[i] = 2.0 * (PetscReal)(i + 0.5) / (PetscReal)num_points_1d - 1;
+        }
       }
-      for (PetscInt i = 0; i < num_points_per_cell_1d; i++) {
-        for (PetscInt j = 0; j < num_points_per_cell_1d; j++) {
-          for (PetscInt k = 0; k < num_points_per_cell_1d; k++) {
-            PetscInt p = (i * num_points_per_cell_1d + j) * num_points_per_cell_1d + k;
+      for (PetscInt i = 0; i < num_points_1d; i++) {
+        for (PetscInt j = 0; j < num_points_1d; j++) {
+          for (PetscInt k = 0; k < num_points_1d; k++) {
+            PetscInt p = (i * num_points_1d + j) * num_points_1d + k;
 
             point_coords[p * dim + 0] = points_1d[i];
             point_coords[p * dim + 1] = points_1d[j];
@@ -279,7 +285,7 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_
           }
         }
       }
-      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, num_points_per_cell_1d * num_points_per_cell_1d * num_points_per_cell_1d, point_coords));
+      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, points_per_cell, point_coords));
     } break;
     case SWARM_CELL_RANDOM: {
       DM dm_mesh;
@@ -287,7 +293,7 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_
       PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
       // DMSwarmSetPointCoordinatesRandom expects local coordinates to be set up to ensure call is non-collective
       PetscCall(DMGetCoordinatesLocalSetUp(dm_mesh));
-      PetscCall(DMSwarmSetPointCoordinatesRandom(dm_swarm, num_points_per_cell));
+      PetscCall(DMSwarmSetPointCoordinatesRandom(dm_swarm, points_per_cell));
     } break;
     case SWARM_SINUSOIDAL: {
       // -- Set points distributed per sinusoidal functions
