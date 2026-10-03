@@ -2640,9 +2640,12 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
   @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
+  @note With OpenMP threads, applying operators into output vectors that share memory is a race.
+        Zero the shared memory once and use @ref CeedOperatorApplyAdd() from each thread instead.
+
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     `CeedVector` to store result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[out] out     `CeedVector` to store result of applying operator (must not share memory with `in`, a passive field, or the points of an operator at points) or @ref CEED_VECTOR_NONE if there are no active outputs
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -2662,12 +2665,10 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
     // Standard Operator
     CeedCall(op->Apply(op, in, out, request));
   } else {
-    // Standard or composite, default to zeroing out and calling ApplyAddActive
-    // Zero active output
-    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
-
-    // ApplyAddActive
+    // Standard or composite, default to overwriting the active output and calling ApplyAddActive
+    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorBeginOverwrite(out));
     CeedCall(CeedOperatorApplyAddActive(op, in, out, request));
+    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorEndOverwrite(out));
   }
   return CEED_ERROR_SUCCESS;
 }

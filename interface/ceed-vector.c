@@ -13,6 +13,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 /// @file
 /// Implementation of public CeedVector interfaces
@@ -176,6 +181,116 @@ int CeedVectorReference(CeedVector vec) {
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Begin overwriting a `CeedVector`, so that its entries not yet written read as zero.
+
+  Backends write through @ref CeedVectorGetArrayOverwrite().
+  Any other use of `vec` ends the overwrite, zeroing the entries not yet written.
+  Vectors on device memory, without data, or in an OpenMP parallel region are zeroed instead.
+
+  @param[in,out] vec `CeedVector` to overwrite
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorBeginOverwrite(CeedVector vec) {
+  bool        can_overwrite;
+  CeedSize    length;
+  CeedMemType mem_type;
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  CeedCall(CeedGetPreferredMemType(CeedVectorReturnCeed(vec), &mem_type));
+  can_overwrite = length > 0 && mem_type == CEED_MEM_HOST;
+#ifdef _OPENMP
+  can_overwrite = can_overwrite && !omp_in_parallel();
+#endif
+  if (can_overwrite) CeedCall(CeedVectorHasValidArray(vec, &can_overwrite));
+  if (!can_overwrite) {
+    CeedCall(CeedVectorSetValue(vec, 0.0));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot overwrite CeedVector, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot overwrite CeedVector, a process has read access");
+  if (!vec->overwrite_mask) CeedCall(CeedMalloc((length + 63) / 64, &vec->overwrite_mask));
+  memset(vec->overwrite_mask, 0, (length + 63) / 64 * sizeof(uint64_t));
+  vec->is_overwriting = true;
+  // The values are now zero, so data cached from the old values is stale
+  vec->state += 2;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get read/write access to a `CeedVector`, with the mask of written entries if it is being overwritten.
+
+  Bit `i % 64` of `overwrite_mask[i / 64]` is set once entry `i` is written; entries without their bit hold undefined values and read as zero.
+  `overwrite_mask` is `NULL` if `vec` is not being overwritten.
+  Restore access with @ref CeedVectorRestoreArray().
+
+  @param[in,out] vec            `CeedVector` to access
+  @param[in]     mem_type       Memory type on which to access the array
+  @param[out]    array          Array on memory type `mem_type`
+  @param[out]    overwrite_mask Mask of the entries written while overwriting, or `NULL`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetArrayOverwrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array, uint64_t **overwrite_mask) {
+  *overwrite_mask = NULL;
+  if (!vec->is_overwriting || mem_type != CEED_MEM_HOST) {
+    CeedCall(CeedVectorGetArray(vec, mem_type, array));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Read access ends the overwrite, so only the write lock needs checking
+  CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
+            "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCall(vec->GetArray(vec, mem_type, array));
+  *overwrite_mask = vec->overwrite_mask;
+  vec->state++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief End overwriting a `CeedVector`, setting the entries not written since @ref CeedVectorBeginOverwrite() to zero.
+
+  @param[in,out] vec `CeedVector` being overwritten
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorEndOverwrite(CeedVector vec) {
+  CeedSize    length;
+  CeedScalar *array;
+
+  if (!vec->is_overwriting) return CEED_ERROR_SUCCESS;
+
+  // Read access ends the overwrite, so only the write lock needs checking
+  CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot end CeedVector overwrite, the access lock is already in use");
+  CeedCall(CeedVectorGetLength(vec, &length));
+  // Get the backend array directly, as CeedVectorGetArray() would end the overwrite
+  CeedCall(vec->GetArray(vec, CEED_MEM_HOST, &array));
+  vec->state++;
+  for (CeedSize i = 0; i < length; i += 64) {
+    const uint64_t is_written = vec->overwrite_mask[i / 64];
+
+    if (is_written == UINT64_MAX) continue;
+    if (!is_written) {
+      for (CeedSize j = i; j < i + 64 && j < length; j++) array[j] = 0.0;
+      continue;
+    }
+    for (CeedSize j = i; j < i + 64 && j < length; j++) {
+      if (!(is_written & ((uint64_t)1 << (j - i)))) array[j] = 0.0;
+    }
+  }
+  vec->is_overwriting = false;
+  CeedCall(CeedVectorRestoreArray(vec, &array));
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -316,6 +431,9 @@ int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedSize stop, CeedSiz
   CeedCheck(start >= 0 && start <= length && (start <= stop || stop == -1), CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Invalid value for start %" CeedSize_FMT ", must be in the range [0, stop]", start);
 
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
+  if (vec_copy->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec_copy));
+
   // Backend version
   if (vec->CopyStrided && vec_copy->CopyStrided) {
     CeedCall(vec->CopyStrided(vec, start, stop, step, vec_copy));
@@ -360,6 +478,7 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_m
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) CeedCall(vec->SetArray(vec, mem_type, copy_mode, array));
+  vec->is_overwriting = false;
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -381,6 +500,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   if (vec->SetValue) {
     CeedCall(vec->SetValue(vec, value));
+    vec->is_overwriting = false;
     vec->state += 2;
   } else {
     CeedSize    length;
@@ -419,6 +539,7 @@ int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedSize stop, Cee
   CeedCheck(stop >= -1 && stop <= length, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Invalid value for stop %" CeedSize_FMT ", must be in the range [-1, length]", stop);
 
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
   if (vec->SetValueStrided) {
     CeedCall(vec->SetValueStrided(vec, start, stop, step, value));
     vec->state += 2;
@@ -451,6 +572,7 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
   CeedSize length;
 
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot sync CeedVector, the access lock is already in use");
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   // Don't sync empty array
   CeedCall(CeedVectorGetLength(vec, &length));
@@ -488,6 +610,7 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
 
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -531,6 +654,7 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -568,6 +692,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
   CeedCheck(vec->GetArrayRead, CeedVectorReturnCeed(vec), CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
   CeedCheck(vec->state % 2 == 0, CeedVectorReturnCeed(vec), CEED_ERROR_ACCESS,
             "Cannot grant CeedVector read-only array access, the access lock is already in use");
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length > 0) {
@@ -613,6 +738,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **a
   } else {
     *array = NULL;
   }
+  vec->is_overwriting = false;
   vec->state++;
   return CEED_ERROR_SUCCESS;
 }
@@ -688,6 +814,8 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
     return CEED_ERROR_SUCCESS;
   }
 
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
+
   // Backend impl for GPU, if added
   if (vec->Norm) {
     CeedCall(vec->Norm(vec, norm_type, norm));
@@ -745,6 +873,8 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   CeedCall(CeedVectorGetLength(x, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
 
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+
   // Backend implementation
   if (x->Scale) return x->Scale(x, alpha);
 
@@ -779,6 +909,8 @@ int CeedVectorFilter(CeedVector x, CeedScalar threshold) {
   // Return early for empty vector
   CeedCall(CeedVectorGetLength(x, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
+
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
 
   // Backend implementation
   if (x->Filter) {
@@ -845,6 +977,9 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
 
   // Return early for empty vectors
   if (length_y == 0) return CEED_ERROR_SUCCESS;
+
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
 
   // Backend implementation
   if (y->AXPY) {
@@ -916,6 +1051,9 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
 
   // Return early for empty vectors
   if (length_y == 0) return CEED_ERROR_SUCCESS;
+
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
 
   // Backend implementation
   if (y->AXPBY) {
@@ -993,6 +1131,10 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   // Return early for empty vectors
   if (length_w == 0) return CEED_ERROR_SUCCESS;
 
+  if (w->is_overwriting) CeedCall(CeedVectorEndOverwrite(w));
+  if (x->is_overwriting) CeedCall(CeedVectorEndOverwrite(x));
+  if (y->is_overwriting) CeedCall(CeedVectorEndOverwrite(y));
+
   // Backend implementation
   if (w->PointwiseMult) {
     CeedCall(w->PointwiseMult(w, x, y));
@@ -1054,6 +1196,8 @@ int CeedVectorReciprocal(CeedVector vec) {
   // Return early for empty vector
   CeedCall(CeedVectorGetLength(vec, &length));
   if (length == 0) return CEED_ERROR_SUCCESS;
+
+  if (vec->is_overwriting) CeedCall(CeedVectorEndOverwrite(vec));
 
   // Backend impl for GPU, if added
   if (vec->Reciprocal) {
@@ -1228,6 +1372,7 @@ int CeedVectorDestroy(CeedVector *vec) {
   CeedCheck((*vec)->num_readers == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
+  CeedCall(CeedFree(&(*vec)->overwrite_mask));
   CeedCall(CeedObjectDestroy_Private(&(*vec)->obj));
   CeedCall(CeedFree(vec));
   return CEED_ERROR_SUCCESS;

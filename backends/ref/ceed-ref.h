@@ -35,6 +35,11 @@ typedef struct {
   const CeedInt8 *curl_orients_owned;
   int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
                CeedRequest *);
+  /* Mask words written by each block of the transpose, see CeedElemRestrictionSetupBlockWords_Ref */
+  bool      has_scattered_block_words;
+  CeedSize  l_size;
+  CeedSize *block_words_offsets;
+  CeedSize *block_words;
 } CeedElemRestriction_Ref;
 
 typedef struct {

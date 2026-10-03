@@ -50,6 +50,7 @@ This reorders the summation, so results move by about an ulp; use `CeedBasisSetU
 - Add support for user-defined cache directory for `/cpu/self/gen` and CUDA Clang compilation pipelines.
   Defaults to `$CEED_CACHE_BASE_DIR`, `$XDG_CACHE_HOME`, or `$HOME/.cache`, in that order, and can be accessed and set programmatically via `CeedGetCacheBaseDir` and `CeedSetCacheBaseDir`, respectively.
 - Add `CeedElemRestrictionGetBlockedElemRestriction` to prevent duplicate blocked `CeedElemRestriction` creation in CPU backends.
+- `CeedOperatorApply` overwrites the output instead of zeroing it first on CPU backends that use the ref element restrictions.
 
 ### Examples
 
