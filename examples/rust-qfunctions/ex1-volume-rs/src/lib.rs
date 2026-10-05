@@ -1,8 +1,9 @@
 #![no_std]
 #![allow(internal_features)]
-#![feature(core_intrinsics)]
+#![feature(abort_immediate)]
+
 use core::ffi::c_void;
-use core::intrinsics::abort;
+use core::process::abort_immediate;
 use core::panic::PanicInfo;
 
 use ndarray::ArrayView;
@@ -15,7 +16,7 @@ unsafe impl GlobalAlloc for Allocator {
         0 as *mut u8
     }
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        abort(); // since we never allocate
+        abort_immediate(); // since we never allocate
     }
 }
 #[global_allocator]
@@ -33,7 +34,7 @@ pub struct BuildContext {
 // On no_std targets, its required to implement your own panic function.
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    abort()
+    abort_immediate()
 }
 
 /* The no_mangle is required because rust "mangles" names (changes them to prevent namespace conflicts)
@@ -86,7 +87,7 @@ pub unsafe extern "C" fn build_mass_rs(
             }
         }
         _ => {
-            abort();
+            abort_immediate();
         }
     }
 
