@@ -201,7 +201,7 @@ def compute_axis_limits(
         (x_limits, y_limits, raw_x_bounds, raw_y_bounds)
     """
     # Safe computation of compute nodes
-    num_procs_node = df["num_procs_node"].replace(0, np.nan)
+    num_procs_node = df["num_procs_node"].replace(0, 1).replace(-1.0, 1.0)
     num_nodes = (df["num_procs"] / num_procs_node).fillna(1.0).to_numpy(dtype=float)
 
     # Compute DOFs per compute node (x) and DPS per compute node (y)
@@ -420,9 +420,11 @@ def main(args: Optional[Sequence[str]] = None) -> int:
         return 1
 
     if "CEED Benchmark Problem Points" in test_to_use:
-        test_short = test_to_use.strip().split()[0] + " BP" + test_to_use.strip().split()[-1] + "P"
+        example, bp = test_to_use.strip().split("CEED Benchmark Problem Points")
+        test_short = example.strip() + " BP" + bp.strip().replace(" ", "") + "P"
     elif "CEED Benchmark Problem" in test_to_use:
-        test_short = test_to_use.strip().split()[0] + " BP" + test_to_use.strip().split()[-1]
+        example, bp = test_to_use.strip().split("CEED Benchmark Problem")
+        test_short = example.strip() + " BP" + bp.strip().replace(" ", "")
     else:
         test_short = test_to_use.strip()
 
