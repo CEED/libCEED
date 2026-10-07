@@ -2,11 +2,11 @@
 authors = [
     "Jed Brown <jed@jedbrown.org>",
     "Yohann Dudouit <dudouit1@llnl.gov>",
-    "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
+    "Jeremy L Thompson <jeremy@jeremylt.org>",
 ]
 build = "build.rs"
 name = "libceed-sys"
-version = "0.12.0"
+version = "1.0.0"
 links = "libceed-sys"
 edition = "2018"
 license = "BSD-2-Clause"

@@ -255,6 +255,10 @@ Ceed
             apply_add!(op, v1, v2)
             @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 + a1 == a2))
 
+            comp_op = create_composite_operator(c, [op])
+            apply!(comp_op, v1, v2)
+            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
+
             diag_vector = create_lvector(r)
             LibCEED.assemble_diagonal!(op, diag_vector)
             @test @witharray_read(a = diag_vector, a == ones(n))

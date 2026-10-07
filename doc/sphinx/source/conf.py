@@ -70,7 +70,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "libCEED"
-copyright = "2020, LLNL, University of Colorado, University of Illinois, University of Tennesee, and the authors"
+copyright = "2026, LLNL, University of Colorado, University of Illinois, University of Tennesee, and the authors"
 with open("../../../AUTHORS") as f:
     authorlist = f.readlines()
 author = ", ".join(authorlist)
