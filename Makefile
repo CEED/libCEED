@@ -640,10 +640,9 @@ endif
 
 # libXSMM Backends
 XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
-MKL ?=
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   # Prefer the pkg-config file, which has the installed include directory (include/libxsmm
-  # for LIBXSMM 2.x) and the libraries LIBXSMM was built against
+  # for LIBXSMM 2.x) and the libraries LIBXSMM needs
   ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm.pc),)
     XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
     XSMM_CFLAGS ?= $(call pkgconf, --cflags $(XSMM_PC))
@@ -652,18 +651,10 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     XSMM_CFLAGS ?= -I$(XSMM_DIR)/include -I$(XSMM_DIR)/include/libxsmm
     XSMM_LIBS ?= -L$(abspath $(XSMM_DIR))/lib -lxsmm
   endif
-  ifneq (,$(MKL)$(MKLROOT))
-    ifneq ($(MKLROOT),)
-      # Some installs put everything inside an intel64 subdirectory, others not
-      MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
-      MKL_LINK = -L$(MKL_LIBDIR)
-    endif
-    BLAS_LIB ?= $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
-    XSMM_LIBS += $(BLAS_LIB)
-  else ifeq (,$(XSMM_PC))
-    BLAS_LIB ?=
-    XSMM_LIBS += $(BLAS_LIB)
-  endif
+  # LIBXSMM 2.0 has no BLAS fallback (libxsmm/libxsmm#981); builds of earlier main snapshots
+  # with BLAS enabled can pass the BLAS library here
+  BLAS_LIB ?=
+  XSMM_LIBS += $(BLAS_LIB)
   PKG_LIBS += $(XSMM_LIBS)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
