@@ -181,6 +181,24 @@ int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
 }
 
 /**
+  @brief Check whether the transpose of a `CeedElemRestriction` marks the entries it writes in the overwrite mask of the L-vector.
+
+  See @ref CeedVectorClearOverwriteMask().
+
+  @param[in]  rstr               `CeedElemRestriction`
+  @param[out] supports_overwrite Variable to store whether the transpose uses the overwrite mask
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionSupportsOverwrite(CeedElemRestriction rstr, bool *supports_overwrite) {
+  *supports_overwrite = false;
+  if (rstr->SupportsOverwrite) CeedCall(rstr->SupportsOverwrite(rstr, supports_overwrite));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Check if two `CeedElemRestriction` created with @ref CeedElemRestrictionCreateAtPoints() and use the same points per element
 
   @param[in]  rstr_a         First `CeedElemRestriction`

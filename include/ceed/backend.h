@@ -232,9 +232,9 @@ CEED_EXTERN int CeedVectorGetState(CeedVector vec, uint64_t *state);
 CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
-CEED_EXTERN int CeedVectorBeginOverwrite(CeedVector vec);
+CEED_EXTERN int CeedVectorClearOverwriteMask(CeedVector vec);
+CEED_EXTERN int CeedVectorApplyOverwriteMask(CeedVector vec);
 CEED_EXTERN int CeedVectorGetArrayOverwrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array, uint64_t **overwrite_mask);
-CEED_EXTERN int CeedVectorEndOverwrite(CeedVector vec);
 
 /**
   Specify type of restriction operation.
@@ -261,6 +261,7 @@ CEED_EXTERN const char *const CeedRestrictionTypes[];
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
 CEED_EXTERN int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points);
+CEED_EXTERN int CeedElemRestrictionSupportsOverwrite(CeedElemRestriction rstr, bool *supports_overwrite);
 CEED_EXTERN int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]);
 CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
@@ -466,6 +467,7 @@ CEED_EXTERN int CeedOperatorIsImmutable(CeedOperator op, bool *is_immutable);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
+CEED_EXTERN int CeedOperatorSupportsOverwrite(CeedOperator op, bool *supports_overwrite);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorReference(CeedOperator op);

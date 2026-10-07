@@ -736,6 +736,34 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
+// Operator Supports Overwrite
+//------------------------------------------------------------------------------
+static int CeedOperatorSupportsOverwrite_Blocked(CeedOperator op, bool *supports_overwrite) {
+  CeedInt               num_output_fields;
+  CeedOperatorField    *output_fields;
+  CeedOperator_Blocked *impl;
+
+  CeedCallBackend(CeedOperatorSetup_Blocked(op));
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+  *supports_overwrite = true;
+  for (CeedInt i = 0; i < num_output_fields && *supports_overwrite; i++) {
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorFieldGetVector(output_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      if (!impl->block_rstr[i + impl->num_inputs]) {
+        *supports_overwrite = false;
+      } else {
+        CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], supports_overwrite));
+      }
+    }
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Operator Create
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Blocked(CeedOperator op) {
@@ -748,6 +776,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Blocked));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "SupportsOverwrite", CeedOperatorSupportsOverwrite_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Blocked));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;

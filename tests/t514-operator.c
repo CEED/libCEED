@@ -88,10 +88,10 @@ int main(int argc, char **argv) {
   }
   CeedOperatorDestroy(&op_composite);
 
-  // Suboperators with different restriction types writing entries next to each other
+  // Suboperators with different restriction types writing entries next to each other, the one with offsets first
   CeedOperatorCreateComposite(ceed, &op_composite);
-  CeedOperatorCompositeAddSub(op_composite, op_strided);
   CeedOperatorCompositeAddSub(op_composite, op_16);
+  CeedOperatorCompositeAddSub(op_composite, op_strided);
   CeedVectorSetValue(v_17, 5.0);
   CeedOperatorApply(op_composite, u_17, v_17, CEED_REQUEST_IMMEDIATE);
   {
