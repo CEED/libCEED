@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 title: "libCEED: Efficient Extensible Discretization"
-version: 0.12.0
-date-released: 2023-10-31
+version: 1.0.0
+date-released: 2025-08-15
 license:  BSD-2-Clause
 message: "Please cite the following works when using this software."
 authors:
@@ -11,6 +11,9 @@ authors:
   - family-names: Abdelfattah
     given-names: Ahmad
     orcid: 0000-0001-5054-4784
+  - family-names: Atkins
+    given-names: Zachary R
+    orcid: 0000-0002-2491-0725
   - family-names: Barra
     given-names: Valeria
     orcid: 0000-0003-1129-2056
@@ -29,6 +32,9 @@ authors:
   - family-names: Ghaffari
     given-names: Leila
     orcid: 0000-0002-0965-214X
+  - family-names: Grimberg
+    given-names: Sebastian
+    orcid: 0000-0002-9188-0562
   - family-names: Kolev
     given-names: Tzanio
     orcid: 0000-0002-2810-3090
@@ -117,6 +123,9 @@ references:
       - family-names: Abdelfattah
         given-names: Ahmad
         orcid: 0000-0001-5054-4784
+      - family-names: Atkins
+        given-names: Zachary R
+        orcid: 0000-0002-2491-0725
       - family-names: Barra
         given-names: Valeria
         orcid: 0000-0003-1129-2056
@@ -138,6 +147,9 @@ references:
       - family-names: Ghaffari
         given-names: Leila
         orcid: 0000-0002-0965-214X
+      - family-names: Grimberg
+        given-names: Sebastian
+        orcid: 0000-0002-9188-0562
       - family-names: Kolev
         given-names: Tzanio
         orcid: 0000-0002-2810-3090
@@ -162,12 +174,12 @@ references:
         given-names: James
         name-suffix: III
         orcid: 0000-0001-7273-049X
-    year: 2022
-    month: Dec
+    year: 2026
+    month: Oct
     publisher:
       - name: Zenodo
         website: "https://zenodo.org/"
-    version: 0.11.0
+    version: 1.0.0
     doi: 10.5281/zenodo.4302736
   - type: proceedings
     title: "High-performance operator evaluations with ease of use: libCEED's Python interface"
