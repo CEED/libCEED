@@ -12,8 +12,14 @@
 using ColumnMajor = cutlass::layout::ColumnMajor;
 using RowMajor    = cutlass::layout::RowMajor;
 
-using GemmNN = cutlass::gemm::device::Gemm<CeedScalar, ColumnMajor, CeedScalar, ColumnMajor, CeedScalar, ColumnMajor>;
-using GemmTN = cutlass::gemm::device::Gemm<CeedScalar, RowMajor, CeedScalar, ColumnMajor, CeedScalar, ColumnMajor>;
+// Column-major C runs transposed, so tile N spans P; 32 fits P=27/64 with little padding (128 wasted up to 79%)
+using GemmNN =
+    cutlass::gemm::device::Gemm<CeedScalar, ColumnMajor, CeedScalar, ColumnMajor, CeedScalar, ColumnMajor, CeedScalar, cutlass::arch::OpClassSimt,
+                                cutlass::arch::Sm70, cutlass::gemm::GemmShape<32, 32, 8>, cutlass::gemm::GemmShape<32, 16, 8>>;
+// Column-major C runs transposed, so tile N spans Q; 32 fits Q=64/125, and K tile 4 pads P=27 to 28 instead of 32
+using GemmTN =
+    cutlass::gemm::device::Gemm<CeedScalar, RowMajor, CeedScalar, ColumnMajor, CeedScalar, ColumnMajor, CeedScalar, cutlass::arch::OpClassSimt,
+                                cutlass::arch::Sm70, cutlass::gemm::GemmShape<32, 32, 4>, cutlass::gemm::GemmShape<32, 16, 4>>;
 
 extern "C" int CeedCutlassGemm_Cuda(bool trans_a, int m, int n, int k, CeedScalar alpha, const CeedScalar *A, int lda, const CeedScalar *B, int ldb,
                                     CeedScalar beta, CeedScalar *C, int ldc) {
