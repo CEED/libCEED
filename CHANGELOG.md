@@ -10,6 +10,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+- Add `/gpu/cuda/cutlass` backend, which applies non-tensor bases (H1, H(div), and H(curl)) with a CUTLASS GEMM and delegates all other operations to `/gpu/cuda/ref`.
+
 ### Examples
 
 (v1-0)=
