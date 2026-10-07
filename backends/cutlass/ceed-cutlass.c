@@ -21,7 +21,9 @@ static int CeedInit_Cutlass(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
   CeedCallBackend(CeedDestroy(&ceed_ref));
-
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Cutlass));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv", CeedBasisCreateHdiv_Cutlass));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHcurl", CeedBasisCreateHcurl_Cutlass));
   return CEED_ERROR_SUCCESS;
 }
 
