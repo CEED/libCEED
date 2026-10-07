@@ -202,8 +202,8 @@ struct CeedVector_private {
   CeedSize  length;
   uint64_t  state;
   uint64_t  num_readers;
-  bool      is_overwriting;
-  uint64_t *overwrite_mask; /* bit i % 64 of word i / 64 set once entry i is written while overwriting */
+  uint64_t *overwrite_mask;       /* bit i % 64 of word i / 64 set once entry i is written, or NULL */
+  uint64_t *overwrite_mask_array; /* storage for overwrite_mask, kept between overwrites */
   void     *data;
 };
 
@@ -219,6 +219,7 @@ struct CeedElemRestriction_private {
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
   int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
+  int (*SupportsOverwrite)(CeedElemRestriction, bool *);
   int (*Destroy)(CeedElemRestriction);
   CeedInt  num_elem;    /* number of elements */
   CeedInt  elem_size;   /* number of nodes per element */
@@ -417,6 +418,7 @@ struct CeedOperator_private {
   int (*ApplyAddComposite)(CeedOperator, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyJacobian)(CeedOperator, CeedVector, CeedVector, CeedVector, CeedVector, CeedRequest *);
   int (*SetEnableCudaGraph)(CeedOperator, bool);
+  int (*SupportsOverwrite)(CeedOperator, bool *);
   int (*Destroy)(CeedOperator);
   CeedOperatorField        *input_fields;
   CeedOperatorField        *output_fields;

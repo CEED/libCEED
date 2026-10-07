@@ -44,7 +44,7 @@ static inline void CeedElemRestrictionOverwriteBlock_Ref(const CeedElemRestricti
 // Mask words written by each block of the transpose
 //------------------------------------------------------------------------------
 // Record the mask words each block of the transpose writes. With more than one mask word per eight writes, checking them costs about
-// as much as zeroing the L-vector, so the words are not kept and the transpose zeroes the L-vector instead.
+// as much as zeroing the L-vector, so the words are not kept and the restriction does not support an overwrite mask.
 static int CeedElemRestrictionSetupBlockWords_Ref(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size,
                                                   const CeedInt comp_stride) {
   CeedInt                  num_elem, elem_size, num_blocks;
@@ -101,6 +101,19 @@ static int CeedElemRestrictionSetupBlockWords_Ref(CeedElemRestriction rstr, cons
   impl->l_size              = l_size;
   impl->block_words         = block_words;
   impl->block_words_offsets = block_words_offsets;
+  return CEED_ERROR_SUCCESS;
+}
+
+// Whether the transpose uses the overwrite mask: restrictions with offsets whose blocks do not write scattered mask words
+static int CeedElemRestrictionSupportsOverwrite_Ref_Core(CeedElemRestriction rstr, CeedRestrictionType rstr_type, const CeedInt num_comp,
+                                                         const CeedInt block_size, const CeedInt comp_stride, bool *supports_overwrite) {
+  CeedElemRestriction_Ref *impl;
+
+  *supports_overwrite = false;
+  if (rstr_type == CEED_RESTRICTION_STRIDED || rstr_type == CEED_RESTRICTION_POINTS) return CEED_ERROR_SUCCESS;
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  if (!impl->block_words_offsets) CeedCallBackend(CeedElemRestrictionSetupBlockWords_Ref(rstr, num_comp, block_size, comp_stride));
+  *supports_overwrite = !impl->has_scattered_block_words;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -508,24 +521,15 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
   if (t_mode == CEED_TRANSPOSE) {
     // Sum into for transpose mode, E-vector to L-vector
     CeedCallBackend(CeedVectorGetArrayOverwrite(v, CEED_MEM_HOST, &vv, &overwrite_mask));
-    // If the L-vector is being overwritten, each block zeroes the mask words it writes before summing, except that strided, at points,
-    // and scattered restrictions zero the L-vector first, as on main
+    // With an overwrite mask, each block zeroes the mask words it writes before summing
     if (overwrite_mask) {
-      bool zero_l_vec = rstr_type == CEED_RESTRICTION_STRIDED || rstr_type == CEED_RESTRICTION_POINTS;
+      bool supports_overwrite;
 
-      if (!zero_l_vec) {
-        CeedElemRestriction_Ref *impl;
-
-        CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-        if (!impl->block_words_offsets) CeedCallBackend(CeedElemRestrictionSetupBlockWords_Ref(rstr, num_comp, block_size, comp_stride));
-        zero_l_vec = impl->has_scattered_block_words;
-      }
-      if (zero_l_vec) {
-        CeedCallBackend(CeedVectorRestoreArray(v, &vv));
-        CeedCallBackend(CeedVectorEndOverwrite(v));
-        CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_HOST, &vv));
-        overwrite_mask = NULL;
-      }
+      CeedCallBackend(CeedElemRestrictionSupportsOverwrite_Ref_Core(rstr, rstr_type, num_comp, block_size, comp_stride, &supports_overwrite));
+      // LCOV_EXCL_START
+      CeedCheck(supports_overwrite, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_BACKEND,
+                "Transpose of this CeedElemRestriction does not support an overwrite mask");
+      // LCOV_EXCL_STOP
     }
   } else {
     // Overwrite for notranspose mode, L-vector to E-vector
@@ -883,6 +887,21 @@ static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, 
 }
 
 //------------------------------------------------------------------------------
+// ElemRestriction Supports Overwrite
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionSupportsOverwrite_Ref(CeedElemRestriction rstr, bool *supports_overwrite) {
+  CeedInt             num_comp, block_size, comp_stride;
+  CeedRestrictionType rstr_type;
+
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetBlockSize(rstr, &block_size));
+  CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
+  CeedCallBackend(CeedElemRestrictionSupportsOverwrite_Ref_Core(rstr, rstr_type, num_comp, block_size, comp_stride, supports_overwrite));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // ElemRestriction Destroy
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction rstr) {
@@ -1071,6 +1090,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
     CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement", CeedElemRestrictionApplyAtPointsInElement_Ref));
   }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyBlock", CeedElemRestrictionApplyBlock_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "SupportsOverwrite", CeedElemRestrictionSupportsOverwrite_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOrientations", CeedElemRestrictionGetOrientations_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Ref));

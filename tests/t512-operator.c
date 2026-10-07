@@ -77,15 +77,15 @@ int main(int argc, char **argv) {
 
   CeedOperatorApply(op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
-  // Apply with V = 1
-  CeedVectorSetValue(u, 1.0);
-  CeedVectorSetValue(v, 1.0);
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  {
+  // Apply with V = 1, overwriting the output and then zeroing it first
+  for (CeedInt overwrite = 1; overwrite >= 0; overwrite--) {
     const CeedScalar *v_array;
     CeedScalar        sum = 0.;
+
+    CeedSetOperatorOverwriteOutput(ceed, overwrite);
+    CeedVectorSetValue(u, 1.0);
+    CeedVectorSetValue(v, 1.0);
+    CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < num_nodes_u; i++) sum += v_array[i];
