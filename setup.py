@@ -53,6 +53,7 @@ class libceed_build_ext(build_ext):
             '-j{}'.format(nproc),
             '--always-make',
             'install',
+            'OPT=$(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG) -O3',
             'prefix=' + prefix,
             'FC=',  # Don't try to find Fortran (unused library build/install)
         ])
