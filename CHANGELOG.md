@@ -10,6 +10,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+- `CeedOperatorApply` overwrites the output through a `CeedVector` overwrite mask instead of zeroing it first, where the operator supports it; set `CEED_OPERATOR_OVERWRITE_OUTPUT=0` to always zero it.
+
 ### Examples
 
 (v1-0)=
