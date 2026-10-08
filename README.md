@@ -217,7 +217,6 @@ The `/cpu/self/sme/*` backends use vector-length-agnostic ARM Scalable Matrix Ex
 These backends are built when the configured compiler and target can compile the required SME intrinsics and streaming/ZA attributes.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxsmm/libxsmm) package to provide vectorized CPU performance.
-If linking MKL and LIBXSMM is desired but the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be forced by setting the environment variable `MKL=1`.
 The LIBXSMM version 2.0 or newer is required.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
