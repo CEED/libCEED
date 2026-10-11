@@ -12,9 +12,15 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Examples
 
+(v1-0-1)=
+
+## v1.0.1 (October 11, 2026)
+
+Patch release to fix release issues with Python wheels and LIBXSMM linking in the Makefile.
+
 (v1-0)=
 
-## v1.0 (August 15, 2025)
+## v1.0 (October 7, 2026)
 
 ### Interface changes
 

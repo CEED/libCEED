@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 title: "libCEED: Efficient Extensible Discretization"
-version: 1.0.0
-date-released: 2025-08-15
+version: 1.0.1
+date-released: 2026-10-11
 license:  BSD-2-Clause
 message: "Please cite the following works when using this software."
 authors:
@@ -179,7 +179,7 @@ references:
     publisher:
       - name: Zenodo
         website: "https://zenodo.org/"
-    version: 1.0.0
+    version: 1.0.1
     doi: 10.5281/zenodo.4302736
   - type: proceedings
     title: "High-performance operator evaluations with ease of use: libCEED's Python interface"
