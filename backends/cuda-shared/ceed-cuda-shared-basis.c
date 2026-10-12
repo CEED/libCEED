@@ -87,9 +87,10 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
                                                       interp_args));
         }
       } else if (dim == 3) {
-        CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
-        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+        CeedInt       elems_per_block = 1;
+        CeedInt       grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+        const CeedInt stride_1d       = thread_1d;
+        CeedInt       shared_mem      = 2 * elems_per_block * stride_1d * stride_1d * stride_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, NULL, grid, thread_1d,
@@ -140,9 +141,10 @@ static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add,
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, NULL, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 3) {
-        CeedInt elems_per_block = 1;
-        CeedInt grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
-        CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+        CeedInt       elems_per_block = 1;
+        CeedInt       grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+        const CeedInt stride_1d       = thread_1d;
+        CeedInt       shared_mem      = 2 * elems_per_block * stride_1d * stride_1d * stride_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, NULL, grid, thread_1d,
@@ -624,25 +626,27 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallCuda(ceed, cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
 
   // Compute collocated gradient and copy to GPU
-  data->d_collo_grad_1d = NULL;
+  data->d_collo_grad_1d           = NULL;
+  const CeedScalar *collo_grad_1d = NULL;
   CeedCallBackend(CeedBasisHasCollocatedGrad(basis, &has_collocated_grad));
   has_collocated_grad = has_collocated_grad && dim == 3;
   if (has_collocated_grad) {
-    const CeedScalar *collo_grad_1d;
-
     CeedCallBackend(CeedBasisGetCollocatedGrad1D(basis, &collo_grad_1d));
     CeedCallCuda(ceed, cudaMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d));
     CeedCallCuda(ceed, cudaMemcpy(data->d_collo_grad_1d, collo_grad_1d, q_bytes * Q_1d, cudaMemcpyHostToDevice));
   }
 
   // Compile basis kernels
-  bool       is_collocated         = false;
-  const char basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor.h>\n";
+  bool          is_collocated         = false;
+  const char    basis_kernel_source[] = "// Tensor basis source\n#include <ceed/jit-source/cuda/cuda-shared-basis-tensor.h>\n";
+  const CeedInt thread_1d             = CeedIntMax(Q_1d, P_1d);
+  const CeedInt stride_1d             = thread_1d;
 
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_tensor_shared", &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
-                                   "BASIS_T_1D", CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES",
-                                   CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, "basis_h1_tensor_shared", &data->module, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d,
+                                   "BASIS_T_1D", thread_1d, "BASIS_STRIDE_1D", stride_1d, "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
+                                   "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD",
+                                   has_collocated_grad));
   CeedCallBackend(CeedBasisIsCollocated(basis, &is_collocated));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocated" : "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, is_collocated ? "InterpCollocatedTranspose" : "InterpTranspose", &data->InterpTranspose));
