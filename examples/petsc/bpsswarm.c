@@ -61,7 +61,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm_swarm, const char *ceed_reso
   Ceed                 ceed;
   CeedData             ceed_data;
   VecType              vec_type = VECSTANDARD;
-  PetscMemType         mem_type;
   DM                   dm_mesh;
 
   PetscFunctionBeginUser;
@@ -157,40 +156,35 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm_swarm, const char *ceed_reso
       num_points_min_max[1] *= -1;
       PetscCall(MPIU_Reduce(&num_cells_local, &num_cells_global, 1, MPIU_INT, MPIU_SUM, 0, rp->comm));
     }
-    PetscCall(
-        PetscPrintf(rp->comm,
-                    "\n-- CEED Benchmark Problem Points %s -- libCEED + PETSc --\n"
-                    "  MPI:\n"
-                    "    Hostname                                : %s\n"
-                    "    Total ranks                             : %d\n"
-                    "    Ranks per compute node                  : %d\n"
-                    "  PETSc:\n"
-                    "    PETSc Vec Type                          : %s\n"
-                    "  libCEED:\n"
-                    "    libCEED Backend                         : %s\n"
-                    "    libCEED Backend MemType                 : %s\n"
-                    "  Mesh:\n"
-                    "    Solution Order (P)                      : %" PetscInt_FMT "\n"
-                    "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
-                    "    Additional points (q_extra)             : %" PetscInt_FMT "\n"
-                    "    Global nodes                            : %" PetscInt_FMT "\n"
-                    "    Local Elements                          : %" PetscInt_FMT "\n"
-                    "    Element topology                        : %s\n"
-                    "    Owned nodes                             : %" PetscInt_FMT "\n"
-                    "    DoF per node                            : %" PetscInt_FMT "\n"
-                    "  Swarm:\n"
-                    "    Global points                           : %" PetscInt_FMT "\n"
-                    "    Local points                            : %" PetscInt_FMT " (%" PetscInt_FMT ")\n"
-                    "    Avg points per cell                     : %" PetscInt_FMT "\n"
-                    "    Point distribution                      : %s\n",
-                    // bp_choice + 1, hostname, comm_size, ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra,
-                    // g_size / num_comp_u, num_cells_local, l_size / num_comp_u, num_comp_u, num_points_global, num_points_local,
-                    // num_cells_local > 0 ? num_points_local / num_cells_local : 0, point_swarm_types[point_swarm_type]));
-
-                    bp_name, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, rp->q_extra,
-                    g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u, rp->num_comp_u,
-                    num_points_global, num_points_min_max[0], num_points_min_max[1], num_points_global / num_cells_global,
-                    PointSwarmTypes[rp->swarm_type]));
+    PetscCall(PetscPrintf(rp->comm,
+                          "\n-- CEED Benchmark Problem Points %s -- libCEED + PETSc --\n"
+                          "  MPI:\n"
+                          "    Hostname                                : %s\n"
+                          "    Total ranks                             : %d\n"
+                          "    Ranks per compute node                  : %d\n"
+                          "  PETSc:\n"
+                          "    PETSc Vec Type                          : %s\n"
+                          "  libCEED:\n"
+                          "    libCEED Backend                         : %s\n"
+                          "    libCEED Backend MemType                 : %s\n"
+                          "  Mesh:\n"
+                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                          "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
+                          "    Additional points (q_extra)             : %" PetscInt_FMT "\n"
+                          "    Global nodes                            : %" PetscInt_FMT "\n"
+                          "    Local Elements                          : %" PetscInt_FMT "\n"
+                          "    Element topology                        : %s\n"
+                          "    Owned nodes                             : %" PetscInt_FMT "\n"
+                          "    DoF per node                            : %" PetscInt_FMT "\n"
+                          "  Swarm:\n"
+                          "    Global points                           : %" PetscInt_FMT "\n"
+                          "    Local points                            : %" PetscInt_FMT " (%" PetscInt_FMT ")\n"
+                          "    Avg points per cell                     : %" PetscInt_FMT "\n"
+                          "    Point distribution                      : %s\n",
+                          bp_name, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q,
+                          rp->q_extra, g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u,
+                          rp->num_comp_u, num_points_global, num_points_min_max[0], num_points_min_max[1], num_points_global / num_cells_global,
+                          PointSwarmTypes[rp->swarm_type]));
   }
 
   PetscCall(DMCreateLocalVector(dm_swarm, &target));
