@@ -8,6 +8,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+- Ensure `CeedCall` propagates errors before compiler success assumptions.
+
 ### New features
 
 ### Examples

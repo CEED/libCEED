@@ -50,8 +50,8 @@
 #define CeedCall(...)                         \
   do {                                        \
     int ierr_ = __VA_ARGS__;                  \
-    CEED_ASSUME(ierr_ == CEED_ERROR_SUCCESS); \
     if (ierr_) return ierr_;                  \
+    CEED_ASSUME(ierr_ == CEED_ERROR_SUCCESS); \
   } while (0)
 
 /**
