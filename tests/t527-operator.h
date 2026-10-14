@@ -15,7 +15,7 @@ CEED_QFUNCTION(ScaleComponents)(void *ctx, const CeedInt Q, const CeedScalar *co
   PipelineContext *context = (PipelineContext *)ctx;
   const CeedInt    size    = context->size;
   if (context->observe) {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     atomicAdd(&context->calls, Q);
 #else
     context->calls += Q;
