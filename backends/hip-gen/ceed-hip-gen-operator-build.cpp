@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -170,6 +171,41 @@ static int CeedOperatorBuildKernelData_Hip_gen(Ceed ceed, CeedInt num_input_fiel
         was_grad_found = true;
         CeedCallBackend(CeedBasisDestroy(&basis));
       }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+// Cheetah Apply needs both node and quadrature extents in restriction scratch.
+static int CeedOperatorRestrictionScratchSize_Hip_gen(Ceed ceed, CeedInt num_input_fields, CeedOperatorField *op_input_fields,
+                                                      CeedQFunctionField *qf_input_fields, CeedInt num_output_fields,
+                                                      CeedOperatorField *op_output_fields, CeedQFunctionField *qf_output_fields, bool is_all_tensor,
+                                                      CeedInt max_dim, CeedInt Q_1d, CeedInt *size) {
+  *size = 1;
+  for (int role = 0; role < 2; role++) {
+    const CeedInt       count     = role ? num_output_fields : num_input_fields;
+    CeedOperatorField  *fields    = role ? op_output_fields : op_input_fields;
+    CeedQFunctionField *qf_fields = role ? qf_output_fields : qf_input_fields;
+    for (CeedInt i = 0; i < count; i++) {
+      CeedEvalMode eval;
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval));
+      if (eval == CEED_EVAL_NONE || eval == CEED_EVAL_WEIGHT) continue;
+      CeedInt             components, extent = 1;
+      CeedElemRestriction restriction;
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(fields[i], &restriction));
+      CeedCallBackend(CeedElemRestrictionGetNumComponents(restriction, &components));
+      CeedCallBackend(CeedElemRestrictionDestroy(&restriction));
+      if (is_all_tensor && max_dim >= 3) {
+        CeedBasis basis;
+        CeedInt   nodes;
+        CeedCallBackend(CeedOperatorFieldGetBasis(fields[i], &basis));
+        CeedCallBackend(CeedBasisGetNumNodes1D(basis, &nodes));
+        CeedCallBackend(CeedBasisDestroy(&basis));
+        extent = CeedIntMax(nodes, Q_1d);
+      }
+      CeedCheck(components > 0 && extent <= std::numeric_limits<CeedInt>::max() / components, ceed, CEED_ERROR_BACKEND,
+                "Generated restriction scratch extent overflow");
+      *size = CeedIntMax(*size, components * extent);
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -1536,35 +1572,9 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op, bool *is_good_bu
 
   // -- Compute minimum buffer space needed
   CeedInt max_rstr_buffer_size = 1;
-
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedEvalMode eval_mode;
-
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    if (eval_mode != CEED_EVAL_NONE && eval_mode != CEED_EVAL_WEIGHT) {
-      CeedInt             num_comp;
-      CeedElemRestriction elem_rstr;
-
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
-      CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-      max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
-      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
-    }
-  }
-  for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedEvalMode eval_mode;
-
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    if (eval_mode != CEED_EVAL_NONE) {
-      CeedInt             num_comp;
-      CeedElemRestriction elem_rstr;
-
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
-      CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-      max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * (is_all_tensor && (max_dim >= 3) ? Q_1d : 1));
-      CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
-    }
-  }
+  CeedCallBackend(CeedOperatorRestrictionScratchSize_Hip_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
+                                                             op_output_fields, qf_output_fields, is_all_tensor, max_dim, Q_1d,
+                                                             &max_rstr_buffer_size));
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
 
