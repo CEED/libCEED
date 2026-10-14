@@ -21,6 +21,52 @@
 #include "ceed-cuda-gen-operator-build.h"
 #include "ceed-cuda-gen.h"
 
+// Module population is private to one operator; failed unload keeps ownership.
+int CeedGenModuleRetire_Cuda_gen(Ceed ceed, CUmodule *module) {
+  if (!*module) return CEED_ERROR_SUCCESS;
+  CeedCallCuda(ceed, cuModuleUnload(*module));
+  *module = NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+// Preparation owns these references for the operator lifetime. Failed capture
+// leaves a partially populated local value that this same retirement releases.
+static int CeedApplyBindingsDestroy_Cuda_gen(CeedApplyBindings_Cuda_gen *bindings) {
+  for (CeedInt i = 0; i < bindings->num_inputs; i++) CeedCallBackend(CeedVectorDestroy(&bindings->inputs[i]));
+  for (CeedInt i = 0; i < bindings->num_outputs; i++) CeedCallBackend(CeedVectorDestroy(&bindings->outputs[i]));
+  CeedCallBackend(CeedVectorDestroy(&bindings->coords));
+  CeedCallBackend(CeedQFunctionDestroy(&bindings->qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedApplyBindingsCapture_Cuda_gen(CeedOperator op, CeedApplyBindings_Cuda_gen *bindings) {
+  CeedOperatorField  *input_fields, *output_fields;
+  CeedQFunctionField *qf_input_fields, *qf_output_fields;
+  bool                is_at_points;
+
+  CeedCallBackend(CeedOperatorGetNumElements(op, &bindings->num_elem));
+  CeedCallBackend(CeedOperatorGetQFunction(op, &bindings->qf));
+  CeedCallBackend(CeedOperatorGetFields(op, &bindings->num_inputs, &input_fields, &bindings->num_outputs, &output_fields));
+  CeedCallBackend(CeedQFunctionGetFields(bindings->qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+  for (int role = 0; role < 2; role++) {
+    const CeedInt       count     = role ? bindings->num_outputs : bindings->num_inputs;
+    CeedOperatorField  *fields    = role ? output_fields : input_fields;
+    CeedQFunctionField *qf_fields = role ? qf_output_fields : qf_input_fields;
+    CeedVector         *vectors   = role ? bindings->outputs : bindings->inputs;
+    for (CeedInt i = 0; i < count; i++) {
+      CeedEvalMode eval_mode;
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_WEIGHT)
+        vectors[i] = CEED_VECTOR_NONE;
+      else
+        CeedCallBackend(CeedOperatorFieldGetVector(fields[i], &vectors[i]));
+    }
+  }
+  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
+  if (is_at_points) CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &bindings->coords));
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
@@ -30,10 +76,6 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  if (impl->module) CeedCallCuda(ceed, cuModuleUnload(impl->module));
-  if (impl->module_assemble_full) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_full));
-  if (impl->module_assemble_diagonal) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_diagonal));
-  if (impl->module_assemble_qfunction) CeedCallCuda(ceed, cuModuleUnload(impl->module_assemble_qfunction));
   if (impl->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void *)impl->points.num_per_elem));
   if (impl->graph_instance) {
     CeedCallCuda(ceed, cudaGraphExecDestroy(impl->graph_instance));
@@ -47,6 +89,12 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   impl->captured_input_ptr  = NULL;
   impl->captured_output_ptr = NULL;
 
+  CeedCallBackend(CeedGenModuleRetire_Cuda_gen(ceed, &impl->module));
+  CeedCallBackend(CeedGenModuleRetire_Cuda_gen(ceed, &impl->module_assemble_full));
+  CeedCallBackend(CeedGenModuleRetire_Cuda_gen(ceed, &impl->module_assemble_diagonal));
+  CeedCallBackend(CeedGenModuleRetire_Cuda_gen(ceed, &impl->module_assemble_qfunction));
+  CeedCallBackend(CeedGenModuleRetire_Cuda_gen(ceed, &impl->pending_module));
+  CeedCallBackend(CeedApplyBindingsDestroy_Cuda_gen(&impl->apply));
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
@@ -114,181 +162,223 @@ static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threa
 // callback for cuOccupancyMaxPotentialBlockSize, providing the amount of dynamic shared memory required for a thread block of size threads.
 static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar); }
 
+static int CeedOperatorPreparePoints_Cuda_gen(CeedOperator op, CeedOperator_Cuda_gen *data, CeedInt num_elem) {
+  Ceed                ceed        = CeedOperatorReturnCeed(op);
+  CeedElemRestriction restriction = NULL;
+  CeedInt            *counts = NULL, *device = NULL;
+  int                 error = CEED_ERROR_SUCCESS, cleanup_error;
+  cudaError_t         status;
+  if (!num_elem || num_elem == data->points.num_elem) return CEED_ERROR_SUCCESS;
+  error = CeedOperatorAtPointsGetPoints(op, &restriction, NULL);
+  if (error) goto cleanup;
+  error = CeedCalloc(num_elem, &counts);
+  if (error) goto cleanup;
+  for (CeedInt e = 0; e < num_elem; e++) {
+    error = CeedElemRestrictionGetNumPointsInElement(restriction, e, &counts[e]);
+    if (error) goto cleanup;
+  }
+  status = cudaMalloc((void **)&device, (size_t)num_elem * sizeof *device);
+  if (status == cudaSuccess) status = cudaMemcpy(device, counts, (size_t)num_elem * sizeof *device, cudaMemcpyHostToDevice);
+  if (status == cudaSuccess && data->points.num_per_elem) status = cudaFree((void *)data->points.num_per_elem);
+  if (status != cudaSuccess) {
+    error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to prepare CUDA gen point counts: %s", cudaGetErrorString(status));
+    goto cleanup;
+  }
+  data->points.num_per_elem = device;
+  data->points.num_elem     = num_elem;
+  device                    = NULL;
+cleanup:
+  if (device) {
+    status = cudaFree(device);
+    if (status != cudaSuccess && !error)
+      error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to retire CUDA gen point counts: %s", cudaGetErrorString(status));
+  }
+  cleanup_error = CeedElemRestrictionDestroy(&restriction);
+  if (!error) error = cleanup_error;
+  cleanup_error = CeedFree(&counts);
+  if (!error) error = cleanup_error;
+  return error;
+}
+
+// Construct launch values locally so an observation failure is retryable.
+static int CeedOperatorPrepareApply_Cuda_gen(CeedOperator op, bool *is_good_build) {
+  CeedOperator_Cuda_gen *data;
+  Ceed_Cuda             *cuda_data;
+  CeedInt                num_elem;
+  bool                   is_tensor;
+  Ceed                   ceed = CeedOperatorReturnCeed(op);
+
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+  *is_good_build = !data->use_fallback;
+  if (!*is_good_build || data->block[2]) return CEED_ERROR_SUCCESS;
+  CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, is_good_build));
+  if (!*is_good_build) return CEED_ERROR_SUCCESS;
+  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  CeedCallBackend(CeedGetData(ceed, &cuda_data));
+  int max_threads_per_block, min_grid_size, grid;
+
+  int    block[3]   = {1, 1, 1};
+  size_t shared_mem = 0;
+  grid              = 0;
+  if (!num_elem) {
+    // A complete empty launch prepares modules but submits no work.
+  } else if (data->scratch_planes > 1) {
+    const int    threads_per_elem = data->thread_1d * data->thread_1d;
+    const size_t bytes_per_elem   = threads_per_elem * data->scratch_planes * sizeof(CeedScalar);
+    {
+      int       best_useful = -1;
+      const int max_elems =
+          CeedIntMin(num_elem, CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.maxThreadsPerBlock / threads_per_elem));
+      for (int elems = 1; elems <= max_elems; elems++) {
+        int resident_blocks;
+        CeedCallCuda(ceed, cuOccupancyMaxActiveBlocksPerMultiprocessor(&resident_blocks, data->op, elems * threads_per_elem, elems * bytes_per_elem));
+        // Rank capacity usable by this workload, not hypothetical full-device
+        // occupancy. Otherwise a small operator can choose a few oversized
+        // blocks solely for residency that its element count cannot consume.
+        const size_t resident_elements = (size_t)cuda_data->device_prop.multiProcessorCount * resident_blocks * elems;
+        const int    useful            = (int)(resident_elements < (size_t)num_elem ? resident_elements : (size_t)num_elem) * threads_per_elem;
+        // Preserve the existing gen preference for blocks up to 128 threads
+        // when resident useful-thread capacity ties; tiny blocks multiply dispatch cost.
+        if (useful > best_useful || (useful == best_useful && elems * threads_per_elem <= 128)) {
+          best_useful = useful;
+          block[0] = block[1] = data->thread_1d;
+          block[2]            = elems;
+        }
+      }
+      CeedCheck(best_useful > 0, ceed, CEED_ERROR_BACKEND, "Generated volume scratch does not fit a CUDA block");
+      grid       = CeedDivUpInt(num_elem, block[2]);
+      shared_mem = block[2] * bytes_per_elem;
+    }
+  } else {
+    CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
+    CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
+    int legacy_block[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
+
+    if (is_tensor) {
+      CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
+                                         cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, legacy_block, &grid));
+    } else {
+      CeedInt elems_per_block =
+          CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(CeedIntMin(max_threads_per_block, 512) / data->thread_1d, 1));
+
+      grid            = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
+      legacy_block[2] = elems_per_block;
+    }
+    shared_mem = legacy_block[0] * legacy_block[1] * legacy_block[2] * sizeof(CeedScalar);
+    memcpy(block, legacy_block, sizeof block);
+  }
+
+  CeedApplyBindings_Cuda_gen bindings = {0};
+  int                        error    = CeedApplyBindingsCapture_Cuda_gen(op, &bindings);
+  if (!error && bindings.coords) error = CeedOperatorPreparePoints_Cuda_gen(op, data, num_elem);
+  if (error) {
+    const int retirement_error = CeedApplyBindingsDestroy_Cuda_gen(&bindings);
+    if (retirement_error) CeedDebug(ceed, "Unable to retire rejected Apply bindings\n");
+    return error;
+  }
+  data->apply      = bindings;  // Transfer handle ownership with the prepared launch.
+  data->grid       = grid;
+  data->shared_mem = shared_mem;
+  memcpy(data->block, block, sizeof block);
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
+typedef struct {
+  struct {
+    Fields_Cuda       fields;
+    const CeedScalar *coords;
+    void             *context;
+  } bindings;
+  CeedInt input_bound, output_bound;
+  bool    coords_borrowed, context_borrowed;
+} CeedApplyLoans_Cuda_gen;
+
+static int CeedApplyLoansRestore_Cuda_gen(const CeedApplyBindings_Cuda_gen *apply, CeedApplyLoans_Cuda_gen *loans, int error) {
+  int restore_error;
+  if (loans->context_borrowed) {
+    restore_error = CeedQFunctionRestoreInnerContextData(apply->qf, &loans->bindings.context);
+    if (!error) error = restore_error;
+  }
+  if (loans->coords_borrowed) {
+    restore_error = CeedVectorRestoreArrayRead(apply->coords, &loans->bindings.coords);
+    if (!error) error = restore_error;
+  }
+  for (CeedInt i = 0; i < loans->output_bound; i++) {
+    CeedVector vec = apply->outputs[i];
+    if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
+      restore_error = CeedVectorRestoreArray(vec, &loans->bindings.fields.outputs[i]);
+      if (!error) error = restore_error;
+    }
+  }
+  for (CeedInt i = 0; i < loans->input_bound; i++) {
+    CeedVector vec = apply->inputs[i];
+    if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
+      restore_error = CeedVectorRestoreArrayRead(vec, &loans->bindings.fields.inputs[i]);
+      if (!error) error = restore_error;
+    }
+  }
+  return error;
+}
+
+static int CeedApplyLoansBorrow_Cuda_gen(const CeedApplyBindings_Cuda_gen *apply, const CeedScalar *input, CeedScalar *output,
+                                         CeedApplyLoans_Cuda_gen *loans) {
+  int error;
+  if (!apply->num_elem) return CEED_ERROR_SUCCESS;
+  for (CeedInt i = 0; i < apply->num_inputs; i++) {
+    CeedVector vec = apply->inputs[i];
+    if (vec == CEED_VECTOR_ACTIVE)
+      loans->bindings.fields.inputs[i] = input;
+    else if (vec != CEED_VECTOR_NONE) {
+      error = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &loans->bindings.fields.inputs[i]);
+      if (error) return error;
+    }
+    loans->input_bound = i + 1;
+  }
+  for (CeedInt i = 0; i < apply->num_outputs; i++) {
+    CeedVector vec = apply->outputs[i];
+    if (vec == CEED_VECTOR_ACTIVE)
+      loans->bindings.fields.outputs[i] = output;
+    else if (vec != CEED_VECTOR_NONE) {
+      error = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &loans->bindings.fields.outputs[i]);
+      if (error) return error;
+    }
+    loans->output_bound = i + 1;
+  }
+  if (apply->coords) {
+    error = CeedVectorGetArrayRead(apply->coords, CEED_MEM_DEVICE, &loans->bindings.coords);
+    if (error) return error;
+    loans->coords_borrowed = true;
+  }
+  error = CeedQFunctionGetInnerContextData(apply->qf, CEED_MEM_DEVICE, &loans->bindings.context);
+  if (error) return error;
+  loans->context_borrowed = true;
+  return CEED_ERROR_SUCCESS;
+}
+
 static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, const CeedScalar *input_arr, CeedScalar *output_arr, bool *is_run_good,
                                              CeedRequest *request) {
-  bool                    is_at_points, is_tensor;
-  Ceed                    ceed;
-  Ceed_Cuda              *cuda_data;
-  CeedInt                 num_elem, num_input_fields, num_output_fields;
-  CeedEvalMode            eval_mode;
-  CeedQFunctionField     *qf_input_fields, *qf_output_fields;
-  CeedQFunction_Cuda_gen *qf_data;
-  CeedQFunction           qf;
-  CeedOperatorField      *op_input_fields, *op_output_fields;
   CeedOperator_Cuda_gen  *data;
-
-  // Build the operator kernel
-  CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op, is_run_good));
-  if (!(*is_run_good)) return CEED_ERROR_SUCCESS;
-
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedGetData(ceed, &cuda_data));
+  Ceed                    ceed  = CeedOperatorReturnCeed(op);
+  CeedApplyLoans_Cuda_gen loans = {0};
   CeedCallBackend(CeedOperatorGetData(op, &data));
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-
-  // Input vectors
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-      data->fields.inputs[i] = NULL;
-    } else {
-      bool       is_active;
-      CeedVector vec;
-
-      // Get input vector
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-      is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) {
-        data->fields.inputs[i] = input_arr;
-      } else {
-        CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]));
-      }
-      CeedCallBackend(CeedVectorDestroy(&vec));
-    }
+  *is_run_good = !data->use_fallback;
+  if (!*is_run_good) return CEED_ERROR_SUCCESS;
+  CeedCheck(data->block[2], ceed, CEED_ERROR_BACKEND, "CUDA gen Apply requires prepared launch configuration");
+  if (!data->apply.num_elem) return CEED_ERROR_SUCCESS;
+  int error = CeedApplyLoansBorrow_Cuda_gen(&data->apply, input_arr, output_arr, &loans);
+  if (!error) {
+    Points_Cuda points = data->points;
+    points.coords      = loans.bindings.coords;
+    void *opargs[] = {&data->apply.num_elem, &loans.bindings.context, &data->indices, &loans.bindings.fields, &data->B, &data->G, &data->W, &points};
+    error = CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, data->grid, data->block[0], data->block[1], data->block[2], data->shared_mem,
+                                           is_run_good, opargs);
   }
-
-  // Output vectors
-  for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-      data->fields.outputs[i] = NULL;
-    } else {
-      bool       is_active;
-      CeedVector vec;
-
-      // Get output vector
-      CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
-      is_active = vec == CEED_VECTOR_ACTIVE;
-      if (is_active) {
-        data->fields.outputs[i] = output_arr;
-      } else {
-        CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]));
-      }
-      CeedCallBackend(CeedVectorDestroy(&vec));
-    }
-  }
-
-  // Point coordinates, if needed
-  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
-  if (is_at_points) {
-    // Coords
-    CeedVector vec;
-
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
-    CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->points.coords));
-    CeedCallBackend(CeedVectorDestroy(&vec));
-
-    // Points per elem
-    if (num_elem != data->points.num_elem) {
-      CeedInt            *points_per_elem;
-      const CeedInt       num_bytes   = num_elem * sizeof(CeedInt);
-      CeedElemRestriction rstr_points = NULL;
-
-      data->points.num_elem = num_elem;
-      CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, NULL));
-      CeedCallBackend(CeedCalloc(num_elem, &points_per_elem));
-      for (CeedInt e = 0; e < num_elem; e++) {
-        CeedInt num_points_elem;
-
-        CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr_points, e, &num_points_elem));
-        points_per_elem[e] = num_points_elem;
-      }
-      if (data->points.num_per_elem) CeedCallCuda(ceed, cudaFree((void **)data->points.num_per_elem));
-      CeedCallCuda(ceed, cudaMalloc((void **)&data->points.num_per_elem, num_bytes));
-      CeedCallCuda(ceed, cudaMemcpy((void *)data->points.num_per_elem, points_per_elem, num_bytes, cudaMemcpyHostToDevice));
-      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
-      CeedCallBackend(CeedFree(&points_per_elem));
-    }
-  }
-
-  // Get context data
-  CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
-
-  // Apply operator
-  void *opargs[] = {(void *)&num_elem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W, &data->points};
-  int   max_threads_per_block, min_grid_size, grid;
-
-  CeedCallBackend(CeedOperatorHasTensorBases(op, &is_tensor));
-  CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] = {data->thread_1d, ((!is_tensor || data->dim == 1) ? 1 : data->thread_1d), -1};
-
-  if (is_tensor) {
-    CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
-                                       cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
-  } else {
-    CeedInt elems_per_block =
-        CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], CeedIntMax(CeedIntMin(max_threads_per_block, 512) / data->thread_1d, 1));
-
-    grid     = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
-    block[2] = elems_per_block;
-  }
-  CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
-
-  CeedCallBackend(CeedTryRunKernelDimShared_Cuda(ceed, data->op, stream, grid, block[0], block[1], block[2], shared_mem, is_run_good, opargs));
-
-  // Restore input arrays
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-    } else {
-      bool       is_active;
-      CeedVector vec;
-
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-      is_active = vec == CEED_VECTOR_ACTIVE;
-      if (!is_active) CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]));
-      CeedCallBackend(CeedVectorDestroy(&vec));
-    }
-  }
-
-  // Restore output arrays
-  for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-    } else {
-      bool       is_active;
-      CeedVector vec;
-
-      CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
-      is_active = vec == CEED_VECTOR_ACTIVE;
-      if (!is_active) CeedCallBackend(CeedVectorRestoreArray(vec, &data->fields.outputs[i]));
-      CeedCallBackend(CeedVectorDestroy(&vec));
-    }
-  }
-
-  // Restore point coordinates, if needed
-  if (is_at_points) {
-    CeedVector vec;
-
-    CeedCallBackend(CeedOperatorAtPointsGetPoints(op, NULL, &vec));
-    CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->points.coords));
-    CeedCallBackend(CeedVectorDestroy(&vec));
-  }
-
-  // Restore context data
-  CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
-
-  // Cleanup
-  CeedCallBackend(CeedDestroy(&ceed));
-  CeedCallBackend(CeedQFunctionDestroy(&qf));
-  if (!(*is_run_good)) data->use_fallback = true;
+  error = CeedApplyLoansRestore_Cuda_gen(&data->apply, &loans, error);
+  if (!*is_run_good) data->use_fallback = true;
+  CeedCallBackend(error);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -299,14 +389,41 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   enum cudaStreamCaptureStatus capture_status;
   CUstream                     stream_to_use;
 
-  // Try to run kernel
-  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
-  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  CeedCallCuda(CeedOperatorReturnCeed(op), cudaStreamIsCapturing(cudaStreamPerThread, &capture_status));
-  stream_to_use = (capture_status != cudaStreamCaptureStatusNone) ? cudaStreamPerThread : NULL;
-  CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(op, stream_to_use, input_arr, output_arr, &is_run_good, request));
-  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
+  // Prepare module and launch geometry before acquiring active vector loans.
+  CeedInt num_elem;
+  CeedCallBackend(CeedOperatorPrepareApply_Cuda_gen(op, &is_run_good));
+  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  if (!num_elem) return CEED_ERROR_SUCCESS;
+
+  if (is_run_good) {
+    int  error          = CEED_ERROR_SUCCESS, restore_error;
+    bool input_borrowed = false, output_borrowed = false;
+    if (input_vec != CEED_VECTOR_NONE) {
+      CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+      input_borrowed = true;
+    }
+    if (output_vec != CEED_VECTOR_NONE) {
+      error           = CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr);
+      output_borrowed = !error;
+    }
+    if (!error) {
+      const cudaError_t capture_error = cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+      if (capture_error != cudaSuccess) error = CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "Unable to observe CUDA stream capture");
+    }
+    if (!error) {
+      stream_to_use = (capture_status != cudaStreamCaptureStatusNone) ? cudaStreamPerThread : NULL;
+      error         = CeedOperatorApplyAddCore_Cuda_gen(op, stream_to_use, input_arr, output_arr, &is_run_good, request);
+    }
+    if (input_borrowed) {
+      restore_error = CeedVectorRestoreArrayRead(input_vec, &input_arr);
+      if (!error) error = restore_error;
+    }
+    if (output_borrowed) {
+      restore_error = CeedVectorRestoreArray(output_vec, &output_arr);
+      if (!error) error = restore_error;
+    }
+    CeedCallBackend(error);
+  }
 
   // Fallback on unsuccessful run
   if (!is_run_good) {
@@ -372,46 +489,86 @@ static int CeedCompositeRefreshForReplay_Cuda_gen(CeedOperator *sub_operators, C
 // Composite apply without CUDA graphs.
 static int CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
   bool              is_run_good[CEED_COMPOSITE_MAX] = {false}, is_sequential;
+  bool              input_borrowed = false, output_borrowed = false;
   CeedInt           num_suboperators;
   const CeedScalar *input_arr  = NULL;
   CeedScalar       *output_arr = NULL;
-  Ceed              ceed;
+  Ceed              ceed       = CeedOperatorReturnCeed(op);
   CeedOperator     *sub_operators;
   cudaStream_t      stream = NULL;
+  int               error  = CEED_ERROR_SUCCESS, cleanup_error;
+  cudaError_t       status;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
   CeedCallBackend(CeedOperatorCompositeGetSubList(op, &sub_operators));
   CeedCallBackend(CeedOperatorCompositeIsSequential(op, &is_sequential));
-  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
-  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-  if (is_sequential) CeedCallCuda(ceed, cudaStreamCreate(&stream));
-  for (CeedInt i = 0; i < num_suboperators; i++) {
-    CeedInt num_elem = 0;
-
-    CeedCallBackend(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
-    if (num_elem > 0) {
-      if (!is_sequential) CeedCallCuda(ceed, cudaStreamCreate(&stream));
-      CeedCallBackend(CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request));
-      if (!is_sequential) CeedCallCuda(ceed, cudaStreamDestroy(stream));
+  for (CeedInt i = 0; i < num_suboperators; i++) CeedCallBackend(CeedOperatorPrepareApply_Cuda_gen(sub_operators[i], &is_run_good[i]));
+  if (input_vec != CEED_VECTOR_NONE) {
+    CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
+    input_borrowed = true;
+  }
+  if (output_vec != CEED_VECTOR_NONE) {
+    error = CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr);
+    if (error) goto cleanup;
+    output_borrowed = true;
+  }
+  if (is_sequential) {
+    status = cudaStreamCreate(&stream);
+    if (status != cudaSuccess) {
+      error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to create composite CUDA stream: %s", cudaGetErrorString(status));
+      goto cleanup;
     }
   }
-  if (is_sequential) CeedCallCuda(ceed, cudaStreamDestroy(stream));
-  if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
-  if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
-  CeedCallCuda(ceed, cudaDeviceSynchronize());
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    CeedInt num_elem;
+    if (!is_run_good[i]) continue;
+    error = CeedOperatorGetNumElements(sub_operators[i], &num_elem);
+    if (error) break;
+    if (!num_elem) continue;
+    if (!is_sequential) {
+      status = cudaStreamCreate(&stream);
+      if (status != cudaSuccess) {
+        error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to create composite CUDA stream: %s", cudaGetErrorString(status));
+        break;
+      }
+    }
+    error = CeedOperatorApplyAddCore_Cuda_gen(sub_operators[i], stream, input_arr, output_arr, &is_run_good[i], request);
+    if (!is_sequential) {
+      status = cudaStreamDestroy(stream);
+      stream = NULL;
+      if (!error && status != cudaSuccess)
+        error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to retire composite CUDA stream: %s", cudaGetErrorString(status));
+    }
+    if (error) break;
+  }
+cleanup:
+  if (stream) {
+    status = cudaStreamDestroy(stream);
+    if (!error && status != cudaSuccess)
+      error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to retire composite CUDA stream: %s", cudaGetErrorString(status));
+  }
+  if (output_borrowed) {
+    cleanup_error = CeedVectorRestoreArray(output_vec, &output_arr);
+    if (!error) error = cleanup_error;
+  }
+  if (input_borrowed) {
+    cleanup_error = CeedVectorRestoreArrayRead(input_vec, &input_arr);
+    if (!error) error = cleanup_error;
+  }
+  status = cudaDeviceSynchronize();
+  if (!error && status != cudaSuccess)
+    error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to complete composite CUDA work: %s", cudaGetErrorString(status));
+  CeedCallBackend(error);
 
-  // Fall back to /gpu/cuda/ref for any sub-operator that couldn't run here
+  // Delegation remains limited to the existing unsupported/native-run boundary.
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
-
       CeedDebug(ceed, "\nFalling back to /gpu/cuda/ref CeedOperator for ApplyAdd\n");
       CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
     }
   }
-  CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
 
