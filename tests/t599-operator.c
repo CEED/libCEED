@@ -90,12 +90,15 @@ int main(int argc, char **argv) {
   CeedOperatorIsAtPoints(op_to_points, &is_at_points);
   if (!is_at_points) printf("Error: Operator should be at points\n");
 
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_from_points);
+  CeedQFunctionCreateInterior(ceed, 1, average, average_loc, &qf_from_points);
   CeedQFunctionAddInput(qf_from_points, "u_points", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_from_points, "other_points", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_from_points, "v", 1, CEED_EVAL_INTERP);
 
   CeedOperatorCreateAtPoints(ceed, qf_from_points, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_from_points);
   CeedOperatorSetField(op_from_points, "u_points", elem_restriction_u_points, CEED_BASIS_NONE, u_points);
+  // Shared point inputs do not own reusable element buffers
+  CeedOperatorSetField(op_from_points, "other_points", elem_restriction_u_points, CEED_BASIS_NONE, u_points);
   CeedOperatorSetField(op_from_points, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorAtPointsSetPoints(op_from_points, elem_restriction_x_points, x_points);
 

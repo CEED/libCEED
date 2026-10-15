@@ -467,13 +467,77 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
   return CEED_ERROR_SUCCESS;
 }
 
+// Input restriction support and full-element buffer reuse
+static int CeedOperatorBuildKernelInputOrder_Cuda_gen(CeedInt num_input_fields, CeedOperatorField *op_input_fields,
+                                                      CeedQFunctionField *qf_input_fields, bool use_3d_slices, bool is_assemble,
+                                                      CeedInt *field_input_buffer, CeedInt *input_field_order, bool *is_supported) {
+  bool         is_ordered[CEED_FIELD_MAX] = {false};
+  CeedEvalMode eval_modes[CEED_FIELD_MAX];
+  CeedInt      curr_index = 0;
+
+  *is_supported = true;
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_modes[i]));
+    // Slice-only NONE and WEIGHT inputs do not produce a reusable full-element buffer
+    field_input_buffer[i] = eval_modes[i] == CEED_EVAL_WEIGHT || (use_3d_slices && eval_modes[i] == CEED_EVAL_NONE) ? -1 : i;
+  }
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector          vec_i;
+    CeedElemRestriction rstr_i;
+
+    if (is_ordered[i]) continue;
+    is_ordered[i]                 = true;
+    input_field_order[curr_index] = i;
+    curr_index++;
+    // WEIGHT inputs do not read an L-vector
+    if (eval_modes[i] == CEED_EVAL_WEIGHT) continue;
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
+    // Assembly supplies active inputs without reading their restrictions
+    if (is_assemble && vec_i == CEED_VECTOR_ACTIVE) {
+      field_input_buffer[i] = -1;
+    } else {
+      CeedRestrictionType rstr_type;
+
+      CeedCallBackend(CeedElemRestrictionGetType(rstr_i, &rstr_type));
+      *is_supported = rstr_type == CEED_RESTRICTION_STANDARD || rstr_type == CEED_RESTRICTION_STRIDED || rstr_type == CEED_RESTRICTION_POINTS;
+      // Point inputs read directly from the L-vector without a full-element buffer
+      if (rstr_type == CEED_RESTRICTION_POINTS) field_input_buffer[i] = -1;
+    }
+    if (!*is_supported || field_input_buffer[i] < 0) {
+      CeedCallBackend(CeedVectorDestroy(&vec_i));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
+      if (!*is_supported) return CEED_ERROR_SUCCESS;
+      continue;
+    }
+    for (CeedInt j = i + 1; j < num_input_fields; j++) {
+      CeedVector          vec_j;
+      CeedElemRestriction rstr_j;
+
+      if (is_ordered[j] || field_input_buffer[j] < 0) continue;
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec_j));
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[j], &rstr_j));
+      if (rstr_i == rstr_j && vec_i == vec_j) {
+        field_input_buffer[j]         = i;
+        is_ordered[j]                 = true;
+        input_field_order[curr_index] = j;
+        curr_index++;
+      }
+      CeedCallBackend(CeedVectorDestroy(&vec_j));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
+    }
+    CeedCallBackend(CeedVectorDestroy(&vec_i));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Restriction
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code, CeedOperator_Cuda_gen *data, Tab &tab, CeedInt i,
                                                        CeedInt field_input_buffer[], CeedOperatorField op_field, CeedQFunctionField qf_field,
-                                                       CeedInt max_dim, CeedInt Q_1d, bool is_input, bool is_all_tensor, bool is_at_points,
-                                                       bool use_3d_slices) {
+                                                       CeedInt max_dim, CeedInt Q_1d, bool is_input, bool is_all_tensor) {
   std::string               var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string               P_name     = (is_all_tensor ? "P_1d" : "P") + var_suffix;
   CeedEvalMode              eval_mode  = CEED_EVAL_NONE;
@@ -499,18 +563,25 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
   // Restriction
   if (is_input) {
     // Input
-    if (eval_mode == CEED_EVAL_NONE && use_3d_slices) {
-      // Slice reads own NONE inputs; no full-element gather or reused r_e exists.
+    if (rstr_type == CEED_RESTRICTION_POINTS) {
+      CeedInt comp_stride;
+
+      // Each point input needs its own binding, even when its vector and restriction are shared
+      CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
+      code << tab << "const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
+      data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
+    } else if (field_input_buffer[i] < 0) {
+      // Slice-only NONE and WEIGHT inputs do not need a full-element buffer
     } else if (field_input_buffer[i] != i) {
       std::string buffer_name = "r_e_in_" + std::to_string(field_input_buffer[i]);
 
       // Restriction was already done for previous input
       code << tab << "CeedScalar *r_e" << var_suffix << " = " << buffer_name << ";\n";
-    } else if (eval_mode != CEED_EVAL_WEIGHT && !((eval_mode == CEED_EVAL_NONE) && use_3d_slices && is_at_points)) {
-      if (eval_mode == CEED_EVAL_NONE && rstr_type != CEED_RESTRICTION_POINTS) {
+    } else {
+      if (eval_mode == CEED_EVAL_NONE) {
         // No basis action, so r_e_in_* in also r_q_in_* and needs to be allocated
         code << tab << "CeedScalar r_e" << var_suffix << "[num_comp" << var_suffix << "*" << P_name << "];\n";
-      } else if (rstr_type != CEED_RESTRICTION_POINTS) {
+      } else {
         // Otherwise we're using the scratch space
         code << tab << "CeedScalar *r_e" << var_suffix << " = r_e_scratch;\n";
       }
@@ -546,18 +617,11 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
                << var_suffix << ");\n";
           break;
         }
-        case CEED_RESTRICTION_POINTS: {
-          CeedInt comp_stride;
-
-          CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
-          code << tab << "const CeedInt comp_stride" << var_suffix << " = " << comp_stride << ";\n";
-          data->indices.inputs[i] = (CeedInt *)rstr_data->d_offsets;
-          break;
-        }
+        case CEED_RESTRICTION_POINTS:
+          break;  // Point inputs are bound before full-element reads
         case CEED_RESTRICTION_ORIENTED:
         case CEED_RESTRICTION_CURL_ORIENTED:
-          data->use_fallback = true;
-          break;  // TODO: Not implemented
+          break;  // Unsupported input reads are rejected before kernel generation
       }
     }
   } else {
@@ -1492,6 +1556,17 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   if (max_dim == 0) max_dim = 1;
   data->dim = max_dim;
   if (is_at_points) use_3d_slices = false;
+  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
+
+  CeedCallBackend(CeedOperatorBuildKernelInputOrder_Cuda_gen(num_input_fields, op_input_fields, qf_input_fields, use_3d_slices, false,
+                                                             field_rstr_in_buffer, input_field_order, is_good_build));
+  if (!*is_good_build) {
+    data->use_fallback = true;
+    CeedCallBackend(CeedOperatorSetSetupDone(op));
+    CeedCallBackend(CeedDestroy(&ceed));
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    return CEED_ERROR_SUCCESS;
+  }
   if (Q_1d == 0) {
     if (is_at_points) {
       Q_1d = max_num_points;
@@ -1836,55 +1911,6 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
 
-  // -- Determine best input field processing order
-  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
-
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    field_rstr_in_buffer[i] = -1;
-    input_field_order[i]    = -1;
-  }
-  {
-    bool    is_ordered[CEED_FIELD_MAX];
-    CeedInt curr_index = 0;
-
-    for (CeedInt i = 0; i < num_input_fields; i++) is_ordered[i] = false;
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedVector          vec_i;
-      CeedElemRestriction rstr_i;
-      CeedEvalMode        eval_mode;
-
-      if (is_ordered[i]) continue;
-      field_rstr_in_buffer[i]       = i;
-      is_ordered[i]                 = true;
-      input_field_order[curr_index] = i;
-      curr_index++;
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-      // Slice-only NONE inputs do not own a reusable full-element buffer
-      if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
-      // Similarly, WEIGHT inputs also do not have a reusable buffer
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
-      if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
-      for (CeedInt j = i + 1; j < num_input_fields; j++) {
-        CeedVector          vec_j;
-        CeedElemRestriction rstr_j;
-
-        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec_j));
-        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[j], &rstr_j));
-        if (rstr_i == rstr_j && vec_i == vec_j) {
-          field_rstr_in_buffer[j]       = i;
-          is_ordered[j]                 = true;
-          input_field_order[curr_index] = j;
-          curr_index++;
-        }
-        CeedCallBackend(CeedVectorDestroy(&vec_j));
-        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
-      }
-      CeedCallBackend(CeedVectorDestroy(&vec_i));
-      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
-    }
-  }
-
   // -- Input restriction and basis
   code << "\n" << tab << "// -- Input field restrictions and basis actions\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -1896,7 +1922,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
     // ---- Restriction
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, tab, f, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f],
-                                                                max_dim, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                                max_dim, Q_1d, true, is_all_tensor));
 
     // ---- Basis action
     CeedCallBackend(CeedOperatorBuildKernelBasis_Cuda_gen(code, data, tab, f, op_input_fields[f], qf_input_fields[f], max_dim, Q_1d,
@@ -1926,7 +1952,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       tab.push();
     }
     CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, tab, i, NULL, op_output_fields[i], qf_output_fields[i], max_dim, Q_1d,
-                                                                false, is_all_tensor, is_at_points, use_3d_slices));
+                                                                false, is_all_tensor));
     if (data->scratch_planes > 1) {
       tab.pop();
       code << tab << "}\n";
@@ -2023,6 +2049,16 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
+
+  CeedCallBackend(CeedOperatorBuildKernelInputOrder_Cuda_gen(num_input_fields, op_input_fields, qf_input_fields, use_3d_slices, true,
+                                                             field_rstr_in_buffer, input_field_order, is_good_build));
+  if (!*is_good_build) {
+    data->use_assembly_fallback = true;
+    CeedCallBackend(CeedDestroy(&ceed));
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Add atomicAdd function for old NVidia architectures
   {
@@ -2216,55 +2252,6 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
 
-  // -- Determine best input field processing order
-  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
-
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    field_rstr_in_buffer[i] = -1;
-    input_field_order[i]    = -1;
-  }
-  {
-    bool    is_ordered[CEED_FIELD_MAX];
-    CeedInt curr_index = 0;
-
-    for (CeedInt i = 0; i < num_input_fields; i++) is_ordered[i] = false;
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedVector          vec_i;
-      CeedElemRestriction rstr_i;
-      CeedEvalMode        eval_mode;
-
-      if (is_ordered[i]) continue;
-      field_rstr_in_buffer[i]       = i;
-      is_ordered[i]                 = true;
-      input_field_order[curr_index] = i;
-      curr_index++;
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-      // Slice-only NONE inputs do not own a reusable full-element buffer
-      if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
-      // Similarly, WEIGHT inputs also do not have a reusable buffer
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
-      if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
-      for (CeedInt j = i + 1; j < num_input_fields; j++) {
-        CeedVector          vec_j;
-        CeedElemRestriction rstr_j;
-
-        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec_j));
-        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[j], &rstr_j));
-        if (rstr_i == rstr_j && vec_i == vec_j) {
-          field_rstr_in_buffer[j]       = i;
-          is_ordered[j]                 = true;
-          input_field_order[curr_index] = j;
-          curr_index++;
-        }
-        CeedCallBackend(CeedVectorDestroy(&vec_j));
-        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
-      }
-      CeedCallBackend(CeedVectorDestroy(&vec_i));
-      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
-    }
-  }
-
   // -- Input restriction and basis
   code << "\n" << tab << "// -- Input field restrictions and basis actions\n";
   CeedInt active_field_index = -1;
@@ -2299,7 +2286,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
     } else {
       // ---- Restriction
       CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, tab, f, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f],
-                                                                  max_dim, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                                  max_dim, Q_1d, true, is_all_tensor));
 
       // ---- Basis action
       CeedCallBackend(CeedOperatorBuildKernelBasis_Cuda_gen(code, data, tab, f, op_input_fields[f], qf_input_fields[f], max_dim, Q_1d,
@@ -2541,6 +2528,16 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
+
+  CeedCallBackend(CeedOperatorBuildKernelInputOrder_Cuda_gen(num_input_fields, op_input_fields, qf_input_fields, use_3d_slices, true,
+                                                             field_rstr_in_buffer, input_field_order, is_good_build));
+  if (!*is_good_build) {
+    data->use_assembly_fallback = true;
+    CeedCallBackend(CeedDestroy(&ceed));
+    CeedCallBackend(CeedQFunctionDestroy(&qf));
+    return CEED_ERROR_SUCCESS;
+  }
 
   // Add atomicAdd function for old NVidia architectures
   {
@@ -2787,55 +2784,6 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   code << tab << "// Scratch restriction buffer space\n";
   code << tab << "CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
 
-  // -- Determine best input field processing order
-  CeedInt field_rstr_in_buffer[CEED_FIELD_MAX], input_field_order[CEED_FIELD_MAX];
-
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    field_rstr_in_buffer[i] = -1;
-    input_field_order[i]    = -1;
-  }
-  {
-    bool    is_ordered[CEED_FIELD_MAX];
-    CeedInt curr_index = 0;
-
-    for (CeedInt i = 0; i < num_input_fields; i++) is_ordered[i] = false;
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedVector          vec_i;
-      CeedElemRestriction rstr_i;
-      CeedEvalMode        eval_mode;
-
-      if (is_ordered[i]) continue;
-      field_rstr_in_buffer[i]       = i;
-      is_ordered[i]                 = true;
-      input_field_order[curr_index] = i;
-      curr_index++;
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-      // Slice-only NONE inputs do not own a reusable full-element buffer
-      if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
-      // Similarly, WEIGHT inputs also do not have a reusable buffer
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
-      if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
-      for (CeedInt j = i + 1; j < num_input_fields; j++) {
-        CeedVector          vec_j;
-        CeedElemRestriction rstr_j;
-
-        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[j], &vec_j));
-        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[j], &rstr_j));
-        if (rstr_i == rstr_j && vec_i == vec_j) {
-          field_rstr_in_buffer[j]       = i;
-          is_ordered[j]                 = true;
-          input_field_order[curr_index] = j;
-          curr_index++;
-        }
-        CeedCallBackend(CeedVectorDestroy(&vec_j));
-        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
-      }
-      CeedCallBackend(CeedVectorDestroy(&vec_i));
-      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
-    }
-  }
-
   // -- Input restriction and basis
   code << "\n" << tab << "// -- Input field restrictions and basis actions\n";
   CeedInt num_active_in = 0, num_active_out = 0, qf_assembly_size_out = 0;
@@ -2875,7 +2823,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     } else {
       // ---- Restriction
       CeedCallBackend(CeedOperatorBuildKernelRestriction_Cuda_gen(code, data, tab, f, field_rstr_in_buffer, op_input_fields[f], qf_input_fields[f],
-                                                                  max_dim, Q_1d, true, is_all_tensor, is_at_points, use_3d_slices));
+                                                                  max_dim, Q_1d, true, is_all_tensor));
 
       // ---- Basis action
       CeedCallBackend(CeedOperatorBuildKernelBasis_Cuda_gen(code, data, tab, f, op_input_fields[f], qf_input_fields[f], max_dim, Q_1d,
