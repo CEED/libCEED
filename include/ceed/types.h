@@ -53,6 +53,16 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
 #endif
 
 /**
+  @ingroup CeedQFunction
+  This macro is used to ensure C/C++/Rust names are consistent
+**/
+#ifdef __cplusplus
+#define CEED_NO_MANGLE extern "C"
+#else
+#define CEED_NO_MANGLE
+#endif
+
+/**
     @ingroup CeedQFunction
 This macro populates the correct function for Rust-based User QFunction source for code generation backends or populates default values for CPU backends. It also creates a variable `name_loc` populated with the correct source path for creating the respective User QFunction. Note that the function, as named in rust, must be called `name_rs`. When referencing it in C, use just `name` (no `_rs`)
 Example:
@@ -70,11 +80,11 @@ pub unsafe extern "C" fn build_mass_rs(
 ) -> i8
 **/
 #ifndef CEED_QFUNCTION_RUST
-#define CEED_QFUNCTION_RUST(name)                                                                                            \
-  CEED_QFUNCTION_ATTR int        name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
-  CEED_QFUNCTION_ATTR static int name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
-    return name##_rs(ctx, Q, in, out);                                                                                       \
-  }                                                                                                                          \
+#define CEED_QFUNCTION_RUST(name)                                                                                                    \
+  CEED_NO_MANGLE CEED_QFUNCTION_ATTR int name##_rs(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out); \
+  CEED_QFUNCTION_ATTR static int         name(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {     \
+    return name##_rs(ctx, Q, in, out);                                                                                               \
+  }                                                                                                                                  \
   static const char name##_loc[] = __FILE__ ":" #name;
 #endif
 // Note: placing the _loc of the function below the function in the macro is required because python cffi will exclude the previous line (the }) based on the backslash at the end of it, which is required for our python build script to exclude macros. See /python/build_ceed_cffi.py for more details

@@ -49,3 +49,4 @@ clean:
 	rm -f *~ $(EXAMPLES)
 	rm -rf temp/
 	rm -rf *.dSYM *.TVD.*breakpoints
+	rm -rf ex1-volume-rs/target/
