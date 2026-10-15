@@ -1858,9 +1858,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       is_ordered[i]                 = true;
       input_field_order[curr_index] = i;
       curr_index++;
-      // Slice-only NONE inputs do not own a reusable full-element buffer.
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      // Slice-only NONE inputs do not own a reusable full-element buffer
       if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
+      // Similarly, WEIGHT inputs also do not have a reusable buffer
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
       if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
@@ -2237,9 +2238,10 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
       is_ordered[i]                 = true;
       input_field_order[curr_index] = i;
       curr_index++;
-      // Slice-only NONE inputs do not own a reusable full-element buffer.
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      // Slice-only NONE inputs do not own a reusable full-element buffer
       if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
+      // Similarly, WEIGHT inputs also do not have a reusable buffer
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
       if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
@@ -2807,9 +2809,10 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
       is_ordered[i]                 = true;
       input_field_order[curr_index] = i;
       curr_index++;
-      // Slice-only NONE inputs do not own a reusable full-element buffer.
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      // Slice-only NONE inputs do not own a reusable full-element buffer
       if (use_3d_slices && eval_mode == CEED_EVAL_NONE) continue;
+      // Similarly, WEIGHT inputs also do not have a reusable buffer
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec_i));
       if (vec_i == CEED_VECTOR_NONE) continue;  // CEED_EVAL_WEIGHT
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr_i));
