@@ -30,13 +30,8 @@
 
 /// This macro provides the appropriate assumption built-in for the compiler
 /// @ingroup Ceed
-#if defined(__clang__)
+#if defined(__clang_analyzer__)
 #define CEED_ASSUME(expr) __builtin_assume(expr)
-#elif defined(__GNUC__)
-#define CEED_ASSUME(expr) \
-  if (!(expr)) __builtin_unreachable()
-#elif defined(_MSC_VER)
-#define CEED_ASSUME(expr) __assume(expr)
 #else
 #define CEED_ASSUME(expr)
 #endif
