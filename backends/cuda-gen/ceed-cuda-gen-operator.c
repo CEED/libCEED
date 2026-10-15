@@ -48,13 +48,15 @@ static int CeedApplyBindingsCapture_Cuda_gen(CeedOperator op, CeedApplyBindings_
   CeedCallBackend(CeedOperatorGetQFunction(op, &bindings->qf));
   CeedCallBackend(CeedOperatorGetFields(op, &bindings->num_inputs, &input_fields, &bindings->num_outputs, &output_fields));
   CeedCallBackend(CeedQFunctionGetFields(bindings->qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  for (int role = 0; role < 2; role++) {
-    const CeedInt       count     = role ? bindings->num_outputs : bindings->num_inputs;
-    CeedOperatorField  *fields    = role ? output_fields : input_fields;
-    CeedQFunctionField *qf_fields = role ? qf_output_fields : qf_input_fields;
-    CeedVector         *vectors   = role ? bindings->outputs : bindings->inputs;
+  for (CeedInt is_output = 0; is_output < 2; is_output++) {
+    const CeedInt       count     = is_output ? bindings->num_outputs : bindings->num_inputs;
+    CeedOperatorField  *fields    = is_output ? output_fields : input_fields;
+    CeedQFunctionField *qf_fields = is_output ? qf_output_fields : qf_input_fields;
+    CeedVector         *vectors   = is_output ? bindings->outputs : bindings->inputs;
+
     for (CeedInt i = 0; i < count; i++) {
       CeedEvalMode eval_mode;
+
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_WEIGHT)
         vectors[i] = CEED_VECTOR_NONE;
@@ -168,6 +170,7 @@ static int CeedOperatorPreparePoints_Cuda_gen(CeedOperator op, CeedOperator_Cuda
   CeedInt            *counts = NULL, *device = NULL;
   int                 error = CEED_ERROR_SUCCESS, cleanup_error;
   cudaError_t         status;
+
   if (!num_elem || num_elem == data->points.num_elem) return CEED_ERROR_SUCCESS;
   error = CeedOperatorAtPointsGetPoints(op, &restriction, NULL);
   if (error) goto cleanup;
@@ -226,11 +229,12 @@ static int CeedOperatorPrepareApply_Cuda_gen(CeedOperator op, bool *is_good_buil
     const int    threads_per_elem = data->thread_1d * data->thread_1d;
     const size_t bytes_per_elem   = threads_per_elem * data->scratch_planes * sizeof(CeedScalar);
     {
-      int       best_useful = -1;
-      const int max_elems =
+      int           best_useful = -1;
+      const CeedInt max_elems =
           CeedIntMin(num_elem, CeedIntMin(cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.maxThreadsPerBlock / threads_per_elem));
-      for (int elems = 1; elems <= max_elems; elems++) {
+      for (CeedInt elems = 1; elems <= max_elems; elems++) {
         int resident_blocks;
+
         CeedCallCuda(ceed, cuOccupancyMaxActiveBlocksPerMultiprocessor(&resident_blocks, data->op, elems * threads_per_elem, elems * bytes_per_elem));
         // Rank capacity usable by this workload, not hypothetical full-device
         // occupancy. Otherwise a small operator can choose a few oversized
@@ -270,9 +274,11 @@ static int CeedOperatorPrepareApply_Cuda_gen(CeedOperator op, bool *is_good_buil
 
   CeedApplyBindings_Cuda_gen bindings = {0};
   int                        error    = CeedApplyBindingsCapture_Cuda_gen(op, &bindings);
+
   if (!error && bindings.coords) error = CeedOperatorPreparePoints_Cuda_gen(op, data, num_elem);
   if (error) {
     const int retirement_error = CeedApplyBindingsDestroy_Cuda_gen(&bindings);
+
     if (retirement_error) CeedDebug(ceed, "Unable to retire rejected Apply bindings\n");
     return error;
   }
@@ -298,6 +304,7 @@ typedef struct {
 
 static int CeedApplyLoansRestore_Cuda_gen(const CeedApplyBindings_Cuda_gen *apply, CeedApplyLoans_Cuda_gen *loans, int error) {
   int restore_error;
+
   if (loans->context_borrowed) {
     restore_error = CeedQFunctionRestoreInnerContextData(apply->qf, &loans->bindings.context);
     if (!error) error = restore_error;
@@ -308,6 +315,7 @@ static int CeedApplyLoansRestore_Cuda_gen(const CeedApplyBindings_Cuda_gen *appl
   }
   for (CeedInt i = 0; i < loans->output_bound; i++) {
     CeedVector vec = apply->outputs[i];
+
     if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
       restore_error = CeedVectorRestoreArray(vec, &loans->bindings.fields.outputs[i]);
       if (!error) error = restore_error;
@@ -315,6 +323,7 @@ static int CeedApplyLoansRestore_Cuda_gen(const CeedApplyBindings_Cuda_gen *appl
   }
   for (CeedInt i = 0; i < loans->input_bound; i++) {
     CeedVector vec = apply->inputs[i];
+
     if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
       restore_error = CeedVectorRestoreArrayRead(vec, &loans->bindings.fields.inputs[i]);
       if (!error) error = restore_error;
@@ -326,9 +335,11 @@ static int CeedApplyLoansRestore_Cuda_gen(const CeedApplyBindings_Cuda_gen *appl
 static int CeedApplyLoansBorrow_Cuda_gen(const CeedApplyBindings_Cuda_gen *apply, const CeedScalar *input, CeedScalar *output,
                                          CeedApplyLoans_Cuda_gen *loans) {
   int error;
+
   if (!apply->num_elem) return CEED_ERROR_SUCCESS;
   for (CeedInt i = 0; i < apply->num_inputs; i++) {
     CeedVector vec = apply->inputs[i];
+
     if (vec == CEED_VECTOR_ACTIVE)
       loans->bindings.fields.inputs[i] = input;
     else if (vec != CEED_VECTOR_NONE) {
@@ -339,6 +350,7 @@ static int CeedApplyLoansBorrow_Cuda_gen(const CeedApplyBindings_Cuda_gen *apply
   }
   for (CeedInt i = 0; i < apply->num_outputs; i++) {
     CeedVector vec = apply->outputs[i];
+
     if (vec == CEED_VECTOR_ACTIVE)
       loans->bindings.fields.outputs[i] = output;
     else if (vec != CEED_VECTOR_NONE) {
@@ -363,12 +375,14 @@ static int CeedOperatorApplyAddCore_Cuda_gen(CeedOperator op, CUstream stream, c
   CeedOperator_Cuda_gen  *data;
   Ceed                    ceed  = CeedOperatorReturnCeed(op);
   CeedApplyLoans_Cuda_gen loans = {0};
+
   CeedCallBackend(CeedOperatorGetData(op, &data));
   *is_run_good = !data->use_fallback;
   if (!*is_run_good) return CEED_ERROR_SUCCESS;
   CeedCheck(data->block[2], ceed, CEED_ERROR_BACKEND, "CUDA gen Apply requires prepared launch configuration");
   if (!data->apply.num_elem) return CEED_ERROR_SUCCESS;
   int error = CeedApplyLoansBorrow_Cuda_gen(&data->apply, input_arr, output_arr, &loans);
+
   if (!error) {
     Points_Cuda points = data->points;
     points.coords      = loans.bindings.coords;
@@ -391,6 +405,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 
   // Prepare module and launch geometry before acquiring active vector loans.
   CeedInt num_elem;
+
   CeedCallBackend(CeedOperatorPrepareApply_Cuda_gen(op, &is_run_good));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   if (!num_elem) return CEED_ERROR_SUCCESS;
@@ -398,6 +413,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   if (is_run_good) {
     int  error          = CEED_ERROR_SUCCESS, restore_error;
     bool input_borrowed = false, output_borrowed = false;
+
     if (input_vec != CEED_VECTOR_NONE) {
       CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
       input_borrowed = true;
@@ -408,6 +424,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
     }
     if (!error) {
       const cudaError_t capture_error = cudaStreamIsCapturing(cudaStreamPerThread, &capture_status);
+
       if (capture_error != cudaSuccess) error = CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "Unable to observe CUDA stream capture");
     }
     if (!error) {
@@ -521,9 +538,9 @@ static int CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(CeedOperator op, CeedV
   }
   for (CeedInt i = 0; i < num_suboperators; i++) {
     CeedInt num_elem;
+
     if (!is_run_good[i]) continue;
-    error = CeedOperatorGetNumElements(sub_operators[i], &num_elem);
-    if (error) break;
+    CeedCallBackend(CeedOperatorGetNumElements(sub_operators[i], &num_elem));
     if (!num_elem) continue;
     if (!is_sequential) {
       status = cudaStreamCreate(&stream);
@@ -560,10 +577,11 @@ cleanup:
     error = CeedError(ceed, CEED_ERROR_BACKEND, "Unable to complete composite CUDA work: %s", cudaGetErrorString(status));
   CeedCallBackend(error);
 
-  // Delegation remains limited to the existing unsupported/native-run boundary.
+  // Fall back to /gpu/cuda/ref for any sub-operator that couldn't run here
   for (CeedInt i = 0; i < num_suboperators; i++) {
     if (!is_run_good[i]) {
       CeedOperator op_fallback;
+
       CeedDebug(ceed, "\nFalling back to /gpu/cuda/ref CeedOperator for ApplyAdd\n");
       CeedCallBackend(CeedOperatorGetFallback(sub_operators[i], &op_fallback));
       CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));

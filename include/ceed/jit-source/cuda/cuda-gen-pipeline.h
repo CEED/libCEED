@@ -14,15 +14,15 @@ template <int IN, int OUT, int MATRIX_IN_STRIDE, int MATRIX_OUT_STRIDE, int INPU
 inline __device__ void ContractRegisterVector(const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar values[OUT];
 #pragma unroll
-  for (int j = 0; j < OUT; j++) values[j] = 0;
+  for (CeedInt j = 0; j < OUT; j++) values[j] = 0;
 #pragma unroll
-  for (int k = 0; k < IN; k++) {
+  for (CeedInt k = 0; k < IN; k++) {
     const CeedScalar value = U[k * INPUT_STRIDE];
 #pragma unroll
-    for (int j = 0; j < OUT; j++) values[j] += value * B[k * MATRIX_IN_STRIDE + j * MATRIX_OUT_STRIDE];
+    for (CeedInt j = 0; j < OUT; j++) values[j] += value * B[k * MATRIX_IN_STRIDE + j * MATRIX_OUT_STRIDE];
   }
 #pragma unroll
-  for (int j = 0; j < OUT; j++) V[j * OUTPUT_STRIDE] = values[j];
+  for (CeedInt j = 0; j < OUT; j++) V[j * OUTPUT_STRIDE] = values[j];
 }
 
 // Preserve Cheetah's x -> y -> z contraction and next-component preload.
@@ -35,10 +35,10 @@ inline __device__ void ForwardTensorRegister3d(SharedData_Cuda &data, const Ceed
   __syncthreads();  // Retire the preceding operation before initializing scratch.
   if (x < P_1D && y < P_1D) {
 #pragma unroll
-    for (int z = 0; z < P_1D; z++) data.slice[z * T_1D * T_1D + y * T_1D + x] = U[z];
+    for (CeedInt z = 0; z < P_1D; z++) data.slice[z * T_1D * T_1D + y * T_1D + x] = U[z];
   }
 #pragma unroll
-  for (int comp = 0; comp < NUM_COMP; comp++) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     CeedScalar *a = data.slice + (comp % 2) * T_1D * T_1D * T_1D;
     CeedScalar *b = data.slice + ((comp + 1) % 2) * T_1D * T_1D * T_1D;
     __syncthreads();
@@ -54,7 +54,7 @@ inline __device__ void ForwardTensorRegister3d(SharedData_Cuda &data, const Ceed
     // with the current component's register-owned z contraction.
     if (comp + 1 < NUM_COMP && x < P_1D && y < P_1D) {
 #pragma unroll
-      for (int z = 0; z < P_1D; z++) b[z * T_1D * T_1D + y * T_1D + x] = U[z + (comp + 1) * P_1D];
+      for (CeedInt z = 0; z < P_1D; z++) b[z * T_1D * T_1D + y * T_1D + x] = U[z + (comp + 1) * P_1D];
     }
     if (x < Q_1D && y < Q_1D) {
       ContractRegisterVector<P_1D, Q_1D, 1, P_1D, T_1D * T_1D, 1>(a + y * T_1D + x, B_z, V + comp * Q_1D);
@@ -70,7 +70,7 @@ inline __device__ void TransposeTensorRegister3d(SharedData_Cuda &data, const Ce
   CeedScalar *b = a + T_1D * T_1D * T_1D;
   const int   x = data.t_id_x, y = data.t_id_y;
 #pragma unroll
-  for (int comp = 0; comp < NUM_COMP; comp++) {
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     __syncthreads();
     if (x < Q_1D && y < Q_1D) {
       ContractRegisterVector<Q_1D, P_1D, P_1D, 1, 1, T_1D * T_1D>(U + comp * Q_1D, B_z, b + y * T_1D + x);
@@ -86,7 +86,7 @@ inline __device__ void TransposeTensorRegister3d(SharedData_Cuda &data, const Ce
     __syncthreads();
     if (x < P_1D && y < P_1D) {
 #pragma unroll
-      for (int z = 0; z < P_1D; z++) V[z + comp * P_1D] = b[z * T_1D * T_1D + y * T_1D + x];
+      for (CeedInt z = 0; z < P_1D; z++) V[z + comp * P_1D] = b[z * T_1D * T_1D + y * T_1D + x];
     }
   }
 }
@@ -116,11 +116,11 @@ inline __device__ void GradTransposeTensorRegister3d(SharedData_Cuda &data, cons
   TransposeTensorRegister3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, U, G, B, B, V);
   TransposeTensorRegister3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, U + NUM_COMP * Q_1D, B, G, B, contribution);
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    for (int j = 0; j < NUM_COMP * P_1D; j++) V[j] += contribution[j];
+    for (CeedInt j = 0; j < NUM_COMP * P_1D; j++) V[j] += contribution[j];
   }
   TransposeTensorRegister3d<NUM_COMP, P_1D, Q_1D, T_1D>(data, U + 2 * NUM_COMP * Q_1D, B, B, G, contribution);
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    for (int j = 0; j < NUM_COMP * P_1D; j++) V[j] += contribution[j];
+    for (CeedInt j = 0; j < NUM_COMP * P_1D; j++) V[j] += contribution[j];
   }
 }
 
@@ -161,6 +161,7 @@ inline __device__ void GradColloSliceTranspose3dRegister(SharedData_Cuda &data, 
   // another block-wide synchronization. The caller owns at least two planes.
   CeedScalar *x_values = data.slice;
   CeedScalar *y_values = data.slice + T_1D * T_1D;
+
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     __syncthreads();
     if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
@@ -191,22 +192,26 @@ inline __device__ void GradColloSliceTranspose3dRegister(SharedData_Cuda &data, 
 template <int IN, int OUT, int T, int SLICES, int INPUT_X, int INPUT_Y, int OUTPUT_X, int OUTPUT_Y, bool AXIS_X, bool TRANSPOSE>
 inline __device__ void ContractPrefetchedPlanes(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   const int  x = data.t_id_x, y = data.t_id_y;
-  const int  row = AXIS_X ? x : y;
-  CeedScalar coefficients[IN];
+  const int  row              = AXIS_X ? x : y;
+  CeedScalar coefficients[IN] = {0};
+
+  if (row < OUT) {
 #pragma unroll
-  for (int k = 0; k < IN; k++) coefficients[k] = row < OUT ? B[TRANSPOSE ? row + k * OUT : k + row * IN] : 0;
+    for (CeedInt k = 0; k < IN; k++) coefficients[k] = B[TRANSPOSE ? row + k * OUT : k + row * IN];
+  }
   __syncthreads();
   if (x < INPUT_X && y < INPUT_Y) data.slice[x + y * T] = U[0];
   __syncthreads();
 #pragma unroll
-  for (int z = 0; z < SLICES; z++) {
+  for (CeedInt z = 0; z < SLICES; z++) {
     const CeedScalar *current = data.slice + (z % 2) * T * T;
     CeedScalar       *next    = data.slice + ((z + 1) % 2) * T * T;
+
     if (z + 1 < SLICES && x < INPUT_X && y < INPUT_Y) next[x + y * T] = U[z + 1];
     V[z] = 0;
     if (x < OUTPUT_X && y < OUTPUT_Y) {
 #pragma unroll
-      for (int k = 0; k < IN; k++) V[z] += coefficients[k] * current[AXIS_X ? k + y * T : x + k * T];
+      for (CeedInt k = 0; k < IN; k++) V[z] += coefficients[k] * current[AXIS_X ? k + y * T : x + k * T];
     }
     __syncthreads();
   }
@@ -215,7 +220,8 @@ inline __device__ void ContractPrefetchedPlanes(SharedData_Cuda &data, const Cee
 template <int NUM_COMP, int P, int Q, int T>
 inline __device__ void InterpTensorPrefetched3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar x_values[P], y_values[P];
-  for (int comp = 0; comp < NUM_COMP; comp++) {
+
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     ContractPrefetchedPlanes<P, Q, T, P, P, P, Q, P, true, false>(data, U + comp * P, B, x_values);
     ContractPrefetchedPlanes<P, Q, T, P, Q, P, Q, Q, false, false>(data, x_values, B, y_values);
     if (data.t_id_x < Q && data.t_id_y < Q) ContractRegisterVector<P, Q, 1, P, 1, 1>(y_values, B, V + comp * Q);
@@ -225,7 +231,8 @@ inline __device__ void InterpTensorPrefetched3d(SharedData_Cuda &data, const Cee
 template <int NUM_COMP, int P, int Q, int T>
 inline __device__ void InterpTransposeTensorPrefetched3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar z_values[P], y_values[P];
-  for (int comp = 0; comp < NUM_COMP; comp++) {
+
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     if (data.t_id_x < Q && data.t_id_y < Q) ContractRegisterVector<Q, P, P, 1, 1, 1>(U + comp * Q, B, z_values);
     ContractPrefetchedPlanes<Q, P, T, P, Q, Q, Q, P, false, true>(data, z_values, B, y_values);
     ContractPrefetchedPlanes<Q, P, T, P, Q, P, P, P, true, true>(data, y_values, B, V + comp * P);
@@ -265,5 +272,5 @@ inline __device__ void GradTransposeTensorPrefetched2d(SharedData_Cuda &data, co
   ContractPrefetchedPlanes<Q, P, T, NUM_COMP, Q, P, P, P, true, true>(data, intermediate, G, V);
   ContractPrefetchedPlanes<Q, P, T, NUM_COMP, Q, Q, Q, P, false, true>(data, U + NUM_COMP, G, intermediate);
   ContractPrefetchedPlanes<Q, P, T, NUM_COMP, Q, P, P, P, true, true>(data, intermediate, B, contribution);
-  for (int comp = 0; comp < NUM_COMP; comp++) V[comp] += contribution[comp];
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) V[comp] += contribution[comp];
 }

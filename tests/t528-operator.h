@@ -5,6 +5,7 @@
 
 CEED_QFUNCTION(SliceCoefficients)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedInt components = *(const CeedInt *)ctx;
+
   for (CeedInt i = 0; i < Q; i++) {
     for (CeedInt direction = 0; direction < 3; direction++) {
       for (CeedInt component = 0; component < components; component++) {

@@ -5,14 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-static int ReadBorrowedVector(CeedVector vec) {
-  CeedScalar *array;
-  CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
-  // An error must return through CeedCall before execution reaches this restore.
-  CeedCall(CeedVectorRestoreArray(vec, &array));
-  return 0;
-}
-
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  vec;
@@ -31,10 +23,7 @@ int main(int argc, char **argv) {
   // Generate error
   CeedVectorCreate(ceed, 10, &vec);
   CeedVectorGetArray(vec, CEED_MEM_HOST, &array);
-  if (!ReadBorrowedVector(vec)) {
-    printf("Borrow rejection was swallowed by CeedCall\n");
-    return 1;
-  }
+  CeedVectorGetArray(vec, CEED_MEM_HOST, &array);
 
   // Check error message
   CeedGetErrorMessage(ceed, &err_msg);

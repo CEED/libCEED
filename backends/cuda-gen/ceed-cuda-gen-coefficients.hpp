@@ -7,61 +7,68 @@
 #pragma once
 
 #include <ceed.h>
+#include <ceed/backend.h>
 #include <cuda.h>
 
 #include <sstream>
 #include <string>
-#include <vector>
 
-// Mutable module storage belongs to one operator. Reuse only immutable compiled
-// bytes, never a loaded module populated with another operator's basis values.
-class BasisCoefficients_Cuda_gen {
- public:
-  explicit BasisCoefficients_Cuda_gen(size_t capacity) : capacity_(capacity), count_(0) {}
+typedef struct {
+  const CeedScalar *source;
+  size_t            count, offset;
+} CeedBasisCoefficientEntry_Cuda_gen;
 
-  void EmitBinding(std::ostringstream &code, const std::string &role, const std::string &suffix, const CeedScalar *source, size_t count) {
-    size_t offset = count_;
-    for (const auto &entry : entries_) {
-      if (entry.source == source && entry.count == count) {
-        offset = entry.offset;
-        break;
-      }
+// Each field binds at most an interpolation and a gradient matrix. Populated
+// modules belong to one operator; only immutable compiled bytes may be reused.
+typedef struct {
+  size_t                             capacity, count;
+  CeedInt                            num_entries;
+  CeedBasisCoefficientEntry_Cuda_gen entries[4 * CEED_FIELD_MAX];
+} CeedBasisCoefficients_Cuda_gen;
+
+static void CeedBasisCoefficientsEmitBinding_Cuda_gen(CeedBasisCoefficients_Cuda_gen *coefficients, std::ostringstream &code, Tab &tab,
+                                                      const std::string &role, const std::string &suffix, const CeedScalar *source, size_t count) {
+  size_t offset = coefficients->count;
+
+  for (CeedInt i = 0; i < coefficients->num_entries; i++) {
+    const CeedBasisCoefficientEntry_Cuda_gen *entry = &coefficients->entries[i];
+
+    if (entry->source == source && entry->count == count) {
+      offset = entry->offset;
+      break;
     }
-    if (offset == count_) {
-      if (count > capacity_ - count_) {
-        code << "const CeedScalar *c_" << role << suffix << " = s_" << role << suffix << ";\n";
-        return;
-      }
-      entries_.push_back({source, count, offset});
-      count_ += count;
+  }
+  if (offset == coefficients->count) {
+    if (count > coefficients->capacity - coefficients->count || coefficients->num_entries == 4 * CEED_FIELD_MAX) {
+      code << tab << "const CeedScalar *c_" << role << suffix << " = s_" << role << suffix << ";\n";
+      return;
     }
-    code << "#if CEED_GEN_CONSTANTS\nconst CeedScalar *c_" << role << suffix << " = ceed_basis_coefficients + " << offset
-         << ";\n#else\nconst CeedScalar *c_" << role << suffix << " = s_" << role << suffix << ";\n#endif\n";
+    coefficients->entries[coefficients->num_entries++] = {source, count, offset};
+    coefficients->count += count;
   }
+  code << "#if CEED_GEN_CONSTANTS\n"
+       << tab << "const CeedScalar *c_" << role << suffix << " = ceed_basis_coefficients + " << offset << ";\n#else\n"
+       << tab << "const CeedScalar *c_" << role << suffix << " = s_" << role << suffix << ";\n#endif\n";
+}
 
-  std::string Declaration() const {
-    if (!count_) return "";
-    return "#if CEED_GEN_CONSTANTS\nextern \"C\" __constant__ CeedScalar ceed_basis_coefficients[" + std::to_string(count_) + "];\n#endif\n";
+static std::string CeedBasisCoefficientsDeclaration_Cuda_gen(const CeedBasisCoefficients_Cuda_gen *coefficients) {
+  if (!coefficients->count) return "";
+  return "#if CEED_GEN_CONSTANTS\nextern \"C\" __constant__ CeedScalar ceed_basis_coefficients[" + std::to_string(coefficients->count) +
+         "];\n#endif\n";
+}
+
+static int CeedBasisCoefficientsUpload_Cuda_gen(const CeedBasisCoefficients_Cuda_gen *coefficients, Ceed ceed, CUmodule module) {
+  if (!coefficients->count) return CEED_ERROR_SUCCESS;
+  CUdeviceptr destination;
+  size_t      bytes;
+
+  CeedCallCuda(ceed, cuModuleGetGlobal(&destination, &bytes, module, "ceed_basis_coefficients"));
+  CeedCheck(bytes == coefficients->count * sizeof(CeedScalar), ceed, CEED_ERROR_BACKEND, "Generated basis coefficient symbol size mismatch");
+  for (CeedInt i = 0; i < coefficients->num_entries; i++) {
+    const CeedBasisCoefficientEntry_Cuda_gen *entry = &coefficients->entries[i];
+
+    CeedCallCuda(ceed, cuMemcpyDtoD(destination + entry->offset * sizeof(CeedScalar), reinterpret_cast<CUdeviceptr>(entry->source),
+                                    entry->count * sizeof(CeedScalar)));
   }
-
-  int Upload(Ceed ceed, CUmodule module) {
-    if (!count_) return CEED_ERROR_SUCCESS;
-    CUdeviceptr destination;
-    size_t      bytes;
-    CeedCallCuda(ceed, cuModuleGetGlobal(&destination, &bytes, module, "ceed_basis_coefficients"));
-    CeedCheck(bytes == count_ * sizeof(CeedScalar), ceed, CEED_ERROR_BACKEND, "Generated basis coefficient symbol size mismatch");
-    for (const auto &entry : entries_) {
-      CeedCallCuda(ceed, cuMemcpyDtoD(destination + entry.offset * sizeof(CeedScalar), reinterpret_cast<CUdeviceptr>(entry.source),
-                                      entry.count * sizeof(CeedScalar)));
-    }
-    return CEED_ERROR_SUCCESS;
-  }
-
- private:
-  struct Entry {
-    const CeedScalar *source;
-    size_t            count, offset;
-  };
-  size_t             capacity_, count_;
-  std::vector<Entry> entries_;
-};
+  return CEED_ERROR_SUCCESS;
+}
