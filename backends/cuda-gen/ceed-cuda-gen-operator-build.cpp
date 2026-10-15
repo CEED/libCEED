@@ -1453,7 +1453,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     bool is_setup_done;
 
     CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
-    if (is_setup_done) {
+    if (is_setup_done || data->use_fallback) {
       *is_good_build = !data->use_fallback;
       return CEED_ERROR_SUCCESS;
     }
@@ -1529,13 +1529,6 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields,
                                                          op_output_fields, qf_output_fields, &max_P, &max_P_1d, &Q, &Q_1d, &max_dim, &is_all_tensor,
                                                          &use_3d_slices));
-    if (data->use_fallback) {
-      *is_good_build = false;
-      CeedCallBackend(CeedOperatorSetSetupDone(op));
-      CeedCallBackend(CeedDestroy(&ceed));
-      CeedCallBackend(CeedQFunctionDestroy(&qf));
-      return CEED_ERROR_SUCCESS;
-    }
     data->max_P_1d = is_all_tensor ? max_P_1d : max_P;
   }
   if (is_at_points) {
@@ -1562,7 +1555,6 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
                                                              field_rstr_in_buffer, input_field_order, is_good_build));
   if (!*is_good_build) {
     data->use_fallback = true;
-    CeedCallBackend(CeedOperatorSetSetupDone(op));
     CeedCallBackend(CeedDestroy(&ceed));
     CeedCallBackend(CeedQFunctionDestroy(&qf));
     return CEED_ERROR_SUCCESS;
@@ -1968,7 +1960,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
 
   // Compile into unpublished storage. A coefficient-capacity/compiler rejection
   // retries the same schedule with shared coefficients, not another backend.
-  {
+  *is_good_build = false;
+  if (!data->use_fallback) {
     bool              is_compile_good  = false;
     const CeedInt     T_1d             = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
     CUmodule          module           = NULL;
@@ -1999,12 +1992,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
       data->module   = module;
       data->op       = kernel;
       *is_good_build = true;
+      CeedCallBackend(CeedOperatorSetSetupDone(op));
     } else {
-      *is_good_build     = false;
       data->use_fallback = true;
     }
   }
-  CeedCallBackend(CeedOperatorSetSetupDone(op));
   CeedCallBackend(CeedDestroy(&ceed));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
   return CEED_ERROR_SUCCESS;
@@ -2413,6 +2405,7 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   code << tab << "// -----------------------------------------------------------------------------\n\n";
 
   // Compile
+  *is_good_build = false;
   {
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
@@ -2422,11 +2415,10 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
                                         &is_compile_good, is_full ? &data->module_assemble_full : &data->module_assemble_diagonal, 1, "OP_T_1D",
                                         T_1d));
     if (is_compile_good) {
-      *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, is_full ? data->module_assemble_full : data->module_assemble_diagonal, operator_name.c_str(),
                                          is_full ? &data->assemble_full : &data->assemble_diagonal));
+      *is_good_build = true;
     } else {
-      *is_good_build              = false;
       data->use_assembly_fallback = true;
     }
   }
@@ -2955,6 +2947,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   code << tab << "// -----------------------------------------------------------------------------\n\n";
 
   // Compile
+  *is_good_build = false;
   {
     bool          is_compile_good = false;
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
@@ -2963,10 +2956,9 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
     CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), (std::string("operator_assembly_") + qfunction_name).c_str(), &is_compile_good,
                                         &data->module_assemble_qfunction, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
-      *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module_assemble_qfunction, operator_name.c_str(), &data->assemble_qfunction));
+      *is_good_build = true;
     } else {
-      *is_good_build              = false;
       data->use_assembly_fallback = true;
     }
   }
