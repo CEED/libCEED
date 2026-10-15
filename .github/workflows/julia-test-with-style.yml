@@ -30,6 +30,7 @@ jobs:
       - name: Julia test and style
         env:
           CEED_CACHE_BASE_DIR: $PWD/temp
+          CEED_JIT_ERROR_ON_FAILURE: 1
         run: |
           make info
           make -j2

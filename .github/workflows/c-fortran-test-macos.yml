@@ -55,6 +55,7 @@ jobs:
         NUM_JOBS: 2
         OPT: -O2 -g -ffp-contract=fast
         CEED_CACHE_BASE_DIR: $PWD/temp
+        CEED_JIT_ERROR_ON_FAILURE: 1
       run: |
         make info
         NUM_JOBS=2

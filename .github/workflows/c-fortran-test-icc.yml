@@ -29,6 +29,7 @@ jobs:
       - name: Build and test libCEED
         env:
           CEED_CACHE_BASE_DIR: $PWD/temp
+          CEED_JIT_ERROR_ON_FAILURE: 1
         run: |
           source /opt/intel/oneapi/setvars.sh
           export CC=icx CXX=icpx FC=ifx
