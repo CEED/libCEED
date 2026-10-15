@@ -295,7 +295,10 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     CeedCall(CeedFree(&opts));
     if (!*is_compile_good) {
       // LCOV_EXCL_START
-      if (throw_error) {
+      bool should_error_on_failure;
+
+      CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+      if (throw_error || should_error_on_failure) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load function from object file");
       } else {
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");

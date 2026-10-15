@@ -216,11 +216,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_START
       char  *log;
       size_t log_size;
+      bool   should_error_on_failure;
 
       CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
       CeedCallBackend(CeedMalloc(log_size, &log));
       CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
-      if (throw_error) {
+      CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+      // LCOV_EXCL_START
+      if (throw_error || should_error_on_failure) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
       } else {
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
@@ -480,8 +483,11 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     *is_compile_good = load_result == 0;
     if (!*is_compile_good) {
+      bool should_error_on_failure;
+
+      CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
       // LCOV_EXCL_START
-      if (throw_error) {
+      if (throw_error || should_error_on_failure) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
       } else {
         CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");

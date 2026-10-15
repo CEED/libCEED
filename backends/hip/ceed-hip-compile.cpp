@@ -214,11 +214,15 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
     // LCOV_EXCL_START
     size_t log_size;
     char  *log;
+    bool   should_error_on_failure;
 
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));
-    if (throw_error) {
+
+    CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+    // LCOV_EXCL_START
+    if (throw_error || should_error_on_failure) {
       return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
     } else {
       CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
