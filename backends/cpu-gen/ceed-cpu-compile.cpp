@@ -26,6 +26,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <dirent.h>
 #include <unistd.h>
 
 #define CEED_QUOTE(name) #name
@@ -174,6 +175,37 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   // Get compile options
   CeedCallBackend(CeedJitGetOpts_Cpu(ceed, &opts, &num_opts));
 
+  // Check for rust source roots
+  std::string link_args;
+  {
+    std::ostringstream link_args_stream;
+    CeedInt            num_rust_source_roots;
+    const char       **rust_source_roots;
+
+    CeedCallBackend(CeedGetRustSourceRoots(ceed, &num_rust_source_roots, &rust_source_roots));
+    for (CeedInt i = 0; i < num_rust_source_roots; i++) {
+      std::string dir = std::string(rust_source_roots[i]) + "/target/release";
+      DIR        *dp  = opendir(dir.c_str());
+
+      CeedCheck(dp != nullptr, ceed, CEED_ERROR_BACKEND, "Could not open directory: %s", dir.c_str());
+      struct dirent *entry;
+
+      // Find files ending in .a
+      while ((entry = readdir(dp)) != nullptr) {
+        std::string filename(entry->d_name);
+
+        if (filename.size() >= 2 && filename.substr(filename.size() - 2) == ".a") {
+          std::ostringstream link_dir_arg, link_arg;
+
+          link_args_stream << "-L" << dir << " -l:" << filename;
+        }
+      }
+      closedir(dp);
+    }
+    CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_roots));
+    link_args = link_args_stream.str();
+  }
+
   // Encode options into source
   code << "\n\n";
   code << "const static char *__ceed_compile_options[] = {\n";
@@ -184,6 +216,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   for (CeedInt i = 0; i < num_opts; i++) {
     code << "  \"" << opts[i] << "\",\n";
   }
+  code << "  \"" << link_args << "\",\n";
   code << "};\n";
 
   // Compile kernel
@@ -234,7 +267,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       CeedCallSystemResult result;
 
       for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
-      command += " -x c++ -E -P - ";
+      command += " -x c++ -E -P - " + link_args;
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
       cpp_hash    = std::hash<std::string>{}(result.output);
@@ -255,7 +288,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       // As of now, the .so doesn't exist, but another process might be compiling simultaneously
       // So, compile to temporary file and use link() (guaranteed atomic by POSIX) to try to move
       for (CeedInt i = 0; i < num_opts; i++) command += std::string(" ") + opts[i];
-      command += " -x c++ -o " + tmp_so_filename + " - ";
+      command += " -x c++ -o " + tmp_so_filename + " - " + link_args;
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT compile function source to disk", code_str, result));
       CeedCallBackend(CeedCallSystem(ceed, std::string("chmod 0777 ") + tmp_so_filename, "update JiT file permissions", result));
 
@@ -295,14 +328,14 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
     CeedCall(CeedFree(&opts));
     if (!*is_compile_good) {
       // LCOV_EXCL_START
-      if (throw_error) {
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load function from object file");
-      } else {
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
-        CeedDebug(ceed, "Error: Failed to load function from object file\n");
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
-        return CEED_ERROR_SUCCESS;
-      }
+      bool should_error_on_failure;
+
+      CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+      CeedCheck(!(throw_error || should_error_on_failure), ceed, CEED_ERROR_BACKEND, "Failed to load function from object file");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+      CeedDebug(ceed, "Error: Failed to load function from object file\n");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+      return CEED_ERROR_SUCCESS;
       // LCOV_EXCL_STOP
     }
   }
