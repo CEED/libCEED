@@ -180,6 +180,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/ref`            | Reference pure CUDA kernels                            | Yes                   |
 | `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory        | Yes                   |
 | `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation      | No                    |
+| `/gpu/cuda/cutlass`        | CUTLASS GEMM non-tensor bases, other ops use cuda/ref  | Yes                   |
 | **HIP Native**             |                                                        |                       |
 | `/gpu/hip/ref`             | Reference pure HIP kernels                             | Yes                   |
 | `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory         | Yes                   |
