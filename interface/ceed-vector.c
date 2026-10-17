@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 /// @file
 /// Implementation of public CeedVector interfaces
@@ -173,6 +174,82 @@ int CeedVectorSetData(CeedVector vec, void *data) {
 **/
 int CeedVectorReference(CeedVector vec) {
   CeedCall(CeedObjectReference((CeedObject)vec));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Clear the overwrite mask of a `CeedVector`, so that no entry is marked as written.
+
+  Writers get the mask with @ref CeedVectorGetArrayOverwrite() and mark the entries they write.
+  @ref CeedVectorApplyOverwriteMask() then zeroes the entries not written.
+
+  @param[in,out] vec `CeedVector` to overwrite
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorClearOverwriteMask(CeedVector vec) {
+  CeedSize length;
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  // Keep the array between overwrites, as large allocations are slow, and one word more so an empty vector still has a mask
+  if (!vec->overwrite_mask_array) CeedCall(CeedMalloc((length + 63) / 64 + 1, &vec->overwrite_mask_array));
+  memset(vec->overwrite_mask_array, 0, ((length + 63) / 64 + 1) * sizeof(uint64_t));
+  vec->overwrite_mask = vec->overwrite_mask_array;
+  // The values are now zero, so data cached from the old values is stale
+  vec->state += 2;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Zero the entries of a `CeedVector` not marked as written since @ref CeedVectorClearOverwriteMask(), and drop the mask.
+
+  @param[in,out] vec `CeedVector` to overwrite
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorApplyOverwriteMask(CeedVector vec) {
+  CeedSize        length;
+  CeedScalar     *array;
+  const uint64_t *mask = vec->overwrite_mask;
+
+  if (!mask) return CEED_ERROR_SUCCESS;
+  // Drop the mask first, so that it is dropped even if this fails
+  vec->overwrite_mask = NULL;
+  CeedCall(CeedVectorGetLength(vec, &length));
+  CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
+  for (CeedSize i = 0; i < length; i += 64) {
+    if (mask[i / 64] == UINT64_MAX) continue;
+    for (CeedSize j = i; j < i + 64 && j < length; j++) {
+      if (!((mask[i / 64] >> (j - i)) & 1)) array[j] = 0.0;
+    }
+  }
+  CeedCall(CeedVectorRestoreArray(vec, &array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get read/write access to a `CeedVector`, with its overwrite mask if it has one.
+
+  Bit `i % 64` of `overwrite_mask[i / 64]` is set once entry `i` is written; entries without their bit are treated as zero.
+  `overwrite_mask` is `NULL` if `vec` has no overwrite mask.
+  Restore access with @ref CeedVectorRestoreArray().
+
+  @param[in,out] vec            `CeedVector` to access
+  @param[in]     mem_type       Memory type on which to access the array
+  @param[out]    array          Array on memory type `mem_type`
+  @param[out]    overwrite_mask Overwrite mask, or `NULL`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedVectorGetArrayOverwrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array, uint64_t **overwrite_mask) {
+  CeedCall(CeedVectorGetArray(vec, mem_type, array));
+  *overwrite_mask = mem_type == CEED_MEM_HOST ? vec->overwrite_mask : NULL;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1228,6 +1305,7 @@ int CeedVectorDestroy(CeedVector *vec) {
   CeedCheck((*vec)->num_readers == 0, CeedVectorReturnCeed(*vec), CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
+  CeedCall(CeedFree(&(*vec)->overwrite_mask_array));
   CeedCall(CeedObjectDestroy_Private(&(*vec)->obj));
   CeedCall(CeedFree(vec));
   return CEED_ERROR_SUCCESS;

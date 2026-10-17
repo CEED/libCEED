@@ -738,6 +738,34 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
+// Operator Supports Overwrite
+//------------------------------------------------------------------------------
+static int CeedOperatorSupportsOverwrite_Opt(CeedOperator op, bool *supports_overwrite) {
+  CeedInt            num_output_fields;
+  CeedOperatorField *output_fields;
+  CeedOperator_Opt  *impl;
+
+  CeedCallBackend(CeedOperatorSetup_Opt(op));
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+  *supports_overwrite = true;
+  for (CeedInt i = 0; i < num_output_fields && *supports_overwrite; i++) {
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorFieldGetVector(output_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      if (!impl->block_rstr[i + impl->num_inputs]) {
+        *supports_overwrite = false;
+      } else {
+        CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], supports_overwrite));
+      }
+    }
+    CeedCallBackend(CeedVectorDestroy(&vec));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Operator Create
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Opt(CeedOperator op) {
@@ -757,6 +785,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Opt));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "SupportsOverwrite", CeedOperatorSupportsOverwrite_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Opt));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
