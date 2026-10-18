@@ -19,9 +19,9 @@
 static int CeedBasisCopyToDevice_Cutlass(Ceed ceed, const CeedScalar *h_array, size_t length, CeedScalar **d_array) {
   if (h_array == NULL) return CEED_ERROR_SUCCESS;
   size_t size = length * sizeof(CeedScalar);
+
   CeedCallCuda(ceed, cudaMalloc((void **)d_array, size));
   CeedCallCuda(ceed, cudaMemcpy(*d_array, h_array, size, cudaMemcpyHostToDevice));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -30,18 +30,18 @@ static int CeedBasisCopyToDevice_Cutlass(Ceed ceed, const CeedScalar *h_array, s
 //------------------------------------------------------------------------------
 static int CeedBasisDestroyNonTensor_Cutlass(CeedBasis basis) {
   Ceed                        ceed;
-  CeedBasisNonTensor_Cutlass *notebook;
+  CeedBasisNonTensor_Cutlass *data;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedBasisGetData(basis, &notebook));
+  CeedCallBackend(CeedBasisGetData(basis, &data));
 
-  CeedCallCuda(ceed, cudaFree(notebook->d_curl));
-  CeedCallCuda(ceed, cudaFree(notebook->d_div));
-  CeedCallCuda(ceed, cudaFree(notebook->d_grad));
-  CeedCallCuda(ceed, cudaFree(notebook->d_interp));
-  CeedCallCuda(ceed, cudaFree(notebook->d_q_weight));
+  CeedCallCuda(ceed, cudaFree(data->d_curl));
+  CeedCallCuda(ceed, cudaFree(data->d_div));
+  CeedCallCuda(ceed, cudaFree(data->d_grad));
+  CeedCallCuda(ceed, cudaFree(data->d_interp));
+  CeedCallCuda(ceed, cudaFree(data->d_q_weight));
 
-  CeedCallBackend(CeedFree(&notebook));
+  CeedCallBackend(CeedFree(&data));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
 }
@@ -55,18 +55,15 @@ static int CeedBasisApplyNonTensorGemm_Cutlass(Ceed ceed, CeedBasis basis, CeedE
 
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, e_mode, &q_comp));
   for (int d = 0; d < q_comp; d++) {
-    int ierr;
-
     if (is_transpose) {
       const CeedScalar beta = (apply_add || (d > 0)) ? 1.0 : 0.0;
 
-      ierr = CeedCutlassGemm_Cuda(false, num_nodes, N, num_qpts, 1.0, mat + d * num_nodes * num_qpts, num_nodes, d_u + d * N * num_qpts, num_qpts,
-                                  beta, d_v, num_nodes);
+      CeedCallBackend(CeedCutlassGemm_Cuda(false, num_nodes, N, num_qpts, 1.0, mat + d * num_nodes * num_qpts, num_nodes, d_u + d * N * num_qpts,
+                                           num_qpts, beta, d_v, num_nodes));
     } else {
-      ierr = CeedCutlassGemm_Cuda(true, num_qpts, N, num_nodes, 1.0, mat + d * num_nodes * num_qpts, num_nodes, d_u, num_nodes, 0.0,
-                                  d_v + d * N * num_qpts, num_qpts);
+      CeedCallBackend(CeedCutlassGemm_Cuda(true, num_qpts, N, num_nodes, 1.0, mat + d * num_nodes * num_qpts, num_nodes, d_u, num_nodes, 0.0,
+                                           d_v + d * N * num_qpts, num_qpts));
     }
-    CeedCheck(!ierr, ceed, CEED_ERROR_BACKEND, "CUTLASS GEMM failed");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -112,7 +109,6 @@ static int CeedBasisApplyNonTensorCore_Cutlass(CeedBasis basis, bool apply_add, 
     case CEED_EVAL_GRAD: {
       CeedCallBackend(CeedBasisApplyNonTensorGemm_Cutlass(ceed, basis, CEED_EVAL_GRAD, apply_add, is_transpose, num_nodes, num_qpts, N, data->d_grad,
                                                           d_u, d_v));
-
     } break;
     case CEED_EVAL_DIV: {
       CeedCallBackend(CeedBasisApplyNonTensorGemm_Cutlass(ceed, basis, CEED_EVAL_DIV, apply_add, is_transpose, num_nodes, num_qpts, N, data->d_div,
@@ -125,8 +121,7 @@ static int CeedBasisApplyNonTensorCore_Cutlass(CeedBasis basis, bool apply_add, 
     case CEED_EVAL_WEIGHT: {
       CeedCheck(data->d_q_weight, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights not set", CeedEvalModes[e_mode]);
       CeedCheck(!is_transpose, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      CeedCutlassWeight_Cuda(num_elem, num_qpts, data->d_q_weight, d_v);
-
+      CeedCallBackend(CeedCutlassWeight_Cuda(num_elem, num_qpts, data->d_q_weight, d_v));
     } break;
     case CEED_EVAL_NONE: {
     } break;
@@ -145,7 +140,8 @@ static int CeedBasisApplyNonTensorCore_Cutlass(CeedBasis basis, bool apply_add, 
 //------------------------------------------------------------------------------
 static int CeedBasisApplyNonTensor_Cutlass(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode e_mode, CeedVector u,
                                            CeedVector v) {
-  return CeedBasisApplyNonTensorCore_Cutlass(basis, false, num_elem, t_mode, e_mode, u, v);
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Cutlass(basis, false, num_elem, t_mode, e_mode, u, v));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -153,7 +149,8 @@ static int CeedBasisApplyNonTensor_Cutlass(CeedBasis basis, CeedInt num_elem, Ce
 //------------------------------------------------------------------------------
 static int CeedBasisApplyAddNonTensor_Cutlass(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode e_mode, CeedVector u,
                                               CeedVector v) {
-  return CeedBasisApplyNonTensorCore_Cutlass(basis, true, num_elem, t_mode, e_mode, u, v);
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Cutlass(basis, true, num_elem, t_mode, e_mode, u, v));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -188,7 +185,6 @@ static int CeedBasisCreateNonTensor_Cutlass(CeedInt num_nodes, CeedInt num_qpts,
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddNonTensor_Cutlass));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Cutlass));
   CeedCallBackend(CeedDestroy(&ceed));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -197,7 +193,8 @@ static int CeedBasisCreateNonTensor_Cutlass(CeedInt num_nodes, CeedInt num_qpts,
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Cutlass(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                               const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_GRAD, interp, grad, q_weight, basis);
+  CeedCallBackend(CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_GRAD, interp, grad, q_weight, basis));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -205,7 +202,8 @@ int CeedBasisCreateH1_Cutlass(CeedElemTopology topo, CeedInt dim, CeedInt num_no
 //------------------------------------------------------------------------------
 int CeedBasisCreateHdiv_Cutlass(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                 const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_DIV, interp, div, q_weight, basis);
+  CeedCallBackend(CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_DIV, interp, div, q_weight, basis));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -213,5 +211,6 @@ int CeedBasisCreateHdiv_Cutlass(CeedElemTopology topo, CeedInt dim, CeedInt num_
 //------------------------------------------------------------------------------
 int CeedBasisCreateHcurl_Cutlass(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                  const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  return CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_CURL, interp, curl, q_weight, basis);
+  CeedCallBackend(CeedBasisCreateNonTensor_Cutlass(num_nodes, num_qpts, CEED_EVAL_CURL, interp, curl, q_weight, basis));
+  return CEED_ERROR_SUCCESS;
 }
