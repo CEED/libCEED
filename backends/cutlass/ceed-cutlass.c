@@ -10,13 +10,20 @@
 #include <ceed/backend.h>
 #include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
+
 static int CeedInit_Cutlass(const char *resource, Ceed ceed) {
-  char *resource_root;
-  Ceed  ceed_ref;
+  char      *resource_root;
+  Ceed       ceed_ref;
+  Ceed_Cuda *data;
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/cutlass"), ceed, CEED_ERROR_BACKEND, "Cutlass backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
+
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
   CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
@@ -24,6 +31,7 @@ static int CeedInit_Cutlass(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Cutlass));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv", CeedBasisCreateHdiv_Cutlass));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHcurl", CeedBasisCreateHcurl_Cutlass));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
 
