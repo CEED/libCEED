@@ -12,3 +12,5 @@
 CEED_BACKEND(CeedRegister_Cuda, 1, "/gpu/cuda/ref")
 CEED_BACKEND(CeedRegister_Cuda_Gen, 1, "/gpu/cuda/gen")
 CEED_BACKEND(CeedRegister_Cuda_Shared, 1, "/gpu/cuda/shared")
+CEED_BACKEND(CeedRegister_Cuda_cublas, 1, "/gpu/cuda/cublas")
+CEED_BACKEND(CeedRegister_Cuda_cublas_det, 1, "/gpu/cuda/cublas/det")

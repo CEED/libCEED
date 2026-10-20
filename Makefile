@@ -352,10 +352,11 @@ cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
 cuda-ref.cpp   := $(sort $(wildcard backends/cuda-ref/*.cpp))
 cuda-ref.cu    := $(sort $(wildcard backends/cuda-ref/kernels/*.cu))
+cuda-cublas.c  := $(sort $(wildcard backends/cuda-cublas/*.c))
 cuda-shared.c  := $(sort $(wildcard backends/cuda-shared/*.c))
 cuda-gen.c     := $(sort $(wildcard backends/cuda-gen/*.c))
 cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
-cuda-all.c     := interface/ceed-cuda.c $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
+cuda-all.c     := interface/ceed-cuda.c $(cuda.c) $(cuda-ref.c) $(cuda-cublas.c) $(cuda-shared.c) $(cuda-gen.c)
 cuda-all.cpp   := $(cuda.cpp) $(cuda-ref.cpp) $(cuda-gen.cpp)
 cuda-all.cu    := $(cuda-ref.cu)
 cuda-all.h     := include/ceed/cuda.h $(sort $(wildcard backends/cuda*/*.h))
@@ -668,7 +669,7 @@ ifneq ($(CUDA_DIR),)
   CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
-CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
+CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/cublas /gpu/cuda/cublas/det /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
   $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
   $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"

@@ -179,6 +179,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | **CUDA Native**            |                                                        |                       |
 | `/gpu/cuda/ref`            | Reference pure CUDA kernels                            | Yes                   |
 | `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory        | Yes                   |
+| `/gpu/cuda/cublas`         | Uses cuBLAS GEMM for non-tensor basis operations       | No                    |
+| `/gpu/cuda/cublas/det`     | Uses cuBLAS GEMM for non-tensor basis operations       | Yes                   |
 | `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation      | No                    |
 | **HIP Native**             |                                                        |                       |
 | `/gpu/hip/ref`             | Reference pure HIP kernels                             | Yes                   |
@@ -220,6 +222,8 @@ The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxs
 The LIBXSMM version 2.0 or newer is required.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
+For tensor elements (quadrilaterals, hexahedra) with H1 tensor product bases, the `/gpu/cuda/gen` backend provides the best performance.
+For simplicial elements (triangles, tetrahedra) and/or H1 non-tensor, H(div), or H(curl) bases with polynomial degree of 3 or more, the `/gpu/cuda/cublas` backend provides the best performance.
 
 The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
@@ -232,7 +236,7 @@ At runtime, chipStar's own environment variables (e.g., `CHIP_BE=level0` or `CHI
 The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
 They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
 
-The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://bitbucket.org/icl/magma) package.
+The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://github.com/icl-utk-edu/magma/) package.
 To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
 By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends with a MAGMA installation located elsewhere, create a link to `magma/` in libCEED's parent directory, or set `MAGMA_DIR` to the proper location.
 MAGMA version 2.5.0 or newer is required.
