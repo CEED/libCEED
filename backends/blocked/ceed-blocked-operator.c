@@ -377,7 +377,8 @@ static inline int CeedOperatorRestoreInputs_Blocked(CeedInt num_input_fields, Ce
 //------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+// Sum into the active output, or overwrite it if is_overwrite
+static int CeedOperatorApplyAddCore_Blocked(CeedOperator op, CeedVector in_vec, CeedVector out_vec, bool is_overwrite, CeedRequest *request) {
   CeedInt               Q, num_input_fields, num_output_fields, num_elem, size;
   const CeedInt         block_size = 8;
   CeedEvalMode          eval_mode;
@@ -395,7 +396,11 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, Ceed
   // Restriction only operator
   if (impl->is_identity_rstr_op) {
     CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[0], CEED_NOTRANSPOSE, in_vec, impl->e_vecs_full[0], request));
-    CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[1], CEED_TRANSPOSE, impl->e_vecs_full[0], out_vec, request));
+    if (is_overwrite) {
+      CeedCallBackend(CeedElemRestrictionApplyOverwrite(impl->block_rstr[1], impl->e_vecs_full[0], out_vec, request));
+    } else {
+      CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[1], CEED_TRANSPOSE, impl->e_vecs_full[0], out_vec, request));
+    }
     return CEED_ERROR_SUCCESS;
   }
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
@@ -455,15 +460,43 @@ static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, Ceed
     is_active = vec == CEED_VECTOR_ACTIVE;
     // Active
     if (is_active) vec = out_vec;
-    // Restrict
-    CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[i + impl->num_inputs], CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec,
-                                             request));
+    // Restrict, overwriting the active output if the apply does
+    if (is_overwrite && is_active) {
+      CeedCallBackend(CeedElemRestrictionApplyOverwrite(impl->block_rstr[i + impl->num_inputs], impl->e_vecs_full[i + impl->num_inputs], vec,
+                                                        request));
+    } else {
+      CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[i + impl->num_inputs], CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec,
+                                               request));
+    }
     if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
   }
 
   // Restore input arrays
   CeedCallBackend(CeedOperatorRestoreInputs_Blocked(num_input_fields, qf_input_fields, op_input_fields, false, e_data_full, impl));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedOperatorApplyAdd_Blocked(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+  CeedCallBackend(CeedOperatorApplyAddCore_Blocked(op, in_vec, out_vec, false, request));
+  return CEED_ERROR_SUCCESS;
+}
+
+// Overwrite the active output when its restriction can, instead of zeroing it and summing
+static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+  bool                  is_overwrite = false;
+  CeedInt               i;
+  CeedOperator_Blocked *impl;
+
+  CeedCallBackend(CeedOperatorSetup_Blocked(op));
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, in_vec, out_vec, &i));
+  if (i >= 0 && impl->block_rstr[i + impl->num_inputs]) {
+    CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], &is_overwrite));
+  }
+  CeedCallBackend(CeedOperatorZeroPassiveOutputs(op));
+  if (!is_overwrite && out_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorSetValue(out_vec, 0.0));
+  CeedCallBackend(CeedOperatorApplyAddCore_Blocked(op, in_vec, out_vec, is_overwrite, request));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -736,34 +769,6 @@ static int CeedOperatorDestroy_Blocked(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Operator Supports Overwrite
-//------------------------------------------------------------------------------
-static int CeedOperatorSupportsOverwrite_Blocked(CeedOperator op, bool *supports_overwrite) {
-  CeedInt               num_output_fields;
-  CeedOperatorField    *output_fields;
-  CeedOperator_Blocked *impl;
-
-  CeedCallBackend(CeedOperatorSetup_Blocked(op));
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedCallBackend(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
-  *supports_overwrite = true;
-  for (CeedInt i = 0; i < num_output_fields && *supports_overwrite; i++) {
-    CeedVector vec;
-
-    CeedCallBackend(CeedOperatorFieldGetVector(output_fields[i], &vec));
-    if (vec == CEED_VECTOR_ACTIVE) {
-      if (!impl->block_rstr[i + impl->num_inputs]) {
-        *supports_overwrite = false;
-      } else {
-        CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], supports_overwrite));
-      }
-    }
-    CeedCallBackend(CeedVectorDestroy(&vec));
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Operator Create
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Blocked(CeedOperator op) {
@@ -776,7 +781,7 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Blocked));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "SupportsOverwrite", CeedOperatorSupportsOverwrite_Blocked));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Apply", CeedOperatorApply_Blocked));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Blocked));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;

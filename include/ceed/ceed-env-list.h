@@ -39,7 +39,7 @@ CEED_ENV_STRING(CpuJitOpt, CEED_STRINGIFY(CEED_CPU_JIT_OPT), "CEED_CPU_JIT_OPT")
 // Tensor contraction even-odd decomposition
 CEED_ENV_FLAG(ContractUseEvenOdd, false, "CEED_CONTRACT_USE_EVEN_ODD")
 
-// CeedOperatorApply overwrites the output through the overwrite mask instead of zeroing it, where the operator supports it
+// CeedOperatorApply overwrites its active output where supported; disable for binary-equivalent benchmarking
 CEED_ENV_FLAG(OperatorOverwriteOutput, true, "CEED_OPERATOR_OVERWRITE_OUTPUT")
 
 // HIP backend environment variables

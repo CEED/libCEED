@@ -2,6 +2,7 @@
 /// Test CeedOperatorApply overwrites the output, including entries no element contributes to
 /// \test Test CeedOperatorApply overwrites the output, including entries no element contributes to
 #include <ceed.h>
+#include <ceed/backend.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,10 +82,13 @@ int main(int argc, char **argv) {
   for (CeedInt overwrite = 1; overwrite >= 0; overwrite--) {
     const CeedScalar *v_array;
     CeedScalar        sum = 0.;
+    CeedInt           active_output_index;
 
     CeedSetOperatorOverwriteOutput(ceed, overwrite);
     CeedVectorSetValue(u, 1.0);
     CeedVectorSetValue(v, 1.0);
+    CeedOperatorCanOverwriteOutput(op_mass, u, v, &active_output_index);
+    if (active_output_index != (overwrite ? 0 : -1)) printf("Unexpected overwrite eligibility: %d\n", active_output_index);
     CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);

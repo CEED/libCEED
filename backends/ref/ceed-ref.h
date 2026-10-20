@@ -35,11 +35,13 @@ typedef struct {
   const CeedInt8 *curl_orients_owned;
   int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
                CeedRequest *);
-  /* Mask words written by each block of the transpose, see CeedElemRestrictionSetupBlockWords_Ref */
-  bool      has_scattered_block_words;
-  CeedSize  l_size;
-  CeedSize *block_words_offsets;
-  CeedSize *block_words;
+  /* Overwriting an L-vector with the transpose, see CeedElemRestrictionSetupFirstTouch_Ref */
+  bool      is_overwrite;        /* set while an overwrite is applied */
+  CeedSize  l_size;              /* L-vector size, to bound the last mask word */
+  CeedSize *first_touch_offsets; /* [num_blocks + 1] into first_touch */
+  CeedSize *first_touch;         /* mask words each block is the first to write */
+  CeedSize  num_untouched;
+  CeedSize *untouched; /* mask words no block writes */
 } CeedElemRestriction_Ref;
 
 typedef struct {

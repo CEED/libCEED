@@ -181,12 +181,12 @@ int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
 }
 
 /**
-  @brief Check whether the transpose of a `CeedElemRestriction` marks the entries it writes in the overwrite mask of the L-vector.
+  @brief Check whether a `CeedElemRestriction` supports overwriting an L-vector with its transpose.
 
-  See @ref CeedVectorClearOverwriteMask().
+  Applying the transpose of every block in order with @ref CeedElemRestrictionApplyBlockOverwrite(), or all at once with @ref CeedElemRestrictionApplyOverwrite(), then gives the same L-vector as zeroing it and summing the transpose into it, without zeroing it first.
 
   @param[in]  rstr               `CeedElemRestriction`
-  @param[out] supports_overwrite Variable to store whether the transpose uses the overwrite mask
+  @param[out] supports_overwrite Variable to store the result
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -195,6 +195,78 @@ int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
 int CeedElemRestrictionSupportsOverwrite(CeedElemRestriction rstr, bool *supports_overwrite) {
   *supports_overwrite = false;
   if (rstr->SupportsOverwrite) CeedCall(rstr->SupportsOverwrite(rstr, supports_overwrite));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Overwrite an L-vector with the transpose of a `CeedElemRestriction`, see @ref CeedElemRestrictionSupportsOverwrite().
+
+  @param[in]  rstr    `CeedElemRestriction`
+  @param[in]  u       E-vector
+  @param[out] ru      L-vector, overwritten
+  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionApplyOverwrite(CeedElemRestriction rstr, CeedVector u, CeedVector ru, CeedRequest *request) {
+  CeedSize min_u_len, min_ru_len, len;
+
+  CeedCheck(rstr->ApplyOverwrite, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedElemRestrictionApplyOverwrite");
+  CeedCall(CeedElemRestrictionGetEVectorSize(rstr, &min_u_len));
+  CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
+  CeedCall(CeedVectorGetLength(u, &len));
+  CeedCheck(min_u_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedSize_FMT " not compatible with element restriction (%" CeedSize_FMT ", %" CeedSize_FMT ")", len, min_ru_len,
+            min_u_len);
+  CeedCall(CeedVectorGetLength(ru, &len));
+  CeedCheck(min_ru_len <= len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedSize_FMT " not compatible with element restriction (%" CeedSize_FMT ", %" CeedSize_FMT ")", len, min_u_len,
+            min_ru_len);
+  CeedCall(rstr->ApplyOverwrite(rstr, u, ru, request));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Overwrite an L-vector with the transpose of one block of a `CeedElemRestriction`, see @ref CeedElemRestrictionSupportsOverwrite().
+
+  The blocks must be applied in order, and the L-vector holds the transpose once the last block is applied.
+
+  @param[in]  rstr    `CeedElemRestriction`
+  @param[in]  block   Block number to apply
+  @param[in]  u       E-vector of the block
+  @param[out] ru      L-vector, overwritten
+  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionApplyBlockOverwrite(CeedElemRestriction rstr, CeedInt block, CeedVector u, CeedVector ru, CeedRequest *request) {
+  CeedSize min_u_len, min_ru_len, len;
+  CeedInt  block_size, elem_size, num_comp, num_blocks;
+
+  CeedCheck(rstr->ApplyBlockOverwrite, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not implement CeedElemRestrictionApplyBlockOverwrite");
+  CeedCall(CeedElemRestrictionGetBlockSize(rstr, &block_size));
+  CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
+  min_u_len = (CeedSize)block_size * (CeedSize)elem_size * (CeedSize)num_comp;
+  CeedCall(CeedVectorGetLength(u, &len));
+  CeedCheck(min_u_len == len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedSize_FMT " not compatible with element restriction (%" CeedSize_FMT ", %" CeedSize_FMT ")", len, min_u_len,
+            min_ru_len);
+  CeedCall(CeedVectorGetLength(ru, &len));
+  CeedCheck(min_ru_len == len, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedSize_FMT " not compatible with element restriction (%" CeedSize_FMT ", %" CeedSize_FMT ")", len, min_ru_len,
+            min_u_len);
+  CeedCall(CeedElemRestrictionGetNumBlocks(rstr, &num_blocks));
+  CeedCheck(block >= 0 && block < num_blocks, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_DIMENSION,
+            "Cannot apply block %" CeedInt_FMT ", the restriction has %" CeedInt_FMT " blocks", block, num_blocks);
+  CeedCall(rstr->ApplyBlockOverwrite(rstr, block, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 

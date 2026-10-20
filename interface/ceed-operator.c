@@ -705,33 +705,87 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 }
 
 /**
-  @brief Check whether a `CeedOperator` writes its active output only through element restrictions that use the overwrite mask.
+  @brief Zero the passive output vectors of a `CeedOperator`, or of the suboperators of a composite `CeedOperator`
 
-  See @ref CeedVectorClearOverwriteMask().
-
-  @param[in]  op                 `CeedOperator`
-  @param[out] supports_overwrite Variable to store whether the active output can be overwritten through the mask
+  @param[in,out] op `CeedOperator`
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedOperatorSupportsOverwrite(CeedOperator op, bool *supports_overwrite) {
-  bool is_composite;
+int CeedOperatorZeroPassiveOutputs(CeedOperator op) {
+  bool          is_composite;
+  CeedInt       num_ops = 1;
+  CeedOperator *ops     = &op;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
-    CeedInt       num_sub;
-    CeedOperator *sub_operators;
-
-    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_sub));
-    CeedCall(CeedOperatorCompositeGetSubList(op, &sub_operators));
-    *supports_overwrite = true;
-    for (CeedInt i = 0; i < num_sub && *supports_overwrite; i++) CeedCall(CeedOperatorSupportsOverwrite(sub_operators[i], supports_overwrite));
-  } else {
-    *supports_overwrite = false;
-    if (op->SupportsOverwrite) CeedCall(op->SupportsOverwrite(op, supports_overwrite));
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_ops));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &ops));
   }
+  for (CeedInt i = 0; i < num_ops; i++) {
+    CeedInt            num_output_fields;
+    CeedOperatorField *output_fields;
+
+    CeedCall(CeedOperatorGetFields(ops[i], NULL, NULL, &num_output_fields, &output_fields));
+    for (CeedInt j = 0; j < num_output_fields; j++) {
+      CeedVector vec;
+
+      CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
+      if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+      CeedCall(CeedVectorDestroy(&vec));
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Check whether @ref CeedOperatorApply() may overwrite its active output instead of zeroing it first.
+
+  This holds when `CEED_OPERATOR_OVERWRITE_OUTPUT` is not 0, the apply is not inside an OpenMP parallel region, `out` has data, and `op` has one active output field, with `out` neither `in` nor a passive field.
+  The backend must also check that the output `CeedElemRestriction` supports overwriting, see @ref CeedElemRestrictionSupportsOverwrite().
+
+  @param[in]  op                  `CeedOperator`, not composite
+  @param[in]  in                  Active input `CeedVector`
+  @param[in]  out                 Active output `CeedVector`
+  @param[out] active_output_index Index of the active output field, or -1 if the output may not be overwritten
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector in, CeedVector out, CeedInt *active_output_index) {
+  bool               can_overwrite, has_valid_array;
+  CeedInt            num_fields[2], num_active = 0;
+  CeedOperatorField *fields[2];
+
+  *active_output_index = -1;
+  // An in-place apply would read out before it holds its values; zeroing first gives the same result as main
+  if (out == CEED_VECTOR_NONE || out == in) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedGetOperatorOverwriteOutput(CeedOperatorReturnCeed(op), &can_overwrite));
+  if (!can_overwrite) return CEED_ERROR_SUCCESS;
+#ifdef _OPENMP
+  // Threads may share the memory of out
+  if (omp_in_parallel()) return CEED_ERROR_SUCCESS;
+#endif
+  CeedCall(CeedVectorHasValidArray(out, &has_valid_array));
+  if (!has_valid_array) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedOperatorGetFields(op, &num_fields[0], &fields[0], &num_fields[1], &fields[1]));
+  for (CeedInt k = 0; k < 2; k++) {
+    for (CeedInt i = 0; i < num_fields[k]; i++) {
+      CeedVector vec;
+
+      CeedCall(CeedOperatorFieldGetVector(fields[k][i], &vec));
+      // A passive field that is out would read or write it before it holds its values
+      if (vec == out) num_active = -1;
+      if (k == 1 && vec == CEED_VECTOR_ACTIVE && num_active >= 0) {
+        *active_output_index = i;
+        num_active++;
+      }
+      CeedCall(CeedVectorDestroy(&vec));
+    }
+  }
+  if (num_active != 1) *active_output_index = -1;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2667,60 +2721,6 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
   return CEED_ERROR_SUCCESS;
 }
 
-// Whether a field of an operator, or of its suboperators, holds the vector `vec`
-static int CeedOperatorHasFieldVector(CeedOperator op, CeedVector vec, bool *has_vector) {
-  bool          is_composite;
-  CeedInt       num_ops = 1;
-  CeedOperator *ops     = &op;
-
-  *has_vector = false;
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  if (is_composite) {
-    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_ops));
-    CeedCall(CeedOperatorCompositeGetSubList(op, &ops));
-  }
-  for (CeedInt i = 0; i < num_ops; i++) {
-    CeedInt            num_fields[2];
-    CeedOperatorField *fields[2];
-
-    CeedCall(CeedOperatorGetFields(ops[i], &num_fields[0], &fields[0], &num_fields[1], &fields[1]));
-    for (CeedInt k = 0; k < 2; k++) {
-      for (CeedInt j = 0; j < num_fields[k]; j++) {
-        CeedVector field_vec;
-
-        CeedCall(CeedOperatorFieldGetVector(fields[k][j], &field_vec));
-        if (field_vec == vec) *has_vector = true;
-        CeedCall(CeedVectorDestroy(&field_vec));
-      }
-    }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-// Whether CeedOperatorApply can overwrite `out` through its overwrite mask instead of zeroing it
-static int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector in, CeedVector out, bool *can_overwrite) {
-  bool has_valid_array, is_aliased;
-
-  *can_overwrite = false;
-  if (out == CEED_VECTOR_NONE || out == in) return CEED_ERROR_SUCCESS;
-  CeedCall(CeedGetOperatorOverwriteOutput(CeedOperatorReturnCeed(op), can_overwrite));
-#ifdef _OPENMP
-  // Threads may share the memory of out
-  if (omp_in_parallel()) *can_overwrite = false;
-#endif
-  CeedCall(CeedVectorHasValidArray(out, &has_valid_array));
-  if (!*can_overwrite || !has_valid_array) {
-    *can_overwrite = false;
-    return CEED_ERROR_SUCCESS;
-  }
-  CeedCall(CeedOperatorSupportsOverwrite(op, can_overwrite));
-  if (!*can_overwrite) return CEED_ERROR_SUCCESS;
-  // A passive field that is out would read or write it before it holds its values
-  CeedCall(CeedOperatorHasFieldVector(op, out, &is_aliased));
-  *can_overwrite = !is_aliased;
-  return CEED_ERROR_SUCCESS;
-}
-
 /**
   @brief Apply `CeedOperator` to a `CeedVector`.
 
@@ -2734,7 +2734,7 @@ static int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector in, CeedVe
 
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     `CeedVector` to store result of applying operator (must not share memory with `in`, a passive field, or the points of an operator at points) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[out] out     `CeedVector` to store result of applying operator (must not share memory with `in` or a passive field) or @ref CEED_VECTOR_NONE if there are no active outputs
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -2754,25 +2754,12 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
     // Standard Operator
     CeedCall(op->Apply(op, in, out, request));
   } else {
-    // Standard or composite, default to overwriting or zeroing the active output and calling ApplyAddActive
-    bool use_overwrite;
+    // Standard or composite, default to zeroing out and calling ApplyAddActive
+    // Zero active output
+    if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
 
-    CeedCall(CeedOperatorCanOverwriteOutput(op, in, out, &use_overwrite));
-    if (use_overwrite) {
-      int ierr;
-
-      CeedCall(CeedVectorClearOverwriteMask(out));
-      ierr = CeedOperatorApplyAddActive(op, in, out, request);
-      // On failure, still drop the mask so that a later apply into out does not use it
-      if (ierr) {
-        CeedVectorApplyOverwriteMask(out);
-        return ierr;
-      }
-      CeedCall(CeedVectorApplyOverwriteMask(out));
-    } else {
-      if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
-      CeedCall(CeedOperatorApplyAddActive(op, in, out, request));
-    }
+    // ApplyAddActive
+    CeedCall(CeedOperatorApplyAddActive(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }

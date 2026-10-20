@@ -13,7 +13,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
-- `CeedOperatorApply` overwrites the output through a `CeedVector` overwrite mask instead of zeroing it first, where the operator supports it; set `CEED_OPERATOR_OVERWRITE_OUTPUT=0` to always zero it.
+- The CPU backends overwrite the output of `CeedOperatorApply` with the transpose of the active output `CeedElemRestriction` instead of zeroing it first, through `CeedElemRestrictionApplyOverwrite`.
+  Set `CEED_OPERATOR_OVERWRITE_OUTPUT=0` to use zero-plus-add for binary-equivalent benchmarking.
 - Add `/gpu/cuda/cublas` and `/gpu/cuda/cublas/det` backends for computing non-tensor basis operations with cuBLAS GEMM.
 - Add `/gpu/hip/hipblas` and `/gpu/hip/hipblas/det` backends for computing non-tensor basis operations with hipBLAS GEMM.
 

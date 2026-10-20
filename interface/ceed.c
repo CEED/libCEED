@@ -1543,6 +1543,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetCurlOrientations),
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetAtPointsElementOffset),
       CEED_FTABLE_ENTRY(CeedElemRestriction, SupportsOverwrite),
+      CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyOverwrite),
+      CEED_FTABLE_ENTRY(CeedElemRestriction, ApplyBlockOverwrite),
       CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
       CEED_FTABLE_ENTRY(CeedBasis, Apply),
       CEED_FTABLE_ENTRY(CeedBasis, ApplyAdd),
@@ -1582,7 +1584,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedOperator, ApplyAddComposite),
       CEED_FTABLE_ENTRY(CeedOperator, ApplyJacobian),
       CEED_FTABLE_ENTRY(CeedOperator, SetEnableCudaGraph),
-      CEED_FTABLE_ENTRY(CeedOperator, SupportsOverwrite),
       CEED_FTABLE_ENTRY(CeedOperator, Destroy),
       {NULL, 0}  // End of lookup table - used in SetBackendFunction loop
   };

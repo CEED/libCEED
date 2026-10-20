@@ -378,7 +378,8 @@ static inline int CeedOperatorRestoreInputs_Ref(CeedInt num_input_fields, CeedQF
 //------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+// Sum into the active output, or overwrite it if is_overwrite
+static int CeedOperatorApplyAddCore_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, bool is_overwrite, CeedRequest *request) {
   CeedInt             Q, num_elem, num_input_fields, num_output_fields, size;
   CeedEvalMode        eval_mode;
   CeedScalar         *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
@@ -401,7 +402,11 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
     CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_NOTRANSPOSE, in_vec, impl->e_vecs_full[0], request));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[0], &elem_rstr));
-    CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_TRANSPOSE, impl->e_vecs_full[0], out_vec, request));
+    if (is_overwrite) {
+      CeedCallBackend(CeedElemRestrictionApplyOverwrite(elem_rstr, impl->e_vecs_full[0], out_vec, request));
+    } else {
+      CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_TRANSPOSE, impl->e_vecs_full[0], out_vec, request));
+    }
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -462,9 +467,13 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
     // Active
     is_active = vec == CEED_VECTOR_ACTIVE;
     if (is_active) vec = out_vec;
-    // Restrict
+    // Restrict, overwriting the active output if the apply does
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
-    CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec, request));
+    if (is_overwrite && is_active) {
+      CeedCallBackend(CeedElemRestrictionApplyOverwrite(elem_rstr, impl->e_vecs_full[i + impl->num_inputs], vec, request));
+    } else {
+      CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_TRANSPOSE, impl->e_vecs_full[i + impl->num_inputs], vec, request));
+    }
     if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
@@ -472,6 +481,33 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
   // Restore input arrays
   CeedCallBackend(CeedOperatorRestoreInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, false, e_data_full, impl));
   CeedCallBackend(CeedQFunctionDestroy(&qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+  CeedCallBackend(CeedOperatorApplyAddCore_Ref(op, in_vec, out_vec, false, request));
+  return CEED_ERROR_SUCCESS;
+}
+
+// Overwrite the active output when its restriction can, instead of zeroing it and summing
+static int CeedOperatorApply_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
+  bool    is_overwrite = false;
+  CeedInt i;
+
+  CeedCallBackend(CeedOperatorSetup_Ref(op));
+  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, in_vec, out_vec, &i));
+  if (i >= 0) {
+    CeedOperatorField  *op_output_fields;
+    CeedElemRestriction rstr;
+
+    CeedCallBackend(CeedOperatorGetFields(op, NULL, NULL, NULL, &op_output_fields));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr));
+    if (rstr != CEED_ELEMRESTRICTION_NONE) CeedCallBackend(CeedElemRestrictionSupportsOverwrite(rstr, &is_overwrite));
+    CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
+  }
+  CeedCallBackend(CeedOperatorZeroPassiveOutputs(op));
+  if (!is_overwrite && out_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorSetValue(out_vec, 0.0));
+  CeedCallBackend(CeedOperatorApplyAddCore_Ref(op, in_vec, out_vec, is_overwrite, request));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1803,35 +1839,6 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Operator Supports Overwrite
-//------------------------------------------------------------------------------
-static int CeedOperatorSupportsOverwrite_Ref(CeedOperator op, bool *supports_overwrite) {
-  CeedInt            num_output_fields;
-  CeedOperatorField *output_fields;
-
-  CeedCallBackend(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
-  *supports_overwrite = true;
-  for (CeedInt i = 0; i < num_output_fields && *supports_overwrite; i++) {
-    CeedVector vec;
-
-    CeedCallBackend(CeedOperatorFieldGetVector(output_fields[i], &vec));
-    if (vec == CEED_VECTOR_ACTIVE) {
-      CeedElemRestriction rstr;
-
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr));
-      if (rstr == CEED_ELEMRESTRICTION_NONE) {
-        *supports_overwrite = false;
-      } else {
-        CeedCallBackend(CeedElemRestrictionSupportsOverwrite(rstr, supports_overwrite));
-      }
-      CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
-    }
-    CeedCallBackend(CeedVectorDestroy(&vec));
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Operator Create
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Ref(CeedOperator op) {
@@ -1844,7 +1851,7 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Ref));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "SupportsOverwrite", CeedOperatorSupportsOverwrite_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Apply", CeedOperatorApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Ref));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
