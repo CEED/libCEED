@@ -16,25 +16,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int Compare(CeedVector actual, CeedVector expected, CeedSize length) {
-  const CeedScalar *a, *b;
-  CeedScalar        error = 0, scale = 0;
-  bool              finite = true;
+static int CompareVectors(CeedVector actual, CeedVector expected, const char *phase) {
+  const CeedScalar *actual_arr, *expected_arr;
+  CeedScalar        scale = 1;
+  CeedSize          length;
 
-  CeedVectorGetArrayRead(actual, CEED_MEM_HOST, &a);
-  CeedVectorGetArrayRead(expected, CEED_MEM_HOST, &b);
+  CeedVectorGetLength(actual, &length);
+  CeedVectorGetArrayRead(actual, CEED_MEM_HOST, &actual_arr);
+  CeedVectorGetArrayRead(expected, CEED_MEM_HOST, &expected_arr);
+  for (CeedSize i = 0; i < length; i++) scale = fmax(scale, fabs(expected_arr[i]));
   for (CeedSize i = 0; i < length; i++) {
-    finite = finite && isfinite(a[i]) && isfinite(b[i]);
-    error  = fmax(error, fabs(a[i] - b[i]));
-    scale  = fmax(scale, fabs(b[i]));
+    const CeedScalar error = fabs(actual_arr[i] - expected_arr[i]) / scale;
+
+    if (!(error <= 500 * CEED_EPSILON)) {
+      printf("%s mismatch at %td: %g != %g\n", phase, i, actual_arr[i], expected_arr[i]);
+      break;
+    }
   }
-  CeedVectorRestoreArrayRead(actual, &a);
-  CeedVectorRestoreArrayRead(expected, &b);
-  if (!finite || error > 500 * CEED_EPSILON * fmax(1, scale)) {
-    printf("Coefficient carry: error %g, scale %g, finite %d\n", error, scale, finite);
-    return 1;
-  }
-  return 0;
+  CeedVectorRestoreArrayRead(actual, &actual_arr);
+  CeedVectorRestoreArrayRead(expected, &expected_arr);
+  return CEED_ERROR_SUCCESS;
 }
 
 static int Create(Ceed ceed, CeedInt p, CeedInt q, CeedInt components, CeedInt elements, int layout, CeedOperator *op, CeedVector *input,
@@ -46,24 +47,20 @@ static int Create(Ceed ceed, CeedInt p, CeedInt q, CeedInt components, CeedInt e
   CeedQFunctionContext context;
 
   CeedBasisCreateTensorH1Lagrange(ceed, 3, components, p, q, CEED_GAUSS, &basis);
-  CeedInt *offsets = malloc(elements * nodes * sizeof *offsets);
-
-  if (elements && !offsets) return CEED_ERROR_MAJOR;
+  CeedInt offsets[(elements ? elements : 1) * nodes];
 
   for (CeedInt e = 0; e < elements; e++) {
     for (CeedInt n = 0; n < nodes; n++) offsets[e * nodes + n] = e * (nodes - 1) + n;
   }
-  const int restriction_error = CeedElemRestrictionCreate(ceed, elements, nodes, components, elements * nodes, elements * nodes * components,
-                                                          CEED_MEM_HOST, CEED_COPY_VALUES, offsets, &restriction);
-  free(offsets);
-  if (restriction_error) return 1;
+  CeedElemRestrictionCreate(ceed, elements, nodes, components, elements * nodes, elements * nodes * components, CEED_MEM_HOST, CEED_COPY_VALUES,
+                            offsets, &restriction);
   CeedVectorCreate(ceed, elements * nodes * components, input);
   CeedVectorCreate(ceed, elements * nodes * components, output);
-  CeedScalar *values;
+  CeedScalar *input_arr;
 
-  CeedVectorGetArrayWrite(*input, CEED_MEM_HOST, &values);
-  for (CeedInt i = 0; i < elements * nodes * components; i++) values[i] = sin(0.13 * i) + 0.2 * cos(0.07 * i);
-  CeedVectorRestoreArray(*input, &values);
+  CeedVectorGetArrayWrite(*input, CEED_MEM_HOST, &input_arr);
+  for (CeedInt i = 0; i < elements * nodes * components; i++) input_arr[i] = sin(0.13 * i) + 0.2 * cos(0.07 * i);
+  CeedVectorRestoreArray(*input, &input_arr);
   CeedQFunctionCreateInterior(ceed, 1, SliceCoefficients, SliceCoefficients_loc, &qf);
   CeedQFunctionAddInput(qf, "du", 3 * components, CEED_EVAL_GRAD);
   const char   *names[3] = {"scale", "diagonal", "bias"};
@@ -97,60 +94,45 @@ static int Create(Ceed ceed, CeedInt p, CeedInt q, CeedInt components, CeedInt e
     CeedElemRestriction coeff_restriction;
 
     if (layout >= 3) {
-      CeedInt *indices = malloc(elements * points * sizeof *indices);
+      CeedInt indices[(elements ? elements : 1) * points];
 
-      if (elements && !indices) return CEED_ERROR_MAJOR;
       for (CeedInt i = 0; i < elements * points; i++) indices[i] = i;
-      int error;
-
       if (layout == 4) {
-        bool *orients = malloc(elements * points * sizeof *orients);
+        bool orients[(elements ? elements : 1) * points];
 
-        if (elements && !orients) {
-          free(indices);
-          return CEED_ERROR_MAJOR;
-        }
         for (CeedInt i = 0; i < elements * points; i++) orients[i] = i % 2;
-        error = CeedElemRestrictionCreateOriented(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES, indices,
-                                                  orients, &coeff_restriction);
-        free(orients);
+        CeedElemRestrictionCreateOriented(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES, indices, orients,
+                                          &coeff_restriction);
       } else if (layout == 5) {
-        CeedInt8 *orients = calloc(3 * elements * points, sizeof *orients);
+        CeedInt8 orients[3 * (elements ? elements : 1) * points];
 
-        if (elements && !orients) {
-          free(indices);
-          return CEED_ERROR_MAJOR;
-        }
         for (CeedInt i = 0; i < elements * points; i++) {
           orients[3 * i]     = i % points ? 1 : 0;
           orients[3 * i + 1] = i % 2 ? -1 : 1;
           orients[3 * i + 2] = i % points + 1 < points ? -1 : 0;
         }
-        error = CeedElemRestrictionCreateCurlOriented(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES,
-                                                      indices, orients, &coeff_restriction);
-        free(orients);
+        CeedElemRestrictionCreateCurlOriented(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES, indices,
+                                              orients, &coeff_restriction);
       } else {
-        error = CeedElemRestrictionCreate(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES, indices,
-                                          &coeff_restriction);
+        CeedElemRestrictionCreate(ceed, elements, points, count, elements * points, length, CEED_MEM_HOST, CEED_COPY_VALUES, indices,
+                                  &coeff_restriction);
       }
-      free(indices);
-      if (error) return 1;
     } else {
       CeedElemRestrictionCreateStrided(ceed, elements, points, count, length, layout == 0 ? CEED_STRIDES_BACKEND : strides, &coeff_restriction);
     }
     if (layout == 0) CeedElemRestrictionGetLLayout(coeff_restriction, strides);
     CeedVectorCreate(ceed, length, &coefficients[field]);
-    CeedScalar *coeffs;
+    CeedScalar *coefficients_arr;
 
     CeedVectorSetValue(coefficients[field], 0);
-    CeedVectorGetArray(coefficients[field], CEED_MEM_HOST, &coeffs);
+    CeedVectorGetArray(coefficients[field], CEED_MEM_HOST, &coefficients_arr);
     for (CeedInt e = 0; e < elements; e++) {
       for (CeedInt n = 0; n < points; n++) {
         for (CeedInt c = 0; c < count; c++)
-          coeffs[e * strides[2] + n * strides[0] + c * strides[1]] = 0.2 + 0.017 * n + 0.07 * e + 0.03 * c + 0.11 * field;
+          coefficients_arr[e * strides[2] + n * strides[0] + c * strides[1]] = 0.2 + 0.017 * n + 0.07 * e + 0.03 * c + 0.11 * field;
       }
     }
-    CeedVectorRestoreArray(coefficients[field], &coeffs);
+    CeedVectorRestoreArray(coefficients[field], &coefficients_arr);
     CeedOperatorSetField(*op, names[field], coeff_restriction, CEED_BASIS_NONE, coefficients[field]);
     CeedElemRestrictionDestroy(&coeff_restriction);
   }
@@ -164,25 +146,24 @@ static int Create(Ceed ceed, CeedInt p, CeedInt q, CeedInt components, CeedInt e
   CeedBasisDestroy(&basis);
   CeedQFunctionContextDestroy(&context);
   CeedQFunctionDestroy(&qf);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 int main(int argc, char **argv) {
-  if (argc != 7) return 1;
   const CeedInt p = atoi(argv[2]), q = atoi(argv[3]), components = atoi(argv[4]), elements = atoi(argv[5]);
   const int     layout = atoi(argv[6]);
-  Ceed          ceed[2];
-  CeedOperator  operators[2], composites[2];
-  CeedVector    input[2], output[2], report[2], coefficients[2][3];
+  Ceed          ceed, ceed_ref;
+  CeedOperator  op, op_ref, op_composite, op_composite_ref;
+  CeedVector    u, u_ref, v, v_ref, report, report_ref, coefficients[3], coefficients_ref[3];
 
-  CeedInit(argv[1], &ceed[0]);
-  CeedInit("/cpu/self/ref/serial", &ceed[1]);
-  for (CeedInt side = 0; side < 2; side++) {
-    if (Create(ceed[side], p, q, components, elements, layout, &operators[side], &input[side], &output[side], &report[side], coefficients[side]))
-      return 1;
-    CeedOperatorCreateComposite(ceed[side], &composites[side]);
-    CeedOperatorCompositeAddSub(composites[side], operators[side]);
-  }
+  CeedInit(argv[1], &ceed);
+  CeedInit("/cpu/self/ref/serial", &ceed_ref);
+  Create(ceed, p, q, components, elements, layout, &op, &u, &v, &report, coefficients);
+  Create(ceed_ref, p, q, components, elements, layout, &op_ref, &u_ref, &v_ref, &report_ref, coefficients_ref);
+  CeedOperatorCreateComposite(ceed, &op_composite);
+  CeedOperatorCreateComposite(ceed_ref, &op_composite_ref);
+  CeedOperatorCompositeAddSub(op_composite, op);
+  CeedOperatorCompositeAddSub(op_composite_ref, op_ref);
   if (layout == 4 || layout == 5) {
     // Assembly before Apply must also honor unsupported restriction types
     CeedVector          assembled[2];
@@ -190,28 +171,29 @@ int main(int argc, char **argv) {
     CeedSize            length;
 
     for (CeedInt side = 0; side < 2; side++)
-      CeedOperatorLinearAssembleQFunction(operators[side], &assembled[side], &restriction[side], CEED_REQUEST_IMMEDIATE);
+      CeedOperatorLinearAssembleQFunction(side ? op_ref : op, &assembled[side], &restriction[side], CEED_REQUEST_IMMEDIATE);
     CeedVectorGetLength(assembled[0], &length);
     CeedVector        ordered;
-    const CeedScalar *source;
-    CeedScalar       *target;
+    const CeedScalar *assembled_arr;
+    CeedScalar       *ordered_arr;
     CeedInt           strides[2][3], count;
 
     // QFunction assembly layouts can differ between backends
     for (CeedInt side = 0; side < 2; side++) CeedElemRestrictionGetLLayout(restriction[side], strides[side]);
     CeedElemRestrictionGetNumComponents(restriction[0], &count);
-    CeedVectorCreate(ceed[1], length, &ordered);
-    CeedVectorGetArrayRead(assembled[0], CEED_MEM_HOST, &source);
-    CeedVectorGetArrayWrite(ordered, CEED_MEM_HOST, &target);
+    CeedVectorCreate(ceed_ref, length, &ordered);
+    CeedVectorGetArrayRead(assembled[0], CEED_MEM_HOST, &assembled_arr);
+    CeedVectorGetArrayWrite(ordered, CEED_MEM_HOST, &ordered_arr);
     for (CeedInt e = 0; e < elements; e++) {
       for (CeedInt qpt = 0; qpt < q * q * q; qpt++) {
         for (CeedInt c = 0; c < count; c++)
-          target[qpt * strides[1][0] + c * strides[1][1] + e * strides[1][2]] = source[qpt * strides[0][0] + c * strides[0][1] + e * strides[0][2]];
+          ordered_arr[qpt * strides[1][0] + c * strides[1][1] + e * strides[1][2]] =
+              assembled_arr[qpt * strides[0][0] + c * strides[0][1] + e * strides[0][2]];
       }
     }
-    CeedVectorRestoreArrayRead(assembled[0], &source);
-    CeedVectorRestoreArray(ordered, &target);
-    if (Compare(ordered, assembled[1], length)) return 1;
+    CeedVectorRestoreArrayRead(assembled[0], &assembled_arr);
+    CeedVectorRestoreArray(ordered, &ordered_arr);
+    CompareVectors(ordered, assembled[1], "QFunction assembly");
     CeedVectorDestroy(&ordered);
     for (CeedInt side = 0; side < 2; side++) {
       CeedVectorDestroy(&assembled[side]);
@@ -220,21 +202,29 @@ int main(int argc, char **argv) {
   }
   for (CeedInt step = 0; step < 5; step++) {
     if (step == 3) {
-      for (CeedInt side = 0; side < 2; side++) CeedVectorSetValue(coefficients[side][2], 0.7);
+      CeedVectorSetValue(coefficients[2], 0.7);
+      CeedVectorSetValue(coefficients_ref[2], 0.7);
     }
-    for (CeedInt side = 0; side < 2; side++)
-      CeedOperatorApply(step < 2 ? operators[side] : composites[side], input[side], output[side], CEED_REQUEST_IMMEDIATE);
-    if (Compare(output[0], output[1], elements * p * p * p * components)) return 1;
-    if (Compare(report[0], report[1], elements * q * q * q)) return 1;
+    CeedOperatorApply(step < 2 ? op : op_composite, u, v, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(step < 2 ? op_ref : op_composite_ref, u_ref, v_ref, CEED_REQUEST_IMMEDIATE);
+    CompareVectors(v, v_ref, "Coefficient carry");
+    CompareVectors(report, report_ref, "Point output");
   }
-  for (CeedInt side = 0; side < 2; side++) {
-    CeedOperatorDestroy(&composites[side]);
-    CeedOperatorDestroy(&operators[side]);
-    for (CeedInt field = 0; field < 3; field++) CeedVectorDestroy(&coefficients[side][field]);
-    CeedVectorDestroy(&input[side]);
-    CeedVectorDestroy(&output[side]);
-    CeedVectorDestroy(&report[side]);
-    CeedDestroy(&ceed[side]);
+  CeedOperatorDestroy(&op_composite);
+  CeedOperatorDestroy(&op_composite_ref);
+  CeedOperatorDestroy(&op);
+  CeedOperatorDestroy(&op_ref);
+  for (CeedInt field = 0; field < 3; field++) {
+    CeedVectorDestroy(&coefficients[field]);
+    CeedVectorDestroy(&coefficients_ref[field]);
   }
-  return 0;
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&u_ref);
+  CeedVectorDestroy(&v);
+  CeedVectorDestroy(&v_ref);
+  CeedVectorDestroy(&report);
+  CeedVectorDestroy(&report_ref);
+  CeedDestroy(&ceed);
+  CeedDestroy(&ceed_ref);
+  return CEED_ERROR_SUCCESS;
 }
