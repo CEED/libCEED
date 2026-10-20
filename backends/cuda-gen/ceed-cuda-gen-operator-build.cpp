@@ -186,11 +186,11 @@ static int CeedOperatorRestrictionScratchSize_Cuda_gen(Ceed ceed, CeedInt num_in
                                                        CeedInt max_dim, CeedInt Q_1d, CeedInt *size) {
   *size = 1;
   for (CeedInt is_output = 0; is_output < 2; is_output++) {
-    const CeedInt       count     = is_output ? num_output_fields : num_input_fields;
-    CeedOperatorField  *fields    = is_output ? op_output_fields : op_input_fields;
-    CeedQFunctionField *qf_fields = is_output ? qf_output_fields : qf_input_fields;
+    const CeedInt       num_fields = is_output ? num_output_fields : num_input_fields;
+    CeedOperatorField  *op_fields  = is_output ? op_output_fields : op_input_fields;
+    CeedQFunctionField *qf_fields  = is_output ? qf_output_fields : qf_input_fields;
 
-    for (CeedInt i = 0; i < count; i++) {
+    for (CeedInt i = 0; i < num_fields; i++) {
       CeedEvalMode eval;
 
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval));
@@ -198,14 +198,14 @@ static int CeedOperatorRestrictionScratchSize_Cuda_gen(Ceed ceed, CeedInt num_in
       CeedInt             components, extent = 1;
       CeedElemRestriction restriction;
 
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(fields[i], &restriction));
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &restriction));
       CeedCallBackend(CeedElemRestrictionGetNumComponents(restriction, &components));
       CeedCallBackend(CeedElemRestrictionDestroy(&restriction));
       if (is_all_tensor && max_dim >= 3) {
         CeedBasis basis;
         CeedInt   nodes;
 
-        CeedCallBackend(CeedOperatorFieldGetBasis(fields[i], &basis));
+        CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &nodes));
         CeedCallBackend(CeedBasisDestroy(&basis));
         extent = CeedIntMax(nodes, Q_1d);
