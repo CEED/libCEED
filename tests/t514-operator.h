@@ -9,16 +9,18 @@
 
 CEED_QFUNCTION(ones_1)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *v = out[0];
+
   for (CeedInt i = 0; i < Q; i++) {
     v[i] = 1.0;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(ones_2)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   CeedScalar *v = out[0];
+
   for (CeedInt i = 0; i < 2 * Q; i++) {
     v[i] = 1.0;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
