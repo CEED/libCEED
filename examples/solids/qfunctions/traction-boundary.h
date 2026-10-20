@@ -58,6 +58,6 @@ CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q, const CeedScalar *const *
   }  // End of Quadrature Point Loop
 
   // Return
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

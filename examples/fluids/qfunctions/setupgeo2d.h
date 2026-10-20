@@ -55,7 +55,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data);
     StoredValuesPack(Q, i, 1, 4, (const CeedScalar *)dXdx, q_data);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -96,7 +96,7 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *i
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
     StoredValuesPack(Q, i, 1, 2, normal, q_data_sur);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -150,5 +150,5 @@ CEED_QFUNCTION(Setup2D_3Dcoords)(void *ctx, CeedInt Q, const CeedScalar *const *
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
     StoredValuesPack(Q, i, 1, 6, (const CeedScalar *)dXdx, q_data_sur);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

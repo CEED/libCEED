@@ -37,5 +37,5 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     v_1[i] = qd_mass[i] * u_1[i];
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

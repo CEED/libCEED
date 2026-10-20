@@ -59,7 +59,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data);
     StoredValuesPack(Q, i, 1, 9, (const CeedScalar *)dXdx, q_data);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -120,5 +120,5 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     StoredValuesPack(Q, i, 1, 3, normal, q_data_sur);
     StoredValuesPack(Q, i, 4, 6, (const CeedScalar *)dXdx, q_data_sur);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

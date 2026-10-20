@@ -32,7 +32,7 @@ CEED_QFUNCTION(masssetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     qdata[i]       = det * w[i];
     rhs[i]         = qdata[i] * sqrt(x[i] * x[i] + x[i + Q] * x[i + Q] + x[i + 2 * Q] * x[i + 2 * Q]);
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(massf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -43,7 +43,7 @@ CEED_QFUNCTION(massf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   // Quadrature Point Loop
   for (CeedInt i = 0; i < Q; i++) v[i] = qdata[i] * u[i];
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -92,7 +92,7 @@ CEED_QFUNCTION(diffsetupf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     rhs[i]                = rho * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * sin(M_PI * (c[0] + k[0] * x[i + Q * 0])) *
                             sin(M_PI * (c[1] + k[1] * x[i + Q * 1])) * sin(M_PI * (c[2] + k[2] * x[i + Q * 2]));
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(diffusionf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -109,5 +109,5 @@ CEED_QFUNCTION(diffusionf)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     vg[i + Q * 1]        = qdata[i + Q * 5] * ug0 + qdata[i + Q * 1] * ug1 + qdata[i + Q * 3] * ug2;
     vg[i + Q * 2]        = qdata[i + Q * 4] * ug0 + qdata[i + Q * 3] * ug1 + qdata[i + Q * 2] * ug2;
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

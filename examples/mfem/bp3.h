@@ -76,7 +76,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
       }
       break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// libCEED Q-function for applying a diff operator
@@ -112,5 +112,5 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
       }
       break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

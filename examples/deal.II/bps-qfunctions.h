@@ -63,7 +63,7 @@ CEED_QFUNCTION(f_build_mass)
         }
         break;
     }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -84,7 +84,7 @@ CEED_QFUNCTION(f_apply_mass)
   {
     v[i] = JxW[i] * u[i];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -125,7 +125,7 @@ CEED_QFUNCTION(f_apply_mass_vec)
         }
         break;
     }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -192,7 +192,7 @@ CEED_QFUNCTION(f_build_poisson)
         }
         break;
     }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -236,7 +236,7 @@ CEED_QFUNCTION(f_apply_poisson)
         }
         break;
     }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 
@@ -315,5 +315,5 @@ CEED_QFUNCTION(f_apply_poisson_vec)
         }
         break;
     }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

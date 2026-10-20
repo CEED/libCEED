@@ -274,7 +274,7 @@ CEED_QFUNCTION(StgShur14Preprocess)(void *ctx, CeedInt Q, const CeedScalar *cons
     // avoid underflowed and poorly defined spectrum coefficients
     stg_data[i] = Ek_tot != 0 ? 1 / Ek_tot : 0;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // Extrude the STGInflow profile through out the domain for an initial condition
@@ -317,7 +317,7 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
       q0[j][i] = q[j];
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /********************************************************************
@@ -403,7 +403,7 @@ CEED_QFUNCTION(StgShur14Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
     StoredValuesPack(Q, i, 0, 5, U, jac_data_sur);
     StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(StgShur14Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -456,7 +456,7 @@ CEED_QFUNCTION(StgShur14Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar 
     for (int j = 0; j < 3; j++) v[j + 1][i] = -wdetJb * (drho * u_normal * velocity[j] + norm[j] * dP);
     v[4][i] = -wdetJb * u_normal * (dE + dP);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /********************************************************************
@@ -526,5 +526,5 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
       bcval[j][i] = scale[i] * q[j];
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

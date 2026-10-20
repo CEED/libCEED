@@ -29,7 +29,7 @@ CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *
     q_data[i + Q * 1]    = qw * (J11 * J11 + J21 * J21);
     q_data[i + Q * 2]    = -qw * (J11 * J12 + J21 * J22);
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -58,5 +58,5 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     // j = direction of vg
     for (int j = 0; j < 2; j++) vg[i + j * Q] = (du[0] * dXdxdXdxT[0][j] + du[1] * dXdxdXdxT[1][j]);
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

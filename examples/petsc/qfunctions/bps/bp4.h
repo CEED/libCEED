@@ -43,7 +43,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // Component 3
     rhs[i + 2 * Q] = 3 * rhs[i + 0 * Q];
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -81,6 +81,6 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
       }
     }
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

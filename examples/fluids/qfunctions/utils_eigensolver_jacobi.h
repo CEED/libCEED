@@ -320,7 +320,7 @@ CEED_QFUNCTION_HELPER CeedInt Diagonalize(CeedScalar *A, CeedInt N, CeedScalar *
   SortRows(eval, evec, N, sort_criteria);
 
   if ((n_iters > max_num_iters) && (N > 1))  // If we exceeded max_num_iters,
-    return 0;                                // indicate an error occured.
+    return CEED_ERROR_SUCCESS;               // indicate an error occured.
 
   return n_iters;
 }

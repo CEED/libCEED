@@ -12,5 +12,5 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   CeedScalar       *v = out[0];
 
   for (CeedInt i = 0; i < Q; i++) v[i] = u[i];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

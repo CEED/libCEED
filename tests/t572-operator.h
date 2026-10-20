@@ -38,7 +38,7 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     q_data[2][i]         = -w * (J11 * J12 + J21 * J22);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(multi_basis_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -76,5 +76,5 @@ CEED_QFUNCTION(multi_basis_diff)(void *ctx, const CeedInt Q, const CeedScalar *c
     dv[i + 0 * Q + context->num_comp_u * Q * 1] += dq[i + (context->num_comp_p - 1) * Q + context->num_comp_p * Q * 0];
     dq[i] += dv[i + (context->num_comp_u - 1) * Q + context->num_comp_u * Q * 1];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

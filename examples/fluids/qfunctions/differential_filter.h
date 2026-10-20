@@ -56,7 +56,7 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const Cee
     v1[DIFF_FILTER_VELOCITY_SQUARED_XZ][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[2];
     v1[DIFF_FILTER_VELOCITY_SQUARED_XY][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[1];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(DifferentialFilter_RHS_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -139,7 +139,7 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
       }
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(DifferentialFilter_LHS_1)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -171,7 +171,7 @@ CEED_QFUNCTION(DifferentialFilter_MMS_RHS)(void *ctx, CeedInt Q, const CeedScala
     const CeedScalar wdetJ = q_data[0][i];
     v[0][i]                = wdetJ * q[0][i];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // @brief Generate initial condition such that the solution of the differential filtering is given by MMS_Solution() above
@@ -217,5 +217,5 @@ CEED_QFUNCTION(DifferentialFilter_MMS_IC)(void *ctx, CeedInt Q, const CeedScalar
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = phi;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

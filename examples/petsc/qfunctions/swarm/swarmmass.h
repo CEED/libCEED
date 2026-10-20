@@ -20,7 +20,7 @@ CEED_QFUNCTION(SetupMass)(void *ctx, const CeedInt Q, const CeedScalar *const *i
 
     q_data[i] = w[i] * (J[0][0][i] * B11 + J[1][0][i] * B12 + J[2][0][i] * B13);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -33,5 +33,5 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     for (CeedInt j = 0; j < num_comp; j++) v[j][i] = rho[i] * u[j][i];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

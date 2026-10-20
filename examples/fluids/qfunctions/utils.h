@@ -189,7 +189,7 @@ CEED_QFUNCTION_HELPER CeedScalar LinearRampCoefficient(CeedScalar amplitude, Cee
   } else if (x < start + length) {
     return amplitude * ((x - start) * (-1 / length) + 1);
   } else {
-    return 0;
+    return CEED_ERROR_SUCCESS;
   }
 }
 

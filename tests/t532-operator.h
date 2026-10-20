@@ -13,7 +13,7 @@ CEED_QFUNCTION(setup_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
   for (CeedInt i = 0; i < Q; i++) {
     rho[i] = weight[i] * (J[i + Q * 0] * J[i + Q * 3] - J[i + Q * 1] * J[i + Q * 2]);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -41,7 +41,7 @@ CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *
     qd[i + Q * 2]        = -w * (J11 * J12 + J21 * J22);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -66,7 +66,7 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     dv[i + Q * 1]        = qd_diff[i + Q * 2] * du0 + qd_diff[i + Q * 1] * du1;
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(apply_lin)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -88,5 +88,5 @@ CEED_QFUNCTION(apply_lin)(void *ctx, const CeedInt Q, const CeedScalar *const *i
     dv[i + Q * 1]        = qd[i + Q * 2] * du0 + qd[i + Q * 5] * du1 + qd[i + Q * 8] * u[i];
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

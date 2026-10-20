@@ -38,7 +38,7 @@ int BuildNodalHdivQuadrilateral(CeedScalar *x, CeedScalar *Bx, CeedScalar *By) {
   By[6]            = -0.125 + 0.125 * y_hat * y_hat;
   Bx[7]            = -0.25 + 0.25 * x_hat + -0.25 * y_hat + 0.25 * x_hat * y_hat;
   By[7]            = 0.125 + -0.125 * y_hat * y_hat;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 static void BuildHdivQuadrilateral(CeedInt q, CeedScalar *q_ref, CeedScalar *q_weights, CeedScalar *interp, CeedScalar *div, CeedQuadMode quad_mode) {

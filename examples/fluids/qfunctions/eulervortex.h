@@ -173,7 +173,7 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
       q[4] = rho * (cv * T + (u[0] * u[0] + u[1] * u[1]) / 2.);
       break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -239,7 +239,7 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
     Exact_Euler(3, context->curr_time, x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -380,7 +380,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
         break;
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -518,7 +518,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
     }
     StoredValuesPack(Q, i, 0, 14, zeros, jac_data);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // *****************************************************************************
 // This QFunction sets the inflow boundary conditions for the traveling vortex problem.
@@ -579,7 +579,7 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
       v[4][i] -= wdetJb * face_normal * (E_inlet + P_inlet);
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -632,5 +632,5 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       v[4][i] -= wdetJb * u_normal * (E + P);
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

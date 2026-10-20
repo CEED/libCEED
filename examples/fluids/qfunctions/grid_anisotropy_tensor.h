@@ -55,7 +55,7 @@ CEED_QFUNCTION(AnisotropyTensorProjection)(void *ctx, CeedInt Q, const CeedScala
     for (CeedInt j = 0; j < 6; j++) v[j][i] = wdetJ * km_A_ij[j];
     v[6][i] = wdetJ * delta;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // @brief Get anisotropic tensor and it's Frobenius norm at quadrature points
@@ -78,5 +78,5 @@ CEED_QFUNCTION(AnisotropyTensorCollocate)(void *ctx, CeedInt Q, const CeedScalar
     for (CeedInt j = 0; j < 6; j++) v[j][i] = km_A_ij[j];
     v[6][i] = delta;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

@@ -13,5 +13,5 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { v[i] = rho[i] * u[i]; }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

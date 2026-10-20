@@ -48,7 +48,7 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
     v[TURB_MEAN_VELOCITY_Y][i]                 = wdetJ * s.Y.velocity[1];
     v[TURB_MEAN_VELOCITY_Z][i]                 = wdetJ * s.Y.velocity[2];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(ChildStatsCollection_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -82,7 +82,7 @@ CEED_QFUNCTION(ChildStatsCollectionMMSTest)(void *ctx, CeedInt Q, const CeedScal
     v[0][i] = wdetJ * (ChildStatsCollectionTest_Exact(x_i) + t - 0.5) * 4 * Cube(x_i[2]);
     for (int j = 1; j < 22; j++) v[j][i] = 0;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(ChildStatsCollectionMMSTest_Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -97,5 +97,5 @@ CEED_QFUNCTION(ChildStatsCollectionMMSTest_Error)(void *ctx, CeedInt Q, const Ce
 
     v[0][i] = wdetJ * Square(ChildStatsCollectionTest_Exact(x_i) - q[0][i]);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
