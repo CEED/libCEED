@@ -77,7 +77,7 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -139,7 +139,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -179,5 +179,5 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

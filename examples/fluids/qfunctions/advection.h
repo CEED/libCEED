@@ -155,7 +155,7 @@ CEED_QFUNCTION_HELPER CeedInt Exact_AdvectionGeneric(CeedInt dim, CeedScalar tim
       }
     } break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -172,7 +172,7 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     Exact_AdvectionGeneric(3, 0., x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -190,7 +190,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
     Exact_AdvectionGeneric(2, context->time, x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION_HELPER void QdataUnpack_ND(CeedInt N, CeedInt Q, CeedInt i, const CeedScalar *q_data, CeedScalar *wdetJ, CeedScalar *dXdx) {
@@ -354,12 +354,12 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
 
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   IFunction_AdvectionGeneric(ctx, Q, in, out, 3);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   IFunction_AdvectionGeneric(ctx, Q, in, out, 2);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION_HELPER void MassFunction_AdvectionGeneric(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
@@ -406,12 +406,12 @@ CEED_QFUNCTION_HELPER void MassFunction_AdvectionGeneric(void *ctx, CeedInt Q, c
 
 CEED_QFUNCTION(MassFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   MassFunction_AdvectionGeneric(ctx, Q, in, out, 3);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(MassFunction_Advection2D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   MassFunction_AdvectionGeneric(ctx, Q, in, out, 2);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -486,12 +486,12 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
 
 CEED_QFUNCTION(RHS_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   RHSFunction_AdvectionGeneric(ctx, Q, in, out, 3);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(RHS_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   RHSFunction_AdvectionGeneric(ctx, Q, in, out, 2);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -542,15 +542,15 @@ CEED_QFUNCTION(Advection_InOutFlowGeneric)(void *ctx, CeedInt Q, const CeedScala
       v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_normal;
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Advection_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   Advection_InOutFlowGeneric(ctx, Q, in, out, 3);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   Advection_InOutFlowGeneric(ctx, Q, in, out, 2);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

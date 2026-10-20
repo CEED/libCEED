@@ -45,7 +45,7 @@ CEED_QFUNCTION_HELPER int Slip(void *ctx, CeedInt Q, const CeedScalar *const *in
       StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Slip_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -98,7 +98,7 @@ CEED_QFUNCTION_HELPER int Slip_Jacobian(void *ctx, CeedInt Q, const CeedScalar *
     UnpackState_U(dflux, dFlux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Slip_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

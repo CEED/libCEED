@@ -12,5 +12,5 @@ CEED_QFUNCTION(InverseMultiplicity)(void *ctx, CeedInt Q, const CeedScalar *cons
   CeedScalar(*inv_multiplicity)               = (CeedScalar(*))out[0];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) inv_multiplicity[i] = 1.0 / multiplicity[0][i];
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

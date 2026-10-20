@@ -32,7 +32,7 @@ CEED_QFUNCTION(SetupMassDiffRhs)(void *ctx, const CeedInt Q, const CeedScalar *c
 
     rhs[i] = w[i + Q * 0] * (M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) + 1.0) * true_soln[i];
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -69,6 +69,6 @@ CEED_QFUNCTION(MassDiff)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
       vg[i + j * Q] = (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j] + du[2] * dXdxdXdx_T[2][j]);
     }
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

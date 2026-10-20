@@ -17,7 +17,7 @@ CEED_QFUNCTION(Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   for (CeedInt i = 0; i < Q; i++) {
     error[i] = (u[i] - target[i]) * (u[i] - target[i]) * q_data[i];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -29,6 +29,6 @@ CEED_QFUNCTION(Error3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
     error[i + 1 * Q] = (u[i + 1 * Q] - target[i + 1 * Q]) * (u[i + 1 * Q] - target[i + 1 * Q]) * q_data[i];
     error[i + 2 * Q] = (u[i + 2 * Q] - target[i + 2 * Q]) * (u[i + 2 * Q] - target[i + 2 * Q]) * q_data[i];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

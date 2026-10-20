@@ -124,7 +124,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -180,7 +180,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
     if (is_implicit) StoredValuesPack(Q, i, 0, 11, zeros, jac_data_sur);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -234,5 +234,5 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
     }
     v[4][i] = -wdetJb * u_normal * (dE + dP);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

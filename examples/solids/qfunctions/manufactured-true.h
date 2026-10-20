@@ -40,6 +40,6 @@ CEED_QFUNCTION(MMSTrueSoln)(void *ctx, const CeedInt Q, const CeedScalar *const 
 
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

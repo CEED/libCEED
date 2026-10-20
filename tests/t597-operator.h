@@ -32,7 +32,7 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     qd[i + Q * 1]        = -w * (J11 * J12 + J21 * J22);
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -55,5 +55,5 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
     }
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

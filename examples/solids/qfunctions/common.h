@@ -80,6 +80,6 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

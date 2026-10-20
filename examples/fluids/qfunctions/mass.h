@@ -31,7 +31,7 @@ CEED_QFUNCTION_HELPER int Mass_N(void *ctx, CeedInt Q, const CeedScalar *const *
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) { v[j][i] = q_data[i] * u[j][i]; }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(Mass_1)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 1); }

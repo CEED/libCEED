@@ -145,5 +145,5 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

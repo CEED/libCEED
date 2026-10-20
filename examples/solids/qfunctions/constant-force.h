@@ -51,6 +51,6 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q, const CeedScalar 
     force[i + 2 * Q] = forcing_vector[2] * wdetJ;
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

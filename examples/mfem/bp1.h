@@ -46,7 +46,7 @@ CEED_QFUNCTION(f_build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const
       }
       break;
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// libCEED Q-function for applying a mass operator
@@ -56,5 +56,5 @@ CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { v[i] = qdata[i] * u[i]; }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

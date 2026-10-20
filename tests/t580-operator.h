@@ -22,7 +22,7 @@ CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMult2x2(const CeedScalar alpha, co
     }
   }
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -54,5 +54,5 @@ CEED_QFUNCTION(mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
     }
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }

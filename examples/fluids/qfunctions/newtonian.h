@@ -42,7 +42,7 @@ CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar 
     StateToQ(&context->gas, s, q, state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -98,7 +98,7 @@ CEED_QFUNCTION_HELPER void MassFunction_Newtonian(void *ctx, CeedInt Q, const Ce
 
 CEED_QFUNCTION(MassFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   MassFunction_Newtonian(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -205,7 +205,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // *****************************************************************************
@@ -288,7 +288,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     StoredValuesPack(Q, i, 5, 6, kmstress, jac_data);
     StoredValuesPack(Q, i, 11, 3, Tau_d, jac_data);
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(IFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -374,7 +374,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] += wdetJ * (dstab[j][0] * dXdx[k][0] + dstab[j][1] * dXdx[k][1] + dstab[j][2] * dXdx[k][2]);
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(IJacobian_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -432,7 +432,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
       StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
     }
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -492,7 +492,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
 
     for (int j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {

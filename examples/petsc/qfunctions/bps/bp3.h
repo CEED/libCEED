@@ -67,7 +67,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     qd[i + Q * 6]       = qw * (A[2][0] * A[2][0] + A[2][1] * A[2][1] + A[2][2] * A[2][2]);
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 
     rhs[i] = w[i + Q * 0] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[i];
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -121,6 +121,6 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
       vg[i + j * Q] = (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j] + du[2] * dXdxdXdx_T[2][j]);
     }
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

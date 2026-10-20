@@ -36,7 +36,7 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q, const CeedScalar *cons
     // Component 3
     rhs[i + 2 * Q] = 3 * rhs[i + 0 * Q];
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
@@ -62,6 +62,6 @@ CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     // Component 3
     v[i + 2 * Q] = q_data[i] * u[i + 2 * Q];
   }  // End of Quadrature Point Loop
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

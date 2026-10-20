@@ -28,5 +28,5 @@ CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     dXdx_q[4][i] = dXdx[1][1];
     dXdx_q[5][i] = dXdx[1][2];
   }
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
