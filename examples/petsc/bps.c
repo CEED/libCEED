@@ -121,57 +121,6 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   PetscCall(MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag));
   PetscCall(MatShellSetVecType(mat_O, vec_type));
 
-  // Print summary
-  if (!rp->test_mode) {
-    PetscInt P = rp->degree + 1, Q = P + rp->q_extra;
-
-    const char *used_resource;
-    CeedGetResource(ceed, &used_resource);
-
-    bool is_combined_bp = rp->bp_choice > CEED_BP6;
-    char bp_name[6]     = "";
-
-    if (is_combined_bp) {
-      PetscCall(PetscSNPrintf(bp_name, 6, "%d + %d", rp->bp_choice % 2 ? 2 : 1, rp->bp_choice - CEED_BP4));
-    } else {
-      PetscCall(PetscSNPrintf(bp_name, 6, "%d", rp->bp_choice + 1));
-    }
-
-    VecType vec_type;
-    PetscCall(VecGetType(X, &vec_type));
-
-    PetscInt c_start, c_end;
-    PetscCall(DMPlexGetHeightStratum(dm, 0, &c_start, &c_end));
-    DMPolytopeType cell_type;
-    PetscCall(DMPlexGetCellType(dm, c_start, &cell_type));
-    CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
-    PetscMPIInt      comm_size;
-    PetscCall(MPI_Comm_size(rp->comm, &comm_size));
-    PetscCall(PetscPrintf(rp->comm,
-                          "\n-- CEED Benchmark Problem %s -- libCEED + PETSc --\n"
-                          "  MPI:\n"
-                          "    Hostname                                : %s\n"
-                          "    Total ranks                             : %d\n"
-                          "    Ranks per compute node                  : %d\n"
-                          "  PETSc:\n"
-                          "    PETSc Vec Type                          : %s\n"
-                          "  libCEED:\n"
-                          "    libCEED Backend                         : %s\n"
-                          "    libCEED Backend MemType                 : %s\n"
-                          "  Mesh:\n"
-                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
-                          "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
-                          "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
-                          "    Global nodes                            : %" PetscInt_FMT "\n"
-                          "    Local Elements                          : %" PetscInt_FMT "\n"
-                          "    Element topology                        : %s\n"
-                          "    Owned nodes                             : %" PetscInt_FMT "\n"
-                          "    DoF per node                            : %" PetscInt_FMT "\n",
-                          bp_name, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q,
-                          rp->q_extra, g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u,
-                          rp->num_comp_u));
-  }
-
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
   PetscCall(VecZeroEntries(rhs_loc));
@@ -226,6 +175,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   PetscCall(KSPSetOperators(ksp, mat_O, mat_O));
 
   // First run's performance log is not considered for benchmarking purposes
+  PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1));
   my_rt_start = MPI_Wtime();
   PetscCall(KSPSolve(ksp, rhs, X));
@@ -238,67 +188,119 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   } else {
     PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, rp->ksp_max_it_clip[1]));
   }
-  PetscCall(KSPSetFromOptions(ksp));
 
-  // Timed solve
-  PetscCall(VecZeroEntries(X));
-  PetscCall(PetscBarrier((PetscObject)ksp));
-
-  // -- Performance logging
-  PetscCall(PetscLogStagePush(rp->solve_stage));
-
-  // -- Solve
-  my_rt_start = MPI_Wtime();
-  PetscCall(KSPSolve(ksp, rhs, X));
-  my_rt = MPI_Wtime() - my_rt_start;
-
-  // -- Performance logging
-  PetscCall(PetscLogStagePop());
-
-  // Output results
-  {
-    KSPType            ksp_type;
-    KSPConvergedReason reason;
-    PetscReal          rnorm;
-    PetscInt           its;
-    PetscCall(KSPGetType(ksp, &ksp_type));
-    PetscCall(KSPGetConvergedReason(ksp, &reason));
-    PetscCall(KSPGetIterationNumber(ksp, &its));
-    PetscCall(KSPGetResidualNorm(ksp, &rnorm));
-    if (!rp->test_mode || reason < 0 || rnorm > 1e-8) {
-      PetscCall(PetscPrintf(rp->comm,
-                            "  KSP:\n"
-                            "    KSP Type                                : %s\n"
-                            "    KSP Convergence                         : %s\n"
-                            "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
-                            "    Final rnorm                             : %e\n",
-                            ksp_type, KSPConvergedReasons[reason], its, (double)rnorm));
-    }
+  // Print summary
+  for (PetscInt i = 0; i < rp->num_trials; i++) {
     if (!rp->test_mode) {
-      PetscCall(PetscPrintf(rp->comm, "  Performance:\n"));
-    }
-    {
-      // Set up error operator context
-      PetscCall(SetupErrorOperatorCtx(rp->comm, dm, ceed, ceed_data, X_loc, op_error, op_error_ctx));
-      PetscScalar l2_error;
-      PetscCall(ComputeL2Error(X, &l2_error, op_error_ctx));
-      // Tighter tol for BP1, BP2
-      // Looser tol for BP3, BP4, BP5, and BP6 with extra for vector valued problems
-      // BP1+3 and BP2+4 follow the pattern for BP3 and BP4
-      // BP1+5 and BP2+6 follow the pattern for BP5 and BP6
-      PetscReal tol = rp->bp_choice < CEED_BP3 ? 5e-4 : (5e-2 + (rp->bp_choice % 2 == 1 ? 5e-3 : 0));
-      if (!rp->test_mode || l2_error > tol) {
-        PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm));
-        PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, rp->comm));
-        PetscCall(PetscPrintf(rp->comm,
-                              "    L2 Error                                : %e\n"
-                              "    CG Solve Time                           : %g (%g) sec\n",
-                              (double)l2_error, rt_max, rt_min));
+      PetscInt P = rp->degree + 1, Q = P + rp->q_extra;
+
+      const char *used_resource;
+      CeedGetResource(ceed, &used_resource);
+
+      bool is_combined_bp = rp->bp_choice > CEED_BP6;
+      char bp_name[6]     = "";
+
+      if (is_combined_bp) {
+        PetscCall(PetscSNPrintf(bp_name, 6, "%d + %d", rp->bp_choice % 2 ? 2 : 1, rp->bp_choice - CEED_BP4));
+      } else {
+        PetscCall(PetscSNPrintf(bp_name, 6, "%d", rp->bp_choice + 1));
       }
+
+      VecType vec_type;
+      PetscCall(VecGetType(X, &vec_type));
+
+      PetscInt c_start, c_end;
+      PetscCall(DMPlexGetHeightStratum(dm, 0, &c_start, &c_end));
+      DMPolytopeType cell_type;
+      PetscCall(DMPlexGetCellType(dm, c_start, &cell_type));
+      CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
+      PetscMPIInt      comm_size;
+      PetscCall(MPI_Comm_size(rp->comm, &comm_size));
+      PetscCall(PetscPrintf(rp->comm,
+                            "\n-- CEED Benchmark Problem %s -- libCEED + PETSc --\n"
+                            "  MPI:\n"
+                            "    Hostname                                : %s\n"
+                            "    Total ranks                             : %d\n"
+                            "    Ranks per compute node                  : %d\n"
+                            "  PETSc:\n"
+                            "    PETSc Vec Type                          : %s\n"
+                            "  libCEED:\n"
+                            "    libCEED Backend                         : %s\n"
+                            "    libCEED Backend MemType                 : %s\n"
+                            "  Mesh:\n"
+                            "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                            "    Quadrature Order (Q)                    : %" PetscInt_FMT "\n"
+                            "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
+                            "    Global nodes                            : %" PetscInt_FMT "\n"
+                            "    Local Elements                          : %" PetscInt_FMT "\n"
+                            "    Element topology                        : %s\n"
+                            "    Owned nodes                             : %" PetscInt_FMT "\n"
+                            "    DoF per node                            : %" PetscInt_FMT "\n",
+                            bp_name, rp->hostname, comm_size, rp->ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q,
+                            rp->q_extra, g_size / rp->num_comp_u, c_end - c_start, CeedElemTopologies[elem_topo], l_size / rp->num_comp_u,
+                            rp->num_comp_u));
     }
-    if (!rp->test_mode) {
-      PetscCall(PetscPrintf(rp->comm, "    DoFs/Sec in CG                          : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
-                            1e-6 * g_size * its / rt_min));
+
+    // Timed solve
+    PetscCall(VecZeroEntries(X));
+    PetscCall(PetscBarrier((PetscObject)ksp));
+
+    // -- Performance logging
+    PetscCall(PetscLogStagePush(rp->solve_stage));
+
+    // -- Solve
+    my_rt_start = MPI_Wtime();
+    PetscCall(KSPSolve(ksp, rhs, X));
+    my_rt = MPI_Wtime() - my_rt_start;
+
+    // -- Performance logging
+    PetscCall(PetscLogStagePop());
+
+    // Output results
+    {
+      KSPType            ksp_type;
+      KSPConvergedReason reason;
+      PetscReal          rnorm;
+      PetscInt           its;
+      PetscCall(KSPGetType(ksp, &ksp_type));
+      PetscCall(KSPGetConvergedReason(ksp, &reason));
+      PetscCall(KSPGetIterationNumber(ksp, &its));
+      PetscCall(KSPGetResidualNorm(ksp, &rnorm));
+      if (!rp->test_mode || reason < 0 || rnorm > 1e-8) {
+        PetscCall(PetscPrintf(rp->comm,
+                              "  KSP:\n"
+                              "    KSP Type                                : %s\n"
+                              "    KSP Convergence                         : %s\n"
+                              "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
+                              "    Final rnorm                             : %e\n",
+                              ksp_type, KSPConvergedReasons[reason], its, (double)rnorm));
+      }
+      if (!rp->test_mode) {
+        PetscCall(PetscPrintf(rp->comm, "  Performance:\n"));
+      }
+      {
+        // Set up error operator context
+        PetscCall(SetupErrorOperatorCtx(rp->comm, dm, ceed, ceed_data, X_loc, op_error, op_error_ctx));
+        PetscScalar l2_error;
+        PetscCall(ComputeL2Error(X, &l2_error, op_error_ctx));
+        // Tighter tol for BP1, BP2
+        // Looser tol for BP3, BP4, BP5, and BP6 with extra for vector valued problems
+        // BP1+3 and BP2+4 follow the pattern for BP3 and BP4
+        // BP1+5 and BP2+6 follow the pattern for BP5 and BP6
+        PetscReal tol = rp->bp_choice < CEED_BP3 ? 5e-4 : (5e-2 + (rp->bp_choice % 2 == 1 ? 5e-3 : 0));
+        if (!rp->test_mode || l2_error > tol) {
+          PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm));
+          PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, rp->comm));
+          PetscCall(PetscPrintf(rp->comm,
+                                "    L2 Error                                : %e\n"
+                                "    CG Solve Time                           : %g (%g) sec\n",
+                                (double)l2_error, rt_max, rt_min));
+        }
+      }
+      if (!rp->test_mode) {
+        PetscCall(PetscPrintf(rp->comm, "    DoFs/Sec in CG                          : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
+                              1e-6 * g_size * its / rt_min));
+      }
     }
   }
 
@@ -466,6 +468,8 @@ int main(int argc, char **argv) {
     PetscCall(PetscOptionsInt("-p", "Number of MPI ranks per node", NULL, p, &p, &flg));
     if (flg) ranks_per_node = p;
   }
+  rp->num_trials = 1;
+  PetscCall(PetscOptionsInt("-trials", "Number of times to run the same configuration", NULL, rp->num_trials, &rp->num_trials, NULL));
 
   PetscOptionsEnd();
 
