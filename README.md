@@ -192,6 +192,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                     | Yes                   |
 | `/gpu/hip/magma`           | HIP MAGMA kernels                                      | No                    |
 | `/gpu/hip/magma/det`       | HIP MAGMA kernels                                      | Yes                   |
+| **CUTLASS**                |                                                        |                       |
+| `/gpu/cuda/cutlass`        | CUDA CUTLASS GEMM kernels for non-tensor bases         | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
 The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -238,6 +240,11 @@ By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends with a
 MAGMA version 2.5.0 or newer is required.
 Currently, each MAGMA library installation is only built for either CUDA or HIP.
 The corresponding set of libCEED backends (`/gpu/cuda/magma/*` or `/gpu/hip/magma/*`) will automatically be built for the version of the MAGMA library found in `MAGMA_DIR`.
+
+The `/gpu/cuda/cutlass` backend relies upon the header-only [CUTLASS](https://github.com/NVIDIA/cutlass) library, which is not included with CUDA.
+It applies non-tensor bases with CUTLASS GEMM kernels and delegates all other operations to `/gpu/cuda/ref`.
+To enable the CUTLASS backend, the environment variable `CUTLASS_DIR` must point to the top-level CUTLASS directory, with the CUTLASS headers located in `$(CUTLASS_DIR)/include/`.
+By default, `CUTLASS_DIR` is set to `../cutlass`; to build the CUTLASS backend with a CUTLASS installation located elsewhere, create a link to `cutlass/` in libCEED's parent directory, or set `CUTLASS_DIR` to the proper location.
 
 Users can specify a device for all CUDA, HIP, and MAGMA backends through adding `:device_id=#` after the resource name.
 For example:

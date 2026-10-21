@@ -33,3 +33,5 @@
 #include "ceed-backend-list-sycl.h"
 // Requires MAGMA + (CUDA or ROCm)
 #include "ceed-backend-list-magma.h"
+// Requires CUTLASS + CUDA
+#include "ceed-backend-list-cutlass.h"
