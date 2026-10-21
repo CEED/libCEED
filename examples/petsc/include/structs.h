@@ -99,6 +99,7 @@ struct RunParams_ {
   char          *filename, *hostname;
   PetscInt       local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
   PetscInt       ksp_max_it_clip[2];
+  PetscInt       num_trials;
   PetscMPIInt    ranks_per_node;
   BPType         bp_choice;
   PetscLogStage  solve_stage;
