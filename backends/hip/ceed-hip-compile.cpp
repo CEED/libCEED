@@ -221,7 +221,6 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));
 
     CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
-    // LCOV_EXCL_START
     if (throw_error || should_error_on_failure) {
       return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
     } else {
@@ -336,8 +335,8 @@ static int CeedRunKernelDimSharedCore_Hip(Ceed ceed, hipFunction_t kernel, hipSt
       CeedDebug(ceed, "%s\n", message);
       CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
     }
-    // LCOV_EXCL_STOP
     *is_good_run = false;
+    // LCOV_EXCL_STOP
   }
   return CEED_ERROR_SUCCESS;
 }
