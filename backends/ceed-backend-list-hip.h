@@ -12,3 +12,5 @@
 CEED_BACKEND(CeedRegister_Hip, 1, "/gpu/hip/ref")
 CEED_BACKEND(CeedRegister_Hip_Gen, 1, "/gpu/hip/gen")
 CEED_BACKEND(CeedRegister_Hip_Shared, 1, "/gpu/hip/shared")
+CEED_BACKEND(CeedRegister_Hip_hipblas, 1, "/gpu/hip/hipblas")
+CEED_BACKEND(CeedRegister_Hip_hipblas_det, 1, "/gpu/hip/hipblas/det")

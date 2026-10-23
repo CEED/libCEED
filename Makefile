@@ -369,7 +369,8 @@ hip-ref.hip    := $(sort $(wildcard backends/hip-ref/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
-hip-all.c      := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+hip-hipblas.c  := $(sort $(wildcard backends/hip-hipblas/*.c))
+hip-all.c      := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c) $(hip-hipblas.c)
 hip-all.cpp    := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
 hip-all.hip    := $(hip-ref.hip)
 hip-all.h      := include/ceed/hip.h $(sort $(wildcard backends/hip*/*.h))
@@ -689,7 +690,7 @@ endif
 # HIP Backends
 HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/lib${HIP_LIB_NAME}.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
-HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
+HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen /gpu/hip/hipblas /gpu/hip/hipblas/det
 ifneq ($(HIP_LIB_DIR),)
   HIP_CONFIG := $(ROCM_DIR)/bin/hipconfig
   ifeq ($(HIP_LIB_NAME),CHIP)
