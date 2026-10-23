@@ -14,6 +14,7 @@ On this page we provide a summary of the main API changes, new features and exam
 ### New features
 
 - Add `/gpu/cuda/cublas` and `/gpu/cuda/cublas/det` backends for computing non-tensor basis operations with cuBLAS GEMM.
+- Add `/gpu/hip/hipblas` and `/gpu/hip/hipblas/det` backends for computing non-tensor basis operations with hipBLAS GEMM.
 
 ### Examples
 

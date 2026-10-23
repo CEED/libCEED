@@ -185,6 +185,8 @@ There are multiple supported backends, which can be selected at runtime in the e
 | **HIP Native**             |                                                        |                       |
 | `/gpu/hip/ref`             | Reference pure HIP kernels                             | Yes                   |
 | `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory         | Yes                   |
+| `/gpu/hip/hipblas`         | Uses hipBLAS GEMM for non-tensor basis operations      | No                    |
+| `/gpu/hip/hipblas/det`     | Uses hipBLAS GEMM for non-tensor basis operations      | Yes                   |
 | `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation       | No                    |
 | **SYCL Native**            |                                                        |                       |
 | `/gpu/sycl/ref`            | Reference pure SYCL kernels                            | Yes                   |
@@ -222,12 +224,14 @@ The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxs
 The LIBXSMM version 2.0 or newer is required.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
-For tensor elements (quadrilaterals, hexahedra) with H1 tensor product bases, the `/gpu/cuda/gen` backend provides the best performance.
+For tensor elements (quadrilaterals, hexahedra) with H1 tensor product bases or non-tensor bases of degree 2 or less, the `/gpu/cuda/gen` backend provides the best performance.
 For simplicial elements (triangles, tetrahedra) and/or H1 non-tensor, H(div), or H(curl) bases with polynomial degree of 3 or more, the `/gpu/cuda/cublas` backend provides the best performance.
 
 The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
 ROCm version 4.2 or newer is required.
+For tensor elements (quadrilaterals, hexahedra) with H1 tensor product bases or non-tensor bases of degree 2 or less, the `/gpu/hip/gen` backend provides the best performance.
+For simplicial elements (triangles, tetrahedra) and/or H1 non-tensor, H(div), or H(curl) bases with polynomial degree of 3 or more, the `/gpu/hip/hipblas` backend provides the best performance.
 
 The `/gpu/hip/*` backends can also run on non-AMD GPUs (e.g., Intel) via [chipStar](https://github.com/CHIP-SPV/chipStar), which implements HIP on top of SPIR-V through Level Zero or OpenCL.
 To build against chipStar, set `HIP_DIR` to the chipStar install prefix (in place of `ROCM_DIR`); libCEED's Makefile detects chipStar by inspecting `hipconfig` and automatically enables the required code paths.
