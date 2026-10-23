@@ -222,7 +222,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       CeedCallBackend(CeedMalloc(log_size, &log));
       CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
       CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
-      // LCOV_EXCL_START
       if (throw_error || should_error_on_failure) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
       } else {
@@ -483,10 +482,10 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     *is_compile_good = load_result == 0;
     if (!*is_compile_good) {
+      // LCOV_EXCL_START
       bool should_error_on_failure;
 
       CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
-      // LCOV_EXCL_START
       if (throw_error || should_error_on_failure) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
       } else {
@@ -613,8 +612,8 @@ static int CeedRunKernelDimSharedCore_Cuda(Ceed ceed, CUfunction kernel, CUstrea
                 max_threads_per_block, block_size_x, block_size_y, block_size_z, shared_size_bytes, num_regs);
       CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "---------- BACKEND MAY FALLBACK ----------\n");
     }
-    // LCOV_EXCL_STOP
     *is_good_run = false;
+    // LCOV_EXCL_STOP
   } else {
     CeedChk_Cu(ceed, result);
   }
