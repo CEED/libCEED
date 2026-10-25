@@ -570,7 +570,7 @@ static inline CeedInt CeedIntPow(CeedInt base, CeedInt power) {
   while (power) {
     if (power & 1) result *= base;
     power >>= 1;
-    base *= base;
+    if (power) base *= base;
   }
   return result;
 }
