@@ -2,6 +2,7 @@
 *.vtu
 *.a
 /area
+/bddc
 /bps
 /bpsraw
 /bpssphere
@@ -9,6 +10,7 @@
 /dmswarm
 /multigrid
 /petsc-area
+/petsc-bddc
 /petsc-bps
 /petsc-bpsraw
 /petsc-bpssphere
