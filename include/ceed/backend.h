@@ -466,7 +466,7 @@ CEED_EXTERN int CeedOperatorIsImmutable(CeedOperator op, bool *is_immutable);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
-CEED_EXTERN int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector in, CeedVector out, CeedInt *active_output_index);
+CEED_EXTERN int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector out, CeedInt *active_output_index);
 CEED_EXTERN int CeedOperatorZeroPassiveOutputs(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);

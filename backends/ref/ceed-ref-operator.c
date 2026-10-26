@@ -495,7 +495,7 @@ static int CeedOperatorApply_Ref(CeedOperator op, CeedVector in_vec, CeedVector 
   CeedInt i;
 
   CeedCallBackend(CeedOperatorSetup_Ref(op));
-  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, in_vec, out_vec, &i));
+  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, out_vec, &i));
   if (i >= 0) {
     CeedOperatorField  *op_output_fields;
     CeedElemRestriction rstr;

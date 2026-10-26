@@ -490,7 +490,7 @@ static int CeedOperatorApply_Blocked(CeedOperator op, CeedVector in_vec, CeedVec
 
   CeedCallBackend(CeedOperatorSetup_Blocked(op));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, in_vec, out_vec, &i));
+  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, out_vec, &i));
   if (i >= 0 && impl->block_rstr[i + impl->num_inputs]) {
     CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], &is_overwrite));
   }

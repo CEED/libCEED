@@ -481,7 +481,7 @@ static int CeedOperatorApply_Opt(CeedOperator op, CeedVector in_vec, CeedVector 
 
   CeedCallBackend(CeedOperatorSetup_Opt(op));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, in_vec, out_vec, &i));
+  CeedCallBackend(CeedOperatorCanOverwriteOutput(op, out_vec, &i));
   if (i >= 0 && impl->block_rstr[i + impl->num_inputs]) {
     CeedCallBackend(CeedElemRestrictionSupportsOverwrite(impl->block_rstr[i + impl->num_inputs], &is_overwrite));
   }

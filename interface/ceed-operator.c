@@ -742,11 +742,11 @@ int CeedOperatorZeroPassiveOutputs(CeedOperator op) {
 /**
   @brief Check whether @ref CeedOperatorApply() may overwrite its active output instead of zeroing it first.
 
-  This holds when `CEED_OPERATOR_OVERWRITE_OUTPUT` is not 0, the apply is not inside an OpenMP parallel region, `out` has data, and `op` has one active output field, with `out` neither `in` nor a passive field.
+  This holds when `CEED_OPERATOR_OVERWRITE_OUTPUT` is not 0, the apply is not inside an OpenMP parallel region, `out` has data, and `op` has one active output field.
+  The caller must meet the memory-separation precondition of @ref CeedOperatorApply().
   The backend must also check that the output `CeedElemRestriction` supports overwriting, see @ref CeedElemRestrictionSupportsOverwrite().
 
   @param[in]  op                  `CeedOperator`, not composite
-  @param[in]  in                  Active input `CeedVector`
   @param[in]  out                 Active output `CeedVector`
   @param[out] active_output_index Index of the active output field, or -1 if the output may not be overwritten
 
@@ -754,36 +754,31 @@ int CeedOperatorZeroPassiveOutputs(CeedOperator op) {
 
   @ref Backend
 **/
-int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector in, CeedVector out, CeedInt *active_output_index) {
+int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector out, CeedInt *active_output_index) {
   bool               can_overwrite, has_valid_array;
-  CeedInt            num_fields[2], num_active = 0;
-  CeedOperatorField *fields[2];
+  CeedInt            num_output_fields, num_active = 0;
+  CeedOperatorField *output_fields;
 
   *active_output_index = -1;
-  // An in-place apply would read out before it holds its values; zeroing first gives the same result as main
-  if (out == CEED_VECTOR_NONE || out == in) return CEED_ERROR_SUCCESS;
+  if (out == CEED_VECTOR_NONE) return CEED_ERROR_SUCCESS;
   CeedCall(CeedGetOperatorOverwriteOutput(CeedOperatorReturnCeed(op), &can_overwrite));
   if (!can_overwrite) return CEED_ERROR_SUCCESS;
 #ifdef _OPENMP
-  // Threads may share the memory of out
+  // Restriction overwrite mode and lazy first-touch setup are not safe for concurrent calls
   if (omp_in_parallel()) return CEED_ERROR_SUCCESS;
 #endif
   CeedCall(CeedVectorHasValidArray(out, &has_valid_array));
   if (!has_valid_array) return CEED_ERROR_SUCCESS;
-  CeedCall(CeedOperatorGetFields(op, &num_fields[0], &fields[0], &num_fields[1], &fields[1]));
-  for (CeedInt k = 0; k < 2; k++) {
-    for (CeedInt i = 0; i < num_fields[k]; i++) {
-      CeedVector vec;
+  CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedVector vec;
 
-      CeedCall(CeedOperatorFieldGetVector(fields[k][i], &vec));
-      // A passive field that is out would read or write it before it holds its values
-      if (vec == out) num_active = -1;
-      if (k == 1 && vec == CEED_VECTOR_ACTIVE && num_active >= 0) {
-        *active_output_index = i;
-        num_active++;
-      }
-      CeedCall(CeedVectorDestroy(&vec));
+    CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      *active_output_index = i;
+      num_active++;
     }
+    CeedCall(CeedVectorDestroy(&vec));
   }
   if (num_active != 1) *active_output_index = -1;
   return CEED_ERROR_SUCCESS;

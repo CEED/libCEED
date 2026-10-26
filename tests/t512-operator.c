@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     CeedSetOperatorOverwriteOutput(ceed, overwrite);
     CeedVectorSetValue(u, 1.0);
     CeedVectorSetValue(v, 1.0);
-    CeedOperatorCanOverwriteOutput(op_mass, u, v, &active_output_index);
+    CeedOperatorCanOverwriteOutput(op_mass, v, &active_output_index);
     if (active_output_index != (overwrite ? 0 : -1)) printf("Unexpected overwrite eligibility: %d\n", active_output_index);
     CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
 
