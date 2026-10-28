@@ -1,29 +1,45 @@
-name: C/Fortran - Ubuntu
+name: ABI Compatibility Test
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
+env:
+  CEED_HEADERS: '{0}/ceed/backend.h {0}/ceed/ceed.h {0}/ceed/macros.h {0}/ceed/ceed-env.h'
+
 jobs:
-  test:
+  abicheck:
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm]
         compiler: [gcc, clang]
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    name: abicheck [${{ matrix.compiler }}]
 
     steps:
-    - name: Checkout libCEED (branch)
-      uses: actions/checkout@v5
-
-    - name: Checkout libCEED (main)
+    - name: Checkout Bear
       uses: actions/checkout@v5
       with:
-        ref: main
-        path: libCEED-mainhttps://app.zoom.us/wc/3907832807/start?ref_from=launch&fromPWA=1
+        repository: rizsotto/Bear
+        ref: 4.2.3
+        path: external/bear
+
+    - name: Build Bear
+      run: |
+        cd external/bear
+        cargo build --release
+        sudo PREFIX=/usr ./scripts/install.sh
+
+    - name: Checkout libCEED (branch)
+      uses: actions/checkout@v5
+      with:
+        path: libCEED
+
+    - name: Checkout libCEED (release)
+      uses: actions/checkout@v5
+      with:
+        ref: release
+        path: libCEED-release
 
     - name: Set compiler
       run: |
@@ -32,26 +48,40 @@ jobs:
             echo "CC=gcc" >> $GITHUB_ENV
             echo "CXX=g++" >> $GITHUB_ENV
             echo "FC=gfortran" >> $GITHUB_ENV
-            echo "GCOV=gcov" >> $GITHUB_ENV
             ;;
           clang)
             echo "CC=clang" >> $GITHUB_ENV
             echo "CXX=clang++" >> $GITHUB_ENV
             echo "FC=" >> $GITHUB_ENV
-            echo "GCOV=llvm-cov --gcov-tool gcov" >> $GITHUB_ENV
-            # Test that the default compiler works at runtime
-            echo "CEED_CPU_JIT_CXX=" >> $GITHUB_ENV
             ;;
         esac
 
-    - name: Checkout ABICC
-      uses: actions/checkout@v4
-      with:
-        repository: lvc/abi-compliance-checker
-        ref: 2.3
-        path: external/abicc
+    - name: Show compiler version
+      run: $CC --version | head -1
 
-    - name: Build ABI Compliance Checker
+    - name:  Build libCEED (branch)
+      env:
+        OPT: -Og -g -fno-eliminate-unused-debug-types
       run: |
-        cd external/abicc
-        sudo make install prefix=/usr
+        cd libCEED
+        make info
+        NUM_JOBS=$(getconf _NPROCESSORS_ONLN)
+        bear -- make -j$NUM_JOBS
+
+    - name:  Build libCEED (release)
+      env:
+        OPT: -Og -g -fno-eliminate-unused-debug-types
+      run: |
+        cd libCEED-release
+        make info
+        NUM_JOBS=$(getconf _NPROCESSORS_ONLN)
+        bear -- make -j$NUM_JOBS
+
+    - name: Check ABI compatibility
+      uses: abicheck/abicheck@v0.6.0
+      with:
+        old-library: libCEED-release/lib/libceed.so
+        old-header: ${{ format(env.CEED_HEADERS, 'libCEED-release/include') }}
+        new-library: libCEED/lib/libceed.so
+        new-header: ${{ format(env.CEED_HEADERS, 'libCEED/include') }}
+        annotate: true
