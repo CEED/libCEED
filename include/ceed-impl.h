@@ -217,6 +217,9 @@ struct CeedElemRestriction_private {
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
   int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
+  int (*SupportsOverwrite)(CeedElemRestriction, bool *);
+  int (*ApplyOverwrite)(CeedElemRestriction, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyBlockOverwrite)(CeedElemRestriction, CeedInt, CeedVector, CeedVector, CeedRequest *);
   int (*Destroy)(CeedElemRestriction);
   CeedInt  num_elem;    /* number of elements */
   CeedInt  elem_size;   /* number of nodes per element */
