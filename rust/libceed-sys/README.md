@@ -12,7 +12,7 @@ While our focus is on high-order finite elements, the approach is mostly algebra
 To use low level libCEED bindings in a Rust package, the following `Cargo.toml` can be used.
 ```toml
 [dependencies]
-libceed-sys = "1.0.1"
+libceed-sys = "1.1.0"
 ```
 
 For a development version of the libCEED Rust bindings, use the following `Cargo.toml`.
