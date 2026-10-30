@@ -8,7 +8,11 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+- Limit `CeedCall` success assumptions to static analysis so runtime error checks are preserved.
+
 ### New features
+
+- Add Cheetah contractions and constant-memory basis coefficients to `/gpu/cuda/gen` and `/gpu/hip/gen`, with automatic selection for eligible tensor operators.
 
 ### Examples
 

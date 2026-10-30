@@ -14,3 +14,11 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   for (CeedInt i = 0; i < Q; i++) v[i] = u[i];
   return CEED_ERROR_SUCCESS;
 }
+
+CEED_QFUNCTION(average)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *u = in[0], *other = in[1];
+  CeedScalar       *v = out[0];
+
+  for (CeedInt i = 0; i < Q; i++) v[i] = 0.5 * (u[i] + other[i]);
+  return 0;
+}

@@ -11,6 +11,10 @@
 #include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 
+CEED_INTERN int CeedGenModuleRetire_Hip_gen(Ceed ceed, hipModule_t *module);
+
+typedef enum { CEED_HIP_GEN_TENSOR_SLICES, CEED_HIP_GEN_TENSOR_REGISTERS, CEED_HIP_GEN_TENSOR_PREFETCHED_SLICES } CeedTensorPipeline_Hip_gen;
+
 typedef struct {
   bool          use_fallback, use_assembly_fallback;
   CeedInt       dim;
@@ -18,7 +22,7 @@ typedef struct {
   CeedInt       max_P_1d;
   CeedInt       thread_1d;
   hipStream_t   streams[CEED_COMPOSITE_MAX];
-  hipModule_t   module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction;
+  hipModule_t   module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction, pending_module;
   hipFunction_t op, assemble_full, assemble_diagonal, assemble_qfunction;
   FieldsInt_Hip indices;
   Fields_Hip    fields;
@@ -26,6 +30,9 @@ typedef struct {
   Fields_Hip    G;
   CeedScalar   *W;
   Points_Hip    points;
+
+  CeedInt                    scratch_planes;
+  CeedTensorPipeline_Hip_gen tensor_pipeline;
 } CeedOperator_Hip_gen;
 
 typedef struct {

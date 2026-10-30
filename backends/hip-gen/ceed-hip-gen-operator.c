@@ -16,6 +16,14 @@
 #include "ceed-hip-gen-operator-build.h"
 #include "ceed-hip-gen.h"
 
+// Retire only modules owned by a Cheetah population transaction.
+int CeedGenModuleRetire_Hip_gen(Ceed ceed, hipModule_t *module) {
+  if (!*module) return CEED_ERROR_SUCCESS;
+  CeedCallHip(ceed, hipModuleUnload(*module));
+  *module = NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Calculate the block size used for launching the operator kernel
 //------------------------------------------------------------------------------
@@ -64,6 +72,7 @@ static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
       impl->streams[i] = NULL;
     }
   }
+  CeedCallBackend(CeedGenModuleRetire_Hip_gen(ceed, &impl->pending_module));
   if (impl->module) CeedCallHip(ceed, hipModuleUnload(impl->module));
   if (impl->module_assemble_full) CeedCallHip(ceed, hipModuleUnload(impl->module_assemble_full));
   if (impl->module_assemble_diagonal) CeedCallHip(ceed, hipModuleUnload(impl->module_assemble_diagonal));
@@ -199,7 +208,7 @@ static int CeedOperatorApplyAddCore_Hip_gen(CeedOperator op, hipStream_t stream,
     grid           = num_elem / elems_per_block + (num_elem % elems_per_block > 0);
     block_sizes[2] = elems_per_block;
   }
-  CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * sizeof(CeedScalar);
+  CeedInt shared_mem = block_sizes[0] * block_sizes[1] * block_sizes[2] * data->scratch_planes * sizeof(CeedScalar);
 
   CeedCallBackend(CeedTryRunKernelDimShared_Hip(ceed, data->op, stream, grid, block_sizes[0], block_sizes[1], block_sizes[2], shared_mem, is_run_good,
                                                 opargs));
@@ -258,6 +267,9 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   const CeedScalar *input_arr   = NULL;
   CeedScalar       *output_arr  = NULL;
 
+  // Populate private constant coefficients before borrowing active vectors.
+  CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op, &is_run_good));
+
   // Try to run kernel
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
@@ -290,6 +302,10 @@ static int CeedOperatorApplyAddComposite_Hip_gen(CeedOperator op, CeedVector inp
   CeedCallBackend(CeedOperatorCompositeGetNumSub(op, &num_suboperators));
   CeedCallBackend(CeedOperatorCompositeGetSubList(op, &sub_operators));
   CeedCall(CeedOperatorCompositeIsSequential(op, &is_sequential));
+  // Each suboperator owns and populates a separate Cheetah module.
+  for (CeedInt i = 0; i < num_suboperators; i++) {
+    CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(sub_operators[i], &is_run_good[i]));
+  }
   if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
   if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
   for (CeedInt i = 0; i < num_suboperators; i++) {
