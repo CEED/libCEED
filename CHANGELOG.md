@@ -8,6 +8,20 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+### New features
+
+### Examples
+
+(v1-1-0)=
+
+## v1.1.0 (October 30, 2026)
+
+### Bug Fixes
+
+- Fix a major issue where error handling checks could be eliminated at higher optimization levels with some compilers.
+
+### Interface changes
+
 - Add `CEED_JIT_ERROR_ON_FAILURE=[true|false]` environment variable to allow checking for JiT compilation failures in CI.
   Can be get/set programmatically with `Ceed[Get|GetEnv|GetIsSet|Set]JitErrorOnFailure()`.
 
