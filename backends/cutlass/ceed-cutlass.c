@@ -14,7 +14,7 @@
 
 static int CeedInit_Cutlass(const char *resource, Ceed ceed) {
   char      *resource_root;
-  Ceed       ceed_ref;
+  Ceed       ceed_shared;
   Ceed_Cuda *data;
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
@@ -30,9 +30,9 @@ static int CeedInit_Cutlass(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedAddJitSourceRoot(ceed, CEED_CUDA_DIR "/include"));
   CeedCallBackend(CeedAddJitSourceRoot(ceed, CEED_CUDA_DIR "/include/cccl"));
 
-  CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
-  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
-  CeedCallBackend(CeedDestroy(&ceed_ref));
+  CeedCallBackend(CeedInit("/gpu/cuda/shared", &ceed_shared));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
+  CeedCallBackend(CeedDestroy(&ceed_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Cutlass));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv", CeedBasisCreateHdiv_Cutlass));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHcurl", CeedBasisCreateHcurl_Cutlass));

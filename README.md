@@ -250,7 +250,7 @@ Currently, each MAGMA library installation is only built for either CUDA or HIP.
 The corresponding set of libCEED backends (`/gpu/cuda/magma/*` or `/gpu/hip/magma/*`) will automatically be built for the version of the MAGMA library found in `MAGMA_DIR`.
 
 The `/gpu/cuda/cutlass` backend relies upon the header-only [CUTLASS](https://github.com/NVIDIA/cutlass) library, which is not included with CUDA.
-It applies non-tensor bases with CuTe GEMM kernels, which are JiT compiled for each basis, and delegates all other operations to `/gpu/cuda/ref`.
+It applies non-tensor bases with CuTe GEMM kernels, which are JiT compiled for each basis, and delegates all other operations to `/gpu/cuda/shared`.
 To enable the CUTLASS backend, the environment variable `CUTLASS_DIR` must point to the top-level CUTLASS directory, with the CUTLASS headers located in `$(CUTLASS_DIR)/include/`.
 By default, `CUTLASS_DIR` is set to `../cutlass`; to build the CUTLASS backend with a CUTLASS installation located elsewhere, create a link to `cutlass/` in libCEED's parent directory, or set `CUTLASS_DIR` to the proper location.
 The CUTLASS headers are read by the JiT compiler at runtime, so they must remain in `$(CUTLASS_DIR)/include/` after libCEED is built.
