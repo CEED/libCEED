@@ -83,7 +83,7 @@ inline __device__ void ContractCutlass(const CeedInt num_cols, const CeedInt add
       cute::Tensor d_V_thread = get_d_V_thread(d);
 
       CUTE_UNROLL
-      for (int i = 0; i < cute::size(r_V); i++) {
+      for (CeedInt i = 0; i < cute::size(r_V); i++) {
         if (cute::get<1>(coord_V_thread(i)) < num_block_cols) d_V_thread(i) = r_V(i);
       }
     }
@@ -92,7 +92,7 @@ inline __device__ void ContractCutlass(const CeedInt num_cols, const CeedInt add
     cute::Tensor d_V_thread = get_d_V_thread(0);
 
     CUTE_UNROLL
-    for (int i = 0; i < cute::size(r_V); i++) {
+    for (CeedInt i = 0; i < cute::size(r_V); i++) {
       if (cute::get<1>(coord_V_thread(i)) < num_block_cols) d_V_thread(i) = add ? d_V_thread(i) + r_V(i) : r_V(i);
     }
   }
