@@ -501,7 +501,8 @@ noether-rocm:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast'
+    # Note: GCC 16 is too new for ROCm 6.3.0 Clang 18, so have to specify gcc install to be GCC 14
+    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' HIPCCFLAGS='$(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/14'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
