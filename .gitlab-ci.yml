@@ -258,7 +258,7 @@ noether-rust-qfunctions:
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
     - export CEED_JIT_ERROR_ON_FAILURE=1
     - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=1
+    - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
@@ -286,6 +286,8 @@ noether-rust-qfunctions:
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     - make clean-cache
     - export CEED_CUDA_CLANG_CXX=
+    # Need clang++ to resolve to clang++-22, since clang++-21 doesn't support CUDA 13
+    - export PATH=/usr/lib/llvm-22/bin:$PATH
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     # Report status
     - touch .SUCCESS
