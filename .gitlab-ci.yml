@@ -338,7 +338,7 @@ noether-cuda:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13.2
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU_FULL=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- BACKENDS_GPU_FULL --------" && echo $BACKENDS_GPU_FULL
