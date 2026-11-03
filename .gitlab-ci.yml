@@ -274,8 +274,8 @@ noether-rust-qfunctions:
     - rustup component add rust-src --toolchain nightly
     - rustup component add llvm-tools --toolchain nightly
     # libCEED
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang-22
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
     - echo "-------------- libCEED -------------" && make info
     - make clean
     - make -k -j$NPROC_CPU -l$NPROC_CPU
@@ -284,6 +284,7 @@ noether-rust-qfunctions:
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
+    - make clean-cache
     - export CEED_CUDA_CLANG_CXX=
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     # Report status
