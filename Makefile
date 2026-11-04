@@ -790,7 +790,7 @@ ifneq ($(wildcard $(CUTLASS_DIR)/include/cutlass/cutlass.h),)
   ifneq ($(CUDA_LIB_DIR),)
     libceed.c  += $(cutlass.c)
     libceed.h  += $(cutlass.h)
-    $(cutlass.c:%.c=$(OBJDIR)/%.o) $(cutlass.c:%=%.tidy) $(cutlass.c:%=%.tidy-fix) $(cutlass.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\" -DCEED_CUTLASS_DIR=\"$(abspath $(CUTLASS_DIR))\"
+    $(cutlass.c:%.c=$(OBJDIR)/%.o) $(cutlass.c:%=%.tidy) $(cutlass.c:%=%.tidy-fix) $(cutlass.h:%=%.tidy-fix) : CPPFLAGS += $(CUDA_CPPFLAGS) -DCEED_CUTLASS_DIR=\"$(abspath $(CUTLASS_DIR))\"
     CUTLASS_BACKENDS = /gpu/cuda/cutlass
   endif
 endif
