@@ -46,12 +46,11 @@ inline __device__ void ContractCutlass(const CeedInt num_cols, const CeedInt add
       return cute::make_layout(cute::make_shape(cute::Int<M>{}, cute::Int<BK>{}), cute::make_stride(cute::Int<BKS>{}, cute::_1{}));
     }
   }();
-  cute::Tensor s_A_thread = thread_mma.partition_A(cute::make_tensor(cute::make_smem_ptr(s_A), s_A_layout));
-  cute::Tensor s_U_thread =
-      thread_mma.partition_B(cute::make_tensor(cute::make_smem_ptr(s_U), cute::make_layout(cute::make_shape(cute::Int<BN>{}, cute::Int<BK>{}),
-                                                                                           cute::make_stride(cute::Int<BKS>{}, cute::_1{}))));
-  cute::Tensor coord_V_thread = thread_mma.partition_C(cute::make_identity_tensor(cute::make_shape(cute::Int<M>{}, cute::Int<BN>{})));
-  cute::Tensor r_V            = cute::make_tensor<CeedScalar>(cute::shape(coord_V_thread));
+  constexpr auto s_U_layout = cute::make_layout(cute::make_shape(cute::Int<BN>{}, cute::Int<BK>{}), cute::make_stride(cute::Int<BKS>{}, cute::_1{}));
+  cute::Tensor   s_A_thread = thread_mma.partition_A(cute::make_tensor(cute::make_smem_ptr(s_A), s_A_layout));
+  cute::Tensor   s_U_thread = thread_mma.partition_B(cute::make_tensor(cute::make_smem_ptr(s_U), s_U_layout));
+  cute::Tensor   coord_V_thread = thread_mma.partition_C(cute::make_identity_tensor(cute::make_shape(cute::Int<M>{}, cute::Int<BN>{})));
+  cute::Tensor   r_V            = cute::make_tensor<CeedScalar>(cute::shape(coord_V_thread));
 
   auto get_d_V_thread = [&](const CeedInt d) {
     return thread_mma.partition_C(cute::make_tensor(cute::make_gmem_ptr(d_V + d * num_cols * M + col_0 * M),
