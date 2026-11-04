@@ -17,6 +17,15 @@ These source file must only contain syntax constructs supported by C99 and all t
 
 All source files must be at the provided filepath at runtime for JiT to function.
 
+## Cheetah contractions in CUDA and HIP gen
+
+`/gpu/cuda/gen` and `/gpu/hip/gen` use Cheetah register and double-buffered contractions for eligible tensor operators, with constant-memory basis coefficients where accesses can broadcast.
+Selection is automatic and requires no additional dependencies.
+Other operators retain existing implementations.
+These optimizations derive from *Cheetah: Optimizing Execution Pipelines for Matrix-Free Finite Element Operators on GPUs* (Ren et al., ICS 2026).
+HIP selects layouts using device thread and shared-memory limits and loads basis constants into an operator-private HIPRTC module.
+Basis coefficients are immutable for that operator; input vectors and QFunction context values are read on each Apply.
+
 ## Memory Access
 
 GPU backends require stricter adherence to memory access assumptions, but CPU backends may occasionally report correct results despite violations of memory access assumptions.

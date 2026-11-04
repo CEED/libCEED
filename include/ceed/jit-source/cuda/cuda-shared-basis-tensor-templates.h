@@ -321,8 +321,11 @@ inline __device__ void WeightTensor2d(SharedData_Cuda &data, const CeedScalar *_
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractX3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P_1D];
-  for (CeedInt i = 0; i < P_1D; i++) {
-    r_B[i] = B[i + data.t_id_x * P_1D];
+
+  if (data.t_id_x < Q_1D) {
+    for (CeedInt i = 0; i < P_1D; i++) {
+      r_B[i] = B[i + data.t_id_x * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {
@@ -344,8 +347,11 @@ inline __device__ void ContractX3d(SharedData_Cuda &data, const CeedScalar *U, c
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractY3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P_1D];
-  for (CeedInt i = 0; i < P_1D; i++) {
-    r_B[i] = B[i + data.t_id_y * P_1D];
+
+  if (data.t_id_y < Q_1D) {
+    for (CeedInt i = 0; i < P_1D; i++) {
+      r_B[i] = B[i + data.t_id_y * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {
@@ -397,8 +403,11 @@ inline __device__ void ContractTransposeZ3d(SharedData_Cuda &data, const CeedSca
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeY3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
-  for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.t_id_y + i * P_1D];
+
+  if (data.t_id_y < P_1D) {
+    for (CeedInt i = 0; i < Q_1D; i++) {
+      r_B[i] = B[data.t_id_y + i * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {
@@ -420,8 +429,11 @@ inline __device__ void ContractTransposeY3d(SharedData_Cuda &data, const CeedSca
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddY3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
-  for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.t_id_y + i * P_1D];
+
+  if (data.t_id_y < P_1D) {
+    for (CeedInt i = 0; i < Q_1D; i++) {
+      r_B[i] = B[data.t_id_y + i * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {
@@ -442,8 +454,11 @@ inline __device__ void ContractTransposeAddY3d(SharedData_Cuda &data, const Ceed
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeX3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
-  for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.t_id_x + i * P_1D];
+
+  if (data.t_id_x < P_1D) {
+    for (CeedInt i = 0; i < Q_1D; i++) {
+      r_B[i] = B[data.t_id_x + i * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {
@@ -465,8 +480,11 @@ inline __device__ void ContractTransposeX3d(SharedData_Cuda &data, const CeedSca
 template <int NUM_COMP, int P_1D, int Q_1D, int T_1D>
 inline __device__ void ContractTransposeAddX3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
-  for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.t_id_x + i * P_1D];
+
+  if (data.t_id_x < P_1D) {
+    for (CeedInt i = 0; i < Q_1D; i++) {
+      r_B[i] = B[data.t_id_x + i * P_1D];
+    }
   }
 
   for (CeedInt k = 0; k < P_1D; k++) {

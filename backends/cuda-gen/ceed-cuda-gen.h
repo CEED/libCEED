@@ -12,13 +12,25 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+CEED_INTERN int CeedGenModuleRetire_Cuda_gen(Ceed ceed, CUmodule *module);
+
+typedef enum { CEED_CUDA_GEN_TENSOR_SLICES, CEED_CUDA_GEN_TENSOR_REGISTERS, CEED_CUDA_GEN_TENSOR_PREFETCHED_SLICES } CeedTensorPipeline_Cuda_gen;
+
+// Operator readiness freezes field roles, not vector storage or context values.
+// Preparation retains their public handles; submission borrows current arrays.
+typedef struct {
+  CeedInt       num_elem, num_inputs, num_outputs;
+  CeedQFunction qf;
+  CeedVector    inputs[CEED_FIELD_MAX], outputs[CEED_FIELD_MAX], coords;
+} CeedApplyBindings_Cuda_gen;
+
 typedef struct {
   bool           use_fallback, use_assembly_fallback;
   CeedInt        dim;
   CeedInt        Q, Q_1d;
   CeedInt        max_P_1d;
   CeedInt        thread_1d;
-  CUmodule       module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction;
+  CUmodule       module, module_assemble_full, module_assemble_diagonal, module_assemble_qfunction, pending_module;
   CUfunction     op, assemble_full, assemble_diagonal, assemble_qfunction;
   FieldsInt_Cuda indices;
   Fields_Cuda    fields;
@@ -26,6 +38,12 @@ typedef struct {
   Fields_Cuda    G;
   CeedScalar    *W;
   Points_Cuda    points;
+
+  CeedApplyBindings_Cuda_gen  apply;
+  CeedTensorPipeline_Cuda_gen tensor_pipeline;
+  CeedInt                     scratch_planes;
+  int                         block[3], grid;
+  size_t                      shared_mem;
 
   // Graph capture data
   bool              use_graph;
