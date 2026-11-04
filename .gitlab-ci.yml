@@ -258,7 +258,7 @@ noether-rust-qfunctions:
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
     - export CEED_JIT_ERROR_ON_FAILURE=1
     - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=1
+    - export NPROC_POOL=4
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
@@ -274,8 +274,8 @@ noether-rust-qfunctions:
     - rustup component add rust-src --toolchain nightly
     - rustup component add llvm-tools --toolchain nightly
     # libCEED
-    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-12.9
+    - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang-22
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
     - echo "-------------- libCEED -------------" && make info
     - make clean
     - make -k -j$NPROC_CPU -l$NPROC_CPU
@@ -284,7 +284,10 @@ noether-rust-qfunctions:
     #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
+    - make clean-cache
     - export CEED_CUDA_CLANG_CXX=
+    # Need clang++ to resolve to clang++-22, since clang++-21 doesn't support CUDA 13
+    - export PATH=/usr/lib/llvm-22/bin:$PATH
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="rust-qfunction" junit search=rustqfunction
     # Report status
     - touch .SUCCESS
@@ -338,7 +341,7 @@ noether-cuda:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13.2
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU_FULL=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- BACKENDS_GPU_FULL --------" && echo $BACKENDS_GPU_FULL
@@ -500,7 +503,8 @@ noether-rocm:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast'
+    # Note: GCC 16 is too new for ROCm 6.3.0 Clang 18, so have to specify gcc install to be GCC 14
+    - make configure ROCM_DIR=/opt/rocm-6.3.0 OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' HIPCCFLAGS='$(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/14'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -547,7 +551,7 @@ noether-float:
     # Change to single precision
     - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
     # Build libCEED
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13.2
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU

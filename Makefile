@@ -672,9 +672,10 @@ endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/cublas /gpu/cuda/cublas/det /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
-  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
-  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
-  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += -I$(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  CUDA_CPPFLAGS := -I$(CUDA_DIR)/include -isystem $(CUDA_DIR)/include -DCEED_CUDA_DIR=\"$(CUDA_DIR)\"
+  $(cuda-all.c:%.c=$(OBJDIR)/%.o) $(cuda-all.c:%=%.tidy) $(cuda-all.c:%=%.tidy-fix) $(cuda-all.h:%=%.tidy-fix) : CPPFLAGS += $(CUDA_CPPFLAGS)
+  $(cuda-all.cpp:%.cpp=$(OBJDIR)/%.o) $(cuda-all.cpp:%=%.tidy) $(cuda-all.cpp:%=%.tidy-fix) $(cuda-all.hpp:%=%.tidy-fix) : CPPFLAGS += $(CUDA_CPPFLAGS)
+  $(cuda-all.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += $(CUDA_CPPFLAGS)
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
@@ -696,7 +697,7 @@ ifneq ($(HIP_LIB_DIR),)
   ifeq ($(HIP_LIB_NAME),CHIP)
     # chipStar hipconfig -C emits clang-only flags; keep only -D/-I/-include for gcc
     HIPCONFIG_CPPFLAGS := $(shell $(HIP_CONFIG) -C)
-    HIPCONFIG_CPPFLAGS_C := $(filter-out --offload% -nohipwrapperinc --hip-path% --target%,$(HIPCONFIG_CPPFLAGS)) -I$(ROCM_DIR)/include
+    HIPCONFIG_CPPFLAGS_C := $(filter-out --offload% -nohipwrapperinc --hip-path% --target%,$(HIPCONFIG_CPPFLAGS)) -I$(ROCM_DIR)/include -isystem $(ROCM_DIR)/include
   else
     HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(HIP_CONFIG) -C))
     HIPCONFIG_CPPFLAGS_C := $(HIPCONFIG_CPPFLAGS)
@@ -750,8 +751,9 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
       libceed.hpp += $(magma.hpp)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+      MAGMA_CUDA_CPPFLAGS := -DADD_ -I$(MAGMA_DIR)/include -isystem $(MAGMA_DIR)/include $(CUDA_CPPFLAGS)
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += $(MAGMA_CUDA_CPPFLAGS)
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += $(MAGMA_CUDA_CPPFLAGS)
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
   else  # HIP MAGMA
@@ -768,8 +770,9 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
       libceed.hpp += $(magma.hpp)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      MAGMA_HIP_CPPFLAGS := -DADD_ -DCEED_MAGMA_USE_HIP -I$(MAGMA_DIR)/include -isystem $(MAGMA_DIR)/include $(HIPCONFIG_CPPFLAGS_C)
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) $(magma.c:%=%.tidy-fix) $(magma.h:%=%.tidy-fix): CPPFLAGS += $(MAGMA_HIP_CPPFLAGS)
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) $(magma.cpp:%=%.tidy-fix) $(magma.hpp:%=%.tidy-fix): CPPFLAGS += $(MAGMA_HIP_CPPFLAGS)
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif

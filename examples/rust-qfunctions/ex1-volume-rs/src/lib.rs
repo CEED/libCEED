@@ -3,7 +3,7 @@
 #![feature(abort_immediate)]
 
 use core::ffi::c_void;
-use core::process::abort_immediate;
+use core::process::crash;
 use core::panic::PanicInfo;
 
 use ndarray::ArrayView;
@@ -16,7 +16,7 @@ unsafe impl GlobalAlloc for Allocator {
         0 as *mut u8
     }
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        abort_immediate(); // since we never allocate
+        crash(); // since we never allocate
     }
 }
 #[global_allocator]
@@ -34,7 +34,7 @@ pub struct BuildContext {
 // On no_std targets, its required to implement your own panic function.
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    abort_immediate()
+    crash()
 }
 
 /* The no_mangle is required because rust "mangles" names (changes them to prevent namespace conflicts)
@@ -87,7 +87,7 @@ pub unsafe extern "C" fn build_mass_rs(
             }
         }
         _ => {
-            abort_immediate();
+            crash();
         }
     }
 
