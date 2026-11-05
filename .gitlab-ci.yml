@@ -22,9 +22,8 @@ noether-asan:
     # Environment
     #    Note: COVERAGE=0 is needed when using ASAN
     - export COVERAGE=0 CC=gcc CXX=g++ FC=gfortran
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=8
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=8 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
@@ -72,10 +71,9 @@ noether-cpu:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=8
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=8 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -152,10 +150,9 @@ noether-cpu-static:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran GCOV=gcov
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=8
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=8 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -256,10 +253,9 @@ noether-rust-qfunctions:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14 CEED_CUDA_USE_CLANG=1 CEED_CLANG_CUDA_CXX=clang++-22
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=4
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=4 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -320,10 +316,9 @@ noether-cuda:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC=gfortran-14 NVCC=nvcc GCOV=gcov-14
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export NPROC_POOL=4
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=4 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -341,7 +336,7 @@ noether-cuda:
   script:
     - rm -f .SUCCESS
     # libCEED
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13 CUTLASS_DIR=/projects/cutlass
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU_FULL=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- BACKENDS_GPU_FULL --------" && echo $BACKENDS_GPU_FULL
@@ -486,10 +481,9 @@ noether-rocm:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc GCOV=gcov
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export NPROC_POOL=4
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=4 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
@@ -529,10 +523,9 @@ noether-float:
   before_script:
     # Environment
     - export COVERAGE=1 CC=gcc-14 CXX=g++-14 FC= NVCC=nvcc GCOV=gcov-14
-    - export CEED_CACHE_BASE_DIR=$PWD/temp
-    - export CEED_JIT_ERROR_ON_FAILURE=1
-    - export NPROC_POOL=8
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export CEED_JIT_ERROR_ON_FAILURE=1 CEED_CACHE_BASE_DIR=$PWD/temp
+    - export NPROC_POOL=8 NPROC_CPU=$(nproc) NPROC_GPU=$(($(nproc)<8?$(nproc):8))
+    - echo "-------------- nproc ---------------" && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- NVCC ----------------" && $NVCC --version
@@ -551,7 +544,7 @@ noether-float:
     # Change to single precision
     - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
     # Build libCEED
-    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13
+    - make configure OPT='-g -O0 -fno-inline -march=native -ffp-contract=fast' CUDA_DIR=/usr/local/cuda-13 CUTLASS_DIR=/projects/cutlass
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
