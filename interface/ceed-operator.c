@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 /// @file
 /// Implementation of CeedOperator interfaces
 
@@ -697,6 +701,86 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 **/
 int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
   *is_composite = op->is_composite;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Zero the passive output vectors of a `CeedOperator`, or of the suboperators of a composite `CeedOperator`
+
+  @param[in,out] op `CeedOperator`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorZeroPassiveOutputs(CeedOperator op) {
+  bool          is_composite;
+  CeedInt       num_ops = 1;
+  CeedOperator *ops     = &op;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedCall(CeedOperatorCompositeGetNumSub(op, &num_ops));
+    CeedCall(CeedOperatorCompositeGetSubList(op, &ops));
+  }
+  for (CeedInt i = 0; i < num_ops; i++) {
+    CeedInt            num_output_fields;
+    CeedOperatorField *output_fields;
+
+    CeedCall(CeedOperatorGetFields(ops[i], NULL, NULL, &num_output_fields, &output_fields));
+    for (CeedInt j = 0; j < num_output_fields; j++) {
+      CeedVector vec;
+
+      CeedCall(CeedOperatorFieldGetVector(output_fields[j], &vec));
+      if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+      CeedCall(CeedVectorDestroy(&vec));
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Check whether @ref CeedOperatorApply() may overwrite its active output instead of zeroing it first.
+
+  This holds when `CEED_OPERATOR_OVERWRITE_OUTPUT` is not 0, the apply is not inside an OpenMP parallel region, `out` has data, and `op` has one active output field.
+  The caller must meet the memory-separation precondition of @ref CeedOperatorApply().
+  The backend must also check that the output `CeedElemRestriction` supports overwriting, see @ref CeedElemRestrictionSupportsOverwrite().
+
+  @param[in]  op                  `CeedOperator`, not composite
+  @param[in]  out                 Active output `CeedVector`
+  @param[out] active_output_index Index of the active output field, or -1 if the output may not be overwritten
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorCanOverwriteOutput(CeedOperator op, CeedVector out, CeedInt *active_output_index) {
+  bool               can_overwrite, has_valid_array;
+  CeedInt            num_output_fields, num_active = 0;
+  CeedOperatorField *output_fields;
+
+  *active_output_index = -1;
+  if (out == CEED_VECTOR_NONE) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedGetOperatorOverwriteOutput(CeedOperatorReturnCeed(op), &can_overwrite));
+  if (!can_overwrite) return CEED_ERROR_SUCCESS;
+#ifdef _OPENMP
+  // Restriction overwrite mode and lazy first-touch setup are not safe for concurrent calls
+  if (omp_in_parallel()) return CEED_ERROR_SUCCESS;
+#endif
+  CeedCall(CeedVectorHasValidArray(out, &has_valid_array));
+  if (!has_valid_array) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedVector vec;
+
+    CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      *active_output_index = i;
+      num_active++;
+    }
+    CeedCall(CeedVectorDestroy(&vec));
+  }
+  if (num_active != 1) *active_output_index = -1;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2640,9 +2724,12 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
   @note Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
+  @note With OpenMP threads, applying operators into output vectors that share memory is a race.
+        Zero the shared memory once and use @ref CeedOperatorApplyAdd() from each thread instead.
+
   @param[in]  op      `CeedOperator` to apply
   @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     `CeedVector` to store result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[out] out     `CeedVector` to store result of applying operator (must not share memory with `in` or a passive field) or @ref CEED_VECTOR_NONE if there are no active outputs
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
