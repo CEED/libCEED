@@ -90,16 +90,16 @@ CEED_QFUNCTION(ElasResidual_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
     //                         [1-nu   nu    nu                                    ]
     //                         [ nu   1-nu   nu                                    ]
     //                         [ nu    nu   1-nu                                   ]
-    // S = E/((1+nu)*(1-2*nu)) [                  (1-2*nu)/2                       ]
-    //                         [                             (1-2*nu)/2            ]
-    //                         [                                        (1-2*nu)/2 ]
+    // S = E/((1+nu)*(1-2*nu)) [                  (1-2*nu)                         ]
+    //                         [                             (1-2*nu)              ]
+    //                         [                                        (1-2*nu)   ]
 
     // Above Voigt Notation is placed in a 3x3 matrix:
     const CeedScalar ss      = E / ((1 + nu) * (1 - 2 * nu));
     const CeedScalar sigma00 = ss * ((1 - nu) * e[0][0] + nu * e[1][1] + nu * e[2][2]),
                      sigma11 = ss * (nu * e[0][0] + (1 - nu) * e[1][1] + nu * e[2][2]),
-                     sigma22 = ss * (nu * e[0][0] + nu * e[1][1] + (1 - nu) * e[2][2]), sigma12 = ss * (1 - 2 * nu) * e[1][2] * 0.5,
-                     sigma02 = ss * (1 - 2 * nu) * e[0][2] * 0.5, sigma01 = ss * (1 - 2 * nu) * e[0][1] * 0.5;
+                     sigma22 = ss * (nu * e[0][0] + nu * e[1][1] + (1 - nu) * e[2][2]), sigma12 = ss * (1 - 2 * nu) * e[1][2],
+                     sigma02 = ss * (1 - 2 * nu) * e[0][2], sigma01 = ss * (1 - 2 * nu) * e[0][1];
     const CeedScalar sigma[3][3] = {
         {sigma00, sigma01, sigma02},
         {sigma01, sigma11, sigma12},
@@ -185,16 +185,16 @@ CEED_QFUNCTION(ElasJacobian_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
     //                         [1-nu   nu    nu                                    ]
     //                         [ nu   1-nu   nu                                    ]
     //                         [ nu    nu   1-nu                                   ]
-    // S = E/((1+nu)*(1-2*nu)) [                  (1-2*nu)/2                       ]
-    //                         [                             (1-2*nu)/2            ]
-    //                         [                                        (1-2*nu)/2 ]
+    // S = E/((1+nu)*(1-2*nu)) [                  (1-2*nu)                         ]
+    //                         [                             (1-2*nu)              ]
+    //                         [                                        (1-2*nu)   ]
 
     // Above Voigt Notation is placed in a 3x3 matrix:
     const CeedScalar ss       = E / ((1 + nu) * (1 - 2 * nu));
     const CeedScalar dsigma00 = ss * ((1 - nu) * de[0][0] + nu * de[1][1] + nu * de[2][2]),
                      dsigma11 = ss * (nu * de[0][0] + (1 - nu) * de[1][1] + nu * de[2][2]),
-                     dsigma22 = ss * (nu * de[0][0] + nu * de[1][1] + (1 - nu) * de[2][2]), dsigma12 = ss * (1 - 2 * nu) * de[1][2] / 2,
-                     dsigma02 = ss * (1 - 2 * nu) * de[0][2] / 2, dsigma01 = ss * (1 - 2 * nu) * de[0][1] / 2;
+                     dsigma22 = ss * (nu * de[0][0] + nu * de[1][1] + (1 - nu) * de[2][2]), dsigma12 = ss * (1 - 2 * nu) * de[1][2],
+                     dsigma02 = ss * (1 - 2 * nu) * de[0][2], dsigma01 = ss * (1 - 2 * nu) * de[0][1];
     const CeedScalar dsigma[3][3] = {
         {dsigma00, dsigma01, dsigma02},
         {dsigma01, dsigma11, dsigma12},
@@ -272,8 +272,9 @@ CEED_QFUNCTION(ElasEnergy_Linear)(void *ctx, CeedInt Q, const CeedScalar *const 
 
     // Strain energy
     const CeedScalar strain_vol = e[0][0] + e[1][1] + e[2][2];
-    energy[i] =
-        (lambda * strain_vol * strain_vol / 2. + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu) * wdetJ;
+    energy[i]                   = (lambda * strain_vol * strain_vol / 2. + (e[0][0] * e[0][0] + e[1][1] * e[1][1] + e[2][2] * e[2][2]) * mu +
+                                   (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu) *
+                                  wdetJ;
 
   }  // End of Quadrature Point Loop
 
@@ -355,8 +356,8 @@ CEED_QFUNCTION(ElasDiagnostic_Linear)(void *ctx, CeedInt Q, const CeedScalar *co
     diagnostic[6][i] = 1 + strain_vol;
 
     // Strain energy
-    diagnostic[7][i] =
-        (lambda * strain_vol * strain_vol / 2. + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu);
+    diagnostic[7][i] = lambda * strain_vol * strain_vol / 2. + (e[0][0] * e[0][0] + e[1][1] * e[1][1] + e[2][2] * e[2][2]) * mu +
+                       (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu;
   }  // End of Quadrature Point Loop
 
   return CEED_ERROR_SUCCESS;
