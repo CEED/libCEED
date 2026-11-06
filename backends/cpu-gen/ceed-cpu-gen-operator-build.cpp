@@ -702,6 +702,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // Load object source files
   code << tab << "// Ceed object templates\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-restriction-templates.h>\n";
+  code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-tensor-contract-templates-ref.h>\n\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-basis-templates.h>\n\n";
 
   // C++ needs to know this size at compile time because it doesn't support reshaping via VLA
