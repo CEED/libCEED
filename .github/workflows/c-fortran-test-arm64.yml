@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Install QEMU
       run: sudo apt-get update && sudo apt-get install -y qemu-user lcov llvm pkgconf
     - name: Set compiler
@@ -82,7 +82,7 @@ jobs:
       run: |
         lcov --directory . --capture --gcov-tool $GCOV --output-file coverage.info --no-external --exclude '/usr/include/*' --rc geninfo_unexecuted_blocks=1 --verbose --demangle-cpp --substitute 's#(^|/)(?!tests/)([^/]+)/(t[^/]+-f\.[^/]+)$#$1$2/tests/$3#g' --substitute 's#([^/]+)/(?<!examples/ceed/)(ex[^/]+-f\.[^/]+)$#$1/examples/ceed/$2#g' --ignore-errors inconsistent --ignore-errors unused,unused
     - name: Codecov upload
-      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         verbose: true
         files: coverage.info

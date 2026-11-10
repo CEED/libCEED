@@ -22,9 +22,9 @@ jobs:
 
     steps:
       - name: Environment setup
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Julia setup
-        uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687
+        uses: julia-actions/setup-julia@da908477b5db94c10ffce8cfea9f2b3b9d5db687 # v3.0.3
         with:
           version: ${{ matrix.julia-version }}
       - name: Julia test and style

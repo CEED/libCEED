@@ -17,15 +17,15 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Rust setup
-      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1.99.1
       with:
         # Note: nightly required for coverage of Doctests
         toolchain: nightly
         components: llvm-tools-preview
     - name: Install cargo-llvm-cov
-      uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39
+      uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
       with:
         tool: cargo-llvm-cov
     - name: Rust test with coverage
@@ -38,7 +38,7 @@ jobs:
         export CARGO_CEED_OPT_FLAGS="-g -O0 -fno-inline"
         cargo llvm-cov test --doctests --lcov --output-path coverage.info
     - name: Codecov upload
-      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       if: ${{ runner.os == 'Linux' }}
       with:
         files: coverage.info
@@ -56,9 +56,9 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Rust setup
-      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+      uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1.99.1
       with:
         # Note: rustfmt not always included in nightly, will attempt to downgrade until rustfmt found
         toolchain: nightly
