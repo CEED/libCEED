@@ -27,19 +27,10 @@ static int CeedDestroy_Cpu_Gen(Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
-  Ceed          ceed_ref;
+int CeedInit_Cpu_Gen_Blocked_Core(const char *resource, Ceed ceed) {
   Ceed_Cpu_Gen *data;
 
-  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/gen") || !strcmp(resource, "/cpu/self/gen/blocked"), ceed,
-            CEED_ERROR_BACKEND, "CPU Gen backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
-
-  // Create reference Ceed that implementation will be dispatched through unless overridden
-  CeedCallBackend(CeedInit("/cpu/self/opt/blocked", &ceed_ref));
-  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
-  CeedCallBackend(CeedSetOperatorFallbackCeed(ceed, ceed_ref));
-  CeedCallBackend(CeedDestroy(&ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cpu_Gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Cpu_Gen));
@@ -49,6 +40,22 @@ static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedCalloc(1, &data));
   data->block_size = 8;
   CeedCallBackend(CeedSetData(ceed, data));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
+  Ceed ceed_ref;
+
+  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/gen/blocked"), ceed, CEED_ERROR_BACKEND,
+            "CPU Gen backend cannot use resource: %s", resource);
+
+  // Create reference Ceed that implementation will be dispatched through unless overridden
+  CeedCallBackend(CeedInit("/cpu/self/opt/blocked", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
+  CeedCallBackend(CeedSetOperatorFallbackCeed(ceed, ceed_ref));
+  CeedCallBackend(CeedDestroy(&ceed_ref));
+
+  CeedCallBackend(CeedInit_Cpu_Gen_Serial_Core(resource, ceed));
   return CEED_ERROR_SUCCESS;
 }
 

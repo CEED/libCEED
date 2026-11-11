@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 typedef struct {
+  bool    is_xsmm;
   CeedInt block_size;
   char   *cxx;
 } Ceed_Cpu_Gen;
@@ -26,5 +27,8 @@ typedef struct {
   InputFieldData_Cpu_Gen       inputs[CEED_FIELD_MAX];
   OutputFieldData_Cpu_Gen      outputs[CEED_FIELD_MAX];
 } CeedOperator_Cpu_Gen;
+
+CEED_INTERN int CeedInit_Cpu_Gen_Serial_Core(const char *resource, Ceed ceed);
+CEED_INTERN int CeedInit_Cpu_Gen_Blocked_Core(const char *resource, Ceed ceed);
 
 CEED_INTERN int CeedOperatorCreate_Cpu_Gen(CeedOperator op);
