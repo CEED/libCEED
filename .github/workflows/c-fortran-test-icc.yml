@@ -19,9 +19,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Environment setup
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Intel compilers
-        uses: rscohn2/setup-oneapi@v0
+        uses: rscohn2/setup-oneapi@9ac2e22dab93541676ee39841d702c35ee0b8e4c # v0.2.0
         with:
           components: |
             icx
