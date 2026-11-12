@@ -864,13 +864,14 @@ int CeedOperatorAssembleSingleBlock(CeedOperator op, CeedInt offset, CeedInt act
     // Operator fallback
     CeedOperator op_fallback;
 
-    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingle\n");
+    CeedDebug(CeedOperatorReturnCeed(op), "\nFalling back for CeedOperatorAssembleSingleBlock\n");
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) {
       CeedCall(CeedOperatorAssembleSingleBlock(op_fallback, offset, active_input, active_output, values));
       return CEED_ERROR_SUCCESS;
     }
   }
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorAssembleSingleBlock\n");
 
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   CeedCheck(!is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
@@ -1148,6 +1149,7 @@ int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector valu
         return CEED_ERROR_SUCCESS;
       }
     }
+    CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorAssembleSingle\n");
 
     // Assemble QFunction for each block
     for (CeedInt i = 0; i < num_active_rstr_in; i++) {
@@ -1177,6 +1179,7 @@ int CeedOperatorAssembleSingle(CeedOperator op, CeedSize offset, CeedVector valu
       return CEED_ERROR_SUCCESS;
     }
   }
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing CeedOperatorAssembleSingleBlock implementation for CeedOperatorAssembleSingle\n");
 
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   CeedCheck(!is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_UNSUPPORTED,
@@ -2685,6 +2688,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
     }
   }
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing CeedOperatorLinearAssembleAddDiagonal implementation for CeedOperatorLinearAssembleDiagonal\n");
   CeedCall(CeedVectorSetValue(assembled, 0.0));
   CeedCall(CeedOperatorLinearAssembleAddDiagonal(op, assembled, request));
   return CEED_ERROR_SUCCESS;
@@ -2745,6 +2749,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     }
   }
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorLinearAssembleAddDiagonal\n");
   CeedCall(CeedOperatorLinearAssembleAddDiagonalSingle(op, request, false, assembled));
   return CEED_ERROR_SUCCESS;
 }
@@ -2911,6 +2916,8 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
     }
   }
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op),
+            "\nUsing CeedOperatorLinearAssembleAddPointBlockDiagonal implementation for CeedOperatorLinearAssemblePointBlockDiagonal\n");
   CeedCall(CeedVectorSetValue(assembled, 0.0));
   CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled, request));
   return CEED_ERROR_SUCCESS;
@@ -2969,6 +2976,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
     }
   }
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorLinearAssembleAddPointBlockDiagonal\n");
   if (is_composite) {
     CeedCall(CeedOperatorLinearAssembleAddDiagonalComposite(op, request, true, assembled));
   } else {
@@ -3023,6 +3031,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   }
 
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorLinearAssembleSymbolic\n");
 
   // Count entries and allocate rows, cols arrays
   CeedCall(CeedOperatorLinearAssembleGetNumEntries(op, num_entries));
@@ -3111,6 +3120,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   }
 
   // Default to interface version if non-composite and no fallback
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing CeedOperatorAssembleSingle implementation for CeedOperatorLinearAssemble\n");
   CeedCall(CeedVectorSetValue(values, 0.0));
   CeedCall(CeedOperatorAssembleSingle(op, offset, values));
   return CEED_ERROR_SUCCESS;
@@ -3412,6 +3422,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   }
 
   // Default interface implementation
+  CeedDebug(CeedOperatorReturnCeed(op), "\nUsing default interface level implementation for CeedOperatorCreateFDMElementInverse\n");
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorGetFallbackParentCeed(op, &ceed_parent));
   CeedCall(CeedOperatorGetQFunction(op, &qf));
