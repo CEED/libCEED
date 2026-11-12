@@ -345,6 +345,7 @@ sme.c          := $(sort $(wildcard backends/sme/*.c))
 sme.h          := $(sort $(wildcard backends/sme/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
+xsmm-gen.c     := $(sort $(wildcard backends/xsmm-gen/*.c))
 cpu-gen.c      := $(sort $(wildcard backends/cpu-gen/*.c))
 cpu-gen.cpp    := $(sort $(wildcard backends/cpu-gen/*.cpp))
 cpu-gen.h      := $(sort $(wildcard backends/cpu-gen/*.h))
@@ -646,12 +647,18 @@ ifneq ($(OPENMP),)
 endif
 
 # libXSMM Backends
-XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked /cpu/self/gen/xsmm/serial /cpu/self/gen/xsmm/blocked
+XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   # Prefer the pkg-config file, which has the installed include directory (include/libxsmm
   # for LIBXSMM 2.x) and the libraries LIBXSMM needs
   ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm.pc),)
-    XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
+    XSMM_PC =
+    ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm-shared.pc),)
+      XSMM_PC        = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm-shared.pc
+      XSMM_BACKENDS += /cpu/self/gen/xsmm/serial /cpu/self/gen/xsmm/blocked
+    else
+      XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
+    endif
     XSMM_CFLAGS ?= $(call pkgconf, --cflags $(XSMM_PC))
     XSMM_LIBS ?= $(call pkgconf, --libs $(XSMM_PC))
   else
@@ -665,6 +672,9 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   PKG_LIBS  += $(XSMM_LIBS)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
+  ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm-shared.pc),)
+    libceed.c += $(xsmm-gen.c)
+  endif
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += $(XSMM_CFLAGS)
   CFLAGS             += -DCEED_XSMM_C_FLAGS='$(XSMM_CFLAGS)'
   CEED_CPU_LINK_ARGS += $(XSMM_LIBS)

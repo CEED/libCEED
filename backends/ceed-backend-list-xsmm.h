@@ -11,6 +11,3 @@
 
 CEED_BACKEND(CeedRegister_Xsmm_Blocked, 1, "/cpu/self/xsmm/blocked")
 CEED_BACKEND(CeedRegister_Xsmm_Serial, 1, "/cpu/self/xsmm/serial")
-
-CEED_BACKEND(CeedRegister_Cpu_Gen_Xsmm_Blocked, 1, "/cpu/self/gen/xsmm/blocked")
-CEED_BACKEND(CeedRegister_Cpu_Gen_Xsmm_Serial, 1, "/cpu/self/gen/xsmm/serial")
