@@ -80,8 +80,8 @@ noether-cpu:
     - echo "-------------- GCOV ----------------" && $GCOV --version
     - echo "GCOV=$GCOV" > job.env
     # Libraries for backends
-    # -- LIBXSMM 25 May 2026
-    - cd .. && export XSMM_HASH=5ce29626ddad947f0d5c433ce78c58ff64dfbbdb && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    # -- LIBXSMM 8 Nov 2026
+    - cd .. && export XSMM_HASH=40d02f69c21ebe661d3dbbc7f916c4a86a840444 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
   script:
     - rm -f .SUCCESS
@@ -159,8 +159,8 @@ noether-cpu-static:
     - echo "-------------- GCOV ----------------" && $GCOV --version
     - echo "GCOV=$GCOV" > job.env
     # Libraries for backends
-    # -- LIBXSMM 25 May 2026
-    - cd .. && export XSMM_HASH=5ce29626ddad947f0d5c433ce78c58ff64dfbbdb && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    # -- LIBXSMM 8 Nov 2026
+    - cd .. && export XSMM_HASH=40d02f69c21ebe661d3dbbc7f916c4a86a840444 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
   script:
     - rm -f .SUCCESS
@@ -535,8 +535,8 @@ noether-float:
     # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/MAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
-    # -- LIBXSMM 25 May 2026
-    - cd .. && export XSMM_HASH=5ce29626ddad947f0d5c433ce78c58ff64dfbbdb && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    # -- LIBXSMM 8 Nov 2026
+    - cd .. && export XSMM_HASH=40d02f69c21ebe661d3dbbc7f916c4a86a840444 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
   script:
     - rm -f .SUCCESS
