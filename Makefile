@@ -476,7 +476,6 @@ info:
 	$(info -----------------------------------------)
 	$(info )
 	$(info Compiler Flags:)
-	$(info Compiler Flags:)
 	$(info CC                  = $(CC))
 	$(info CXX                 = $(CXX))
 	$(info FC                  = $(FC))
