@@ -2,6 +2,7 @@
 /// Test setting QFunctionContext fields from Operator
 /// \test Test setting QFunctionContext fields from Operator
 #include <ceed.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdio.h>
 
@@ -66,7 +67,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextRegisterByte(qf_ctx_sub_1, "byte", offsetof(TestContext1, value_byte), 1, "byte value");
   CeedQFunctionContextRegisterCeedInt8(qf_ctx_sub_1, "int8", offsetof(TestContext1, value_int8), 1, "8 bit integer value");
   CeedQFunctionContextRegisterCeedInt(qf_ctx_sub_1, "int", offsetof(TestContext1, value_int), 1, "CeedInt value");
-  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "int32", offsetof(TestContext1, value_int32), 1, "some sort of int32er");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_1, "int32", offsetof(TestContext1, value_int32), 1, "some sort of int32");
   CeedQFunctionContextRegisterInt64(qf_ctx_sub_1, "int64", offsetof(TestContext1, value_int64), 1, "64 bit integer value");
   CeedQFunctionContextRegisterCeedSize(qf_ctx_sub_1, "size", offsetof(TestContext1, value_size), 1, "CeedSize value");
   CeedQFunctionContextRegisterCeedScalar(qf_ctx_sub_1, "scalar", offsetof(TestContext1, value_scalar), 1, "CeedScalar value");
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextRegisterByte(qf_ctx_sub_2, "byte", offsetof(TestContext2, value_byte), 1, "byte value");
   CeedQFunctionContextRegisterCeedInt8(qf_ctx_sub_2, "int8", offsetof(TestContext2, value_int8), 1, "8 bit integer value");
   CeedQFunctionContextRegisterCeedInt(qf_ctx_sub_2, "int", offsetof(TestContext2, value_int), 1, "CeedInt value");
-  CeedQFunctionContextRegisterInt32(qf_ctx_sub_2, "int32", offsetof(TestContext2, value_int32), 1, "some sort of int32er");
+  CeedQFunctionContextRegisterInt32(qf_ctx_sub_2, "int32", offsetof(TestContext2, value_int32), 1, "some sort of int32");
   CeedQFunctionContextRegisterInt64(qf_ctx_sub_2, "int64", offsetof(TestContext2, value_int64), 1, "64 bit integer value");
   CeedQFunctionContextRegisterCeedSize(qf_ctx_sub_2, "size", offsetof(TestContext2, value_size), 1, "CeedSize value");
   CeedQFunctionContextRegisterCeedScalar(qf_ctx_sub_2, "scalar", offsetof(TestContext2, value_scalar), 1, "CeedScalar value");
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
   CeedOperatorCompositeAddSub(op_composite, op_sub_2);
 
 // Check setting field in context of single sub-operator for composite operator
-#define TEST_TYPE(TYPE, TYPE_CAPS, FIELD_NAME, VALUE_SET, FMT)                                                                             \
+#define TEST_TYPE(TYPE, TYPE_CEED, FIELD_NAME, VALUE_SET, FMT)                                                                             \
   {                                                                                                                                        \
     TYPE                  value_set = VALUE_SET;                                                                                           \
     const TYPE           *value_read;                                                                                                      \
@@ -135,14 +136,14 @@ int main(int argc, char **argv) {
     size_t                num_values;                                                                                                      \
                                                                                                                                            \
     CeedOperatorGetContextFieldLabel(op_composite, #FIELD_NAME, &label);                                                                   \
-    CeedOperatorSetContext##TYPE_CAPS(op_composite, label, &value_set);                                                                    \
+    CeedOperatorSetContext##TYPE_CEED(op_composite, label, &value_set);                                                                    \
     if (ctx_data_2.value_##FIELD_NAME != VALUE_SET)                                                                                        \
       printf("Incorrect context data for " #FIELD_NAME ": %" FMT " != %" FMT "\n", ctx_data_2.value_##FIELD_NAME, VALUE_SET);              \
                                                                                                                                            \
-    CeedOperatorGetContext##TYPE_CAPS##Read(op_composite, label, &num_values, &value_read);                                                \
+    CeedOperatorGetContext##TYPE_CEED##Read(op_composite, label, &num_values, &value_read);                                                \
     if (num_values != 1) printf("Incorrect number of " #FIELD_NAME "values, found %zu but expected 1\n", num_values);                      \
     if (value_read[0] != VALUE_SET) printf("Incorrect value found for " #FIELD_NAME ": %" FMT " != %" FMT "\n", value_read[0], VALUE_SET); \
-    CeedOperatorRestoreContext##TYPE_CAPS##Read(op_composite, label, &value_read);                                                         \
+    CeedOperatorRestoreContext##TYPE_CEED##Read(op_composite, label, &value_read);                                                         \
   }
 
   TEST_TYPE(bool, Boolean, bool, true, "d");
@@ -150,7 +151,7 @@ int main(int argc, char **argv) {
   TEST_TYPE(CeedInt8, CeedInt8, int8, -3, CeedInt8_FMT);
   TEST_TYPE(CeedInt, CeedInt, int, 74, CeedInt_FMT);
   TEST_TYPE(int32_t, Int32, int32, 111023, "d");
-  TEST_TYPE(int64_t, Int64, int64, 0x1FFFFFFFF, "ld");
+  TEST_TYPE(int64_t, Int64, int64, 0x1FFFFFFFF, PRId64);
   TEST_TYPE(CeedScalar, CeedScalar, scalar, 1.1254e3f, "g");
   TEST_TYPE(float, Float, float, 4.22e-6f, "g");
   TEST_TYPE(double, Double, double, 5.66e21, "g");
