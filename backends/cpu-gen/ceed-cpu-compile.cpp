@@ -207,7 +207,7 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
   }
 
   // Encode options into source
-  code << "\n\n";
+  code << "\n";
   code << "const static char *__ceed_compile_options[] = {\n";
   code << "  \"" << cxx << "\",\n";
   code << "  \"-shared\",\n";
