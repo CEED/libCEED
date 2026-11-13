@@ -187,10 +187,10 @@ PEDANTIC      ?=
 PEDANTICFLAGS ?= -Werror -pedantic
 
 # Compiler flags
-OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
-CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
+OPT      ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
+CFLAGS   ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
-FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
+FFLAGS   ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 ifeq ($(shell uname -s),Darwin)
     LIBCXX ?= -lc++
 else
@@ -220,28 +220,28 @@ SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) 
 
 OPENMP ?=
 ifneq ($(OPENMP),)
-  OMP_FLAG := $(OMP_FLAG.$(CC_VENDOR))
-  OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
-  CFLAGS += $(OMP_FLAG)
+  OMP_FLAG     := $(OMP_FLAG.$(CC_VENDOR))
+  OMP_FLAG     := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
+  CFLAGS       += $(OMP_FLAG)
   CEED_LDFLAGS += $(OMP_FLAG)
-  PKG_LIBS += $(OMP_FLAG)
+  PKG_LIBS     += $(OMP_FLAG)
 endif
 
 ifeq ($(COVERAGE), 1)
-  CFLAGS += --coverage
-  CXXFLAGS += --coverage
+  CFLAGS       += --coverage
+  CXXFLAGS     += --coverage
   CEED_LDFLAGS += --coverage
-  FFLAGS += --coverage -fprofile-abs-path
+  FFLAGS       += --coverage -fprofile-abs-path
 endif
 
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(OMP_SIMD_FLAG) $(if $(ASAN),$(AFLAGS))
-CPPFLAGS += -I$(abspath ./include)
-CEED_LDLIBS += -lm
-OBJDIR := build
-for_install := $(filter install,$(MAKECMDGOALS))
-LIBDIR := $(if $(for_install),$(OBJDIR),lib)
+CPPFLAGS     += -I$(abspath ./include)
+CEED_LDLIBS  += -lm
+OBJDIR       := build
+for_install  := $(filter install,$(MAKECMDGOALS))
+LIBDIR       := $(if $(for_install),$(OBJDIR),lib)
 
 # Installation variables
 prefix ?= /usr/local
@@ -259,18 +259,18 @@ NPROCS := $(shell getconf _NPROCESSORS_ONLN)
 MFLAGS := -j $(NPROCS) --warn-undefined-variables \
                        --no-print-directory --no-keep-going
 
-PYTHON ?= python3
-PROVE ?= prove
+PYTHON     ?= python3
+PROVE      ?= prove
 PROVE_OPTS ?= -j $(NPROCS)
-SO_EXT := $(if $(DARWIN),dylib,so)
+SO_EXT     := $(if $(DARWIN),dylib,so)
 
-ceed.pc := $(LIBDIR)/pkgconfig/ceed.pc
+ceed.pc    := $(LIBDIR)/pkgconfig/ceed.pc
 libceed.so := $(LIBDIR)/libceed.$(SO_EXT)
-libceed.a := $(LIBDIR)/libceed.a
-libceed := $(if $(STATIC),$(libceed.a),$(libceed.so))
-CEED_LIBS = -lceed
+libceed.a  := $(LIBDIR)/libceed.a
+libceed    := $(if $(STATIC),$(libceed.a),$(libceed.so))
+CEED_LIBS   = -lceed
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked /cpu/self/gen/serial /cpu/self/gen/blocked
-BACKENDS_MAKE := $(BACKENDS_BUILTIN)
+BACKENDS_MAKE    := $(BACKENDS_BUILTIN)
 PKGCONF ?= pkgconf
 pkgconf = $(shell env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) $1 | $(SED) -e 's/^"//g' -e 's/"$$//g')
 
@@ -345,6 +345,7 @@ sme.c          := $(sort $(wildcard backends/sme/*.c))
 sme.h          := $(sort $(wildcard backends/sme/*.h))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 xsmm.h         := $(sort $(wildcard backends/xsmm/*.h))
+xsmm-gen.c     := $(sort $(wildcard backends/xsmm-gen/*.c))
 cpu-gen.c      := $(sort $(wildcard backends/cpu-gen/*.c))
 cpu-gen.cpp    := $(sort $(wildcard backends/cpu-gen/*.cpp))
 cpu-gen.h      := $(sort $(wildcard backends/cpu-gen/*.h))
@@ -476,7 +477,6 @@ info:
 	$(info -----------------------------------------)
 	$(info )
 	$(info Compiler Flags:)
-	$(info Compiler Flags:)
 	$(info CC                  = $(CC))
 	$(info CXX                 = $(CXX))
 	$(info FC                  = $(FC))
@@ -556,12 +556,13 @@ libceed.h += $(ref.h) $(blocked.h) $(opt.h)
 
 # CPU Codegen Backends
 LIBCEED_CONTAINS_CXX = 1
-libceed.c        += $(cpu-gen.c)
-libceed.cpp      += $(cpu-gen.cpp)
-libceed.h        += $(cpu-gen.h)
-CEED_CPU_JIT_CXX ?= $(CXX)
-CEED_CPU_JIT_OPT ?= $(OPT)
-CPPFLAGS         += -DCEED_CPU_JIT_OPT='$(CEED_CPU_JIT_OPT)' -DCEED_CPU_JIT_CXX='$(CEED_CPU_JIT_CXX)'
+libceed.c           += $(cpu-gen.c)
+libceed.cpp         += $(cpu-gen.cpp)
+libceed.h           += $(cpu-gen.h)
+CEED_CPU_JIT_CXX    ?= $(CXX)
+CEED_CPU_JIT_OPT    ?= $(OPT)
+CPPFLAGS            += -DCEED_CPU_JIT_OPT='$(CEED_CPU_JIT_OPT)' -DCEED_CPU_JIT_CXX='$(CEED_CPU_JIT_CXX)'
+CEED_CPU_LINK_ARGS  ?=
 
 # Memcheck Backends
 MEMCHK_STATUS   = Disabled
@@ -651,22 +652,33 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
   # Prefer the pkg-config file, which has the installed include directory (include/libxsmm
   # for LIBXSMM 2.x) and the libraries LIBXSMM needs
   ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm.pc),)
-    XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
+    XSMM_PC =
+    ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm-shared.pc),)
+      XSMM_PC        = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm-shared.pc
+      XSMM_BACKENDS += /cpu/self/gen/xsmm/serial /cpu/self/gen/xsmm/blocked
+    else
+      XSMM_PC = $(abspath $(XSMM_DIR))/lib/pkgconfig/libxsmm.pc
+    endif
     XSMM_CFLAGS ?= $(call pkgconf, --cflags $(XSMM_PC))
     XSMM_LIBS ?= $(call pkgconf, --libs $(XSMM_PC))
   else
-    XSMM_CFLAGS ?= -I$(XSMM_DIR)/include -I$(XSMM_DIR)/include/libxsmm
-    XSMM_LIBS ?= -L$(abspath $(XSMM_DIR))/lib -lxsmm
+    XSMM_CFLAGS ?= -I$(abspath $(XSMM_DIR)/include -I$(abspath $(XSMM_DIR)/include/libxsmm
+    XSMM_LIBS   ?= -L$(abspath $(XSMM_DIR))/lib -lxsmm
   endif
   # LIBXSMM 2.0 has no BLAS fallback (libxsmm/libxsmm#981); builds of earlier main snapshots
   # with BLAS enabled can pass the BLAS library here
-  BLAS_LIB ?=
+  BLAS_LIB  ?=
   XSMM_LIBS += $(BLAS_LIB)
-  PKG_LIBS += $(XSMM_LIBS)
+  PKG_LIBS  += $(XSMM_LIBS)
   libceed.c += $(xsmm.c)
   libceed.h += $(xsmm.h)
+  ifneq ($(wildcard $(XSMM_DIR)/lib/pkgconfig/libxsmm-shared.pc),)
+    libceed.c += $(xsmm-gen.c)
+  endif
   $(xsmm.c:%.c=$(OBJDIR)/%.o) $(xsmm.c:%=%.tidy) $(xsmm.c:%=%.tidy-fix) $(xsmm.h:%=%.tidy-fix): CPPFLAGS += $(XSMM_CFLAGS)
-  BACKENDS_MAKE += $(XSMM_BACKENDS)
+  CFLAGS             += -DCEED_XSMM_C_FLAGS='$(XSMM_CFLAGS)'
+  CEED_CPU_LINK_ARGS += $(XSMM_LIBS)
+  BACKENDS_MAKE      += $(XSMM_BACKENDS)
 endif
 
 # CUDA Backends
@@ -747,11 +759,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       cuda_link_static = -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
       cuda_link_shared = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
       cuda_link = $(if $(wildcard $(CUDA_LIB_DIR)/libcublas.${SO_EXT}),$(cuda_link_shared),$(cuda_link_static))
-      omp_link = -fopenmp
+      omp_link  = -fopenmp
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
       magma_link_shared = -L$(MAGMA_DIR)/lib $(cuda_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
-      magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-      PKG_LIBS += $(magma_link)
+      magma_link  := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+      PKG_LIBS    += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
@@ -769,8 +781,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       hip_link = $(if $(wildcard $(HIP_LIB_DIR)/libhipblas.${SO_EXT}),$(hip_link_shared),$(hip_link_static))
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
       magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
-      magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-      PKG_LIBS += $(magma_link)
+      magma_link  := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+      PKG_LIBS    += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.h   += $(magma.h)
       libceed.cpp += $(magma.cpp)
@@ -795,6 +807,8 @@ ifneq ($(wildcard $(CUTLASS_DIR)/include/cutlass/cutlass.h),)
   endif
 endif
 BACKENDS_MAKE += $(CUTLASS_BACKENDS)
+
+CPPFLAGS += -DCEED_CPU_LINK_ARGS='$(CEED_CPU_LINK_ARGS)'
 
 BACKENDS ?= $(BACKENDS_MAKE)
 export BACKENDS
@@ -822,10 +836,10 @@ _pkg_ldlibs = $(sort $(filter-out -Wl%,$(filter-out -L%,$(PKG_LIBS))))
 pkgconfig-libs-private = $(_pkg_ldflags) $(sort $(CEED_LDFLAGS) $(_pkg_ldlibs) $(CEED_LDLIBS))
 
 $(libceed) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
-$(libceed) : CEED_LDLIBS += $(_pkg_ldlibs)
+$(libceed) : CEED_LDLIBS  += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
   $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
-  $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
+  $(examples) $(tests) : CEED_LDLIBS  += $(_pkg_ldlibs)
 endif
 
 # ------------------------------------------------------------

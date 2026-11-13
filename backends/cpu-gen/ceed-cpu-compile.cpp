@@ -32,6 +32,7 @@
 #define CEED_QUOTE(name) #name
 #define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
 const char *CeedJitCxxDefault = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
+const char *CeedJitLinkArgs   = CEED_STRINGIFY(CEED_CPU_LINK_ARGS);
 #undef CEED_QUOTE
 #undef CEED_STRINGIFY
 
@@ -203,11 +204,13 @@ static inline int CeedCompileCore_Cpu(Ceed ceed, const char *source, const char 
       closedir(dp);
     }
     CeedCallBackend(CeedRestoreRustSourceRoots(ceed, &rust_source_roots));
+    // Add any compiler added link args
+    link_args_stream << " " << CeedJitLinkArgs;
     link_args = link_args_stream.str();
   }
 
   // Encode options into source
-  code << "\n\n";
+  code << "\n";
   code << "const static char *__ceed_compile_options[] = {\n";
   code << "  \"" << cxx << "\",\n";
   code << "  \"-shared\",\n";

@@ -24,6 +24,7 @@
 // Requires Valgrind
 #include "ceed-backend-list-memcheck.h"
 // Requires LIBXSMM
+#include "ceed-backend-list-xsmm-gen.h"  // requires LIBXSMM to be shared lib
 #include "ceed-backend-list-xsmm.h"
 // Requires CUDA
 #include "ceed-backend-list-cuda.h"

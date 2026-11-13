@@ -652,7 +652,7 @@ static int CeedOperatorBuildKernelQFunction_Cpu_Gen(std::ostringstream &code, Ce
 
 extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_build) {
   const char           *qfunction_name;
-  bool                  is_at_points = false, has_interp_at_points = false, has_grad_at_points = false;
+  bool                  is_at_points = false, has_interp_at_points = false, has_grad_at_points = false, is_xsmm;
   CeedInt               num_input_fields, num_output_fields, block_size = 1, max_num_points = 1, dim_points = 1;
   Ceed                  ceed;
   CeedQFunction         qf;
@@ -674,12 +674,14 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   }
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
-  if (!is_at_points) {
+  {
     Ceed_Cpu_Gen *ceed_data;
 
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    block_size = ceed_data->block_size;
-  } else {
+    is_xsmm = ceed_data->is_xsmm;
+    if (!is_at_points) block_size = ceed_data->block_size;
+  }
+  if (is_at_points) {
     CeedElemRestriction      rstr_points;
     CeedElemRestriction_Ref *rstr_data;
 
@@ -702,6 +704,11 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   // Load object source files
   code << tab << "// Ceed object templates\n";
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-restriction-templates.h>\n";
+  if (is_xsmm) {
+    code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-tensor-contract-templates-xsmm.h>\n\n";
+  } else {
+    code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-tensor-contract-templates-ref.h>\n\n";
+  }
   code << tab << "#include <ceed/jit-source/cpu-gen/cpu-gen-basis-templates.h>\n\n";
 
   // C++ needs to know this size at compile time because it doesn't support reshaping via VLA
@@ -731,7 +738,7 @@ extern "C" int CeedOperatorBuildKernel_Cpu_Gen(CeedOperator op, bool *is_good_bu
   std::string operator_name;
 
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
-  operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen";
+  operator_name = "CeedOperator_" + std::string(qfunction_name) + "_Cpu_Gen" + (is_xsmm ? "_Xsmm" : "");
 
   // Open function body
   code << tab << "// Operator function\n";
