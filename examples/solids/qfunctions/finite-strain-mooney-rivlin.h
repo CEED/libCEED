@@ -326,11 +326,6 @@ CEED_QFUNCTION(ElasFSJacobian_MR)(void *ctx, CeedInt Q, const CeedScalar *const 
     };
     // C : right Cauchy-Green tensor
     // C^(-1) : C-Inverse
-    const CeedScalar C[3][3] = {
-        {Cwork[0], Cwork[5], Cwork[4]},
-        {Cwork[5], Cwork[1], Cwork[3]},
-        {Cwork[4], Cwork[3], Cwork[2]}
-    };
     const CeedScalar C_inv[3][3] = {
         {Cinvwork[0], Cinvwork[5], Cinvwork[4]},
         {Cinvwork[5], Cinvwork[1], Cinvwork[3]},
