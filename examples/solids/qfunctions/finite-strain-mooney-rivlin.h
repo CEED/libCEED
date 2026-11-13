@@ -345,12 +345,6 @@ CEED_QFUNCTION(ElasFSJacobian_MR)(void *ctx, CeedInt Q, const CeedScalar *const 
       for (CeedInt k = 0; k < 3; k++) Cinv_contract_dE += C_inv[j][k] * dE[j][k];
     }
 
-    // -- C:dE
-    CeedScalar C_contract_dE = 0;
-    for (CeedInt j = 0; j < 3; j++) {
-      for (CeedInt k = 0; k < 3; k++) C_contract_dE += C[j][k] * dE[j][k];
-    }
-
     // -- dE*C_inv
     CeedScalar dE_Cinv[3][3];
     for (CeedInt j = 0; j < 3; j++) {
