@@ -94,7 +94,7 @@ CEED_QFUNCTION(ElasResidual_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
     //                         [                             (1-2*nu)              ]
     //                         [                                        (1-2*nu)   ]
 
-    // Above Voigt Notation is placed in a 3x3 matrix:
+    // Above symmetric representation is placed in a 3x3 matrix:
     const CeedScalar ss      = E / ((1 + nu) * (1 - 2 * nu));
     const CeedScalar sigma00 = ss * ((1 - nu) * e[0][0] + nu * e[1][1] + nu * e[2][2]),
                      sigma11 = ss * (nu * e[0][0] + (1 - nu) * e[1][1] + nu * e[2][2]),
@@ -189,7 +189,7 @@ CEED_QFUNCTION(ElasJacobian_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
     //                         [                             (1-2*nu)              ]
     //                         [                                        (1-2*nu)   ]
 
-    // Above Voigt Notation is placed in a 3x3 matrix:
+    // Above symmetric representation is placed in a 3x3 matrix:
     const CeedScalar ss       = E / ((1 + nu) * (1 - 2 * nu));
     const CeedScalar dsigma00 = ss * ((1 - nu) * de[0][0] + nu * de[1][1] + nu * de[2][2]),
                      dsigma11 = ss * (nu * de[0][0] + (1 - nu) * de[1][1] + nu * de[2][2]),
