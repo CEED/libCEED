@@ -877,6 +877,5 @@ int main(int argc, char **argv) {
   PetscCall(PetscFree(app_ctx));
   PetscCall(PetscFree(problem_functions));
   PetscCall(PetscFree(units));
-
   return PetscFinalize();
 }

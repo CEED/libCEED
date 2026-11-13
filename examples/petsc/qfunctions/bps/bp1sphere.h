@@ -98,7 +98,6 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const
     // Interp-to-Interp q_data
     q_data[i + Q * 0] = mod_J * w[i];
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -125,7 +124,6 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q, const CeedScalar *const
 
     rhs[i] = q_data[i] * true_soln[i];
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -147,7 +145,6 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) v[i] = q_data[i] * u[i];
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

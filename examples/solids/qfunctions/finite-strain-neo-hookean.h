@@ -87,7 +87,6 @@ CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3], const CeedS
       A[0][2] * A[2][1] - A[0][1] * A[2][2]  /* *NOPAD* */
   };
   for (CeedInt m = 0; m < 6; m++) Ainv[m] = B[m] / (detA);
-
   return CEED_ERROR_SUCCESS;
 }
 #endif
@@ -137,7 +136,6 @@ CEED_QFUNCTION_HELPER int commonFS(const CeedScalar lambda, const CeedScalar mu,
     Swork[m] = (lambda * (*logJ)) * Cinvwork[m];
     for (CeedInt n = 0; n < 3; n++) Swork[m] += mu * C_inv[indj[m]][n] * E2[n][indk[m]];
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -243,7 +241,6 @@ CEED_QFUNCTION(ElasFSResidual_NH)(void *ctx, CeedInt Q, const CeedScalar *const 
       }
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -388,7 +385,6 @@ CEED_QFUNCTION(ElasFSJacobian_NH)(void *ctx, CeedInt Q, const CeedScalar *const 
       }
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -458,7 +454,6 @@ CEED_QFUNCTION(ElasFSEnergy_NH)(void *ctx, CeedInt Q, const CeedScalar *const *i
     energy[i] = (lambda * logJ * logJ / 2. - mu * logJ + mu * (E2[0][0] + E2[1][1] + E2[2][2]) / 2.) * wdetJ;
 
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -543,7 +538,6 @@ CEED_QFUNCTION(ElasFSDiagnostic_NH)(void *ctx, CeedInt Q, const CeedScalar *cons
     // Strain energy
     diagnostic[7][i] = (lambda * logJ * logJ / 2. - mu * logJ + mu * (E2[0][0] + E2[1][1] + E2[2][2]) / 2.);
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

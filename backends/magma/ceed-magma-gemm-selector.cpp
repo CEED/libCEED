@@ -158,7 +158,6 @@ CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int 
       break;
     }
   }
-
   return (ir >= 0) ? data[ir][NB_INDEX_RTC] : 1;
 #endif
 }

@@ -79,7 +79,6 @@ static std::vector<const char *> prepareOclocArgs(sycl::info::device_type Device
     Args.push_back("-options");
     Args.push_back(UserArgs.c_str());
   }
-
   return Args;
 }
 
@@ -179,7 +178,6 @@ static std::vector<byte> compileToSPIRV(const std::string &Source, sycl::info::d
   if (CompileError) throw online_compile_error("ocloc reported compilation errors: {\n" + CompileLog + "\n}");
   if (SpirV.empty()) throw online_compile_error("Unexpected output: ocloc did not return SPIR-V");
   if (MemFreeError) throw online_compile_error("ocloc cannot safely free resources");
-
   return SpirV;
 }
 
@@ -190,7 +188,6 @@ std::vector<byte> online_compiler<source_language::opencl_c>::compile(const std:
     std::string Version = std::to_string(OutputFormatVersion.first) + ", " + std::to_string(OutputFormatVersion.second);
     throw online_compile_error(std::string("The output format version (") + Version + ") is not supported yet");
   }
-
   return compileToSPIRV(Source, DeviceType, DeviceArch, Is64Bit, DeviceStepping, CompileToSPIRVHandle, FreeSPIRVOutputsHandle, UserArgs);
 }
 

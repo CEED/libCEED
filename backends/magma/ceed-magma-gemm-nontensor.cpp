@@ -142,6 +142,5 @@ int magma_gemm_nontensor(magma_trans_t trans_A, magma_trans_t trans_B, magma_int
 
   // wait for the operation to complete
   ceed_magma_queue_sync(queue);
-
   return 0;
 }

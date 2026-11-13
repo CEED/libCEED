@@ -60,7 +60,6 @@ CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = qi[j];
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

@@ -42,7 +42,6 @@ CEED_QFUNCTION(massf)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 
   // Quadrature Point Loop
   for (CeedInt i = 0; i < Q; i++) v[i] = qdata[i] * u[i];
-
   return CEED_ERROR_SUCCESS;
 }
 

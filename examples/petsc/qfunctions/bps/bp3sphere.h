@@ -168,7 +168,6 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 
     rhs[i + Q * 0] = q_data[i + Q * 0] * 2 * sin(lambda) * cos(theta) / (R * R);
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -205,7 +204,6 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
       vg[i + j * Q] = w_det_J * (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j]);
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

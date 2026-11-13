@@ -86,7 +86,6 @@ CEED_QFUNCTION(MassDiff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
       }
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

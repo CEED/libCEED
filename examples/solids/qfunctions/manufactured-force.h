@@ -75,7 +75,6 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q, const CeedScalar *cons
                        wdetJ / 1e8;
 
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

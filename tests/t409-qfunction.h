@@ -16,6 +16,5 @@ CEED_QFUNCTION(scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     v[i] = scale[1] * u[i];
   }
   scale[0] = 42;
-
   return CEED_ERROR_SUCCESS;
 }

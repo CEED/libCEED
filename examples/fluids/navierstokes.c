@@ -356,6 +356,5 @@ int main(int argc, char **argv) {
   PetscCall(PetscFree(app_ctx));
   PetscCall(PetscFree(ceed_data));
   PetscCall(PetscFree(problem));
-
   return PetscFinalize();
 }
