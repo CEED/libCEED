@@ -154,50 +154,52 @@ $ make prove
 
 There are multiple supported backends, which can be selected at runtime in the examples:
 
-| CEED resource              | Backend                                                | Deterministic Capable |
-| :------------------------- | :----------------------------------------------------- | :-------------------- |
-| **CPU Native**             |                                                        |                       |
-| `/cpu/self/ref/serial`     | Serial reference implementation                        | Yes                   |
-| `/cpu/self/ref/blocked`    | Blocked reference implementation                       | Yes                   |
-| `/cpu/self/opt/serial`     | Serial optimized C implementation                      | Yes                   |
-| `/cpu/self/opt/blocked`    | Blocked optimized C implementation                     | Yes                   |
-| `/cpu/self/gen/serial`     | Optimized serial implementation using code generation  | Yes                   |
-| `/cpu/self/gen/blocked`    | Optimized blocked implementation using code generation | Yes                   |
-| **CPU Valgrind**           |                                                        |                       |
-| `/cpu/self/memcheck/*`     | Memcheck backends, undefined value checks              | Yes                   |
-| **CPU AVX Intrinsics**     |                                                        |                       |
-| `/cpu/self/avx/serial`     | Serial AVX implementation                              | Yes                   |
-| `/cpu/self/avx/blocked`    | Blocked AVX implementation                             | Yes                   |
-| **CPU ARM Intrinsics**     |                                                        |                       |
-| `/cpu/self/sve/serial`     | Serial ARM SVE implementation                          | Yes                   |
-| `/cpu/self/sve/blocked`    | Blocked ARM SVE implementation                         | Yes                   |
-| `/cpu/self/sme/serial`     | Serial ARM SME implementation                          | Yes                   |
-| `/cpu/self/sme/blocked`    | Blocked ARM SME implementation                         | Yes                   |
-| **CPU LIBXSMM**            |                                                        |                       |
-| `/cpu/self/xsmm/serial`    | Serial LIBXSMM implementation                          | Yes                   |
-| `/cpu/self/xsmm/blocked`   | Blocked LIBXSMM implementation                         | Yes                   |
-| **CUDA Native**            |                                                        |                       |
-| `/gpu/cuda/ref`            | Reference pure CUDA kernels                            | Yes                   |
-| `/gpu/cuda/shared`         | Optimized pure CUDA kernels using shared memory        | Yes                   |
-| `/gpu/cuda/cublas`         | Uses cuBLAS GEMM for non-tensor basis operations       | No                    |
-| `/gpu/cuda/cublas/det`     | Uses cuBLAS GEMM for non-tensor basis operations       | Yes                   |
-| `/gpu/cuda/gen`            | Optimized pure CUDA kernels using code generation      | No                    |
-| **HIP Native**             |                                                        |                       |
-| `/gpu/hip/ref`             | Reference pure HIP kernels                             | Yes                   |
-| `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory         | Yes                   |
-| `/gpu/hip/hipblas`         | Uses hipBLAS GEMM for non-tensor basis operations      | No                    |
-| `/gpu/hip/hipblas/det`     | Uses hipBLAS GEMM for non-tensor basis operations      | Yes                   |
-| `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation       | No                    |
-| **SYCL Native**            |                                                        |                       |
-| `/gpu/sycl/ref`            | Reference pure SYCL kernels                            | Yes                   |
-| `/gpu/sycl/shared`         | Optimized pure SYCL kernels using shared memory        | Yes                   |
-| **MAGMA**                  |                                                        |                       |
-| `/gpu/cuda/magma`          | CUDA MAGMA kernels                                     | No                    |
-| `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                     | Yes                   |
-| `/gpu/hip/magma`           | HIP MAGMA kernels                                      | No                    |
-| `/gpu/hip/magma/det`       | HIP MAGMA kernels                                      | Yes                   |
-| **CUTLASS**                |                                                        |                       |
-| `/gpu/cuda/cutlass`        | CUDA CUTLASS CuTe GEMM kernels for non-tensor bases    | Yes                   |
+| CEED resource                | Backend                                                | Deterministic Capable |
+| :--------------------------- | :----------------------------------------------------- | :-------------------- |
+| **CPU Native**               |                                                        |                       |
+| `/cpu/self/ref/serial`       | Serial reference implementation                        | Yes                   |
+| `/cpu/self/ref/blocked`      | Blocked reference implementation                       | Yes                   |
+| `/cpu/self/opt/serial`       | Serial optimized C implementation                      | Yes                   |
+| `/cpu/self/opt/blocked`      | Blocked optimized C implementation                     | Yes                   |
+| `/cpu/self/gen/serial`       | Optimized serial implementation using code generation  | Yes                   |
+| `/cpu/self/gen/blocked`      | Optimized blocked implementation using code generation | Yes                   |
+| **CPU Valgrind**             |                                                        |                       |
+| `/cpu/self/memcheck/*`       | Memcheck backends, undefined value checks              | Yes                   |
+| **CPU AVX Intrinsics**       |                                                        |                       |
+| `/cpu/self/avx/serial`       | Serial AVX implementation                              | Yes                   |
+| `/cpu/self/avx/blocked`      | Blocked AVX implementation                             | Yes                   |
+| **CPU ARM Intrinsics**       |                                                        |                       |
+| `/cpu/self/sve/serial`       | Serial ARM SVE implementation                          | Yes                   |
+| `/cpu/self/sve/blocked`      | Blocked ARM SVE implementation                         | Yes                   |
+| `/cpu/self/sme/serial`       | Serial ARM SME implementation                          | Yes                   |
+| `/cpu/self/sme/blocked`      | Blocked ARM SME implementation                         | Yes                   |
+| **CPU LIBXSMM**              |                                                        |                       |
+| `/cpu/self/xsmm/serial`      | Serial LIBXSMM implementation                          | Yes                   |
+| `/cpu/self/xsmm/blocked`     | Blocked LIBXSMM implementation                         | Yes                   |
+| `/cpu/self/gen/xsmm/serial`  | Optimized serial implementation using code generation  | Yes                   |
+| `/cpu/self/gen/xsmm/blocked` | Optimized blocked implementation using code generation | Yes                   |
+| **CUDA Native**              |                                                        |                       |
+| `/gpu/cuda/ref`              | Reference pure CUDA kernels                            | Yes                   |
+| `/gpu/cuda/shared`           | Optimized pure CUDA kernels using shared memory        | Yes                   |
+| `/gpu/cuda/cublas`           | Uses cuBLAS GEMM for non-tensor basis operations       | No                    |
+| `/gpu/cuda/cublas/det`       | Uses cuBLAS GEMM for non-tensor basis operations       | Yes                   |
+| `/gpu/cuda/gen`              | Optimized pure CUDA kernels using code generation      | No                    |
+| **HIP Native**               |                                                        |                       |
+| `/gpu/hip/ref`               | Reference pure HIP kernels                             | Yes                   |
+| `/gpu/hip/shared`            | Optimized pure HIP kernels using shared memory         | Yes                   |
+| `/gpu/hip/hipblas`           | Uses hipBLAS GEMM for non-tensor basis operations      | No                    |
+| `/gpu/hip/hipblas/det`       | Uses hipBLAS GEMM for non-tensor basis operations      | Yes                   |
+| `/gpu/hip/gen`               | Optimized pure HIP kernels using code generation       | No                    |
+| **SYCL Native**              |                                                        |                       |
+| `/gpu/sycl/ref`              | Reference pure SYCL kernels                            | Yes                   |
+| `/gpu/sycl/shared`           | Optimized pure SYCL kernels using shared memory        | Yes                   |
+| **MAGMA**                    |                                                        |                       |
+| `/gpu/cuda/magma`            | CUDA MAGMA kernels                                     | No                    |
+| `/gpu/cuda/magma/det`        | CUDA MAGMA kernels                                     | Yes                   |
+| `/gpu/hip/magma`             | HIP MAGMA kernels                                      | No                    |
+| `/gpu/hip/magma/det`         | HIP MAGMA kernels                                      | Yes                   |
+| **CUTLASS**                  |                                                        |                       |
+| `/gpu/cuda/cutlass`          | CUDA CUTLASS CuTe GEMM kernels for non-tensor bases    | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
 The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
@@ -223,7 +225,8 @@ The `/cpu/self/sme/*` backends use vector-length-agnostic ARM Scalable Matrix Ex
 These backends are built when the configured compiler and target can compile the required SME intrinsics and streaming/ZA attributes.
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxsmm/libxsmm) package to provide vectorized CPU performance.
-The LIBXSMM version 2.0 or newer is required.
+The `/cpu/self/gen/xsmm/*` backends require LIBXSMM to be built as a shared library.
+The LIBXSMM version 2.0 or newer is required for all LIBXSMM based backends.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 For tensor elements (quadrilaterals, hexahedra) with H1 tensor product bases or non-tensor bases of degree 2 or less, the `/gpu/cuda/gen` backend provides the best performance.
