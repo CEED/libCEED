@@ -268,7 +268,6 @@ static inline int CeedBasis_Apply_Transpose_Interp_AtPoints_Tensor_2D(const Ceed
   TensorContract_Apply_Transpose<NUM_COMP * Q_1D, NUM_POINTS, 1, BLOCK_SIZE * Q_1D>(&x_ref_cheby[0 * BLOCK_SIZE * NUM_POINTS * Q_1D], temp, u_cheby);
 
   CeedBasis_Apply_Transpose_Interp_Tensor_2D<BLOCK_SIZE, NUM_COMP, P_1D, Q_1D, APPLY_ADD>(interp_cheby_1d, u_cheby, v);
-
   return CEED_ERROR_SUCCESS;
 }
 

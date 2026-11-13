@@ -104,7 +104,6 @@ CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time, cons
   q[2] = rho * u[1];
   q[3] = rho * u[2];
   q[4] = P / (gamma - 1.0) + rho * (u[0] * u[0]) / 2.;
-
   return CEED_ERROR_SUCCESS;
 }
 

@@ -321,7 +321,6 @@ CEED_QFUNCTION_HELPER CeedInt Diagonalize(CeedScalar *A, CeedInt N, CeedScalar *
 
   if ((n_iters > max_num_iters) && (N > 1))  // If we exceeded max_num_iters,
     return CEED_ERROR_SUCCESS;               // indicate an error occured.
-
   return n_iters;
 }
 

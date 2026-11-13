@@ -208,7 +208,6 @@ CEED_QFUNCTION_HELPER CeedScalar LinearRampCoefficient(CeedScalar amplitude, Cee
 CEED_QFUNCTION_HELPER int StoredValuesPack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *values_at_qpnt,
                                            CeedScalar *stored) {
   for (CeedInt j = 0; j < num_comp; j++) stored[(start + j) * Q + i] = values_at_qpnt[j];
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -227,7 +226,6 @@ CEED_QFUNCTION_HELPER int StoredValuesPack(CeedInt Q, CeedInt i, CeedInt start, 
 CEED_QFUNCTION_HELPER int StoredValuesUnpack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *stored,
                                              CeedScalar *values_at_qpnt) {
   for (CeedInt j = 0; j < num_comp; j++) values_at_qpnt[j] = stored[(start + j) * Q + i];
-
   return CEED_ERROR_SUCCESS;
 }
 

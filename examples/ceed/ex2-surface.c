@@ -383,7 +383,6 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[3], CeedIn
   if (q_data_restriction) {
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_qpts, num_comp, num_comp * elem_qpts * num_elem, CEED_STRIDES_BACKEND, q_data_restriction);
   }
-
   return 0;
 }
 

@@ -43,7 +43,6 @@ static inline __attribute__((always_inline)) rtype LoadStrided_Sme(const CeedSca
   if (stride == 1) return load_vec(pg, base);
 
   for (CeedInt i = 0; i < num_active; i++) scratch[i] = base[(CeedSize)i * stride];
-
   return load_vec(pg, scratch);
 }
 
@@ -406,7 +405,6 @@ __arm_new("za") static inline int CeedTensorContract_Sme_Batch(CeedInt A, CeedIn
       }
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

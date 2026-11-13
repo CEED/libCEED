@@ -296,7 +296,6 @@ PetscScalar EvalU_Tanh(PetscInt dim, const PetscScalar x[]) {
 
 PetscScalar EvalU_Sphere(PetscInt dim, const PetscScalar x[]) {
   PetscScalar distance = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
-
   return distance < 1.0 ? 1.0 : 0.1;
 }
 

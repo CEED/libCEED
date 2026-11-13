@@ -56,7 +56,6 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const Ce
   Y[2]                   = 0.;
   Y[3]                   = 0.;
   Y[4]                   = theta;
-
   return StateFromY(gas, Y);
 }
 

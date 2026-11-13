@@ -37,7 +37,6 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     q_data[1][i]         = w * (J11 * J11 + J21 * J21);
     q_data[2][i]         = -w * (J11 * J12 + J21 * J22);
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

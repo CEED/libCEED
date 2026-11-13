@@ -114,7 +114,6 @@ CEED_QFUNCTION(ElasResidual_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
       }
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -209,7 +208,6 @@ CEED_QFUNCTION(ElasJacobian_Linear)(void *ctx, CeedInt Q, const CeedScalar *cons
       }
     }
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -276,7 +274,6 @@ CEED_QFUNCTION(ElasEnergy_Linear)(void *ctx, CeedInt Q, const CeedScalar *const 
         (lambda * strain_vol * strain_vol / 2. + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu) * wdetJ;
 
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -358,7 +355,6 @@ CEED_QFUNCTION(ElasDiagnostic_Linear)(void *ctx, CeedInt Q, const CeedScalar *co
     diagnostic[7][i] =
         (lambda * strain_vol * strain_vol / 2. + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu);
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

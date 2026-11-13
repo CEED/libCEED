@@ -79,7 +79,6 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
     q_data[9][i] = A33 / detJ;
 
   }  // End of Quadrature Point Loop
-
   return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------
