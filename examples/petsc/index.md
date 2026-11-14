@@ -1,4 +1,4 @@
-# PETSc demos and BPs
+# PETSc Demos and BPs
 
 (example-petsc-area)=
 

@@ -138,12 +138,16 @@ myst_url_schemes = ("http", "https", "mailto")
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+html_favicon = '../../img/Icon.ico'
+html_logo = '../../img/libCEEDlogo.svg'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'logo_only': True,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

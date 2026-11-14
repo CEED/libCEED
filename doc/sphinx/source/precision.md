@@ -13,7 +13,7 @@ Users wishing to set {code}`CeedScalar` to single precision should edit `include
 to include {code}`ceed-f32.h` instead, then recompile the library.
 Tests can be run using `make test FC=` because the Fortran tests do not support single precision at this time.
 
-## Language-specific notes
+## Language-Specific Notes
 
  - **C**: {code}`CEED_SCALAR_TYPE` will be defined to match one of the values of the {code}`CeedScalarType` {code}`enum`, and can be used for compile-time checking of {code}`CeedScalar`'s type; see, e.g., {code}`tests/t314-basis.c`.
 
