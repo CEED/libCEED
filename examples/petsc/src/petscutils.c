@@ -185,6 +185,19 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
 }
 
 // -----------------------------------------------------------------------------
+// This function sets up a BDDC vertex only DM from an existing fine DM
+// -----------------------------------------------------------------------------
+PetscErrorCode SetupVertexDMFromDM(DM dm, DM dm_vertex, PetscInt q_extra, PetscInt num_comp_u, PetscBool enforce_bc) {
+  PetscInt dim;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetDimension(dm, &dim));
+  PetscCall(SetupDMByDegree(dm_vertex, 1, q_extra, num_comp_u, dim, enforce_bc));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// -----------------------------------------------------------------------------
 // Get CEED restriction data from DMPlex
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
