@@ -39,15 +39,9 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
     CeedCallCuda(ceed, cudaGraphExecDestroy(impl->graph_instance));
     impl->graph_instance = NULL;
   }
-  if (impl->graph) {
-    CeedCallCuda(ceed, cudaGraphDestroy(impl->graph));
-    impl->graph = NULL;
-  }
-  impl->graph_created       = false;
   impl->captured_input_ptr  = NULL;
   impl->captured_output_ptr = NULL;
   CeedCallBackend(CeedFree(&impl->captured_passive_ptrs));
-
   CeedCallBackend(CeedFree(&impl));
   CeedCallBackend(CeedDestroy(&ceed));
   return CEED_ERROR_SUCCESS;
@@ -469,21 +463,29 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     return CEED_ERROR_SUCCESS;
   }
 
-  bool need_build = !impl->graph_created;
+  bool need_build = !impl->graph_instance, need_update = false;
 
   // Refresh device data prior to building graph to prevent needed to copy vectors or qf context during capture
   if (input_vec != CEED_VECTOR_NONE) {
     const CeedScalar *in_arr;
 
     CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &in_arr));
-    need_build = need_build || in_arr != impl->captured_input_ptr;
+    if (in_arr != impl->captured_input_ptr) {
+      need_update = true;
+      CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph update required: change in active input pointer");
+    }
+    impl->captured_input_ptr = in_arr;
     CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &in_arr));
   }
   if (output_vec != CEED_VECTOR_NONE) {
     CeedScalar *out_arr;
 
     CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &out_arr));
-    need_build = need_build || out_arr != impl->captured_output_ptr;
+    if (out_arr != impl->captured_output_ptr) {
+      need_update = true;
+      CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph update required: change in active output pointer");
+    }
+    impl->captured_output_ptr = out_arr;
     CeedCallBackend(CeedVectorRestoreArray(output_vec, &out_arr));
   }
   // Rebuild if any passive pointer changed, such as a passive vector set with CEED_USE_POINTER after the graph was captured
@@ -492,19 +494,23 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     const void **passive_ptrs;
 
     CeedCallBackend(CeedCompositeRefreshForReplay_Cuda_gen(sub_operators, num_suboperators, &num_passive_ptrs, &passive_ptrs));
-    need_build = need_build || num_passive_ptrs != impl->num_captured_passive_ptrs ||
-                 (num_passive_ptrs > 0 && memcmp(passive_ptrs, impl->captured_passive_ptrs, num_passive_ptrs * sizeof(*passive_ptrs)));
-    if (need_build) {
+    bool need_passive_update = num_passive_ptrs != impl->num_captured_passive_ptrs ||
+                               (num_passive_ptrs > 0 && memcmp(passive_ptrs, impl->captured_passive_ptrs, num_passive_ptrs * sizeof(*passive_ptrs)));
+    if (need_passive_update) {
+      need_update = true;
       CeedCallBackend(CeedFree(&impl->captured_passive_ptrs));
       impl->captured_passive_ptrs     = passive_ptrs;
       impl->num_captured_passive_ptrs = num_passive_ptrs;
+      CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph update required: change in passive pointer");
     } else {
       CeedCallBackend(CeedFree(&passive_ptrs));
     }
   }
 
-  // TODO: Use the Graph API rebuild functions to update memory address changes in place
-  if (need_build) {
+  // Only try to update if the GraphExec exists
+  need_update = need_update && impl->graph_instance;
+
+  if (need_build || need_update) {
     const CeedScalar *input_arr      = NULL;
     CeedScalar       *output_arr     = NULL;
     cudaStream_t      capture_stream = cudaStreamPerThread;
@@ -512,15 +518,9 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
     bool              capture_ok     = true;
     cudaError_t       err;
 
-    if (impl->graph_instance) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphExecDestroy(impl->graph_instance));
-    if (impl->graph) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphDestroy(impl->graph));
-    impl->graph          = NULL;
-    impl->graph_instance = NULL;
-
+    CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Capturing graph");
     if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(input_vec, CEED_MEM_DEVICE, &input_arr));
     if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArray(output_vec, CEED_MEM_DEVICE, &output_arr));
-    impl->captured_input_ptr  = input_arr;
-    impl->captured_output_ptr = output_arr;
 
     err = cudaStreamBeginCapture(capture_stream, cudaStreamCaptureModeThreadLocal);
     if (err != cudaSuccess) capture_ok = false;
@@ -542,15 +542,26 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
 
     if (capture_ok && (err != cudaSuccess || !graph)) capture_ok = false;
     if (capture_ok) {
-      impl->graph = graph;
-      if (cudaGraphInstantiate(&impl->graph_instance, impl->graph, 0) != cudaSuccess) {
-        CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphDestroy(impl->graph));
-        impl->graph = NULL;
-        capture_ok  = false;
+      if (need_update) {
+        cudaGraphExecUpdateResultInfo update_result_info;
+
+        if (cudaGraphExecUpdate(impl->graph_instance, graph, &update_result_info) != cudaSuccess ||
+            update_result_info.result != cudaGraphExecUpdateSuccess) {
+          CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph update failure");
+          need_build = true;
+        }
       }
-    } else if (graph) {
-      CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphDestroy(graph));
+      if (need_build) {
+        if (impl->graph_instance) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphExecDestroy(impl->graph_instance));
+        impl->graph_instance = NULL;
+        if (cudaGraphInstantiate(&impl->graph_instance, graph, 0) != cudaSuccess) {
+          CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph instantiation failure");
+          capture_ok = false;
+        }
+      }
     }
+    if (graph) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphDestroy(graph));
+
     if (input_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArrayRead(input_vec, &input_arr));
     if (output_vec != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorRestoreArray(output_vec, &output_arr));
     if (!capture_ok) {
@@ -558,7 +569,6 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
       cudaGetLastError();
       CeedCallCuda(CeedOperatorReturnCeed(op), cudaDeviceSynchronize());
       cudaGetLastError();
-      impl->graph_created             = false;
       impl->captured_input_ptr        = NULL;
       impl->captured_output_ptr       = NULL;
       impl->num_captured_passive_ptrs = 0;
@@ -567,16 +577,12 @@ static int CeedOperatorApplyAddComposite_Cuda_gen(CeedOperator op, CeedVector in
       CeedCallBackend(CeedOperatorApplyAddComposite_NoGraph_Cuda_gen(op, input_vec, output_vec, request));
       return CEED_ERROR_SUCCESS;
     }
-    impl->graph_created = true;
   }
   if (cudaGraphLaunch(impl->graph_instance, NULL) != cudaSuccess) {
     CeedDebug(CeedOperatorReturnCeed(op), "/gpu/cuda/gen: Graph launch failure");
     cudaGetLastError();
-    if (impl->graph_instance) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphExecDestroy(impl->graph_instance));
-    if (impl->graph) CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphDestroy(impl->graph));
-    impl->graph                     = NULL;
+    CeedCallCuda(CeedOperatorReturnCeed(op), cudaGraphExecDestroy(impl->graph_instance));
     impl->graph_instance            = NULL;
-    impl->graph_created             = false;
     impl->captured_input_ptr        = NULL;
     impl->captured_output_ptr       = NULL;
     impl->num_captured_passive_ptrs = 0;
