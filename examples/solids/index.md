@@ -31,7 +31,7 @@ $$ (hyperelastic-cd)
 
 (running-elasticity)=
 
-## Running the mini-app
+## Running the Mini-app
 
 ```{include} README.md
 :start-after: <!-- solids-inclusion -->

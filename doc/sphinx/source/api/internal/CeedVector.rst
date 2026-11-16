@@ -1,5 +1,8 @@
-CeedVector
-==========
+CeedVector Internal Functions
+=============================
+
+Internal Functions
+-----------------------------
 
 .. doxygengroup:: CeedVectorDeveloper
    :project: libCEED

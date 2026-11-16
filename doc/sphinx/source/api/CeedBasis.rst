@@ -1,12 +1,12 @@
 .. _CeedBasis:
 
 CeedBasis
-**************************************
+*************************
 
 A `CeedBasis` defines the discrete finite element basis and associated quadrature rule.
 
-Discrete element bases and quadrature
-======================================
+Public API Functions
+=========================
 
 .. doxygengroup:: CeedBasisUser
    :project: libCEED
@@ -17,7 +17,7 @@ Discrete element bases and quadrature
 .. _CeedBasis-typedefs and enumerations:
 
 Typedefs and Enumerations
---------------------------------------
+=========================
 
 .. doxygenenum:: CeedTransposeMode
    :project: libCEED

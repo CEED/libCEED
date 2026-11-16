@@ -1,12 +1,12 @@
 .. _CeedVector:
 
 CeedVector
-**************************************
+*************************
 
 A `CeedVector` constitutes the main data structure and serves as input/output for the :ref:`CeedOperator`\s.
 
-Basic vector operations
-======================================
+Public API Functions
+=========================
 
 .. doxygengroup:: CeedVectorUser
    :project: libCEED
@@ -15,7 +15,7 @@ Basic vector operations
    :members:
 
 Typedefs and Enumerations
---------------------------------------
+=========================
 
 .. doxygentypedef:: CeedInt
    :project: libCEED

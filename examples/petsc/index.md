@@ -92,14 +92,14 @@ $$
 
 (example-petsc-bps)=
 
-## Bakeoff problems and generalizations
+## Ceed BPs and generalizations
 
 The PETSc examples in this directory include a full suite of parallel {ref}`bakeoff problems <bps>` (BPs) using a "raw" parallel decomposition (see `bpsraw.c`) and using PETSc's `DMPlex` for unstructured grid management (see `bps.c`).
 A generalization of these BPs to the surface of the cubed-sphere are available in `bpssphere.c`.
 
 (example-petsc-bps-sphere)=
 
-### Bakeoff problems on the cubed-sphere
+### BPs on the cubed-sphere
 
 For the $L^2$ projection problems, BP1-BP2, that use the mass operator, the coordinate transformations and the corresponding Jacobian determinant, equation {eq}`eq-jacobian-sphere`, are the same as in the {ref}`example-petsc-area-sphere` example.
 For the Poisson's problem, BP3-BP6, on the cubed-sphere, in addition to equation {eq}`eq-jacobian-sphere`, the pseudo-inverse of $\partial \overset{\circ}{\bm{x}} / \partial \bm{X}$ is used to derive the contravariant metric tensor (please see figure {numref}`fig-sphere-coords` for a reference of the notation used).

@@ -1,12 +1,12 @@
 .. _CeedQFunction:
 
 CeedQFunction
-***********************************************************************
+********************
 
 A `CeedQFunction` represents the spatial terms of the point-wise functions describing the physics at the quadrature points.
 
-Resolution/space-independent weak forms and quadrature-based operations
-=======================================================================
+Public API Functions
+====================
 
 .. doxygengroup:: CeedQFunctionUser
    :project: libCEED
@@ -15,7 +15,7 @@ Resolution/space-independent weak forms and quadrature-based operations
    :members:
 
 Macros
---------------------------------------
+====================
 
 .. doxygendefine:: CEED_QFUNCTION
    :project: libCEED

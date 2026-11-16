@@ -1,11 +1,11 @@
-# Standalone libCEED
+# Standalone libCEED Examples
 
 The following three examples have no dependencies, and are designed to be self-contained.
 For additional examples that use external discretization libraries (MFEM, PETSc, Nek5000 etc.) see the subdirectories in {file}`examples/`.
 
 (ex1-volume)=
 
-## Ex1-Volume
+## Example 1 - Volume
 
 This example is located in the subdirectory {file}`examples/ceed`.
 It illustrates a simple usage of libCEED to compute the volume of a given body using a matrix-free application of the mass operator.
@@ -28,7 +28,7 @@ with $v(x) \in \mathcal{V}_p = \{ v \in H^{1}(\Omega_e) \,|\, v \in P_p(\bm{I}),
 
 (ex2-surface)=
 
-## Ex2-Surface
+## Example 2 - Surface
 
 This example is located in the subdirectory {file}`examples/ceed`.
 It computes the surface area of a given body using matrix-free application of a diffusion operator.
@@ -62,7 +62,7 @@ $$
 
 (ex3-volume)=
 
-## Ex3-Volume
+## Example 3 - Volume
 
 This example is located in the subdirectory {file}`examples/ceed`.
 It illustrates a more complex usage of libCEED to compute the volume of a given body using a matrix-free application of the screened Poisson operator.

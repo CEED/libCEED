@@ -1,5 +1,8 @@
-CeedQFunction
-=============
+CeedQFunction Internal Functions
+================================
+
+Internal Functions
+--------------------------------
 
 .. doxygengroup:: CeedQFunctionDeveloper
    :project: libCEED

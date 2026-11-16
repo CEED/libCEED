@@ -1,5 +1,8 @@
-CeedVector
-==========
+CeedVector Backend API
+======================
+
+Backend API Functions
+----------------------
 
 .. doxygengroup:: CeedVectorBackend
    :project: libCEED

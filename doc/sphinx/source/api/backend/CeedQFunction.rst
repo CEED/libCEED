@@ -1,5 +1,8 @@
-CeedQFunction
-=============
+CeedQFunction Backend API
+=========================
+
+Backend API Functions
+-------------------------
 
 .. doxygengroup:: CeedQFunctionBackend
    :project: libCEED
@@ -7,8 +10,8 @@ CeedQFunction
    :content-only:
    :members:
 
-Macros
---------------------------------------
+Backend Macros
+-------------------------
 
 .. doxygendefine:: CEED_QFUNCTION_ATTR
    :project: libCEED

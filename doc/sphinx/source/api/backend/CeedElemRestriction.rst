@@ -1,5 +1,8 @@
-CeedElemRestriction
-===================
+CeedElemRestriction Backend API
+===============================
+
+Backend API Functions
+-------------------------------
 
 .. doxygengroup:: CeedElemRestrictionBackend
    :project: libCEED

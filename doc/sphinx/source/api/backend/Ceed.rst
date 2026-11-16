@@ -1,5 +1,8 @@
-Ceed
-====
+Ceed Backend API
+=================================
+
+Backend API Functions
+---------------------------------
 
 .. doxygengroup:: CeedBackend
    :project: libCEED
@@ -7,8 +10,8 @@ Ceed
    :content-only:
    :members:
 
-Macros
---------------------------------------
+Backend Macros
+---------------------------------
 
 .. doxygendefine:: CeedDebug256
    :project: libCEED
@@ -22,8 +25,8 @@ Macros
 .. doxygendefine:: CeedDebugEnv
    :project: libCEED
 
-Typedefs and Enumerations
---------------------------------------
+Backend Typedefs and Enumerations
+---------------------------------
 
 .. doxygenenum:: CeedDebugColor
    :project: libCEED
