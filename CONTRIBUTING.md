@@ -1,9 +1,9 @@
 # How to Contribute
 
 Contributions to libCEED are encouraged.
-<!---
-Please use a pull request to the appropriate branch ('stable' for backward-compatible bug fixes for the last stable release, main' for new features and everything else).
--->
+
+Please use a pull request to the appropriate branch - 'release' for backward-compatible bug fixes for the last stable release, main' for new features and everything else.
+
 Please make your commits well-organized and [atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention), using `git rebase --interactive` as needed.
 Check that tests (including "examples") pass using `make prove-all`.
 If adding a new feature, please add or extend a test so that your new feature is tested.
