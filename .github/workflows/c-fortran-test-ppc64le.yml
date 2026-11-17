@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  c_test_ppc64le:
     strategy:
       matrix:
         os: [ubuntu-26.04]

@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  rust_documentation:
     strategy:
       matrix:
         os: [ubuntu-26.04]

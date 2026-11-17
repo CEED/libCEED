@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  python_test_and_style:
     strategy:
       matrix:
         os: [ubuntu-26.04]

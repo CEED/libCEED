@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  rust_test:
     strategy:
       matrix:
         os: [ubuntu-26.04, macos-26]
@@ -46,7 +46,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
 
-  style:
+  rust_style:
     strategy:
       matrix:
         os: [ubuntu-26.04]

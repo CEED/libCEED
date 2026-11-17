@@ -8,7 +8,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  julia_documentation:
     runs-on: ubuntu-26.04
     steps:
       - name: Environment setup

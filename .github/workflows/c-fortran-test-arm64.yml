@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test-arm:
+  c_test_arm:
     strategy:
       matrix:
         os: [ubuntu-26.04-arm]

@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  c_style:
     strategy:
       matrix:
         os: [ubuntu-26.04]
