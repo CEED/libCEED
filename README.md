@@ -14,7 +14,7 @@
 
 libCEED provides fast algebra for element-based discretizations, designed for performance portability, run-time flexibility, and clean embedding in higher level libraries and applications.
 It offers a C99 interface as well as bindings for Fortran, Python, Julia, and Rust.
-While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained in the [user manual](https://libceed.org/en/latest/) and API implementation portion of the [documentation](https://libceed.org/en/latest/api/).
+While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained in the [user manual](https://libceed.org/en/latest) and API implementation portion of the [documentation](https://libceed.org/en/latest/api).
 
 One of the challenges with high-order methods is that a global sparse matrix is no longer a good representation of a high-order linear operator, both with respect to the FLOPs needed for its evaluation, as well as the memory transfer needed for a matvec.
 Thus, high-order methods require a new "format" that still represents a linear (or more generally non-linear) operator, but not through a sparse matrix.
@@ -29,7 +29,7 @@ See <http://github.com/ceed> for more information and source code availability.
 
 The CEED research was supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project) (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a [capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nation’s exascale computing imperative.
 
-For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
+For more details on the CEED API see the [documentation](https://libceed.org/en/latest).
 
 <!-- getting-started-inclusion -->
 
@@ -129,7 +129,7 @@ julia> ]
 pkg> add LibCEED
 ```
 
-See the [LibCEED.jl documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev/) for more information.
+See the [LibCEED.jl documentation](http://ceed.exascaleproject.org/libCEED-julia-docs/dev) for more information.
 
 Rust users can include libCEED via `Cargo.toml`:
 
@@ -215,7 +215,7 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 The `/cpu/self/gen/*` backends use code generation to write a function to perform the action of the Operator and compile it at runtime.
 You can configure the compiler and optimization options at compile or runtime with the options `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT`, respectively.
 
-The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
+The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](https://valgrind.org) Memcheck tool to help verify that user QFunctions have no undefined values.
 To use, run your code with Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
 A 'development' or 'debugging' version of Valgrind with headers is required to use this backend.
 This backend can be run in serial or blocked mode and defaults to running in the serial mode if `/cpu/self/memcheck` is selected at runtime.
@@ -249,7 +249,7 @@ At runtime, chipStar's own environment variables (e.g., `CHIP_BE=level0` or `CHI
 The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
 They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
 
-The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://github.com/icl-utk-edu/magma/) package.
+The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://github.com/icl-utk-edu/magma) package.
 To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
 By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends with a MAGMA installation located elsewhere, create a link to `magma/` in libCEED's parent directory, or set `MAGMA_DIR` to the proper location.
 MAGMA version 2.5.0 or newer is required.
