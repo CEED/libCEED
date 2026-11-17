@@ -34,7 +34,8 @@ quiet ?= $($(1))
 XDG_CACHE_HOME      ?= $(HOME)/.cache
 CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
-DARWIN := $(filter Darwin,$(shell uname -s))
+DARWIN  := $(filter Darwin,$(shell uname -s))
+FREEBSD := $(filter FreeBSD,$(shell uname -s))
 
 
 # ------------------------------------------------------------
@@ -170,6 +171,9 @@ FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused
 FFLAGS.ifort            := $(if $(STATIC),,-fPIC) -cpp
 FFLAGS.ifx              := $(FFLAGS.ifort)
 FFLAGS.XL               := $(if $(STATIC),,-qpic) -ffree-form -qpreprocess -qextname -MMD
+CFLAGS.freebsd          := -fPIC -std=c11 -MMD -MP
+CXXFLAGS.freebsd        := -fPIC -std=c++11 -MMD -MP
+FFLAGS.freebsd          := -fPIC -cpp -MMD -MP
 
 # This check works with compilers that use gcc and clang.  It fails with some
 # compilers; e.g., xlc apparently ignores all options when -E is passed, thus
@@ -242,6 +246,15 @@ CEED_LDLIBS  += -lm
 OBJDIR       := build
 for_install  := $(filter install,$(MAKECMDGOALS))
 LIBDIR       := $(if $(for_install),$(OBJDIR),lib)
+
+## Fix FreeBSD
+# FreeBSD intentionally clobbers CFLAGS, CXXFLAGS, and FFLAGS
+# We need to fix the clobbering ourselves to work around FreeBSD
+ifneq ($(FREEBSD),)
+  CFLAGS   += CFLAGS.freebsd
+  CXXFLAGS += CXXFLAGS.freebsd
+  FFLAGS   += FFLAGS.freebsd
+endif
 
 # Installation variables
 prefix ?= /usr/local
