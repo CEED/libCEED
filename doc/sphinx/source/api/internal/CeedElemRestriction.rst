@@ -1,5 +1,8 @@
-CeedElemRestriction
-===================
+CeedElemRestriction Internal Functions
+======================================
+
+Internal Functions
+--------------------------------------
 
 .. doxygengroup:: CeedElemRestrictionDeveloper
    :project: libCEED

@@ -1,6 +1,8 @@
 altair>=5.0
 breathe>=4.36
+docutils
 myst-parser[linkify]>=4.0.1
+pandas
 sphinx-hoverxref>=1.4.2
 sphinx-design
 sphinx>=7.2
@@ -11,4 +13,3 @@ sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
 sphinxext-altair
 sphinxext-rediraffe
-docutils

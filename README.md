@@ -10,6 +10,8 @@
 
 ## Summary and Purpose
 
+<!-- summary-inclusion -->
+
 libCEED provides fast algebra for element-based discretizations, designed for performance portability, run-time flexibility, and clean embedding in higher level libraries and applications.
 It offers a C99 interface as well as bindings for Fortran, Python, Julia, and Rust.
 While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained in the [user manual](https://libceed.org/en/latest/) and API implementation portion of the [documentation](https://libceed.org/en/latest/api/).
@@ -20,10 +22,12 @@ Thus, high-order methods require a new "format" that still represents a linear (
 The goal of libCEED is to propose such a format, as well as supporting implementations and data structures, that enable efficient operator evaluation on a variety of computational device types (CPUs, GPUs, etc.).
 This new operator description is based on algebraically [factored form](https://libceed.org/en/latest/libCEEDapi/#finite-element-operator-decomposition), which is easy to incorporate in a wide variety of applications, without significant refactoring of their own discretization infrastructure.
 
+<!-- summary-inclusion-end -->
+
 The repository is part of the [CEED software suite](http://ceed.exascaleproject.org/software/), a collection of software benchmarks, miniapps, libraries and APIs for efficient exascale discretizations based on high-order finite element and spectral element methods.
 See <http://github.com/ceed> for more information and source code availability.
 
-The CEED research is supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project) (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a [capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nation’s exascale computing imperative.
+The CEED research was supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project) (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a [capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nation’s exascale computing imperative.
 
 For more details on the CEED API see the [user manual](https://libceed.org/en/latest/).
 

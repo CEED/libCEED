@@ -1,12 +1,12 @@
 .. _Ceed:
 
 Ceed
-**************************************
+*************************
 
 A `Ceed` is a library context representing control of a logical hardware resource.
 
-Base library resources
-======================================
+Public API Functions
+=========================
 
 .. doxygengroup:: CeedUser
    :project: libCEED
@@ -15,7 +15,7 @@ Base library resources
    :members:
 
 Macros
---------------------------------------
+=========================
 
 .. doxygendefine:: CeedError
    :project: libCEED
@@ -27,7 +27,7 @@ Macros
    :project: libCEED
 
 Typedefs and Enumerations
---------------------------------------
+=========================
 
 .. doxygenenum:: CeedMemType
    :project: libCEED

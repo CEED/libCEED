@@ -1,5 +1,8 @@
-CeedOperator
-============
+CeedOperator Backend API
+========================
+
+Backend API Functions
+------------------------
 
 .. doxygengroup:: CeedOperatorBackend
    :project: libCEED

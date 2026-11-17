@@ -21,6 +21,135 @@ Any new functions must be well documented and tested.
 Once the user facing API and the default implementation are in place and verified correct via tests, then the developer can focus on hardware specific implementations (AVX, CUDA, HIP, etc.) as necessary.
 
 
+## Style Guide
+
+Please check your code for style issues by running
+
+`make format`
+
+In addition to those automatically enforced style rules, libCEED tends to follow the following code style conventions:
+
+- Variable names: `snake_case`
+- Strut members: `snake_case`
+- Function and method names: `PascalCase` or language specific style
+- Type names: `PascalCase` or language specific style
+- Constant names: `CAPS_SNAKE_CASE` or language specific style
+
+In general, variable and function names should avoid abbreviations and err on the side of verbosity to improve readability.
+
+Also, documentation files should have one sentence per line to help make git diffs clearer and less disruptive.
+
+Single line `if` statements are acceptable, but if `clang-format` forces it to be on two lines or if there are any `else if` or `else` blocks, each block must be enclosed in brackets.
+This is enforced automatically for all enabled backends via `make format`, with the exception of header files in the `include/ceed/jit-source` directory.
+These files cannot be automatically formatted by `clang-tidy`, as they cannot be compiled as standalone sources.
+
+
+## Clang-tidy
+
+Please check your code for common issues by running
+
+`make tidy`
+
+which uses the `clang-tidy` utility included in recent releases of Clang.
+This tool is much slower than actual compilation (`make -j8` parallelism helps).
+To run on a single file, use
+
+`make interface/ceed.c.tidy`
+
+for example.
+All issues reported by `make tidy` should be fixed.
+
+
+## Function Conventions
+
+
+### Naming
+
+All functions in the libCEED library should be prefixed by `Ceed` and generally take a `Ceed` object as its first argument.
+If a function takes, for example, a `CeedOperator` as its first argument, then it should be prefixed with `CeedOperator`.
+
+
+### Style
+
+Functions should adhere mostly to the PETSc function style, specifically:
+
+1. All local variables of a particular type (for example, `CeedInt`) should be listed on the same line if possible; otherwise, they should be listed on adjacent lines. For example,
+```c
+// Correct
+CeedInt   a, b, c;
+CeedInt  *d, *e;
+CeedInt **f;
+
+// Incorrect
+CeedInt a, b, c, *d, *e, **f;
+```
+
+2. Local variables should be initialized in their declaration when possible.
+
+3. Nearly all functions should have a return type of `int` and return a `CeedErrorType` to allow for error checking.
+
+4. All functions must start with a single blank line after the local variable declarations.
+
+5. All libCEED function calls must have their return value checked for errors using the `CeedCall()` or `CeedCallBackend()` macro.
+   This should be wrapped around the function in question.
+   
+6. In libCEED functions, variables must be declared at the beginning of the code block (C90 style), never mixed in with code.
+   However, when variables are only used in a limited scope, it is encouraged to declare them in that scope.
+   
+7. Do not put a blank line immediately before `return CEED_ERROR_SUCCESS;`.
+
+8. All libCEED functions must use Doxygen comment blocks before their *definition* (not declaration).
+   The block should begin with `/**` and end with `**/`, each on their own line.
+   The block should be indented by two spaces and should contain an `@brief` tag and description, a newline, a line stating whether the function is collective, a  newline, `@param` tags for each parameter, a newline, and a `@return` line formatted exactly as in the example below.
+   All parameter lines in the Doxygen block should be formatted such that parameter names and descriptions are aligned.
+   There should be a exactly one space between `@param[dir]` (where `dir` is `in`, `out`, or `in,out`) and the parameter name for the closest pair, as well as  between the parameter name and description.
+    For example:
+```c
+/**
+  @brief Initialize a `Ceed` context to use the specified resource.
+
+  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in @ref CeedInt() printing the current libCEED version number and a list of current available backend resources to `stderr`.
+
+  @param[in]  resource Resource to use, e.g., "/cpu/self"
+  @param[out] ceed     The library context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+
+  @sa CeedRegister() CeedDestroy()
+**/
+int CeedInit(const char *resource, Ceed *ceed) {
+```
+
+9. Function declarations should include parameter names, which must exactly match those in the function definition.
+
+10. External functions, i.e. those used in tests or examples, must have their *declarations* prefixed with `CEED_EXTERN`.
+    All other functions should have their *declarations* prefixed with `CEED_INTERN`.
+    Function *definitions* should have neither.
+
+
+## Include-What-You-Use
+
+Header inclusion for source files should follow the principal of 'include what you use' rather than relying upon transitive `#include` to define all symbols.
+
+Every symbol that is used in the source file `foo.c` should be defined in `foo.c`, `foo.h`, or in a header file `#include`d in one of these two locations.
+Please check your code by running the tool [`include-what-you-use`](https://include-what-you-use.org/) to see recommendations for changes to your source.
+Most issues reported by `include-what-you-use` should be fixed; however this rule is flexible to account for differences in header file organization in external libraries.
+If you have `include-what-you-use` installed in a sibling directory to libCEED or set the environment variable `IWYU_CC`, then you can use the makefile target `make iwyu`.
+
+Header files should be listed in alphabetical order, with installed headers preceding local headers and `ceed` headers being listed first.
+The `ceed-f64.h` and `ceed-f32.h` headers should only be included in `ceed.h`.
+
+```c
+#include <ceed.h>
+#include <ceed/backend.h>
+#include <stdbool.h>
+#include <string.h>
+#include "ceed-avx.h"
+```
+
+
 ## Backend Inheritance
 
 A Ceed backend is not required to implement all libCEED objects or {ref}`CeedOperator` methods.
@@ -62,6 +191,9 @@ This reduced the memory required to utilize this backend significantly.
 
 The `/cpu/self/avx/*`, `/cpu/self/sve/*`, `/cpu/self/sme/*`, and `/cpu/self/xsmm/*` backends delegate to the corresponding `/cpu/self/opt/*` backends.
 These backends update the `CeedTensorContract` objects using AVX intrinsics, vector-length-agnostic ARM SVE intrinsics, vector-length-agnostic ARM SME outer-product intrinsics, and libXSMM functions, respectively.
+
+The `/cpu/self/gen/*` backends write code for single functions to handle the application of CeedOperators.
+This uses the compiler and compiler flags used to compile libCEED or via the `CEED_CPU_JIT_CXX` and `CEED_CPU_JIT_OPT` environment variables set at runtime.
 
 The `/cpu/self/memcheck/*` backends delegate to the `/cpu/self/ref/*` backends.
 These backends replace many of the implementations with methods that include more verification checks and a memory management model that more closely matches the memory management for GPU backends.
@@ -195,127 +327,6 @@ are purely implicit -- one just indexes the same array using the appropriate con
 
 QFunction arguments can be assumed to have `restrict` semantics.
 That is, each input and output array must reside in distinct memory without overlap.
-
-
-## Style Guide
-
-Please check your code for style issues by running
-
-`make format`
-
-In addition to those automatically enforced style rules, libCEED tends to follow the following code style conventions:
-
-- Variable names: `snake_case`
-- Strut members: `snake_case`
-- Function and method names: `PascalCase` or language specific style
-- Type names: `PascalCase` or language specific style
-- Constant names: `CAPS_SNAKE_CASE` or language specific style
-
-In general, variable and function names should avoid abbreviations and err on the side of verbosity to improve readability.
-
-Also, documentation files should have one sentence per line to help make git diffs clearer and less disruptive.
-
-Single line `if` statements are acceptable, but if `clang-format` forces it to be on two lines or if there are any `else if` or `else` blocks, each block must be enclosed in brackets.
-This is enforced automatically for all enabled backends via `make format`, with the exception of header files in the `include/ceed/jit-source` directory.
-These files cannot be automatically formatted by `clang-tidy`, as they cannot be compiled as standalone sources.
-
-
-## Function Conventions
-
-
-### Naming
-
-All functions in the libCEED library should be prefixed by `Ceed` and generally take a `Ceed` object as its first argument.
-If a function takes, for example, a `CeedOperator` as its first argument, then it should be prefixed with `CeedOperator`.
-
-
-### Style
-
-Functions should adhere mostly to the PETSc function style, specifically:
-
-1. All local variables of a particular type (for example, `CeedInt`) should be listed on the same line if possible; otherwise, they should be listed on adjacent lines. For example,
-```c
-// Correct
-CeedInt   a, b, c;
-CeedInt  *d, *e;
-CeedInt **f;
-
-// Incorrect
-CeedInt a, b, c, *d, *e, **f;
-```
-
-2. Local variables should be initialized in their declaration when possible.
-3. Nearly all functions should have a return type of `int` and return a `CeedErrorType` to allow for error checking.
-4. All functions must start with a single blank line after the local variable declarations.
-5. All libCEED function calls must have their return value checked for errors using the `CeedCall()` or `CeedCallBackend()` macro.
-   This should be wrapped around the function in question.
-6. In libCEED functions, variables must be declared at the beginning of the code block (C90 style), never mixed in with code.
-   However, when variables are only used in a limited scope, it is encouraged to declare them in that scope.
-7. Do not put a blank line immediately before `return CEED_ERROR_SUCCESS;`.
-8. All libCEED functions must use Doxygen comment blocks before their *definition* (not declaration).
-   The block should begin with `/**` and end with `**/`, each on their own line.
-   The block should be indented by two spaces and should contain an `@brief` tag and description, a newline, a line stating whether the function is collective, a  newline, `@param` tags for each parameter, a newline, and a `@return` line formatted exactly as in the example below.
-   All parameter lines in the Doxygen block should be formatted such that parameter names and descriptions are aligned.
-   There should be a exactly one space between `@param[dir]` (where `dir` is `in`, `out`, or `in,out`) and the parameter name for the closest pair, as well as  between the parameter name and description.
-    For example:
-```c
-/**
-  @brief Initialize a `Ceed` context to use the specified resource.
-
-  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in @ref CeedInt() printing the current libCEED version number and a list of current available backend resources to `stderr`.
-
-  @param[in]  resource Resource to use, e.g., "/cpu/self"
-  @param[out] ceed     The library context
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-
-  @sa CeedRegister() CeedDestroy()
-**/
-int CeedInit(const char *resource, Ceed *ceed) {
-```
-9. Function declarations should include parameter names, which must exactly match those in the function definition.
-10. External functions, i.e. those used in tests or examples, must have their *declarations* prefixed with `CEED_EXTERN`.
-    All other functions should have their *declarations* prefixed with `CEED_INTERN`.
-    Function *definitions* should have neither.
-
-
-## Clang-tidy
-
-Please check your code for common issues by running
-
-`make tidy`
-
-which uses the `clang-tidy` utility included in recent releases of Clang.
-This tool is much slower than actual compilation (`make -j8` parallelism helps).
-To run on a single file, use
-
-`make interface/ceed.c.tidy`
-
-for example.
-All issues reported by `make tidy` should be fixed.
-
-
-## Include-What-You-Use
-
-Header inclusion for source files should follow the principal of 'include what you use' rather than relying upon transitive `#include` to define all symbols.
-
-Every symbol that is used in the source file `foo.c` should be defined in `foo.c`, `foo.h`, or in a header file `#include`d in one of these two locations.
-Please check your code by running the tool [`include-what-you-use`](https://include-what-you-use.org/) to see recommendations for changes to your source.
-Most issues reported by `include-what-you-use` should be fixed; however this rule is flexible to account for differences in header file organization in external libraries.
-If you have `include-what-you-use` installed in a sibling directory to libCEED or set the environment variable `IWYU_CC`, then you can use the makefile target `make iwyu`.
-
-Header files should be listed in alphabetical order, with installed headers preceding local headers and `ceed` headers being listed first.
-The `ceed-f64.h` and `ceed-f32.h` headers should only be included in `ceed.h`.
-
-```c
-#include <ceed.h>
-#include <ceed/backend.h>
-#include <stdbool.h>
-#include <string.h>
-#include "ceed-avx.h"
-```
 
 
 ## Updating CI

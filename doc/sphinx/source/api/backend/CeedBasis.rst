@@ -1,5 +1,8 @@
-CeedBasis
-=========
+CeedBasis Backend API
+=====================
+
+Backend API Functions
+---------------------
 
 .. doxygengroup:: CeedBasisBackend
    :project: libCEED

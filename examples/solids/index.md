@@ -1,6 +1,6 @@
 (example-petsc-elasticity)=
 
-# Solid mechanics mini-app
+# Solid Mechanics Mini-app
 
 This example is located in the subdirectory {file}`examples/solids`.
 It solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
@@ -31,7 +31,7 @@ $$ (hyperelastic-cd)
 
 (running-elasticity)=
 
-## Running the mini-app
+## Running the Mini-app
 
 ```{include} README.md
 :start-after: <!-- solids-inclusion -->
