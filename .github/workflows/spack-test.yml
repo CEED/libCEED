@@ -10,13 +10,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-26.04]
         # GPU builds are extremely slow, need to set up build caching to be able to use them
         # gpu: [+cuda+magma cuda_arch=80 ^magma cuda_arch=80, +rocm+magma amdgpu_target=gfx942 ^magma amdgpu_target=gfx942, '']
         # exclude:
-        #   - os: macos-15
+        #   - os: macos-26
         #     gpu: +cuda+magma cuda_arch=80 ^magma cuda_arch=80
-        #   - os: macos-15
+        #   - os: macos-26
         #     gpu: +rocm+magma amdgpu_target=gfx942 ^magma amdgpu_target=gfx942
         gpu: ['']
 
@@ -43,21 +43,21 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-26.04]
         libxsmm: ['+libxsmm', '~libxsmm']
         openmp: ['+openmp', '~openmp']
         shared: ['+shared', '~shared']
         include:
-        - os: ubuntu-24.04-arm
-          libxsmm: +libxsmm
-          openmp: +openmp
-          shared: +shared
-        - os: macos-15
-          libxsmm: +libxsmm
-          openmp: +openmp
-          shared: +shared
+        - os: macos-26
+          libxsmm: ~libxsmm
+          openmp: ~openmp
+          shared: ~shared
         exclude:
-        - os: ubuntu-24.04
+        - os: ubuntu-26.04
+          libxsmm: +libxsmm
+          openmp: +openmp
+          shared: +shared
+        - os: ubuntu-26.04-arm
           libxsmm: +libxsmm
           openmp: +openmp
           shared: +shared
