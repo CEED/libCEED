@@ -14,7 +14,7 @@
 
 libCEED provides fast algebra for element-based discretizations, designed for performance portability, run-time flexibility, and clean embedding in higher level libraries and applications.
 It offers a C99 interface as well as bindings for Fortran, Python, Julia, and Rust.
-While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained in the [user manual](https://libceed.org/en/latest) and API implementation portion of the [documentation](https://libceed.org/en/latest/api).
+While our focus is on high-order finite elements, the approach is mostly algebraic and thus applicable to other discretizations in factored form, as explained inAPI implementation portion of the [documentation](https://libceed.org/en/latest/api) and the [user manual](https://libceed.org/_/downloads/en/latest/pdf/).
 
 One of the challenges with high-order methods is that a global sparse matrix is no longer a good representation of a high-order linear operator, both with respect to the FLOPs needed for its evaluation, as well as the memory transfer needed for a matvec.
 Thus, high-order methods require a new "format" that still represents a linear (or more generally non-linear) operator, but not through a sparse matrix.
@@ -29,7 +29,7 @@ See <http://github.com/ceed> for more information and source code availability.
 
 The CEED research was supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project) (17-SC-20-SC), a collaborative effort of two U.S. Department of Energy organizations (Office of Science and the National Nuclear Security Administration) responsible for the planning and preparation of a [capable exascale ecosystem](https://exascaleproject.org/what-is-exascale), including software, applications, hardware, advanced system engineering and early testbed platforms, in support of the nation’s exascale computing imperative.
 
-For more details on the CEED API see the [documentation](https://libceed.org/en/latest).
+For more details on the CEED API see the [documentation](https://libceed.org/en/latest) and the [user manual](https://libceed.org/_/downloads/en/latest/pdf/).
 
 <!-- getting-started-inclusion -->
 
