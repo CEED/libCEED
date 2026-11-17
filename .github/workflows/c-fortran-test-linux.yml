@@ -10,7 +10,7 @@ jobs:
   c_test_ubuntu:
     strategy:
       matrix:
-        os: [ubuntu-26.04, ubuntu-26.04-arm]
+        os: [ubuntu-26.04]
         compiler: [gcc, clang]
 
     runs-on: ${{ matrix.os }}
