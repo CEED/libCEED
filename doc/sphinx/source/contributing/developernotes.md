@@ -92,10 +92,10 @@ CeedInt a, b, c, *d, *e, **f;
 
 5. All libCEED function calls must have their return value checked for errors using the `CeedCall()` or `CeedCallBackend()` macro.
    This should be wrapped around the function in question.
-   
+
 6. In libCEED functions, variables must be declared at the beginning of the code block (C90 style), never mixed in with code.
    However, when variables are only used in a limited scope, it is encouraged to declare them in that scope.
-   
+
 7. Do not put a blank line immediately before `return CEED_ERROR_SUCCESS;`.
 
 8. All libCEED functions must use Doxygen comment blocks before their *definition* (not declaration).
