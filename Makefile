@@ -34,7 +34,8 @@ quiet ?= $($(1))
 XDG_CACHE_HOME      ?= $(HOME)/.cache
 CEED_CACHE_BASE_DIR ?= $(XDG_CACHE_HOME)
 
-DARWIN := $(filter Darwin,$(shell uname -s))
+DARWIN  := $(filter Darwin,$(shell uname -s))
+FREEBSD := $(filter FreeBSD,$(shell uname -s))
 
 
 # ------------------------------------------------------------
@@ -154,22 +155,25 @@ OPT.clang               := $(OPT.gcc)
 OPT.icc                 := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
 OPT.emcc                :=
-CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.gcc              := -std=c11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
 CFLAGS.oneAPI           := $(CFLAGS.clang)
-CFLAGS.XL               := $(if $(STATIC),,-qpic) -MMD
+CFLAGS.XL               := -MMD
 CFLAGS.emcc             := $(CFLAGS.clang)
-CXXFLAGS.gcc            := $(if $(STATIC),,-fPIC) -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CXXFLAGS.gcc            := -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
 CXXFLAGS.oneAPI         := $(CXXFLAGS.clang)
-CXXFLAGS.XL             := $(if $(STATIC),,-qpic) -std=c++11 -MMD
+CXXFLAGS.XL             := -std=c++11 -MMD
 CXXFLAGS.emcc           := $(CXXFLAGS.clang)
-FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
-FFLAGS.ifort            := $(if $(STATIC),,-fPIC) -cpp
+FFLAGS.GNU              := -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
+FFLAGS.ifort            := 
 FFLAGS.ifx              := $(FFLAGS.ifort)
-FFLAGS.XL               := $(if $(STATIC),,-qpic) -ffree-form -qpreprocess -qextname -MMD
+FFLAGS.XL               := -ffree-form -qextname -MMD
+CFLAGS.freebsd          := -std=c11 -MMD -MP
+CXXFLAGS.freebsd        := -std=c++11 -MMD -MP
+FFLAGS.freebsd          := -MMD -MP
 
 # This check works with compilers that use gcc and clang.  It fails with some
 # compilers; e.g., xlc apparently ignores all options when -E is passed, thus
@@ -182,20 +186,24 @@ MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
 OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
-# Error checking flags
-PEDANTIC      ?=
-PEDANTICFLAGS ?= -Werror -pedantic
-
 # Compiler flags
 OPT      ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
-CFLAGS   ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
-CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
+CFLAGS   ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
+CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 FFLAGS   ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
-ifeq ($(shell uname -s),Darwin)
-    LIBCXX ?= -lc++
+
+# Add common flags needed for all non-XL compilers
+ifneq ($(CC_VENDOR),XL)
+  CFLAGS   += $(if $(STATIC),,-fPIC)
+  CXXFLAGS += $(if $(STATIC),,-fPIC)
+  FFLAGS   += -cpp
 else
-    LIBCXX ?= -lstdc++
+  CFLAGS   += $(if $(STATIC),,-qpic)
+  CXXFLAGS += $(if $(STATIC),,-qpic)
+  FFLAGS   += $(if $(STATIC),,-qpic) -qpreprocess
 endif
+
+# CUDA flags
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler '$(OPT)' -Xcompiler -fPIC
 CUDA_TARGETS_UNKNOWN := $(filter-out sm_%,$(CUDA_TARGETS))
 CUDA_SMS := $(patsubst sm_%,%,$(filter sm_%,$(CUDA_TARGETS)))
@@ -211,13 +219,18 @@ ifneq ($(strip $(CUDA_TARGETS)),)
 else ifneq ($(strip $(CUDA_ARCH)),)
   NVCCFLAGS += -arch=$(CUDA_ARCH)
 endif
+
+# HIP Flags
 HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
   HIPCCFLAGS += --offload-arch=$(HIP_ARCH)
 endif
+
+# SYCL Flags
 SYCL_FLAG := $(SYCL_FLAG.$(CC_VENDOR))
 SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) $(filter-out $(OMP_SIMD_FLAG),$(OPT))
 
+# OpenMP Flags
 OPENMP ?=
 ifneq ($(OPENMP),)
   OMP_FLAG     := $(OMP_FLAG.$(CC_VENDOR))
@@ -227,17 +240,45 @@ ifneq ($(OPENMP),)
   PKG_LIBS     += $(OMP_FLAG)
 endif
 
-ifeq ($(COVERAGE), 1)
+# Coverage flags
+ifeq ($(COVERAGE),1)
   CFLAGS       += --coverage
   CXXFLAGS     += --coverage
   CEED_LDFLAGS += --coverage
   FFLAGS       += --coverage -fprofile-abs-path
 endif
 
+# ASAN flags
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
-CEED_LDFLAGS += $(OMP_SIMD_FLAG) $(if $(ASAN),$(AFLAGS))
+
+# Error checking flags
+PEDANTIC      ?=
+PEDANTICFLAGS ?= -Werror -pedantic
+ifeq ($(PEDANTIC),1)
+  CFLAGS   += $(PEDANTICFLAGS)
+  CXXFLAGS += $(PEDANTICFLAGS)
+endif
+
+# MacOS linker flags
+ifeq ($(shell uname -s),Darwin)
+    LIBCXX ?= -lc++
+else
+    LIBCXX ?= -lstdc++
+endif
+
+## Fix FreeBSD
+# FreeBSD intentionally clobbers CFLAGS, CXXFLAGS, and FFLAGS
+# We need to fix the clobbering ourselves to work around FreeBSD
+ifneq ($(FREEBSD),)
+  CFLAGS   += CFLAGS.freebsd
+  CXXFLAGS += CXXFLAGS.freebsd
+  FFLAGS   += FFLAGS.freebsd
+endif
+
+# Finish building flags
 CPPFLAGS     += -I$(abspath ./include)
+CEED_LDFLAGS += $(OMP_SIMD_FLAG) $(if $(ASAN),$(AFLAGS))
 CEED_LDLIBS  += -lm
 OBJDIR       := build
 for_install  := $(filter install,$(MAKECMDGOALS))
@@ -480,8 +521,8 @@ info:
 	$(info CC                  = $(CC))
 	$(info CXX                 = $(CXX))
 	$(info FC                  = $(FC))
-	$(info CPPFLAGS            = $(CPPFLAGS))
 	$(info CFLAGS              = $(CFLAGS))
+	$(info CPPFLAGS            = $(CPPFLAGS))
 	$(info CXXFLAGS            = $(CXXFLAGS))
 	$(info FFLAGS              = $(FFLAGS))
 	$(info NVCCFLAGS           = $(NVCCFLAGS))
