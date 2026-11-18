@@ -90,75 +90,20 @@ CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
   return CEED_ERROR_SUCCESS;
 }
 
-/// libCEED Q-function for applying a mass + diffusion operator
+/// libCEED Q-function for applying a mass operator
 /// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
 /// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
-CEED_QFUNCTION(apply_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const long dim       = ((const long *)ctx)[0];
-  const long space_dim = ((const long *)ctx)[1];
-
+CEED_QFUNCTION(apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] solution values with shape [1, Q]
-  // in[1] solution gradients with shape [dim, 1, Q]
-  // in[2] is quadrature data with shape [1 + dim*(dim+1)/2, Q]
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  // in[1] is quadrature data with shape [1 + dim*(dim+1)/2, Q]
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
-  switch (dim) {
-    case 1: {
-      const CeedScalar *u = in[0], *ug = in[1];
-      CeedScalar       *v = out[0], *vg = out[1];
+  const CeedScalar *u = in[0];
+  CeedScalar       *v = out[0];
 
-      CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-        // Mass
-        v[i] = q_data[0][i] * u[i];
-
-        // Diffusion
-        vg[i] = q_data[1][i] * ug[i];
-      }  // End of Quadrature Point Loop
-    } break;
-    case 2: {
-      const CeedScalar *u               = in[0];
-      const CeedScalar(*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-      CeedScalar *v                     = out[0];
-      CeedScalar(*vg)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[1];
-
-      CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-        // Mass
-        v[i] = q_data[0][i] * u[i];
-
-        // Diffusion stored in Voigt convention
-        // 1 3
-        // 3 2
-        const CeedScalar dXdxdXdx_T[2][2] = {
-            {q_data[1][i], q_data[3][i]},
-            {q_data[3][i], q_data[2][i]}
-        };
-
-        for (int j = 0; j < 2; j++) vg[j][i] = (ug[0][i] * dXdxdXdx_T[0][j] + ug[1][i] * dXdxdXdx_T[1][j]);
-      }  // End of Quadrature Point Loop
-    } break;
-    case 3: {
-      const CeedScalar *u               = in[0];
-      const CeedScalar(*ug)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-      CeedScalar *v                     = out[0];
-      CeedScalar(*vg)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[1];
-
-      CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-        // Mass
-        v[i] = q_data[0][i] * u[i];
-
-        // Diffusion stored in Voigt convention
-        // 1 6 5
-        // 6 2 4
-        // 5 4 3
-        const CeedScalar dXdxdXdx_T[3][3] = {
-            {q_data[1][i], q_data[6][i], q_data[5][i]},
-            {q_data[6][i], q_data[2][i], q_data[4][i]},
-            {q_data[5][i], q_data[4][i], q_data[3][i]}
-        };
-
-        for (int j = 0; j < 3; j++) vg[j][i] = (ug[0][i] * dXdxdXdx_T[0][j] + ug[1][i] * dXdxdXdx_T[1][j] + ug[2][i] * dXdxdXdx_T[2][j]);
-      }  // End of Quadrature Point Loop
-    } break;
-  }
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    // Mass
+    v[i] = q_data[0][i] * u[i];
+  }  // End of Quadrature Point Loop
   return CEED_ERROR_SUCCESS;
 }

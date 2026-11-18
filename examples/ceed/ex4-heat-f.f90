@@ -278,7 +278,7 @@ program main
     integer qf_build, qf_apply
     integer op_build, op_apply
 
-    external build_mass_diff, apply_mass_diff
+    external build_mass_diff, apply_mass
 
 ! Initial values
     ceed_spec   = '/cpu/self'
@@ -440,24 +440,20 @@ program main
     call ceedvectorcreate(ceed, num_elem * elem_qpts * (1 + fe_dim * (fe_dim + 1) / 2), q_data, err)
     call ceedoperatorapply(op_build, mesh_coords, q_data, ceed_request_immediate, err)
 
-! Create the QFunction that defines the action of the mass + diffusion operator
-    call ceedqfunctioncreateinterior(ceed, 1, apply_mass_diff,&
+! Create the QFunction that defines the action of the mass operator
+    call ceedqfunctioncreateinterior(ceed, 1, apply_mass,&
              &SOURCE_DIR&
-             &//'ex4-heat-f-c.h:apply_mass_diff'//char(0), qf_apply, err)
+             &//'ex4-heat-f-c.h:apply_mass'//char(0), qf_apply, err)
     call ceedqfunctionaddinput(qf_apply, 'u', 1, ceed_eval_interp, err)
-    call ceedqfunctionaddinput(qf_apply, 'du', fe_dim, ceed_eval_grad, err)
     call ceedqfunctionaddinput(qf_apply, 'qdata', 1 + fe_dim * (fe_dim + 1) / 2, ceed_eval_none, err)
     call ceedqfunctionaddoutput(qf_apply, 'v', 1, ceed_eval_interp, err)
-    call ceedqfunctionaddoutput(qf_apply, 'dv', fe_dim, ceed_eval_grad, err)
     call ceedqfunctionsetcontext(qf_apply, build_ctx, err)
 
-! Create the mass + diffusion operator
+! Create the mass operator
     call ceedoperatorcreate(ceed, qf_apply, ceed_qfunction_none, ceed_qfunction_none, op_apply, err)
     call ceedoperatorsetfield(op_apply, 'u', sol_restriction, sol_basis, ceed_vector_active, err)
-    call ceedoperatorsetfield(op_apply, 'du', sol_restriction, sol_basis, ceed_vector_active, err)
     call ceedoperatorsetfield(op_apply, 'qdata', q_data_restriction, ceed_basis_none, q_data, err)
     call ceedoperatorsetfield(op_apply, 'v', sol_restriction, sol_basis, ceed_vector_active, err)
-    call ceedoperatorsetfield(op_apply, 'dv', sol_restriction, sol_basis, ceed_vector_active, err)
 
 ! Create auxiliary solution-size vectors
     allocate (u_array(sol_size))
@@ -473,7 +469,7 @@ program main
 ! Initialize 'u' with ones
     call ceedvectorsetvalue(u, 1.d0, err)
 
-! Compute the mesh volume using the mass + diffusion operator: volume = 1^T \cdot M \cdot 1
+! Compute the mesh volume using the mass operator: volume = 1^T \cdot M \cdot 1
     call ceedoperatorapply(op_apply, u, v, ceed_request_immediate, err)
 
 ! Benchmark runs

@@ -87,87 +87,23 @@ subroutine build_mass_diff(ctx, q, dx, w, u3, u4, u5, u6, u7, u8, u9, u10, u11, 
 end
 
 !-----------------------------------------------------------------------
-subroutine apply_mass_diff(ctx, q, u, du, qdata, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16,&
-    v, dv, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, ierr)
+subroutine apply_mass(ctx, q, u, qdata, u3, u4, u5, u6, u7, u8, u9, u10, u11, u12, u13, u14, u15, u16,&
+    v, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, ierr)
       integer*8 ctx(2)
-      integer*8 dim
 ! u is solution with shape [1, Q]
-! du is solution gradient with shape [dim, Q]
 ! qdata is quadrature data with shape [1 + dim*(dim+1)/2, Q]
       real*8 u(1)
-      real*8 du(1)
       real*8 qdata(1)
 ! v is output with shape [1, Q]
-! dv is output gradient with shape [dim, Q]
       real*8 v(1)
-      real*8 dv(1)
       integer q, ierr
 
-      integer i, j
-      real*8 dXdxdXdx_T(3, 3)
+      integer i
 
-      dim = ctx(1)
-
-      select case (dim)
-
-        case (1)
-!         Mass
-          do i = 1, q
-            v(i) = qdata(0*q + i) * u(i)
-          end do
-!         Diffusion
-          do i = 1, q
-            dv(i) = qdata(1*q + i) * du(i)
-          end do
-
-        case (2)
-!         qdata layout [4, Q]: 0=mass, 1=D00, 2=D11, 3=D01
-!         du layout [2, Q]: du(0*q+i), du(1*q+i)
-!         Voigt:
-!         1 3
-!         3 2
-          do i = 1, q
-!           Mass
-            v(i) = qdata(0*q + i) * u(i)
-!           Diffusion
-            dXdxdXdx_T(1,1) = qdata(1*q + i)
-            dXdxdXdx_T(1,2) = qdata(3*q + i)
-            dXdxdXdx_T(2,1) = qdata(3*q + i)
-            dXdxdXdx_T(2,2) = qdata(2*q + i)
-            do j = 1, 2
-              dv((j-1)*q + i) = du(0*q + i) * dXdxdXdx_T(1, j) + &
-                                 du(1*q + i) * dXdxdXdx_T(2, j)
-            end do
-          end do
-
-        case (3)
-!         qdata layout [7, Q]: 0=mass, 1=D00, 2=D11, 3=D22, 4=D12, 5=D02, 6=D01
-!         du layout [3, Q]: du(0*q+i), du(1*q+i), du(2*q+i)
-!         Voigt:
-!         1 6 5
-!         6 2 4
-!         5 4 3
-          do i = 1, q
-!           Mass
-            v(i) = qdata(0*q + i) * u(i)
-!           Diffusion
-            dXdxdXdx_T(1,1) = qdata(1*q + i)
-            dXdxdXdx_T(1,2) = qdata(6*q + i)
-            dXdxdXdx_T(1,3) = qdata(5*q + i)
-            dXdxdXdx_T(2,1) = qdata(6*q + i)
-            dXdxdXdx_T(2,2) = qdata(2*q + i)
-            dXdxdXdx_T(2,3) = qdata(4*q + i)
-            dXdxdXdx_T(3,1) = qdata(5*q + i)
-            dXdxdXdx_T(3,2) = qdata(4*q + i)
-            dXdxdXdx_T(3,3) = qdata(3*q + i)
-            do j = 1, 3
-              dv((j-1)*q + i) = du(0*q + i) * dXdxdXdx_T(1, j) + &
-                                 du(1*q + i) * dXdxdXdx_T(2, j) + &
-                                 du(2*q + i) * dXdxdXdx_T(3, j)
-            end do
-          end do
-
-      end select
+!     Mass
+      do i = 1, q
+        v(i) = qdata(0*q + i) * u(i)
+      end do
       ierr = 0
 end
 !-----------------------------------------------------------------------
