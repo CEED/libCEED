@@ -29,12 +29,12 @@ typedef struct {
 
   // Graph capture data
   bool              use_graph;
-  bool              graph_created;
   bool              warmup_done;
-  cudaGraph_t       graph;
   cudaGraphExec_t   graph_instance;
   const CeedScalar *captured_input_ptr;
   CeedScalar       *captured_output_ptr;
+  CeedInt           num_captured_passive_ptrs;
+  const void      **captured_passive_ptrs;
 } CeedOperator_Cuda_gen;
 
 typedef struct {

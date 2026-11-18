@@ -44,24 +44,50 @@
     CeedChk_Cublas(ceed, ierr_q_); \
   } while (0)
 
-#define CASE(name) \
-  case name:       \
-    return #name
 // LCOV_EXCL_START
+#define CASE(name, string)    \
+  case name: {                \
+    return #name ": " string; \
+  }
+// Helper to get an error string for cublasStatus_t
+// Strings from https://docs.nvidia.com/cuda/cublas/index.html#cublasstatus-t
 static const char *cublasGetErrorName(cublasStatus_t error) {
   switch (error) {
-    CASE(CUBLAS_STATUS_SUCCESS);
-    CASE(CUBLAS_STATUS_NOT_INITIALIZED);
-    CASE(CUBLAS_STATUS_ALLOC_FAILED);
-    CASE(CUBLAS_STATUS_INVALID_VALUE);
-    CASE(CUBLAS_STATUS_ARCH_MISMATCH);
-    CASE(CUBLAS_STATUS_MAPPING_ERROR);
-    CASE(CUBLAS_STATUS_EXECUTION_FAILED);
-    CASE(CUBLAS_STATUS_INTERNAL_ERROR);
+    CASE(CUBLAS_STATUS_SUCCESS, "The operation completed successfully.")
+    CASE(CUBLAS_STATUS_NOT_INITIALIZED, "The cuBLAS library was not initialized.")
+    CASE(CUBLAS_STATUS_ALLOC_FAILED, "Resource allocation failed inside the cuBLAS library.")
+    CASE(CUBLAS_STATUS_INVALID_VALUE, "An unsupported value or parameter was passed to the function.")
+    CASE(CUBLAS_STATUS_ARCH_MISMATCH, "The function requires a feature absent from the device architecture.")
+    CASE(CUBLAS_STATUS_MAPPING_ERROR, "An access to GPU memory space failed, which is usually caused by a failure to bind a texture.")
+    CASE(CUBLAS_STATUS_EXECUTION_FAILED,
+         "The GPU program failed to execute. This is often caused by a launch failure of the kernel on the GPU, which can be caused by multiple "
+         "reasons.")
+    CASE(CUBLAS_STATUS_INTERNAL_ERROR, "An internal cuBLAS operation failed. This error is usually caused by a cudaMemcpyAsync() failure.")
+    CASE(CUBLAS_STATUS_NOT_SUPPORTED, "The functionality requested is not supported.")
     default:
-      return "CUBLAS_STATUS_UNKNOWN_ERROR";
+      return "Unknown cublasStatus_t";
   }
 }
+
+// Helper to get an error string for cudaGraphExecUpdateResultInfo
+// Strings from https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__TYPES.html#_CPPv425cudaGraphExecUpdateResult
+static const char *CeedCudaGetGraphExecUpdateResultInfoString(cudaGraphExecUpdateResultInfo result) {
+  switch (result.result) {
+    CASE(cudaGraphExecUpdateSuccess, "The update succeeded.")
+    CASE(cudaGraphExecUpdateError, "The update failed for an unexpected reason which is described in the return value of the function.")
+    CASE(cudaGraphExecUpdateErrorTopologyChanged, "The update failed because the topology changed.")
+    CASE(cudaGraphExecUpdateErrorNodeTypeChanged, "The update failed because a node type changed.")
+    CASE(cudaGraphExecUpdateErrorFunctionChanged, "The update failed because the function of a kernel node changed.")
+    CASE(cudaGraphExecUpdateErrorParametersChanged, "The update failed because the parameters changed in a way that is not supported.")
+    CASE(cudaGraphExecUpdateErrorNotSupported, "The update failed because something about the node is not supported.")
+    CASE(cudaGraphExecUpdateErrorUnsupportedFunctionChange, "The update failed because the function of a kernel node changed in an unsupported way.")
+    CASE(cudaGraphExecUpdateErrorAttributesChanged, "The update failed because the node attributes changed in a way that is not supported.")
+    default:
+      return "Unknown cudaGraphExecUpdateResult";
+  }
+}
+
+#undef CASE
 // LCOV_EXCL_STOP
 
 typedef struct {

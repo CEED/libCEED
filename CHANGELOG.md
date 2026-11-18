@@ -6,6 +6,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### Bug Fixes
+
+- Fix an issue in the CUDA Graph API support for the `/gpu/cuda/gen` backend which allowed attempted writes to stale device pointers.
+
 ### Interface changes
 
 ### New features
