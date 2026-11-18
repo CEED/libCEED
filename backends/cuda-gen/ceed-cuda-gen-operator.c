@@ -21,36 +21,6 @@
 #include "ceed-cuda-gen-operator-build.h"
 #include "ceed-cuda-gen.h"
 
-// Helper to get an error string for cudaGraphExecUpdateResultInfo
-// Strings from https://docs.nvidia.com/cuda/cuda-runtime-api/cuda_runtime_api/group__CUDART__TYPES.html#_CPPv425cudaGraphExecUpdateResult
-// LCOV_EXCL_START
-const char *CeedCudaGetGraphExecUpdateResultInfoString(cudaGraphExecUpdateResultInfo result) {
-  switch (result.result) {
-    case cudaGraphExecUpdateSuccess:
-      return "cudaGraphExecUpdateSuccess: The update succeeded.";
-    case cudaGraphExecUpdateError:
-      return "cudaGraphExecUpdateError: The update failed for an unexpected reason which is described in the return value of the function.";
-    case cudaGraphExecUpdateErrorTopologyChanged:
-      return "cudaGraphExecUpdateErrorTopologyChanged: The update failed because the topology changed.";
-    case cudaGraphExecUpdateErrorNodeTypeChanged:
-      return "cudaGraphExecUpdateErrorNodeTypeChanged: The update failed because a node type changed.";
-    case cudaGraphExecUpdateErrorFunctionChanged:
-      return "cudaGraphExecUpdateErrorFunctionChanged: The update failed because the function of a kernel node changed.";
-    case cudaGraphExecUpdateErrorParametersChanged:
-      return "cudaGraphExecUpdateErrorParametersChanged: The update failed because the parameters changed in a way that is not supported.";
-    case cudaGraphExecUpdateErrorNotSupported:
-      return "cudaGraphExecUpdateErrorNotSupported: The update failed because something about the node is not supported.";
-    case cudaGraphExecUpdateErrorUnsupportedFunctionChange:
-      return "cudaGraphExecUpdateErrorUnsupportedFunctionChange: The update failed because the function of a kernel node changed in an unsupported "
-             "way.";
-    case cudaGraphExecUpdateErrorAttributesChanged:
-      return "cudaGraphExecUpdateErrorAttributesChanged: The update failed because the node attributes changed in a way that is not supported.";
-    default:
-      return "Unknown cudaGraphExecUpdateResult";
-  }
-}
-// LCOV_EXCL_STOP
-
 //------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
