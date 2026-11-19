@@ -58,8 +58,7 @@ jobs:
         CEED_JIT_ERROR_ON_FAILURE: 1
       run: |
         make info
-        NUM_JOBS=2
-        make -j$NUM_JOBS
+        make -j
         make PKGCONF=$(brew --prefix pkgconf)/bin/pkgconf JUNIT_BATCH="${{ matrix.os }}-${{ matrix.compiler }}" junit -j$NUM_JOBS
     - name: Collect coverage
       if: ${{ matrix.compiler == 'gcc' }}
