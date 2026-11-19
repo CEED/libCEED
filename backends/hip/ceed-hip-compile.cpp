@@ -108,7 +108,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
   size_t             ptx_size;
   char              *ptx;
   const char       **opts;
-  int                num_opts;
+  int                num_opts, runtime_version;
   hiprtcProgram      prog;
   std::ostringstream code;
   CeedJitCacheEntry  cache_entry;
@@ -119,8 +119,6 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
 
   // Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
   {
-    int runtime_version;
-
     CeedCallHip(ceed, hipRuntimeGetVersion(&runtime_version));
     if (runtime_version < 40400000) {
       code << "#include <hip/hip_runtime.h>\n\n";
@@ -198,14 +196,22 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
   // Get compile options
   CeedCallBackend(CeedJitGetOpts_Hip(ceed, &opts, &num_opts));
 
-  // Reuse the output of an identical earlier compilation
-  CeedCallBackend(CeedJitCacheFind(ceed, num_opts, opts, jit_source, name, &cache_entry, &cached_binary));
+  // Reuse the output of an identical earlier compilation, from this process or from the cache on disk; hipRTC is
+  // versioned with the HIP runtime and also identified by its library, and options that it appends from the
+  // environment are not in the key
+  CeedCallBackend(CeedJitCacheFind(ceed, getenv("HIPRTC_COMPILE_OPTIONS_APPEND") ? std::string() : "hipRTC " + std::to_string(runtime_version),
+                                   reinterpret_cast<const void *>(hiprtcCompileProgram), num_opts, opts, jit_source, name, "hiprtc", &cache_entry,
+                                   &cached_binary));
   if (cached_binary) {
-    for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
-    CeedCallBackend(CeedFree(&opts));
-    *is_compile_good = true;
-    CeedCallHip(ceed, hipModuleLoadData(module, cached_binary->data()));
-    return CEED_ERROR_SUCCESS;
+    if (hipModuleLoadData(module, cached_binary->data()) == hipSuccess) {
+      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+      CeedCallBackend(CeedFree(&opts));
+      *is_compile_good = true;
+      return CEED_ERROR_SUCCESS;
+    }
+    // LCOV_EXCL_START
+    CeedDebug(ceed, "Failed to load the cached JiT binary, compiling it again");
+    // LCOV_EXCL_STOP
   }
 
   // Create Program

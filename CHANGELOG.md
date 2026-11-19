@@ -6,11 +6,15 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### Interface changes
+
+- Add `CeedTryGetCacheDir`, which does not report an error if the cache directory cannot be used, for backends that only optionally use it.
+
 ### New features
 
 ### Performance improvements
 
-- CUDA and HIP backends reuse the binary of an identical earlier NVRTC or hipRTC JiT compilation, with the same options and source, within a process instead of compiling it again.
+- CUDA and HIP backends reuse the binaries of identical earlier NVRTC and hipRTC JiT compilations instead of compiling again, within a process and, through the cache directory (see `CeedSetCacheBaseDir`), across processes.
 
 (v1-1-1)=
 

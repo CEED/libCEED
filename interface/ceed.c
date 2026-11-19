@@ -1137,24 +1137,102 @@ int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines) {
   return CEED_ERROR_SUCCESS;
 }
 
-static int CeedMkdirParents(Ceed ceed, char *path) {
+/**
+  @brief Create a directory, private to the user, and its parents, as needed
+
+  Unlike most libCEED functions, this does not report an error with the `Ceed` error handler, so that callers can ignore it.
+
+  @param[in,out] path Path of the directory, modified during the call and then restored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedMkdirParents(char *path) {
   for (char *pointer = path + 1; *pointer; pointer++) {
     // Replace '/' with '\0', mkdir, reset and continue
     if (*pointer == '/') {
       *pointer = '\0';
 
-      int err = mkdir(path, 0777);
+      int err = mkdir(path, 0700);
 
-      CeedCheck(err == 0 || errno == EEXIST, ceed, CEED_ERROR_MAJOR, "Failed to create cache directory");
-      errno    = 0;
       *pointer = '/';
+      if (err != 0 && errno != EEXIST) return CEED_ERROR_MAJOR;
+      errno = 0;
     }
   }
   // Full path
-  int err = mkdir(path, 0777);
+  // In parallel multiple processes may attempt
+  // Only one process needs to succeed
+  int err = mkdir(path, 0700);
 
-  CeedCheck(err == 0 || errno == EEXIST, ceed, CEED_ERROR_MAJOR, "Failed to create cache directory");
+  if (err != 0 && errno != EEXIST) return CEED_ERROR_MAJOR;
   errno = 0;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the cache directory for temporary libCEED files, see @ref CeedGetCacheDir() and @ref CeedTryGetCacheDir()
+
+  @param[in]  ceed        `Ceed` context
+  @param[in]  is_required Whether to report an error, instead of setting `cache_dir` to `NULL`, if the cache directory cannot be used
+  @param[out] cache_dir   Pointer to store cache directory, must be restored with @ref CeedRestoreCacheDir()
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedGetCacheDirCore(Ceed ceed, bool is_required, const char **cache_dir) {
+  const char *ceed_cache_base_dir;
+  const char  suffix[] = "libCEED";
+  wordexp_t   word_expansion;
+  char       *final_cache_dir;
+
+  *cache_dir = NULL;
+  CeedCall(CeedGetCacheBaseDir(ceed, &ceed_cache_base_dir));
+  if (!is_required && (!ceed_cache_base_dir || !ceed_cache_base_dir[0])) return CEED_ERROR_SUCCESS;
+  CeedCheck(ceed_cache_base_dir != NULL, ceed, CEED_ERROR_INCOMPATIBLE, "Cache base directory must not be NULL");
+
+  {
+    char        *wrapped_str;
+    const size_t base_length          = strlen(ceed_cache_base_dir);
+    const bool   needs_trailing_slash = base_length == 0 || ceed_cache_base_dir[base_length - 1] != '/';
+    const size_t length               = base_length + sizeof(suffix) + (needs_trailing_slash ? 1 : 0) + 3;
+
+    CeedCall(CeedCalloc(length, &wrapped_str));
+    snprintf(wrapped_str, length, "\"%s%s%s\"", ceed_cache_base_dir, needs_trailing_slash ? "/" : "", suffix);
+
+    int status = wordexp(wrapped_str, &word_expansion, WRDE_NOCMD);
+
+    if (!is_required && (status != 0 || word_expansion.we_wordc != 1)) {
+      if (status == 0 || status == WRDE_NOSPACE) wordfree(&word_expansion);
+      CeedCall(CeedFree(&wrapped_str));
+      return CEED_ERROR_SUCCESS;
+    }
+    CeedCheck(status != WRDE_CMDSUB, NULL, CEED_ERROR_INCOMPATIBLE, "Command substitution not allowed in environment variable value: %s",
+              wrapped_str);
+    CeedCheck(status != WRDE_BADCHAR, NULL, CEED_ERROR_INCOMPATIBLE, "Invalid unquoted shell character in environment variable value: %s",
+              wrapped_str);
+    CeedCheck(status != WRDE_SYNTAX, NULL, CEED_ERROR_INCOMPATIBLE, "Syntax error in environment variable value expansion: %s", wrapped_str);
+    CeedCheck(word_expansion.we_wordc == 1, NULL, CEED_ERROR_INCOMPATIBLE, "Environment variable value expansion resulted in %d words: %s",
+              word_expansion.we_wordc, wrapped_str);
+    CeedCall(CeedFree(&wrapped_str));
+  }
+  CeedCall(CeedStringAllocCopy(word_expansion.we_wordv[0], &final_cache_dir));
+  wordfree(&word_expansion);
+  // Create cache dir if needed
+  {
+    DIR *dir = opendir(final_cache_dir);
+
+    if (dir) {
+      closedir(dir);
+    } else if (CeedMkdirParents(final_cache_dir) != CEED_ERROR_SUCCESS) {
+      errno = 0;
+      CeedCall(CeedFree(&final_cache_dir));
+      CeedCheck(!is_required, ceed, CEED_ERROR_MAJOR, "Failed to create cache directory");
+    }
+  }
+  *cache_dir = final_cache_dir;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1169,54 +1247,29 @@ static int CeedMkdirParents(Ceed ceed, char *path) {
   @ref Backend
 **/
 int CeedGetCacheDir(Ceed ceed, const char **cache_dir) {
-  const char *ceed_cache_base_dir;
-  const char  suffix[] = "libCEED";
-  wordexp_t   word_expansion;
-  char       *final_cache_dir;
-
-  CeedCall(CeedGetCacheBaseDir(ceed, &ceed_cache_base_dir));
-  CeedCheck(ceed_cache_base_dir != NULL, ceed, CEED_ERROR_INCOMPATIBLE, "Cache base directory must not be NULL");
-
-  {
-    char        *wrapped_str;
-    const size_t base_length          = strlen(ceed_cache_base_dir);
-    const bool   needs_trailing_slash = ceed_cache_base_dir[base_length - 1] != '/';
-    const size_t length               = base_length + sizeof(suffix) + (needs_trailing_slash ? 1 : 0) + 3;
-
-    CeedCall(CeedCalloc(length, &wrapped_str));
-    snprintf(wrapped_str, length, "\"%s%s%s\"", ceed_cache_base_dir, needs_trailing_slash ? "/" : "", suffix);
-
-    int status = wordexp(wrapped_str, &word_expansion, WRDE_NOCMD);
-
-    CeedCheck(status != WRDE_CMDSUB, NULL, CEED_ERROR_INCOMPATIBLE, "Command substitution not allowed in environment variable value: %s",
-              wrapped_str);
-    CeedCheck(status != WRDE_BADCHAR, NULL, CEED_ERROR_INCOMPATIBLE, "Invalid unquoted shell character in environment variable value: %s",
-              wrapped_str);
-    CeedCheck(status != WRDE_SYNTAX, NULL, CEED_ERROR_INCOMPATIBLE, "Syntax error in environment variable value expansion: %s", wrapped_str);
-    CeedCheck(word_expansion.we_wordc == 1, NULL, CEED_ERROR_INCOMPATIBLE, "Environment variable value expansion resulted in %d words: %s",
-              word_expansion.we_wordc, wrapped_str);
-    CeedCall(CeedFree(&wrapped_str));
-  }
-  CeedCall(CeedStringAllocCopy(word_expansion.we_wordv[0], &final_cache_dir));
-  // Create cache dir if needed
-  {
-    DIR *dir = opendir(final_cache_dir);
-
-    if (dir) {
-      closedir(dir);
-    } else {
-      // In parallel multiple processes may attempt
-      // Only one process needs to succeed
-      CeedCall(CeedMkdirParents(ceed, final_cache_dir));
-    }
-  }
-  wordfree(&word_expansion);
-  *cache_dir = final_cache_dir;
+  CeedCall(CeedGetCacheDirCore(ceed, true, cache_dir));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Restore the cache directory for temporary libCEED files aaquired with `CeedGetCacheDir()`
+  @brief Get the cache directory for temporary libCEED files, if it can be used
+
+  Unlike @ref CeedGetCacheDir(), this does not report an error if the cache base directory is empty or cannot be expanded, or if the cache directory cannot be created, but sets `cache_dir` to `NULL`.
+
+  @param[in]  ceed      `Ceed` context
+  @param[out] cache_dir Pointer to store cache directory, or `NULL`, must be restored with @ref CeedRestoreCacheDir()
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedTryGetCacheDir(Ceed ceed, const char **cache_dir) {
+  CeedCall(CeedGetCacheDirCore(ceed, false, cache_dir));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore the cache directory for temporary libCEED files acquired with @ref CeedGetCacheDir() or @ref CeedTryGetCacheDir()
 
   @param[in]  ceed      `Ceed` context
   @param[out] cache_dir Pointer to cache directory path

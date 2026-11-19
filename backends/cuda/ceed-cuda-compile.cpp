@@ -201,14 +201,26 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     // Get compile options
     CeedCallBackend(CeedJitGetOpts_Cuda(ceed, &opts, &num_opts));
 
-    // Reuse the output of an identical earlier compilation
-    CeedCallBackend(CeedJitCacheFind(ceed, num_opts, opts, jit_source, name, &cache_entry, &cached_binary));
+    // Reuse the output of an identical earlier compilation, from this process or from the cache on disk; nvrtcVersion()
+    // only gives the major and minor versions, so the NVRTC library also identifies the compiler
+    {
+      int nvrtc_major, nvrtc_minor;
+
+      CeedCallNvrtc(ceed, nvrtcVersion(&nvrtc_major, &nvrtc_minor));
+      CeedCallBackend(CeedJitCacheFind(
+          ceed, "NVRTC " + std::to_string(nvrtc_major) + "." + std::to_string(nvrtc_minor) + (CUDA_VERSION >= 11010 ? " CUBIN" : " PTX"),
+          reinterpret_cast<const void *>(nvrtcCompileProgram), num_opts, opts, jit_source, name, "nvrtc", &cache_entry, &cached_binary));
+    }
     if (cached_binary) {
-      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
-      CeedCallBackend(CeedFree(&opts));
-      *is_compile_good = true;
-      CeedCallCuda(ceed, cuModuleLoadData(module, cached_binary->data()));
-      return CEED_ERROR_SUCCESS;
+      if (cuModuleLoadData(module, cached_binary->data()) == CUDA_SUCCESS) {
+        for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+        CeedCallBackend(CeedFree(&opts));
+        *is_compile_good = true;
+        return CEED_ERROR_SUCCESS;
+      }
+      // LCOV_EXCL_START
+      CeedDebug(ceed, "Failed to load the cached JiT binary, compiling it again");
+      // LCOV_EXCL_STOP
     }
     CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, jit_source.c_str(), NULL, 0, NULL, NULL));
 
@@ -407,7 +419,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
 
     // Preprocess & check if identical file has been compiled
-    // TODO: Add PTX caching and checking for NVRTC and HIPRTC
     {
       // -E: preprocess only
       // -P: exclude line info (needed to support different filenames)
