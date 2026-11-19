@@ -89,11 +89,15 @@ int main(int argc, char *argv[]) {
   args.AddOption(&test, "-t", "--test", "-no-test", "--no-test", "Enable or disable test mode.");
   args.Parse();
   if (!args.Good()) {
+    // LCOV_EXCL_START
     args.PrintUsage(std::cout);
     return 1;
+    // LCOV_EXCL_STOP
   }
   if (!test) {
+    // LCOV_EXCL_START
     args.PrintOptions(std::cout);
+    // LCOV_EXCL_STOP
   }
 
   // 2. Initialize a Ceed device object using the given Ceed specification.
@@ -126,7 +130,9 @@ int main(int argc, char *argv[]) {
   mfem::FiniteElementCollection *fec     = new mfem::H1_FECollection(order, dim);
   mfem::FiniteElementSpace      *fespace = new mfem::FiniteElementSpace(mesh, fec);
   if (!test) {
+    // LCOV_EXCL_START
     std::cout << "Number of finite element unknowns: " << fespace->GetTrueVSize() << std::endl;
+    // LCOV_EXCL_STOP
   }
 
   mfem::FunctionCoefficient sol_coeff(solution);
@@ -159,7 +165,9 @@ int main(int argc, char *argv[]) {
   if (test) {
     cg.SetPrintLevel(0);
   } else {
+    // LCOV_EXCL_START
     cg.SetPrintLevel(3);
+    // LCOV_EXCL_STOP
   }
   cg.SetOperator(*D);
 
@@ -168,20 +176,26 @@ int main(int argc, char *argv[]) {
   // 9. Compute and print the L2 norm of the error.
   double err_l2 = sol.ComputeL2Error(sol_coeff);
   if (!test) {
+    // LCOV_EXCL_START
     std::cout << "L2 projection error: " << err_l2 << std::endl;
+    // LCOV_EXCL_STOP
   } else {
     if (fabs(sol.ComputeL2Error(sol_coeff)) > 2e-3) {
+      // LCOV_EXCL_START
       std::cout << "Error too large: " << err_l2 << std::endl;
+      // LCOV_EXCL_STOP
     }
   }
 
   // 10. Open a socket connection to GLVis and send the mesh and solution for visualization.
   if (visualization) {
+    // LCOV_EXCL_START
     char               vishost[] = "localhost";
     int                visport   = 19916;
     mfem::socketstream sol_sock(vishost, visport);
     sol_sock.precision(8);
     sol_sock << "solution\n" << *mesh << sol << std::flush;
+    // LCOV_EXCL_STOP
   }
 
   // 11. Free memory and exit.
