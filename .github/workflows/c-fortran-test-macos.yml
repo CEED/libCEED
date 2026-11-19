@@ -10,7 +10,7 @@ jobs:
   c_test_macos:
     strategy:
       matrix:
-        os: [macos-26]
+        os: [macos-26-intel]
         compiler: [gcc, clang, apple-clang]
 
     runs-on: ${{ matrix.os }}
