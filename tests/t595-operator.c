@@ -116,15 +116,24 @@ int main(int argc, char **argv) {
   }
   // Check assembly FLOP estimates
   CeedOperatorLinearAssembleGetFlopsEstimate(op_mass, &flop_estimate);
-  if (flop_estimate != expected_flops_full)
+  if (flop_estimate != expected_flops_full) {
+    // LCOV_EXCL_START
     printf("Incorrect AtPoints full assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate, expected_flops_full);
+    // LCOV_EXCL_STOP
+  }
   CeedOperatorLinearAssembleDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
-  if (flop_estimate != expected_flops_diagonal)
+  if (flop_estimate != expected_flops_diagonal) {
+    // LCOV_EXCL_START
     printf("Incorrect AtPoints diagonal assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate, expected_flops_diagonal);
+    // LCOV_EXCL_STOP
+  }
   CeedOperatorLinearAssemblePointBlockDiagonalGetFlopsEstimate(op_mass, &flop_estimate);
-  if (flop_estimate != expected_flops_diagonal)
+  if (flop_estimate != expected_flops_diagonal) {
+    // LCOV_EXCL_START
     printf("Incorrect AtPoints point-block diagonal assembly FLOP estimate, %" CeedSize_FMT " != %" CeedSize_FMT "\n", flop_estimate,
            expected_flops_diagonal);
+    // LCOV_EXCL_STOP
+  }
 
   CeedVectorDestroy(&x_points);
   CeedVectorDestroy(&q_data);

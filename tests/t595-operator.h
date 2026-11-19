@@ -7,6 +7,7 @@
 
 #include <ceed/types.h>
 
+// LCOV_EXCL_START
 CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *rho = in[1];
   CeedScalar       *v = out[0];
@@ -15,3 +16,4 @@ CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { v[i] = rho[i] * u[i]; }
   return CEED_ERROR_SUCCESS;
 }
+// LCOV_EXCL_STOP

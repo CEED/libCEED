@@ -30,22 +30,37 @@ int main(int argc, char **argv) {
 
   CeedScalar norm;
   CeedVectorNorm(x, CEED_NORM_1, &norm);
-  if (len > 0 && fabs(norm - 45.) > 100. * CEED_EPSILON)
+  if (len > 0 && fabs(norm - 45.) > 100. * CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: L1 norm %f != 45.\n", norm);
-  else if (len == 0 && fabs(norm) > CEED_EPSILON)
+    // LCOV_EXCL_STOP
+  } else if (len == 0 && fabs(norm) > CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: L1 norm %f != 0.\n", norm);
+    // LCOV_EXCL_STOP
+  }
 
   CeedVectorNorm(x, CEED_NORM_2, &norm);
-  if (len > 0 && fabs(norm - sqrt(285.)) > 100. * CEED_EPSILON)
+  if (len > 0 && fabs(norm - sqrt(285.)) > 100. * CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: L2 norm %f != sqrt(285.)\n", norm);
-  else if (len == 0 && fabs(norm) > CEED_EPSILON)
+    // LCOV_EXCL_STOP
+  } else if (len == 0 && fabs(norm) > CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: L2 norm %f != 0.\n", norm);
+    // LCOV_EXCL_STOP
+  }
 
   CeedVectorNorm(x, CEED_NORM_MAX, &norm);
-  if (len > 0 && fabs(norm - 9.) > 100. * CEED_EPSILON)
+  if (len > 0 && fabs(norm - 9.) > 100. * CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: Max norm %f != 9.\n", norm);
-  else if (len == 0 && fabs(norm) > CEED_EPSILON)
+    // LCOV_EXCL_STOP
+  } else if (len == 0 && fabs(norm) > CEED_EPSILON) {
+    // LCOV_EXCL_START
     printf("Error: Max norm %f != 0.\n", norm);
+    // LCOV_EXCL_STOP
+  }
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

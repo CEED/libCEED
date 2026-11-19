@@ -2250,6 +2250,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 
     CeedCall(CeedOperatorGetCeed(op, &ceed));
     if (CeedDebugFlag(ceed)) {
+      // LCOV_EXCL_START
       Ceed        ceed_fallback;
       const char *resource, *resource_fallback, *op_name;
 
@@ -2262,6 +2263,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
       CeedDebug(ceed, "Falling back from Operator with backend %s at address %p to Operator with backend %s at address %p for CeedOperator \"%s\"\n",
                 resource, op, resource_fallback, op->op_fallback, op_name);
       CeedCall(CeedDestroy(&ceed_fallback));
+      // LCOV_EXCL_STOP
     }
     CeedCall(CeedDestroy(&ceed));
   }
