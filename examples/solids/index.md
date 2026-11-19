@@ -121,6 +121,9 @@ $$
 $$ (linear-stress-strain)
 
 For notational convenience, we express the symmetric second order tensors $\bm \sigma$ and $\bm \epsilon$ as vectors of length 6 using the [Voigt notation](https://en.wikipedia.org/wiki/Voigt_notation).
+The matrix below acts on the engineering-strain vector
+$[\epsilon_{11}, \epsilon_{22}, \epsilon_{33}, 2\epsilon_{23}, 2\epsilon_{13}, 2\epsilon_{12}]^T$.
+If the undoubled tensor shear strains are used instead, the three shear diagonal entries must be $2\mu$.
 Hence, the fourth order elasticity tensor $\mathsf C$ (also known as elastic moduli tensor or material stiffness tensor) can be represented as
 
 $$
