@@ -45,7 +45,7 @@ fn main() {
     };
     pkg_config::Config::new()
         .statik(!shared)
-        .atleast_version("1.1.0")
+        .atleast_version("1.1.1")
         .probe(&ceed_pc)
         .unwrap();
 

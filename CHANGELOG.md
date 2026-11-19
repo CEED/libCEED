@@ -6,6 +6,12 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### New features
+
+(v1-1-1)=
+
+## v1.1.1 (November 19, 2026)
+
 ### Bug Fixes
 
 - Fix an issue in the CUDA Graph API support for the `/gpu/cuda/gen` backend which allowed attempted writes to stale device pointers.
@@ -23,7 +29,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## v1.1.0 (October 30, 2026)
 
-### Bug Fixes
+### Bug fixes
 
 - Fix a major issue where error handling checks could be eliminated at higher optimization levels with some compilers.
 
