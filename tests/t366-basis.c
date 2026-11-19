@@ -112,8 +112,10 @@ int main(int argc, char **argv) {
               CeedVectorGetArrayRead(v_without_split, CEED_MEM_HOST, &v_without_array);
               for (CeedInt j = 0; j < num_comp * (num_v / dim) * num_elem; j++) {
                 if (fabs(v_with_array[j] - v_without_array[j]) > 100 * CEED_EPSILON * (fabs(v_without_array[j]) + 1.0)) {
+                  // LCOV_EXCL_START
                   printf("[%" CeedInt_FMT ", p %" CeedInt_FMT ", q %" CeedInt_FMT ", kind %" CeedInt_FMT ", interp %s] %f != %f\n", dim, p, q, kind,
                          t_mode ? "transpose" : "notranspose", v_with_array[j], v_without_array[j]);
+                  // LCOV_EXCL_STOP
                 }
               }
               CeedVectorRestoreArrayRead(v_with_split, &v_with_array);
@@ -139,8 +141,10 @@ int main(int argc, char **argv) {
               CeedVectorGetArrayRead(v_without_split, CEED_MEM_HOST, &v_without_array);
               for (CeedInt j = 0; j < num_comp * num_v * num_elem; j++) {
                 if (fabs(v_with_array[j] - v_without_array[j]) > 100 * CEED_EPSILON * (fabs(v_without_array[j]) + 1.0)) {
+                  // LCOV_EXCL_START
                   printf("[%" CeedInt_FMT ", p %" CeedInt_FMT ", q %" CeedInt_FMT ", kind %" CeedInt_FMT ", grad %s] %f != %f\n", dim, p, q, kind,
                          t_mode ? "transpose" : "notranspose", v_with_array[j], v_without_array[j]);
+                  // LCOV_EXCL_STOP
                 }
               }
               CeedVectorRestoreArrayRead(v_with_split, &v_with_array);
