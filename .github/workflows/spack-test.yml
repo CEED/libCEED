@@ -48,7 +48,7 @@ jobs:
         openmp: ['+openmp', '~openmp']
         shared: ['+shared', '~shared']
         include:
-        - os: macos-26
+        - os: macos-26-intel
           libxsmm: ~libxsmm
           openmp: ~openmp
           shared: ~shared

@@ -10,7 +10,7 @@ jobs:
   rust_test:
     strategy:
       matrix:
-        os: [ubuntu-26.04, macos-26]
+        os: [ubuntu-26.04, macos-26-intel]
         compiler: [clang]
 
     runs-on: ${{ matrix.os }}
