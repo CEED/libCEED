@@ -17,6 +17,9 @@ These source file must only contain syntax constructs supported by C99 and all t
 
 All source files must be at the provided filepath at runtime for JiT to function.
 
+The CUDA and HIP backends reuse the binary of an identical earlier NVRTC or hipRTC JiT compilation instead of compiling it again.
+Within a process, compilations with the same compiler options and source are treated as identical: included files are assumed not to change while a program runs.
+
 ## Memory Access
 
 GPU backends require stricter adherence to memory access assumptions, but CPU backends may occasionally report correct results despite violations of memory access assumptions.

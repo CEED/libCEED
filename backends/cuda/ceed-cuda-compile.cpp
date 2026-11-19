@@ -11,6 +11,7 @@
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
 #include <ceed/gen-system.hpp>
+#include <ceed/jit-cache.hpp>
 #include <cuda_runtime.h>
 #include <dirent.h>
 #include <nvrtc.h>
@@ -191,12 +192,25 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
   }
 
   if (!using_clang) {
-    const char **opts;
-    int          num_opts;
+    const char       **opts;
+    int                num_opts;
+    const std::string  jit_source = code.str();
+    CeedJitCacheEntry  cache_entry;
+    const std::string *cached_binary;
 
     // Get compile options
     CeedCallBackend(CeedJitGetOpts_Cuda(ceed, &opts, &num_opts));
-    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
+
+    // Reuse the output of an identical earlier compilation
+    CeedCallBackend(CeedJitCacheFind(ceed, num_opts, opts, jit_source, name, &cache_entry, &cached_binary));
+    if (cached_binary) {
+      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+      CeedCallBackend(CeedFree(&opts));
+      *is_compile_good = true;
+      CeedCallCuda(ceed, cuModuleLoadData(module, cached_binary->data()));
+      return CEED_ERROR_SUCCESS;
+    }
+    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, jit_source.c_str(), NULL, 0, NULL, NULL));
 
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
@@ -246,6 +260,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 #endif
     CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
+    CeedCallBackend(CeedJitCacheStore(ceed, &cache_entry, ptx, ptx_size));
     CeedCallBackend(CeedFree(&ptx));
     return CEED_ERROR_SUCCESS;
   } else {

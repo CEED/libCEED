@@ -8,6 +8,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+### Performance improvements
+
+- CUDA and HIP backends reuse the binary of an identical earlier NVRTC or hipRTC JiT compilation, with the same options and source, within a process instead of compiling it again.
+
 (v1-1-1)=
 
 ## v1.1.1 (November 19, 2026)
