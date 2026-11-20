@@ -47,8 +47,9 @@ const char *CeedCudaDir = CEED_CUDA_DIR;
 //------------------------------------------------------------------------------
 // Build array of JIT flags
 //------------------------------------------------------------------------------
-static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_opts) {
-  int opts_count = 4;
+
+static inline int CeedJitGetOpts_NVRTC(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 3;
 
   // Standard options
   CeedCallBackend(CeedCalloc(opts_count, opts));
@@ -74,7 +75,41 @@ static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_op
     CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[1]));
   }
   CeedCallBackend(CeedStringAllocCopy("-Dint32_t=int", (char **)&(*opts)[2]));
-  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[3]));
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedJitGetOpts_Clang(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 4;
+
+  // Standard options
+  CeedCallBackend(CeedCalloc(opts_count, opts));
+  {
+    std::string cuda_path_arg = "--cuda-path=" + std::string(CeedCudaDir);
+
+    CeedCallBackend(CeedStringAllocCopy(cuda_path_arg.c_str(), (char **)&(*opts)[0]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("-flto=thin", (char **)&(*opts)[1]));
+  {
+    Ceed_Cuda            *ceed_data;
+    struct cudaDeviceProp prop;
+
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg = "--cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor);
+
+    CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[2]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("--cuda-device-only", (char **)&(*opts)[3]));
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedJitGetOpts_Ceed(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = *num_opts + 1;
+
+  CeedCallBackend(CeedRealloc(opts_count, opts));
+  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[opts_count - 1]));
 
   // Additional include dirs
   {
@@ -112,7 +147,6 @@ static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_op
   *num_opts = opts_count;
   return CEED_ERROR_SUCCESS;
 }
-
 //------------------------------------------------------------------------------
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
@@ -195,9 +229,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     int          num_opts;
 
     // Get compile options
-    CeedCallBackend(CeedJitGetOpts_Cuda(ceed, &opts, &num_opts));
-    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
-
+    CeedCallBackend(CeedJitGetOpts_NVRTC(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &opts, &num_opts));
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
@@ -206,6 +239,8 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
       // LCOV_EXCL_STOP
     }
+
+    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
     nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
 
     for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
@@ -377,17 +412,23 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_STOP
     }
 
-    std::string code_str = code.str();
-    std::string includes;
+    const char **opts;
+    int          num_opts;
+    std::string  code_str = code.str();
+    std::string  opts_str = " ";
 
-    {
-      CeedInt      num_source_roots;
-      const char **source_roots;
-
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_source_roots, &source_roots));
-      for (CeedInt i = 0; i < num_source_roots; i++) includes += " -I" + std::string(source_roots[i]);
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &source_roots));
+    // Get compile options
+    CeedCallBackend(CeedJitGetOpts_Clang(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &opts, &num_opts));
+    if (CeedDebugFlag(ceed)) {
+      // LCOV_EXCL_START
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
+      for (CeedInt i = 0; i < num_opts; i++) CeedDebug(ceed, "Option %d: %s", i, opts[i]);
+      CeedDebug(ceed, "");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
+      // LCOV_EXCL_STOP
     }
+    for (CeedInt i = 0; i < num_opts; i++) opts_str += std::string(opts[i]) + " ";
 
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
 
@@ -397,8 +438,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // -E: preprocess only
       // -P: exclude line info (needed to support different filenames)
       CeedCallSystemResult result;
-      std::string          command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" +
-                                     std::to_string(prop.major) + std::to_string(prop.minor) + includes + " --cuda-device-only -x cu -E -P - -o -";
+      std::string          command = std::string(llvm_cxx) + opts_str + " --cuda-device-only -x cu -E -P - -o -";
 
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
@@ -414,8 +454,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     // Compile wrapper kernel
     if (!ptx_file_exists) {
       // Compile wrapper kernel
-      command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) +
-                std::to_string(prop.minor) + includes + " --cuda-device-only -emit-llvm -S -x cu - -o -";
+      command = std::string(llvm_cxx) + opts_str + " --cuda-device-only -emit-llvm -S -x cu - -o -";
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT kernel source", code_str, result));
 
       std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".ptx";
