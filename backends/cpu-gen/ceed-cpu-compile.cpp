@@ -29,12 +29,8 @@
 #include <dirent.h>
 #include <unistd.h>
 
-#define CEED_QUOTE(name) #name
-#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
 const char *CeedJitCxxDefault = CEED_STRINGIFY(CEED_CPU_JIT_CXX);
 const char *CeedJitLinkArgs   = CEED_STRINGIFY(CEED_CPU_LINK_ARGS);
-#undef CEED_QUOTE
-#undef CEED_STRINGIFY
 
 //------------------------------------------------------------------------------
 // Build array of JIT flags

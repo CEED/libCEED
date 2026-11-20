@@ -19,9 +19,6 @@
 #define CEED_ENV_ONLY_STRING(suffix, default, ...) CEED_ENV_STRING(suffix, default, ##__VA_ARGS__)
 #endif
 
-#define CEED_QUOTE(name) #name
-#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
-
 // Common environment variables
 CEED_ENV_ONLY_FLAG(EnableDebug, false, "CEED_DEBUG", "DEBUG", "DBG")
 CEED_ENV_ONLY_STRING(ErrorHandler, "abort", "CEED_ERROR_HANDLER")
@@ -50,9 +47,6 @@ CEED_ENV_FLAG(CudaEnableGraph, true, "CEED_CUDA_ENABLE_GRAPH", "CEED_ENABLE_CUDA
 CEED_ENV_FLAG(CudaUseClang, false, "CEED_CUDA_USE_CLANG", "CEED_USE_CLANG_CUDA")
 CEED_ENV_STRING(CudaClangCxx, NULL, "CEED_CUDA_CLANG_CXX", "CEED_CLANG_CUDA_CXX")
 CEED_ENV_STRING(CudaRustupToolchain, "nightly", "CEED_CUDA_RUSTUP_TOOLCHAIN", "RUSTUP_TOOLCHAIN")
-
-#undef CEED_QUOTE
-#undef CEED_STRINGIFY
 
 #ifdef UNSET_ONLY_FLAG
 #undef CEED_ENV_ONLY_FLAG
