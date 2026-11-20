@@ -10,7 +10,7 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <ceed/gen-system.hpp>
+#include <ceed/jit-system.hpp>
 #include <cuda_runtime.h>
 #include <dirent.h>
 #include <nvrtc.h>

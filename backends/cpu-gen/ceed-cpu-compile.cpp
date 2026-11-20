@@ -11,7 +11,7 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <ceed/gen-system.hpp>
+#include <ceed/jit-system.hpp>
 #include <dlfcn.h>
 #include <stdarg.h>
 #include <stdio.h>
