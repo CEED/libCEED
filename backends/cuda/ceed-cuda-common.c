@@ -29,7 +29,8 @@ int CeedInit_Cuda(Ceed ceed, const char *resource) {
   }
 
   CeedCallBackend(CeedGetData(ceed, &data));
-  data->device_id = current_device_id;
+  data->device_id       = current_device_id;
+  data->cache_supported = true;
   CeedCallCuda(ceed, cudaGetDeviceProperties(&data->device_prop, current_device_id));
   return CEED_ERROR_SUCCESS;
 }
@@ -43,6 +44,7 @@ int CeedDestroy_Cuda(Ceed ceed) {
   CeedCallBackend(CeedGetData(ceed, &data));
   if (data->cublas_handle) CeedCallCublas(ceed, cublasDestroy(data->cublas_handle));
   CeedCallBackend(CeedFree(&data->llvm_cxx));
+  CeedCallBackend(CeedFree(&data->nvcc));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

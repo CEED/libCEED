@@ -737,6 +737,7 @@ ifneq ($(CUDA_LIB_DIR),)
   PKG_LIBS += -L$(abspath $(CUDA_LIB_DIR)) -lcudart -lnvrtc -lcuda -lcublas
   PKG_STUBS_LIBS += -L$(CUDA_LIB_DIR_STUBS)
   LIBCEED_CONTAINS_CXX = 1
+  CPPFLAGS      += -DCEED_NVCC='$(NVCC)'
   libceed.c     += interface/ceed-cuda.c
   libceed.c     += $(cuda-all.c)
   libceed.h     += $(cuda-all.h)

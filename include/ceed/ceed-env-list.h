@@ -32,9 +32,12 @@ CEED_ENV_STRING(CacheBaseDir, "$HOME/.cache", "CEED_CACHE_BASE_DIR", "XDG_CACHE_
 // Error if JiT compiler not found or compilation error
 CEED_ENV_FLAG(JitErrorOnFailure, false, "CEED_JIT_ERROR_ON_FAILURE")
 
-// CPU backend
+// CPU JiT backend
 CEED_ENV_STRING(CpuJitCxx, CEED_STRINGIFY(CEED_CPU_JIT_CXX), "CEED_CPU_JIT_CXX")
 CEED_ENV_STRING(CpuJitOpt, CEED_STRINGIFY(CEED_CPU_JIT_OPT), "CEED_CPU_JIT_OPT")
+
+// CUDA backends
+CEED_ENV_STRING(CudaNvcc, CEED_STRINGIFY(CEED_NVCC), "CEED_NVCC")
 
 // Tensor contraction even-odd decomposition
 CEED_ENV_FLAG(ContractUseEvenOdd, false, "CEED_CONTRACT_USE_EVEN_ODD")
