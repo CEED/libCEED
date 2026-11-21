@@ -10,6 +10,7 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
+#include <ceed/jit-cache.hpp>
 #include <ceed/jit-system.hpp>
 #include <cuda_runtime.h>
 #include <dirent.h>
@@ -43,6 +44,48 @@ const char *CeedCudaDir = CEED_CUDA_DIR;
     int ierr_q_ = __VA_ARGS__;    \
     CeedChk_Nvrtc(ceed, ierr_q_); \
   } while (0)
+
+static int CeedGetNvcc_Cuda(Ceed ceed, const char **nvcc_out) {
+  Ceed_Cuda           *ceed_data;
+  CeedCallSystemResult result;
+
+  CeedCallBackend(CeedGetData(ceed, &ceed_data));
+
+  // First check for user NVCC compiler
+  if (!ceed_data->nvcc) {
+    const char *user_nvcc;
+
+    CeedCallBackend(CeedGetCudaNvcc(ceed, &user_nvcc));
+    CeedDebug(ceed, "Attempting to detect user specified NVCC compiler\nUser NVCC compiler: %s\n", user_nvcc);
+
+    // Check if valid NVCC
+    result.is_success = false;
+    if (user_nvcc && *user_nvcc != '\0') {
+      CeedDebug(ceed, "Checking user NVCC compiler...");
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_nvcc) + " --version", "checking user NVCC compiler", result));
+    }
+    if (result.is_success) {
+      CeedDebug(ceed, "User specified NVCC compiler is valid\n");
+      CeedCallBackend(CeedStringAllocCopy(user_nvcc, &ceed_data->nvcc));
+    } else {
+      CeedDebug(ceed, "Could not invoke user specified NVCC compiler\n");
+    }
+  }
+  // Default to nvcc
+  if (!ceed_data->nvcc) {
+    std::string nvcc_default = std::string(CeedCudaDir) + "/bin/nvcc";
+
+    CeedDebug(ceed, "Default NVCC compiler: %s\n", nvcc_default.c_str());
+    CeedDebug(ceed, "Checking default NVCC compiler...");
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, nvcc_default + " --version", "checking default NVCC compiler", result));
+    if (result.is_success) {
+      CeedDebug(ceed, "Default NVCC compiler is valid\n");
+      CeedCall(CeedStringAllocCopy(nvcc_default.c_str(), &ceed_data->nvcc));
+    }
+  }
+  *nvcc_out = ceed_data->nvcc;
+  return CEED_ERROR_SUCCESS;
+}
 
 //------------------------------------------------------------------------------
 // Build array of JIT flags
@@ -188,7 +231,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
                                 const CeedInt num_defines, va_list args) {
   bool               using_clang;
   size_t             ptx_size;
-  char              *ptx;
   nvrtcProgram       prog;
   std::ostringstream code;
 
@@ -257,9 +299,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
   if (!using_clang) {
     const char **opts;
     int          num_opts;
-    std::size_t  cpp_hash = 0;
     std::string  cache_dir, filename_ptx;
-    bool         ptx_file_exists = false;
+    std::string  extension;
+
+#if CUDA_VERSION >= 11010
+    extension = ".cubin";
+#else
+    extension = ".ptx";
+#endif
 
     // Get compile options
     CeedCallBackend(CeedJitGetOpts_NVRTC(ceed, &opts, &num_opts));
@@ -273,198 +320,136 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_STOP
     }
 
-    // Check for cached PTX
-    Ceed_Cuda *ceed_data;
-
-    CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    if (ceed_data->cache_supported) {
-      CeedCallSystemResult result;
-      char                *nvcc = ceed_data->nvcc;
-
-      // First check for user LLVM version
-      if (!nvcc) {
-        const char *user_nvcc;
-
-        CeedCallBackend(CeedGetCudaNvcc(ceed, &user_nvcc));
-        CeedDebug(ceed, "Attempting to detect user specified NVCC compiler\nUser NVCC compiler: %s\n", user_nvcc);
-
-        // Check if valid NVCC
-        result.is_success = false;
-        if (user_nvcc && *user_nvcc != '\0') {
-          CeedDebug(ceed, "Checking user NVCC compiler...");
-          CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_nvcc) + " --version", "checking user NVCC compiler", result));
-        }
-        if (result.is_success) {
-          CeedDebug(ceed, "User specified NVCC compiler is valid\n");
-          CeedCallBackend(CeedStringAllocCopy(user_nvcc, &ceed_data->nvcc));
-          nvcc = ceed_data->nvcc;
-        } else {
-          CeedDebug(ceed, "Could not invoke user specified NVCC compiler\n");
-        }
-      }
-      // Default to nvcc
-      if (!nvcc) {
-        CeedDebug(ceed, "Default NVCC compiler: nvcc\n");
-        CeedDebug(ceed, "Checking default NVCC compiler...");
-        CeedCallBackend(CeedCallSystemUnchecked(ceed, "nvcc --version", "checking default NVCC compiler", result));
-        if (result.is_success) {
-          CeedCall(CeedStringAllocCopy("nvcc", &ceed_data->nvcc));
-          nvcc = ceed_data->nvcc;
-        }
-      }
-
-      // Check for caching support
-      {
-        const char *dir;
-
-        CeedCallBackend(CeedGetCacheDir(ceed, &dir));
-        cache_dir = std::string(dir) + "/";
-        CeedCallBackend(CeedRestoreCacheDir(ceed, &dir));
-      }
-
-      // Check if identical file has been compiled
-      if (nvcc) {
-        // Get NVCC opts
-        const char **nvcc_opts;
-        int          num_nvcc_opts;
-        std::string  nvcc_opts_str = " ";
-        std::string  code_str      = code.str();
-
-        CeedCallBackend(CeedJitGetOpts_NVCC(ceed, &nvcc_opts, &num_nvcc_opts));
-        CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &nvcc_opts, &num_nvcc_opts));
-        for (CeedInt i = 0; i < num_nvcc_opts; i++) nvcc_opts_str += std::string(nvcc_opts[i]) + " ";
-
-        // -E: preprocess only
-        // -P: exclude line info (needed to support different filenames)
-        CeedCallSystemResult result;
-        std::string          command = std::string(nvcc) + nvcc_opts_str + " -x cu -E --compiler-options=-P - -o -";
-
-        CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
-        for (CeedInt i = 0; i < num_nvcc_opts; i++) CeedCallBackend(CeedFree(&nvcc_opts[i]));
-        CeedCallBackend(CeedFree(&nvcc_opts));
-
-        cpp_hash     = std::hash<std::string>{}(result.output);
-        filename_ptx = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".ptx";
-
-        // Fast way to check if a file exists
-        struct stat buffer;
-
-        CeedDebug(ceed, "Checking PTX cache at: %s\n", filename_ptx.c_str());
-        ptx_file_exists = (stat(filename_ptx.c_str(), &buffer) == 0);
-        CeedDebug(ceed, "-- PTX %s in cache\n", ptx_file_exists ? "FOUND" : "NOT FOUND");
-      }
+    // Add flags to source
+    code << "\n";
+    code << "volatile const char *__ceed_compile_options[] = {\n";
+    for (CeedInt i = 0; i < num_opts; i++) {
+      code << "  \"" << opts[i] << "\",\n";
     }
+    code << "};\n";
+    code << "volatile const char *__cuda_version = \"" CEED_STRINGIFY(CUDA_VERSION) "\";\n";
 
-    if (!ptx_file_exists) {
-      CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
-      nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
+    int major, minor;
 
-      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
-      CeedCallBackend(CeedFree(&opts));
+    CeedCallNvrtc(ceed, nvrtcVersion(&major, &minor));
+    code << "volatile const char *__nvrtc_version = \"" << major << "." << minor << "\";\n";
 
-      *is_compile_good = result == NVRTC_SUCCESS;
-      if (!*is_compile_good) {
-        // LCOV_EXCL_START
-        char  *log;
-        size_t log_size;
-        bool   should_error_on_failure;
+    std::string code_str = code.str();
+    std::string ptx_path;
+    std::size_t source_hash;
 
-        CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
-        CeedCallBackend(CeedMalloc(log_size, &log));
-        CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
-        CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
-        if (throw_error || should_error_on_failure) {
-          return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
-        } else {
-          CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
-          CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
-          CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
-          CeedCallBackend(CeedFree(&log));
-          CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
-          return CEED_ERROR_SUCCESS;
+    // Check for in-memory/disk cache
+    {
+      const std::vector<char> *binary = NULL;
+
+      CeedCall(CeedJitCacheFindHot(ceed, code_str, &binary, &source_hash));
+
+      // Check disk cache
+      if (!binary) {
+        CeedCallSystemResult result;
+        const char          *nvcc;
+
+        CeedCall(CeedGetNvcc_Cuda(ceed, &nvcc));
+
+        // Check if identical file has been compiled
+        if (nvcc) {
+          // Get NVCC opts
+          const char **nvcc_opts;
+          int          num_nvcc_opts;
+          std::string  nvcc_opts_str = " ";
+
+          CeedCallBackend(CeedJitGetOpts_NVCC(ceed, &nvcc_opts, &num_nvcc_opts));
+          CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &nvcc_opts, &num_nvcc_opts));
+          for (CeedInt i = 0; i < num_nvcc_opts; i++) nvcc_opts_str += std::string(nvcc_opts[i]) + " ";
+
+          // -E: preprocess only
+          // -P: exclude line info (needed to support different filenames)
+          // -x c++: don't include cuda_runtime.h (instead use cuda version as tracker)
+          CeedCallSystemResult result;
+          std::string          command = std::string(nvcc) + nvcc_opts_str + " -x c++ -E --compiler-options=-P - -o -";
+
+          CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
+          for (CeedInt i = 0; i < num_nvcc_opts; i++) CeedCallBackend(CeedFree(&nvcc_opts[i]));
+          CeedCallBackend(CeedFree(&nvcc_opts));
+
+          // Search cache with preprocessed source
+          CeedCall(CeedJitCacheFind(ceed, source_hash, result.output, name, extension, ptx_path, &binary));
         }
-        // LCOV_EXCL_STOP
       }
+      if (binary) {
+        // Load module from final PTX
+        for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+        CeedCallBackend(CeedFree(&opts));
 
-#if CUDA_VERSION >= 11010
-      CeedCallNvrtc(ceed, nvrtcGetCUBINSize(prog, &ptx_size));
-      CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-      CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx));
-#else
-      CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
-      CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-      CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
-#endif
-      CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
-      CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
+        int load_result = cuModuleLoadData(module, binary->data());
 
-      if (ceed_data->cache_supported) {
-        // Write PTX
-        CeedDebug(ceed, "Writing PTX to file:   %s\n", filename_ptx.c_str());
-        {
-          // Create filename with path and 'function_' prefix with uuid
-          std::random_device         r;
-          std::default_random_engine gen(r());
-          // Place lower bound for uniformity of ids
-          std::uniform_int_distribution<CeedInt> dist(1000000000);
-          const CeedInt                          build_id = dist(gen);
+        *is_compile_good = load_result == 0;
+        if (!*is_compile_good) {
+          // LCOV_EXCL_START
+          bool should_error_on_failure;
 
-          std::string tmp_ptx_filename = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + "_" + std::to_string(build_id) + ".ptx";
-          FILE       *file             = fopen(tmp_ptx_filename.c_str(), "w");
-
-          fwrite(ptx, ptx_size, 1, file);
-          fclose(file);
-
-          // Atomicly try to move to final location
-          if (link(tmp_ptx_filename.c_str(), filename_ptx.c_str()) < 0) {
-            // EEXIST means another process beat us to it, so succeed silently
-            CeedCheck(errno == EEXIST, ceed, CEED_ERROR_BACKEND, "Failed to write '%s' to disk: %s", filename_ptx.c_str(), strerror(errno));
-            errno = 0;
+          CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+          if (throw_error || should_error_on_failure) {
+            return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
+          } else {
+            CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+            CeedDebug(ceed, "Error: Failed to load module data");
+            CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+            return CEED_ERROR_SUCCESS;
           }
-
-          // Remove temporary file
-          {
-            int err = errno;
-
-            unlink(tmp_ptx_filename.c_str());
-            errno = err;
-          }
+          // LCOV_EXCL_STOP
         }
-
-        // Cleanup
-        CeedCallBackend(CeedFree(&ptx));
         return CEED_ERROR_SUCCESS;
       }
-      CeedCallBackend(CeedFree(&ptx));
-      return CEED_ERROR_SUCCESS;
-    } else {
-      // Load module from final PTX
-      CeedDebug(ceed, "Loading module from PTX: %s", filename_ptx.c_str());
-
-      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
-      CeedCallBackend(CeedFree(&opts));
-
-      ifstream    ptxfile(filename_ptx);
-      std::string buf(std::istreambuf_iterator<char>(ptxfile), {});
-      int         load_result = cuModuleLoadData(module, buf.c_str());
-
-      *is_compile_good = load_result == 0;
-      if (!*is_compile_good) {
-        // LCOV_EXCL_START
-        bool should_error_on_failure;
-
-        CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
-        if (throw_error || should_error_on_failure) {
-          return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
-        } else {
-          CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
-          CeedDebug(ceed, "Error: Failed to load module data");
-          CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
-          return CEED_ERROR_SUCCESS;
-        }
-        // LCOV_EXCL_STOP
-      }
     }
+
+    // Fallback to building the binary
+    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code_str.c_str(), NULL, 0, NULL, NULL));
+    nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
+
+    for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+    CeedCallBackend(CeedFree(&opts));
+
+    *is_compile_good = result == NVRTC_SUCCESS;
+    if (!*is_compile_good) {
+      // LCOV_EXCL_START
+      char  *log;
+      size_t log_size;
+      bool   should_error_on_failure;
+
+      CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
+      CeedCallBackend(CeedMalloc(log_size, &log));
+      CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
+      CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+      if (throw_error || should_error_on_failure) {
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
+      } else {
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+        CeedDebug(ceed, "Error: %s\nCompile log:\n%s\n", nvrtcGetErrorString(result), log);
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+        CeedCallBackend(CeedFree(&log));
+        CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
+        return CEED_ERROR_SUCCESS;
+      }
+      // LCOV_EXCL_STOP
+    }
+
+    std::vector<char> ptx;
+
+#if CUDA_VERSION >= 11010
+    CeedCallNvrtc(ceed, nvrtcGetCUBINSize(prog, &ptx_size));
+    ptx.resize(ptx_size);
+    CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx.data()));
+#else
+    CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
+    ptx.resize(ptx_size);
+    CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx.data()));
+#endif
+    CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
+    CeedCallCuda(ceed, cuModuleLoadData(module, ptx.data()));
+    // Update cache
+    CeedCall(CeedJitCacheSet(ceed, source_hash, ptx_path, std::move(ptx)));
+    return CEED_ERROR_SUCCESS;
   } else {
     std::random_device         r;
     std::default_random_engine gen(r());
@@ -596,7 +581,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     const char **opts;
     int          num_opts;
-    std::string  code_str = code.str();
     std::string  opts_str = " ";
 
     // Get compile options
@@ -611,6 +595,20 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_STOP
     }
     for (CeedInt i = 0; i < num_opts; i++) opts_str += std::string(opts[i]) + " ";
+    // Add flags to source
+    code << "\n";
+    code << "volatile const const char *__ceed_compile_options[] = {\n";
+    for (CeedInt i = 0; i < num_opts; i++) {
+      code << "  \"" << opts[i] << "\",\n";
+    }
+    code << "};\n";
+    code << "volatile const const char *__cuda_version = \"" CEED_STRINGIFY(CUDA_VERSION) "\";\n";
+
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(llvm_cxx) + " --version", "getting LLVM version string", result));
+    std::replace(result.output.begin(), result.output.end(), '\n', ' ');
+    code << "volatile const char *__llvm_version = \"" << result.output << "\";\n";
+
+    std::string code_str = code.str();
 
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
 
@@ -618,13 +616,14 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     {
       // -E: preprocess only
       // -P: exclude line info (needed to support different filenames)
+      // -x c++: don't include cuda_runtime.h (instead use cuda version as tracker)
       CeedCallSystemResult result;
-      std::string          command = std::string(llvm_cxx) + opts_str + " --cuda-device-only -x cu -E -P - -o -";
+      std::string          command = std::string(llvm_cxx) + opts_str + "-x c++ -E -P - -o -";
 
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
       std::size_t cpp_hash = std::hash<std::string>{}(result.output);
-      filename_ptx         = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".ptx";
+      filename_ptx         = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".clang.ptx";
 
       // Fast way to check if a file exists
       struct stat buffer;
@@ -640,7 +639,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       command = std::string(llvm_cxx) + opts_str + " --cuda-device-only -emit-llvm -S -x cu - -o -";
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT kernel source", code_str, result));
 
-      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".ptx";
+      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + ".clang.ptx";
 
       // Find Rust's llvm-link tool and run it
       command = "$(find $(rustup run " + std::string(rust_toolchain) +
@@ -677,7 +676,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
                 std::to_string(prop.major) + std::to_string(prop.minor) + " - -o " + tmp_ptx_filename;
       CeedCallBackend(CeedCallSystem(ceed, command, "compile final CUDA kernel", result.output, result));
-      CeedCallBackend(CeedCallSystem(ceed, "chmod 0777 " + tmp_ptx_filename, "update JiT file permissions", result));
+      CeedCallBackend(CeedCallSystem(ceed, "chmod 0700 " + tmp_ptx_filename, "update JiT file permissions", result));
 
       // Atomicly try to move to final location
       if (link(tmp_ptx_filename.c_str(), filename_ptx.c_str()) < 0) {

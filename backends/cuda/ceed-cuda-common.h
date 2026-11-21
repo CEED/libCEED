@@ -94,7 +94,6 @@ typedef struct {
   int                   device_id;
   char                 *llvm_cxx;
   char                 *nvcc;
-  bool                  cache_supported;
   cublasHandle_t        cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;

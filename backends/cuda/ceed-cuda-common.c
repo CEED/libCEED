@@ -29,8 +29,7 @@ int CeedInit_Cuda(Ceed ceed, const char *resource) {
   }
 
   CeedCallBackend(CeedGetData(ceed, &data));
-  data->device_id       = current_device_id;
-  data->cache_supported = true;
+  data->device_id = current_device_id;
   CeedCallCuda(ceed, cudaGetDeviceProperties(&data->device_prop, current_device_id));
   return CEED_ERROR_SUCCESS;
 }
