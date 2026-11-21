@@ -225,6 +225,7 @@ CEED_EXTERN int CeedGetJitDefines(Ceed ceed, CeedInt *num_defines, const char **
 CEED_EXTERN int CeedRestoreJitDefines(Ceed ceed, const char ***jit_defines);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);
 CEED_EXTERN int CeedGetCacheDir(Ceed ceed, const char **cache_dir);
+CEED_EXTERN int CeedTryGetCacheDir(Ceed ceed, const char **cache_dir);
 CEED_EXTERN int CeedRestoreCacheDir(Ceed ceed, const char **cache_dir);
 CEED_EXTERN int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type);
 CEED_EXTERN int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array);

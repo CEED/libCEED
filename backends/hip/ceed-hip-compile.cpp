@@ -11,6 +11,7 @@
 #include <ceed/backend.h>
 #include <ceed/jit-source/hip/hip-chipstar.h>
 #include <ceed/jit-tools.h>
+#include <ceed/jit-cache.hpp>
 #include <iomanip>
 #include <stdarg.h>
 #include <string.h>
@@ -107,17 +108,17 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
   size_t             ptx_size;
   char              *ptx;
   const char       **opts;
-  int                num_opts;
+  int                num_opts, runtime_version;
   hiprtcProgram      prog;
   std::ostringstream code;
+  CeedJitCacheEntry  cache_entry;
+  const std::string *cached_binary;
 
   // Make sure a Context exists for hiprtc
   hipFree(0);
 
   // Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
   {
-    int runtime_version;
-
     CeedCallHip(ceed, hipRuntimeGetVersion(&runtime_version));
     if (runtime_version < 40400000) {
       code << "#include <hip/hip_runtime.h>\n\n";
@@ -154,6 +155,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
 
   // Add string source argument provided in call
   code << source;
+  const std::string jit_source = code.str();
 
   // Write to disk in debug mode
   if (CeedDebugFlag(ceed)) {
@@ -185,17 +187,36 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
     }
   }
 
-  // Get compile options
-  CeedCallBackend(CeedJitGetOpts_Hip(ceed, &opts, &num_opts));
-
-  // Create Program
-  CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
-
   // Compile kernel
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- ATTEMPTING TO COMPILE JIT SOURCE ----------\n");
   CeedDebug(ceed, "Name:\n  %s\n", name);
   CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JIT SOURCE ----------\n");
+
+  // Get compile options
+  CeedCallBackend(CeedJitGetOpts_Hip(ceed, &opts, &num_opts));
+
+  // Reuse the output of an identical earlier compilation, from this process or from the cache on disk; hipRTC is
+  // versioned with the HIP runtime and also identified by its library, and options that it appends from the
+  // environment are not in the key
+  CeedCallBackend(CeedJitCacheFind(ceed, getenv("HIPRTC_COMPILE_OPTIONS_APPEND") ? std::string() : "hipRTC " + std::to_string(runtime_version),
+                                   reinterpret_cast<const void *>(hiprtcCompileProgram), num_opts, opts, jit_source, name, "hiprtc", &cache_entry,
+                                   &cached_binary));
+  if (cached_binary) {
+    if (hipModuleLoadData(module, cached_binary->data()) == hipSuccess) {
+      for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+      CeedCallBackend(CeedFree(&opts));
+      *is_compile_good = true;
+      return CEED_ERROR_SUCCESS;
+    }
+    // LCOV_EXCL_START
+    CeedDebug(ceed, "Failed to load the cached JiT binary, compiling it again");
+    // LCOV_EXCL_STOP
+  }
+
+  // Create Program
+  CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, jit_source.c_str(), NULL, 0, NULL, NULL));
+
   if (CeedDebugFlag(ceed)) {
     // LCOV_EXCL_START
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
@@ -239,6 +260,7 @@ static int CeedCompileCore_Hip(Ceed ceed, const char *source, const char *name, 
   CeedCallHiprtc(ceed, hiprtcGetCode(prog, ptx));
   CeedCallHiprtc(ceed, hiprtcDestroyProgram(&prog));
   CeedCallHip(ceed, hipModuleLoadData(module, ptx));
+  CeedCallBackend(CeedJitCacheStore(ceed, &cache_entry, ptx, ptx_size));
   CeedCallBackend(CeedFree(&ptx));
   return CEED_ERROR_SUCCESS;
 }

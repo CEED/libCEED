@@ -17,6 +17,14 @@ These source file must only contain syntax constructs supported by C99 and all t
 
 All source files must be at the provided filepath at runtime for JiT to function.
 
+The CUDA and HIP backends reuse the binary of an identical earlier NVRTC or hipRTC JiT compilation instead of compiling it again.
+Within a process, compilations with the same compiler options and source are treated as identical: included files are assumed not to change while a program runs.
+Binaries are also kept for later runs in the `libCEED` directory of the cache base directory (`$CEED_CACHE_BASE_DIR`, `$XDG_CACHE_HOME`, or `$HOME/.cache`, see `CeedSetCacheBaseDir`), keyed in addition by the compiler and by the path and contents of every file that the source includes, recursively, so changes to source files between runs are detected.
+Sources with include directives that may not be followed exactly, such as an `#include` of a macro, are only cached in memory.
+The cache directory must belong to the user and not be writable by the group or others, otherwise, or if it cannot be created, only the in-memory cache is used; if it is read-only, no binaries are added to it.
+For large parallel runs, a node-local or scratch cache base directory private to the user avoids many processes accessing a shared home directory.
+Binaries on disk are never evicted: deleting the `libCEED` directory of the cache base directory clears them, with the other files that libCEED keeps there and any temporary files (`.tmp_*`) left by interrupted runs.
+
 ## Memory Access
 
 GPU backends require stricter adherence to memory access assumptions, but CPU backends may occasionally report correct results despite violations of memory access assumptions.
