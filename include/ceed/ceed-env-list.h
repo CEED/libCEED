@@ -19,9 +19,6 @@
 #define CEED_ENV_ONLY_STRING(suffix, default, ...) CEED_ENV_STRING(suffix, default, ##__VA_ARGS__)
 #endif
 
-#define CEED_QUOTE(name) #name
-#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
-
 // Common environment variables
 CEED_ENV_ONLY_FLAG(EnableDebug, false, "CEED_DEBUG", "DEBUG", "DBG")
 CEED_ENV_ONLY_STRING(ErrorHandler, "abort", "CEED_ERROR_HANDLER")
@@ -32,9 +29,12 @@ CEED_ENV_STRING(CacheBaseDir, "$HOME/.cache", "CEED_CACHE_BASE_DIR", "XDG_CACHE_
 // Error if JiT compiler not found or compilation error
 CEED_ENV_FLAG(JitErrorOnFailure, false, "CEED_JIT_ERROR_ON_FAILURE")
 
-// CPU backend
+// CPU JiT backend
 CEED_ENV_STRING(CpuJitCxx, CEED_STRINGIFY(CEED_CPU_JIT_CXX), "CEED_CPU_JIT_CXX")
 CEED_ENV_STRING(CpuJitOpt, CEED_STRINGIFY(CEED_CPU_JIT_OPT), "CEED_CPU_JIT_OPT")
+
+// CUDA backends
+CEED_ENV_STRING(CudaNvcc, CEED_STRINGIFY(CEED_NVCC), "CEED_NVCC")
 
 // Tensor contraction even-odd decomposition
 CEED_ENV_FLAG(ContractUseEvenOdd, false, "CEED_CONTRACT_USE_EVEN_ODD")
@@ -47,9 +47,6 @@ CEED_ENV_FLAG(CudaEnableGraph, true, "CEED_CUDA_ENABLE_GRAPH", "CEED_ENABLE_CUDA
 CEED_ENV_FLAG(CudaUseClang, false, "CEED_CUDA_USE_CLANG", "CEED_USE_CLANG_CUDA")
 CEED_ENV_STRING(CudaClangCxx, NULL, "CEED_CUDA_CLANG_CXX", "CEED_CLANG_CUDA_CXX")
 CEED_ENV_STRING(CudaRustupToolchain, "nightly", "CEED_CUDA_RUSTUP_TOOLCHAIN", "RUSTUP_TOOLCHAIN")
-
-#undef CEED_QUOTE
-#undef CEED_STRINGIFY
 
 #ifdef UNSET_ONLY_FLAG
 #undef CEED_ENV_ONLY_FLAG

@@ -73,3 +73,21 @@
   } while (0)
 
 #endif  // CEED_LIBRARY_DEFS_H
+
+/**
+  @brief Helper macro to enable `CEED_STRINGIFY`
+
+  @param[in] value Value to print as a string
+
+  @ref Developer
+**/
+#define CEED_QUOTE(value) #value
+
+/**
+  @brief Macro to expand @a macro and insert its value as a string
+
+  @param[in] macro Macro whose value to print as a string
+
+  @ref Developer
+**/
+#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)

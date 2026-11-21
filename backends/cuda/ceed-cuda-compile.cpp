@@ -10,7 +10,8 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <ceed/gen-system.hpp>
+#include <ceed/jit-cache.hpp>
+#include <ceed/jit-system.hpp>
 #include <cuda_runtime.h>
 #include <dirent.h>
 #include <nvrtc.h>
@@ -45,10 +46,136 @@ const char *CeedCudaDir = CEED_CUDA_DIR;
   } while (0)
 
 //------------------------------------------------------------------------------
+// Compiler setting helpers
+//------------------------------------------------------------------------------
+static int CeedGetNvcc_Cuda(Ceed ceed, const char **nvcc_out) {
+  Ceed_Cuda           *ceed_data;
+  CeedCallSystemResult result;
+
+  CeedCallBackend(CeedGetData(ceed, &ceed_data));
+
+  // First check for user NVCC compiler
+  if (!ceed_data->nvcc) {
+    const char *user_nvcc;
+
+    CeedCallBackend(CeedGetCudaNvcc(ceed, &user_nvcc));
+    CeedDebug(ceed, "Attempting to detect user specified NVCC compiler\nUser NVCC compiler: %s\n", user_nvcc);
+
+    // Check if valid NVCC
+    result.is_success = false;
+    if (user_nvcc && *user_nvcc != '\0') {
+      CeedDebug(ceed, "Checking user NVCC compiler...");
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_nvcc) + " --version", "checking user NVCC compiler", result));
+    }
+    if (result.is_success) {
+      CeedDebug(ceed, "User specified NVCC compiler is valid\n");
+      CeedCallBackend(CeedStringAllocCopy(user_nvcc, &ceed_data->nvcc));
+    } else {
+      CeedDebug(ceed, "Could not invoke user specified NVCC compiler\n");
+    }
+  }
+  // Default to nvcc
+  if (!ceed_data->nvcc) {
+    std::string nvcc_default = std::string(CeedCudaDir) + "/bin/nvcc";
+
+    CeedDebug(ceed, "Default NVCC compiler: %s\n", nvcc_default.c_str());
+    CeedDebug(ceed, "Checking default NVCC compiler...");
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, nvcc_default + " --version", "checking default NVCC compiler", result));
+    if (result.is_success) {
+      CeedDebug(ceed, "Default NVCC compiler is valid\n");
+      CeedCallBackend(CeedStringAllocCopy(nvcc_default.c_str(), &ceed_data->nvcc));
+    }
+  }
+  *nvcc_out = ceed_data->nvcc;
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedGetLLVMCXX_Cuda(Ceed ceed, const char **cxx_out) {
+  Ceed_Cuda           *ceed_data;
+  CeedCallSystemResult result;
+
+  CeedCallBackend(CeedGetData(ceed, &ceed_data));
+  char *llvm_cxx = ceed_data->llvm_cxx;
+
+  // First check for user LLVM version
+  if (!llvm_cxx) {
+    const char *user_cxx;
+
+    CeedCallBackend(CeedGetCudaClangCxx(ceed, &user_cxx));
+    CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
+
+    // Check if valid Clang
+    result.is_success = false;
+    if (user_cxx && *user_cxx != '\0') {
+      CeedDebug(ceed, "Checking user LLVM compiler...");
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
+    }
+    if (result.is_success) {
+      CeedDebug(ceed, "User specified LLVM compiler is valid\n");
+      CeedCallBackend(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
+      llvm_cxx = ceed_data->llvm_cxx;
+    } else {
+      CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");
+    }
+  }
+  // Next query Rust for LLVM version
+  if (!llvm_cxx) {
+    const char *rust_toolchain;
+
+    CeedCallBackend(CeedGetCudaRustupToolchain(ceed, &rust_toolchain));
+    CeedCallBackend(CeedCallSystemUnchecked(ceed,
+                                            "$(find $(rustup run " + std::string(rust_toolchain) +
+                                                " rustc --print sysroot) -name llvm-link) --version",
+                                            "detect Rust LLVM version", result));
+
+    if (result.is_success) {
+      CeedDebug(ceed, "output:\n%s", result.output.c_str());
+
+      auto version_substring_start = result.output.find("LLVM version ");
+      if (version_substring_start != std::string::npos) version_substring_start += 13;
+      auto version_substring_end = result.output.find(".", version_substring_start);
+
+      if (version_substring_end > version_substring_start && version_substring_start != std::string::npos &&
+          version_substring_end != std::string::npos) {
+        auto llvm_version_str = result.output.substr(version_substring_start, version_substring_end - version_substring_start);
+        CeedDebug(ceed, "Detected Rust LLVM version: %s", llvm_version_str.c_str());
+        CeedInt llvm_version = std::stoi(llvm_version_str);
+        CeedDebug(ceed, "Detected Rust LLVM version: %d", llvm_version);
+
+        // Check if valid Clang
+        std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
+
+        CeedDebug(ceed, "Checking Rust LLVM compiler...");
+        CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
+
+        if (result.is_success) {
+          CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
+          CeedCallBackend(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_cxx));
+          llvm_cxx = ceed_data->llvm_cxx;
+        }
+      }
+      if (!llvm_cxx) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
+    }
+  }
+  // Default to clang++
+  if (!llvm_cxx) {
+    CeedDebug(ceed, "Default LLVM compiler: clang++\n");
+    CeedDebug(ceed, "Checking default LLVM compiler...");
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result));
+    if (result.is_success) {
+      CeedCallBackend(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
+      llvm_cxx = ceed_data->llvm_cxx;
+    }
+  }
+  *cxx_out = llvm_cxx;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Build array of JIT flags
 //------------------------------------------------------------------------------
-static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_opts) {
-  int opts_count = 4;
+static inline int CeedJitGetOpts_NVRTC(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 3;
 
   // Standard options
   CeedCallBackend(CeedCalloc(opts_count, opts));
@@ -74,7 +201,71 @@ static inline int CeedJitGetOpts_Cuda(Ceed ceed, const char ***opts, int *num_op
     CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[1]));
   }
   CeedCallBackend(CeedStringAllocCopy("-Dint32_t=int", (char **)&(*opts)[2]));
-  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[3]));
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedJitGetOpts_NVCC(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 2;
+
+  // Standard options
+  CeedCallBackend(CeedCalloc(opts_count, opts));
+  {
+    Ceed_Cuda            *ceed_data;
+    struct cudaDeviceProp prop;
+
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg =
+#if CUDA_VERSION >= 11010
+        // NVRTC used to support only virtual architectures through the option
+        // -arch, since it was only emitting PTX. It will now support actual
+        // architectures as well to emit SASS.
+        // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#dynamic-code-generation
+        "-arch=sm_"
+#else
+        "-arch=compute_"
+#endif
+        + std::to_string(prop.major) + std::to_string(prop.minor);
+
+    CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[0]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("-Dint32_t=int", (char **)&(*opts)[1]));
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedJitGetOpts_Clang(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = 4;
+
+  // Standard options
+  CeedCallBackend(CeedCalloc(opts_count, opts));
+  {
+    std::string cuda_path_arg = "--cuda-path=" + std::string(CeedCudaDir);
+
+    CeedCallBackend(CeedStringAllocCopy(cuda_path_arg.c_str(), (char **)&(*opts)[0]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("-flto=thin", (char **)&(*opts)[1]));
+  {
+    Ceed_Cuda            *ceed_data;
+    struct cudaDeviceProp prop;
+
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    std::string arch_arg = "--cuda-gpu-arch=sm_" + std::to_string(prop.major) + std::to_string(prop.minor);
+
+    CeedCallBackend(CeedStringAllocCopy(arch_arg.c_str(), (char **)&(*opts)[2]));
+  }
+  CeedCallBackend(CeedStringAllocCopy("--cuda-device-only", (char **)&(*opts)[3]));
+  *num_opts = opts_count;
+  return CEED_ERROR_SUCCESS;
+}
+
+static inline int CeedJitGetAdditionalOpts_Ceed(Ceed ceed, const char ***opts, int *num_opts) {
+  int opts_count = *num_opts + 1;
+
+  CeedCallBackend(CeedRealloc(opts_count, opts));
+  CeedCallBackend(CeedStringAllocCopy("-DCEED_RUNNING_JIT_PASS=1", (char **)&(*opts)[opts_count - 1]));
 
   // Additional include dirs
   {
@@ -124,7 +315,6 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
                                 const CeedInt num_defines, va_list args) {
   bool               using_clang;
   size_t             ptx_size;
-  char              *ptx;
   nvrtcProgram       prog;
   std::ostringstream code;
 
@@ -193,11 +383,18 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
   if (!using_clang) {
     const char **opts;
     int          num_opts;
+    std::string  cache_dir, filename_ptx;
+    std::string  extension;
+
+#if CUDA_VERSION >= 11010
+    extension = ".cubin";
+#else
+    extension = ".ptx";
+#endif
 
     // Get compile options
-    CeedCallBackend(CeedJitGetOpts_Cuda(ceed, &opts, &num_opts));
-    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
-
+    CeedCallBackend(CeedJitGetOpts_NVRTC(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &opts, &num_opts));
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
@@ -206,6 +403,92 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
       // LCOV_EXCL_STOP
     }
+
+    // Add flags to source
+    code << "\n";
+    code << "volatile const char *__ceed_compile_options[] = {\n";
+    for (CeedInt i = 0; i < num_opts; i++) {
+      code << "  \"" << opts[i] << "\",\n";
+    }
+    code << "};\n";
+    code << "volatile const char *__cuda_version = \"" CEED_STRINGIFY(CUDA_VERSION) "\";\n";
+
+    int major, minor;
+
+    CeedCallNvrtc(ceed, nvrtcVersion(&major, &minor));
+    code << "volatile const char *__nvrtc_version = \"" << major << "." << minor << "\";\n";
+
+    std::string code_str = code.str();
+    std::string ptx_path;
+    std::size_t source_hash;
+
+    // Check for in-memory/disk cache
+    {
+      const std::vector<char> *binary = NULL;
+
+      CeedCall(CeedJitCacheFindHot(ceed, code_str, &binary, &source_hash));
+
+      // Check disk cache
+      if (!binary) {
+        CeedCallSystemResult result;
+        const char          *nvcc;
+
+        CeedCallBackend(CeedGetNvcc_Cuda(ceed, &nvcc));
+
+        // Check if identical file has been compiled
+        if (nvcc) {
+          // Get NVCC opts
+          const char **nvcc_opts;
+          int          num_nvcc_opts;
+          std::string  nvcc_opts_str = " ";
+
+          CeedCallBackend(CeedJitGetOpts_NVCC(ceed, &nvcc_opts, &num_nvcc_opts));
+          CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &nvcc_opts, &num_nvcc_opts));
+          for (CeedInt i = 0; i < num_nvcc_opts; i++) nvcc_opts_str += std::string(nvcc_opts[i]) + " ";
+
+          // -E: preprocess only
+          // -P: exclude line info (needed to support different filenames)
+          // -x c++: don't include cuda_runtime.h (instead use cuda version as tracker)
+          CeedCallSystemResult result;
+          std::string          command = std::string(nvcc) + nvcc_opts_str + " -x c++ -E --compiler-options=-P - -o -";
+
+          CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
+          for (CeedInt i = 0; i < num_nvcc_opts; i++) CeedCallBackend(CeedFree(&nvcc_opts[i]));
+          CeedCallBackend(CeedFree(&nvcc_opts));
+
+          // Search cache with preprocessed source
+          CeedCallBackend(CeedJitCacheFind(ceed, source_hash, result.output, name, extension, ptx_path, &binary));
+        }
+      }
+      if (binary) {
+        // Load module from final PTX
+        for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
+        CeedCallBackend(CeedFree(&opts));
+
+        int load_result = cuModuleLoadData(module, binary->data());
+
+        *is_compile_good = load_result == 0;
+        if (!*is_compile_good) {
+          // LCOV_EXCL_START
+          bool should_error_on_failure;
+
+          CeedCallBackend(CeedGetJitErrorOnFailure(ceed, &should_error_on_failure));
+          if (throw_error || should_error_on_failure) {
+            return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to load module data");
+          } else {
+            CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- COMPILE ERROR DETECTED ----------\n");
+            CeedDebug(ceed, "Error: Failed to load module data");
+            CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- BACKEND MAY FALLBACK ----------\n");
+            return CEED_ERROR_SUCCESS;
+          }
+          // LCOV_EXCL_STOP
+        }
+        return CEED_ERROR_SUCCESS;
+      }
+    }
+
+    // Fallback to building the binary
+    CeedCallNvrtc(ceed, nvrtcCreateProgram(&prog, code_str.c_str(), NULL, 0, NULL, NULL));
     nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
 
     for (CeedInt i = 0; i < num_opts; i++) CeedCallBackend(CeedFree(&opts[i]));
@@ -235,18 +518,21 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_STOP
     }
 
+    std::vector<char> ptx;
+
 #if CUDA_VERSION >= 11010
     CeedCallNvrtc(ceed, nvrtcGetCUBINSize(prog, &ptx_size));
-    CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-    CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx));
+    ptx.resize(ptx_size);
+    CeedCallNvrtc(ceed, nvrtcGetCUBIN(prog, ptx.data()));
 #else
     CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
-    CeedCallBackend(CeedMalloc(ptx_size, &ptx));
-    CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx));
+    ptx.resize(ptx_size);
+    CeedCallNvrtc(ceed, nvrtcGetPTX(prog, ptx.data()));
 #endif
     CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
-    CeedCallCuda(ceed, cuModuleLoadData(module, ptx));
-    CeedCallBackend(CeedFree(&ptx));
+    CeedCallCuda(ceed, cuModuleLoadData(module, ptx.data()));
+    // Update cache
+    CeedCallBackend(CeedJitCacheSet(ceed, source_hash, ptx_path, std::move(ptx)));
     return CEED_ERROR_SUCCESS;
   } else {
     std::random_device         r;
@@ -295,74 +581,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     Ceed_Cuda *ceed_data;
 
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    char *llvm_cxx = ceed_data->llvm_cxx;
+    const char *llvm_cxx;
 
-    // First check for user LLVM version
-    if (!llvm_cxx) {
-      const char *user_cxx;
-
-      CeedCallBackend(CeedGetCudaClangCxx(ceed, &user_cxx));
-      CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
-
-      // Check if valid Clang
-      result.is_success = false;
-      if (user_cxx && *user_cxx != '\0') {
-        CeedDebug(ceed, "Checking user LLVM compiler...");
-        CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
-      }
-      if (result.is_success) {
-        CeedDebug(ceed, "User specified LLVM compiler is valid\n");
-        CeedCallBackend(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
-        llvm_cxx = ceed_data->llvm_cxx;
-      } else {
-        CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");
-      }
-    }
-    // Next query Rust for LLVM version
-    if (!llvm_cxx) {
-      command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
-      CeedCallBackend(CeedCallSystemUnchecked(ceed, command, "detect Rust LLVM version", result));
-
-      if (result.is_success) {
-        CeedDebug(ceed, "output:\n%s", result.output.c_str());
-
-        auto version_substring_start = result.output.find("LLVM version ");
-        if (version_substring_start != std::string::npos) version_substring_start += 13;
-        auto version_substring_end = result.output.find(".", version_substring_start);
-
-        if (version_substring_end > version_substring_start && version_substring_start != std::string::npos &&
-            version_substring_end != std::string::npos) {
-          auto llvm_version_str = result.output.substr(version_substring_start, version_substring_end - version_substring_start);
-          CeedDebug(ceed, "Detected Rust LLVM version: %s", llvm_version_str.c_str());
-          CeedInt llvm_version = std::stoi(llvm_version_str);
-          CeedDebug(ceed, "Detected Rust LLVM version: %d", llvm_version);
-
-          // Check if valid Clang
-          std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
-
-          CeedDebug(ceed, "Checking Rust LLVM compiler...");
-          CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
-
-          if (result.is_success) {
-            CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
-            CeedCall(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_cxx));
-            llvm_cxx = ceed_data->llvm_cxx;
-          }
-        }
-        if (!llvm_cxx) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
-      }
-    }
-    // Default to clang++
-    if (!llvm_cxx) {
-      CeedDebug(ceed, "Default LLVM compiler: clang++\n");
-      CeedDebug(ceed, "Checking default LLVM compiler...");
-      CeedCallBackend(CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result));
-      if (result.is_success) {
-        CeedCall(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
-        llvm_cxx = ceed_data->llvm_cxx;
-      }
-    }
-
+    CeedCallBackend(CeedGetLLVMCXX_Cuda(ceed, &llvm_cxx));
     if (!llvm_cxx) {
       // LCOV_EXCL_START
       *is_compile_good = false;
@@ -377,48 +598,67 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       // LCOV_EXCL_STOP
     }
 
-    std::string code_str = code.str();
-    std::string includes;
+    const char **opts;
+    int          num_opts;
+    std::string  opts_str = " ";
 
-    {
-      CeedInt      num_source_roots;
-      const char **source_roots;
-
-      CeedCall(CeedGetJitSourceRoots(ceed, &num_source_roots, &source_roots));
-      for (CeedInt i = 0; i < num_source_roots; i++) includes += " -I" + std::string(source_roots[i]);
-      CeedCall(CeedRestoreJitSourceRoots(ceed, &source_roots));
+    // Get compile options
+    CeedCallBackend(CeedJitGetOpts_Clang(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &opts, &num_opts));
+    if (CeedDebugFlag(ceed)) {
+      // LCOV_EXCL_START
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
+      for (CeedInt i = 0; i < num_opts; i++) CeedDebug(ceed, "Option %d: %s", i, opts[i]);
+      CeedDebug(ceed, "");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- END OF JiT COMPILER OPTIONS ----------\n");
+      // LCOV_EXCL_STOP
     }
+    for (CeedInt i = 0; i < num_opts; i++) opts_str += std::string(opts[i]) + " ";
+    // Add flags to source
+    code << "\n";
+    code << "volatile const const char *__ceed_compile_options[] = {\n";
+    for (CeedInt i = 0; i < num_opts; i++) {
+      code << "  \"" << opts[i] << "\",\n";
+    }
+    code << "};\n";
+    code << "volatile const const char *__cuda_version = \"" CEED_STRINGIFY(CUDA_VERSION) "\";\n";
+
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(llvm_cxx) + " --version", "getting LLVM version string", result));
+    std::replace(result.output.begin(), result.output.end(), '\n', ' ');
+    code << "volatile const char *__llvm_version = \"" << result.output << "\";\n";
+
+    std::string code_str = code.str();
 
     CeedCallCuda(ceed, cudaGetDeviceProperties(&prop, ceed_data->device_id));
 
     // Preprocess & check if identical file has been compiled
-    // TODO: Add PTX caching and checking for NVRTC and HIPRTC
     {
       // -E: preprocess only
       // -P: exclude line info (needed to support different filenames)
+      // -x c++: don't include cuda_runtime.h (instead use cuda version as tracker)
       CeedCallSystemResult result;
-      std::string          command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" +
-                                     std::to_string(prop.major) + std::to_string(prop.minor) + includes + " --cuda-device-only -x cu -E -P - -o -";
+      std::string          command = std::string(llvm_cxx) + opts_str + "-x c++ -E -P - -o -";
 
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT preprocess function source into memory", code_str, result));
 
       std::size_t cpp_hash = std::hash<std::string>{}(result.output);
-      filename_ptx         = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".ptx";
+      filename_ptx         = cache_dir + "function_" + std::to_string(cpp_hash) + "_" + name + ".clang.ptx";
 
       // Fast way to check if a file exists
       struct stat buffer;
 
+      CeedDebug(ceed, "Checking PTX cache at: %s\n", filename_ptx.c_str());
       ptx_file_exists = (stat(filename_ptx.c_str(), &buffer) == 0);
+      CeedDebug(ceed, "-- PTX %s in cache\n", ptx_file_exists ? "FOUND" : "NOT FOUND");
     }
 
     // Compile wrapper kernel
     if (!ptx_file_exists) {
       // Compile wrapper kernel
-      command = std::string(llvm_cxx) + " --cuda-path=" + std::string(CeedCudaDir) + " -flto=thin --cuda-gpu-arch=sm_" + std::to_string(prop.major) +
-                std::to_string(prop.minor) + includes + " --cuda-device-only -emit-llvm -S -x cu - -o -";
+      command = std::string(llvm_cxx) + opts_str + " --cuda-device-only -emit-llvm -S -x cu - -o -";
       CeedCallBackend(CeedCallSystem(ceed, command, "JiT kernel source", code_str, result));
 
-      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + +".ptx";
+      std::string tmp_ptx_filename = cache_dir + ".tmp_function_" + std::to_string(build_id) + "_" + name + ".clang.ptx";
 
       // Find Rust's llvm-link tool and run it
       command = "$(find $(rustup run " + std::string(rust_toolchain) +
@@ -455,7 +695,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
       command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llc) -O3 -mcpu=sm_" +
                 std::to_string(prop.major) + std::to_string(prop.minor) + " - -o " + tmp_ptx_filename;
       CeedCallBackend(CeedCallSystem(ceed, command, "compile final CUDA kernel", result.output, result));
-      CeedCallBackend(CeedCallSystem(ceed, "chmod 0777 " + tmp_ptx_filename, "update JiT file permissions", result));
+      CeedCallBackend(CeedCallSystem(ceed, "chmod 0700 " + tmp_ptx_filename, "update JiT file permissions", result));
 
       // Atomicly try to move to final location
       if (link(tmp_ptx_filename.c_str(), filename_ptx.c_str()) < 0) {

@@ -35,11 +35,7 @@ static int CeedInit_Cpu_Gen_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedGetData(ceed, &data));
   data->is_xsmm = true;
 
-#define CEED_QUOTE(name) #name
-#define CEED_STRINGIFY(macro) CEED_QUOTE(macro)
   const char *CeedXsmmFlags = "CEED_USE_XSMM=1 " CEED_STRINGIFY(CEED_XSMM_C_FLAGS);
-#undef CEED_QUOTE
-#undef CEED_STRINGIFY
 
   CeedCallBackend(CeedAddJitDefine(ceed, CeedXsmmFlags));
   return CEED_ERROR_SUCCESS;

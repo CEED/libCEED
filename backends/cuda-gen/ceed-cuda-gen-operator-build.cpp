@@ -1346,7 +1346,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
   std::string qfunction_name(qf_data->qfunction_name);
   std::string operator_name;
 
-  operator_name = "CeedKernelCudaGenOperator_" + qfunction_name;
+  operator_name = "CeedOperator_" + qfunction_name + "_Cuda_Gen";
 
   // Define CEED_Q_VLA
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
@@ -1672,8 +1672,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op, bool *is_good_b
     const CeedInt T_1d            = CeedIntMax(is_all_tensor ? Q_1d : Q, data->max_P_1d);
 
     data->thread_1d = T_1d;
-    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), (std::string("operator_") + qfunction_name).c_str(), &is_compile_good,
-                                        &data->module, 1, "OP_T_1D", T_1d));
+    CeedCallBackend(CeedTryCompile_Cuda(ceed, code.str().c_str(), operator_name.c_str(), &is_compile_good, &data->module, 1, "OP_T_1D", T_1d));
     if (is_compile_good) {
       *is_good_build = true;
       CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
@@ -1752,9 +1751,9 @@ static int CeedOperatorBuildKernelAssemblyAtPoints_Cuda_gen(CeedOperator op, boo
   std::string operator_name;
 
   if (is_full) {
-    operator_name = "CeedKernelCudaGenOperatorFullAssembly_" + qfunction_name;
+    operator_name = "CeedOperatorLinearAssembleSingleAtPoints_" + qfunction_name + "_Cuda_Gen";
   } else {
-    operator_name = "CeedKernelCudaGenOperatorDiagonalAssembly_" + qfunction_name;
+    operator_name = "CeedOperatorLinearAssembleDiagonalAtPoints_" + qfunction_name + "_Cuda_Gen";
   }
 
   // Define CEED_Q_VLA
@@ -2294,7 +2293,7 @@ extern "C" int CeedOperatorBuildKernelLinearAssembleQFunction_Cuda_gen(CeedOpera
   std::string qfunction_name(qf_data->qfunction_name);
   std::string operator_name;
 
-  operator_name = "CeedKernelCudaGenQFunctionAssembly_" + qfunction_name;
+  operator_name = "CeedOperatorLinearAssembleQFunction_" + qfunction_name + "_Cuda_Gen";
 
   // Define CEED_Q_VLA
   code << "\n" << tab << "#undef CEED_Q_VLA\n";
