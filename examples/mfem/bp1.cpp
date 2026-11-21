@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
   if (!test) {
     // LCOV_EXCL_START
     std::cout << "Number of finite element unknowns: " << fespace->GetTrueVSize() << std::endl;
-    // LCOV_EXCL_STOPs
+    // LCOV_EXCL_STOP
   }
 
   // 6. Construct a rhs vector using the linear form f(v) = (solution, v), where v is a test function.

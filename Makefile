@@ -271,9 +271,9 @@ endif
 # FreeBSD intentionally clobbers CFLAGS, CXXFLAGS, and FFLAGS
 # We need to fix the clobbering ourselves to work around FreeBSD
 ifneq ($(FREEBSD),)
-  CFLAGS   += CFLAGS.freebsd
-  CXXFLAGS += CXXFLAGS.freebsd
-  FFLAGS   += FFLAGS.freebsd
+  CFLAGS   += $(CFLAGS.freebsd)
+  CXXFLAGS += $(CXXFLAGS.freebsd)
+  FFLAGS   += $(FFLAGS.freebsd)
 endif
 
 # Finish building flags
