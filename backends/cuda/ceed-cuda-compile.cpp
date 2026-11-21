@@ -45,6 +45,9 @@ const char *CeedCudaDir = CEED_CUDA_DIR;
     CeedChk_Nvrtc(ceed, ierr_q_); \
   } while (0)
 
+//------------------------------------------------------------------------------
+// Compiler setting helpers
+//------------------------------------------------------------------------------
 static int CeedGetNvcc_Cuda(Ceed ceed, const char **nvcc_out) {
   Ceed_Cuda           *ceed_data;
   CeedCallSystemResult result;
@@ -80,10 +83,91 @@ static int CeedGetNvcc_Cuda(Ceed ceed, const char **nvcc_out) {
     CeedCallBackend(CeedCallSystemUnchecked(ceed, nvcc_default + " --version", "checking default NVCC compiler", result));
     if (result.is_success) {
       CeedDebug(ceed, "Default NVCC compiler is valid\n");
-      CeedCall(CeedStringAllocCopy(nvcc_default.c_str(), &ceed_data->nvcc));
+      CeedCallBackend(CeedStringAllocCopy(nvcc_default.c_str(), &ceed_data->nvcc));
     }
   }
   *nvcc_out = ceed_data->nvcc;
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedGetLLVMCXX_Cuda(Ceed ceed, const char **cxx_out) {
+  Ceed_Cuda           *ceed_data;
+  CeedCallSystemResult result;
+
+  CeedCallBackend(CeedGetData(ceed, &ceed_data));
+  char *llvm_cxx = ceed_data->llvm_cxx;
+
+  // First check for user LLVM version
+  if (!llvm_cxx) {
+    const char *user_cxx;
+
+    CeedCallBackend(CeedGetCudaClangCxx(ceed, &user_cxx));
+    CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
+
+    // Check if valid Clang
+    result.is_success = false;
+    if (user_cxx && *user_cxx != '\0') {
+      CeedDebug(ceed, "Checking user LLVM compiler...");
+      CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
+    }
+    if (result.is_success) {
+      CeedDebug(ceed, "User specified LLVM compiler is valid\n");
+      CeedCallBackend(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
+      llvm_cxx = ceed_data->llvm_cxx;
+    } else {
+      CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");
+    }
+  }
+  // Next query Rust for LLVM version
+  if (!llvm_cxx) {
+    const char *rust_toolchain;
+
+    CeedCallBackend(CeedGetCudaRustupToolchain(ceed, &rust_toolchain));
+    CeedCallBackend(CeedCallSystemUnchecked(ceed,
+                                            "$(find $(rustup run " + std::string(rust_toolchain) +
+                                                " rustc --print sysroot) -name llvm-link) --version",
+                                            "detect Rust LLVM version", result));
+
+    if (result.is_success) {
+      CeedDebug(ceed, "output:\n%s", result.output.c_str());
+
+      auto version_substring_start = result.output.find("LLVM version ");
+      if (version_substring_start != std::string::npos) version_substring_start += 13;
+      auto version_substring_end = result.output.find(".", version_substring_start);
+
+      if (version_substring_end > version_substring_start && version_substring_start != std::string::npos &&
+          version_substring_end != std::string::npos) {
+        auto llvm_version_str = result.output.substr(version_substring_start, version_substring_end - version_substring_start);
+        CeedDebug(ceed, "Detected Rust LLVM version: %s", llvm_version_str.c_str());
+        CeedInt llvm_version = std::stoi(llvm_version_str);
+        CeedDebug(ceed, "Detected Rust LLVM version: %d", llvm_version);
+
+        // Check if valid Clang
+        std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
+
+        CeedDebug(ceed, "Checking Rust LLVM compiler...");
+        CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
+
+        if (result.is_success) {
+          CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
+          CeedCallBackend(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_cxx));
+          llvm_cxx = ceed_data->llvm_cxx;
+        }
+      }
+      if (!llvm_cxx) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
+    }
+  }
+  // Default to clang++
+  if (!llvm_cxx) {
+    CeedDebug(ceed, "Default LLVM compiler: clang++\n");
+    CeedDebug(ceed, "Checking default LLVM compiler...");
+    CeedCallBackend(CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result));
+    if (result.is_success) {
+      CeedCallBackend(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
+      llvm_cxx = ceed_data->llvm_cxx;
+    }
+  }
+  *cxx_out = llvm_cxx;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -349,7 +433,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
         CeedCallSystemResult result;
         const char          *nvcc;
 
-        CeedCall(CeedGetNvcc_Cuda(ceed, &nvcc));
+        CeedCallBackend(CeedGetNvcc_Cuda(ceed, &nvcc));
 
         // Check if identical file has been compiled
         if (nvcc) {
@@ -373,7 +457,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
           CeedCallBackend(CeedFree(&nvcc_opts));
 
           // Search cache with preprocessed source
-          CeedCall(CeedJitCacheFind(ceed, source_hash, result.output, name, extension, ptx_path, &binary));
+          CeedCallBackend(CeedJitCacheFind(ceed, source_hash, result.output, name, extension, ptx_path, &binary));
         }
       }
       if (binary) {
@@ -448,7 +532,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     CeedCallNvrtc(ceed, nvrtcDestroyProgram(&prog));
     CeedCallCuda(ceed, cuModuleLoadData(module, ptx.data()));
     // Update cache
-    CeedCall(CeedJitCacheSet(ceed, source_hash, ptx_path, std::move(ptx)));
+    CeedCallBackend(CeedJitCacheSet(ceed, source_hash, ptx_path, std::move(ptx)));
     return CEED_ERROR_SUCCESS;
   } else {
     std::random_device         r;
@@ -497,74 +581,9 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
     Ceed_Cuda *ceed_data;
 
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
-    char *llvm_cxx = ceed_data->llvm_cxx;
+    const char *llvm_cxx;
 
-    // First check for user LLVM version
-    if (!llvm_cxx) {
-      const char *user_cxx;
-
-      CeedCallBackend(CeedGetCudaClangCxx(ceed, &user_cxx));
-      CeedDebug(ceed, "Attempting to detect user specified LLVM compiler\nUser LLVM compiler: %s\n", user_cxx);
-
-      // Check if valid Clang
-      result.is_success = false;
-      if (user_cxx && *user_cxx != '\0') {
-        CeedDebug(ceed, "Checking user LLVM compiler...");
-        CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(user_cxx) + " --version", "checking user LLVM compiler", result));
-      }
-      if (result.is_success) {
-        CeedDebug(ceed, "User specified LLVM compiler is valid\n");
-        CeedCallBackend(CeedStringAllocCopy(user_cxx, &ceed_data->llvm_cxx));
-        llvm_cxx = ceed_data->llvm_cxx;
-      } else {
-        CeedDebug(ceed, "Could not invoke user specified LLVM compiler\n");
-      }
-    }
-    // Next query Rust for LLVM version
-    if (!llvm_cxx) {
-      command = "$(find $(rustup run " + std::string(rust_toolchain) + " rustc --print sysroot) -name llvm-link) --version";
-      CeedCallBackend(CeedCallSystemUnchecked(ceed, command, "detect Rust LLVM version", result));
-
-      if (result.is_success) {
-        CeedDebug(ceed, "output:\n%s", result.output.c_str());
-
-        auto version_substring_start = result.output.find("LLVM version ");
-        if (version_substring_start != std::string::npos) version_substring_start += 13;
-        auto version_substring_end = result.output.find(".", version_substring_start);
-
-        if (version_substring_end > version_substring_start && version_substring_start != std::string::npos &&
-            version_substring_end != std::string::npos) {
-          auto llvm_version_str = result.output.substr(version_substring_start, version_substring_end - version_substring_start);
-          CeedDebug(ceed, "Detected Rust LLVM version: %s", llvm_version_str.c_str());
-          CeedInt llvm_version = std::stoi(llvm_version_str);
-          CeedDebug(ceed, "Detected Rust LLVM version: %d", llvm_version);
-
-          // Check if valid Clang
-          std::string rust_cxx = std::string("clang++-") + std::to_string(llvm_version);
-
-          CeedDebug(ceed, "Checking Rust LLVM compiler...");
-          CeedCallBackend(CeedCallSystemUnchecked(ceed, std::string(rust_cxx) + " --version", "checking Rust LLVM compiler", result));
-
-          if (result.is_success) {
-            CeedDebug(ceed, "Detected Rust LLVM compiler: %s\n", rust_cxx.c_str());
-            CeedCall(CeedStringAllocCopy(rust_cxx.c_str(), &ceed_data->llvm_cxx));
-            llvm_cxx = ceed_data->llvm_cxx;
-          }
-        }
-        if (!llvm_cxx) CeedDebug(ceed, "Could not invoke detected Rust LLVM compiler\n");
-      }
-    }
-    // Default to clang++
-    if (!llvm_cxx) {
-      CeedDebug(ceed, "Default LLVM compiler: clang++\n");
-      CeedDebug(ceed, "Checking default LLVM compiler...");
-      CeedCallBackend(CeedCallSystemUnchecked(ceed, "clang++ --version", "checking default LLVM compiler", result));
-      if (result.is_success) {
-        CeedCall(CeedStringAllocCopy("clang++", &ceed_data->llvm_cxx));
-        llvm_cxx = ceed_data->llvm_cxx;
-      }
-    }
-
+    CeedCallBackend(CeedGetLLVMCXX_Cuda(ceed, &llvm_cxx));
     if (!llvm_cxx) {
       // LCOV_EXCL_START
       *is_compile_good = false;
