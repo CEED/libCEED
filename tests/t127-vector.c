@@ -5,52 +5,68 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-  Ceed       ceed;
-  CeedSize   start = 2, step = 3;
-  CeedVector x, y;
-  CeedInt    len = 10;
+  Ceed        ceed;
+  CeedSize    start = 2, step = 3;
+  CeedVector  x, y;
+  CeedInt     len = 10, num_mem_types = 1;
+  CeedMemType type = CEED_MEM_HOST;
 
   CeedInit(argv[1], &ceed);
 
   CeedVectorCreate(ceed, len, &x);
   CeedVectorCreate(ceed, len, &y);
 
-  // Set strided
-  CeedVectorSetValue(x, 1.0);
-  CeedVectorSetValueStrided(x, start, -1, step, 42.0);
-  {
-    const CeedScalar *read_array;
+  CeedGetPreferredMemType(ceed, &type);
+  // If mem type is DEVICE, loop once for DEVICE and once for HOST.
+  if (type == CEED_MEM_DEVICE) num_mem_types = 2;
 
-    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
-    for (CeedInt i = 0; i < len; i++) {
-      CeedScalar value = (i - start) % step == 0 ? 42.0 : 1.0;
+  for (CeedInt m = 0; m < num_mem_types; m++) {
+    CeedMemType mem_type = m == 0 ? CEED_MEM_HOST : CEED_MEM_DEVICE;
 
-      if (read_array[i] != value) {
-        // LCOV_EXCL_START
-        printf("Error in setting value in x at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], value);
-        // LCOV_EXCL_STOP
+    // Initialize array for HOST sync
+    CeedScalar ones[len];
+    for (CeedInt i = 0; i < len; i++) ones[i] = 1.0;
+
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, ones);
+    CeedVectorSyncArray(x, mem_type);
+
+    // Set strided
+    CeedVectorSetValueStrided(x, start, -1, step, 42.0);
+
+    {
+      const CeedScalar *read_array;
+
+      CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
+      for (CeedInt i = 0; i < len; i++) {
+        CeedScalar value = (i - start) % step == 0 ? 42.0 : 1.0;
+
+        if (read_array[i] != value) {
+          // LCOV_EXCL_START
+          printf("Error in setting value in x at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], value);
+          // LCOV_EXCL_STOP
+        }
       }
+      CeedVectorRestoreArrayRead(x, &read_array);
     }
-    CeedVectorRestoreArrayRead(x, &read_array);
-  }
 
-  // Copy strided
-  CeedVectorSetValue(y, 0.0);
-  CeedVectorCopyStrided(x, start, -1, step, y);
-  {
-    const CeedScalar *read_array;
+    // Copy strided
+    CeedVectorSetValue(y, 0.0);
+    CeedVectorCopyStrided(x, start, -1, step, y);
+    {
+      const CeedScalar *read_array;
 
-    CeedVectorGetArrayRead(y, CEED_MEM_HOST, &read_array);
-    for (CeedInt i = 0; i < len; i++) {
-      CeedScalar value = (i - start) % step == 0 ? 42.0 : 0.0;
+      CeedVectorGetArrayRead(y, CEED_MEM_HOST, &read_array);
+      for (CeedInt i = 0; i < len; i++) {
+        CeedScalar value = (i - start) % step == 0 ? 42.0 : 0.0;
 
-      if (read_array[i] != value) {
-        // LCOV_EXCL_START
-        printf("Error in copying value to y at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], value);
-        // LCOV_EXCL_STOP
+        if (read_array[i] != value) {
+          // LCOV_EXCL_START
+          printf("Error in copying value to y at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], value);
+          // LCOV_EXCL_STOP
+        }
       }
+      CeedVectorRestoreArrayRead(y, &read_array);
     }
-    CeedVectorRestoreArrayRead(y, &read_array);
   }
 
   CeedVectorDestroy(&x);
