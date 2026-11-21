@@ -8,11 +8,20 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+(v1-1-2)=
+
+## v1.1.2 (November 21, 2026)
+
+### Bug fixes
+
+- Fix Makefile bug for LIBXSMM support.
+- Fix Makefile bug for compiling on FreeBSD systems.
+
 (v1-1-1)=
 
 ## v1.1.1 (November 19, 2026)
 
-### Bug Fixes
+### Bug fixes
 
 - Fix an issue in the CUDA Graph API support for the `/gpu/cuda/gen` backend which allowed attempted writes to stale device pointers.
 
