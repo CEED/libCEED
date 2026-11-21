@@ -703,7 +703,7 @@ ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
     XSMM_CFLAGS ?= $(call pkgconf, --cflags $(XSMM_PC))
     XSMM_LIBS ?= $(call pkgconf, --libs $(XSMM_PC))
   else
-    XSMM_CFLAGS ?= -I$(abspath $(XSMM_DIR)/include -I$(abspath $(XSMM_DIR)/include/libxsmm
+    XSMM_CFLAGS ?= -I$(abspath $(XSMM_DIR))/include -I$(abspath $(XSMM_DIR))/include/libxsmm
     XSMM_LIBS   ?= -L$(abspath $(XSMM_DIR))/lib -lxsmm
   endif
   # LIBXSMM 2.0 has no BLAS fallback (libxsmm/libxsmm#981); builds of earlier main snapshots
