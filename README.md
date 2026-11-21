@@ -135,7 +135,7 @@ Rust users can include libCEED via `Cargo.toml`:
 
 ```toml
 [dependencies]
-libceed = "1.1.1"
+libceed = "1.1.2"
 ```
 
 See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) for details.
@@ -501,7 +501,7 @@ To cite the user manual:
   month        = nov,
   year         = 2026,
   publisher    = {Zenodo},
-  version      = {1.1.1},
+  version      = {1.1.2},
   doi          = {10.5281/zenodo.4302736}
 }
 ```
