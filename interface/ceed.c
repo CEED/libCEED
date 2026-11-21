@@ -1170,18 +1170,21 @@ static int CeedMkdirParents(Ceed ceed, char *path) {
 **/
 int CeedGetCacheDir(Ceed ceed, const char **cache_dir) {
   const char *ceed_cache_base_dir;
-  const char  suffix[] = "libCEED";
-  wordexp_t   word_expansion;
-  char       *final_cache_dir;
+  const char  suffix[]         = "libCEED";
+  bool        base_dir_changed = false;
 
   CeedCall(CeedGetCacheBaseDir(ceed, &ceed_cache_base_dir));
   CeedCheck(ceed_cache_base_dir != NULL, ceed, CEED_ERROR_INCOMPATIBLE, "Cache base directory must not be NULL");
-
-  {
+  base_dir_changed = !ceed->cache_dir || !ceed->previous_cache_base_dir || strcmp(ceed->previous_cache_base_dir, ceed_cache_base_dir);
+  if (base_dir_changed || !ceed->cache_dir) {
     char        *wrapped_str;
     const size_t base_length          = strlen(ceed_cache_base_dir);
     const bool   needs_trailing_slash = ceed_cache_base_dir[base_length - 1] != '/';
     const size_t length               = base_length + sizeof(suffix) + (needs_trailing_slash ? 1 : 0) + 3;
+    wordexp_t    word_expansion;
+
+    if (ceed->previous_cache_base_dir) CeedCall(CeedFree(&ceed->previous_cache_base_dir));
+    CeedCall(CeedStringAllocCopy(ceed_cache_base_dir, &ceed->previous_cache_base_dir));
 
     CeedCall(CeedCalloc(length, &wrapped_str));
     snprintf(wrapped_str, length, "\"%s%s%s\"", ceed_cache_base_dir, needs_trailing_slash ? "/" : "", suffix);
@@ -1196,22 +1199,24 @@ int CeedGetCacheDir(Ceed ceed, const char **cache_dir) {
     CeedCheck(word_expansion.we_wordc == 1, NULL, CEED_ERROR_INCOMPATIBLE, "Environment variable value expansion resulted in %d words: %s",
               word_expansion.we_wordc, wrapped_str);
     CeedCall(CeedFree(&wrapped_str));
-  }
-  CeedCall(CeedStringAllocCopy(word_expansion.we_wordv[0], &final_cache_dir));
-  // Create cache dir if needed
-  {
-    DIR *dir = opendir(final_cache_dir);
 
-    if (dir) {
-      closedir(dir);
-    } else {
-      // In parallel multiple processes may attempt
-      // Only one process needs to succeed
-      CeedCall(CeedMkdirParents(ceed, final_cache_dir));
+    if (ceed->cache_dir) CeedCall(CeedFree(&ceed->cache_dir));
+    CeedCall(CeedStringAllocCopy(word_expansion.we_wordv[0], &ceed->cache_dir));
+    // Create cache dir if needed
+    {
+      DIR *dir = opendir(ceed->cache_dir);
+
+      if (dir) {
+        closedir(dir);
+      } else {
+        // In parallel multiple processes may attempt
+        // Only one process needs to succeed
+        CeedCall(CeedMkdirParents(ceed, ceed->cache_dir));
+      }
     }
+    wordfree(&word_expansion);
   }
-  wordfree(&word_expansion);
-  *cache_dir = final_cache_dir;
+  *cache_dir = ceed->cache_dir;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1225,10 +1230,7 @@ int CeedGetCacheDir(Ceed ceed, const char **cache_dir) {
 
   @ref Backend
 **/
-int CeedRestoreCacheDir(Ceed ceed, const char **cache_dir) {
-  CeedCall(CeedFree(cache_dir));
-  return CEED_ERROR_SUCCESS;
-}
+int CeedRestoreCacheDir(Ceed ceed, const char **cache_dir) { return CEED_ERROR_SUCCESS; }
 
 /// @}
 
@@ -2049,7 +2051,8 @@ int CeedDestroy(Ceed *ceed) {
 #include <ceed/ceed-env-list.h>
 #undef CEED_ENV_FLAG
 #undef CEED_ENV_STRING
-
+  CeedCall(CeedFree(&(*ceed)->cache_dir));
+  CeedCall(CeedFree(&(*ceed)->previous_cache_base_dir));
   CeedCall(CeedFree(&(*ceed)->f_offsets));
   CeedCall(CeedFree(&(*ceed)->resource));
   CeedCall(CeedDestroy(&(*ceed)->op_fallback_ceed));
