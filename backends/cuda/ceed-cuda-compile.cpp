@@ -177,7 +177,7 @@ static inline int CeedJitGetOpts_Clang(Ceed ceed, const char ***opts, int *num_o
   return CEED_ERROR_SUCCESS;
 }
 
-static inline int CeedJitGetOpts_Ceed(Ceed ceed, const char ***opts, int *num_opts) {
+static inline int CeedJitGetAdditionalOpts_Ceed(Ceed ceed, const char ***opts, int *num_opts) {
   int opts_count = *num_opts + 1;
 
   CeedCallBackend(CeedRealloc(opts_count, opts));
@@ -310,7 +310,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     // Get compile options
     CeedCallBackend(CeedJitGetOpts_NVRTC(ceed, &opts, &num_opts));
-    CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &opts, &num_opts));
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
@@ -359,7 +359,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
           std::string  nvcc_opts_str = " ";
 
           CeedCallBackend(CeedJitGetOpts_NVCC(ceed, &nvcc_opts, &num_nvcc_opts));
-          CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &nvcc_opts, &num_nvcc_opts));
+          CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &nvcc_opts, &num_nvcc_opts));
           for (CeedInt i = 0; i < num_nvcc_opts; i++) nvcc_opts_str += std::string(nvcc_opts[i]) + " ";
 
           // -E: preprocess only
@@ -585,7 +585,7 @@ static int CeedCompileCore_Cuda(Ceed ceed, const char *source, const char *name,
 
     // Get compile options
     CeedCallBackend(CeedJitGetOpts_Clang(ceed, &opts, &num_opts));
-    CeedCallBackend(CeedJitGetOpts_Ceed(ceed, &opts, &num_opts));
+    CeedCallBackend(CeedJitGetAdditionalOpts_Ceed(ceed, &opts, &num_opts));
     if (CeedDebugFlag(ceed)) {
       // LCOV_EXCL_START
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- JiT COMPILER OPTIONS ----------\n");
