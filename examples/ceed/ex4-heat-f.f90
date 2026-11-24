@@ -236,6 +236,7 @@ program main
     integer diag_m
     real*8, dimension (:), allocatable :: diag_m_arr
     real*8 sm_diag
+    real*8 norm_diff
     integer mesh_restriction, sol_restriction, q_data_restriction
     integer mesh_basis, sol_basis
     integer*8 offset
@@ -243,10 +244,10 @@ program main
     integer build_ctx_size
     parameter(build_ctx_size = 2)
     integer*8 build_ctx_data(build_ctx_size)
-    integer qf_build, qf_apply
-    integer op_build, op_apply
+    integer qf_build, qf_mass, qf_diff
+    integer op_build, op_mass, op_diff
 
-    external build_mass_diff, apply_mass
+    external build_mass_diff, apply_mass, apply_diff
 
 ! Initial values
     ceed_spec   = '/cpu/self'
@@ -411,17 +412,32 @@ program main
 ! Create the QFunction that defines the action of the mass operator
     call ceedqfunctioncreateinterior(ceed, 1, apply_mass,&
              &SOURCE_DIR&
-             &//'ex4-heat-f-c.h:apply_mass'//char(0), qf_apply, err)
-    call ceedqfunctionaddinput(qf_apply, 'u', 1, ceed_eval_interp, err)
-    call ceedqfunctionaddinput(qf_apply, 'qdata', 1 + fe_dim * (fe_dim + 1) / 2, ceed_eval_none, err)
-    call ceedqfunctionaddoutput(qf_apply, 'v', 1, ceed_eval_interp, err)
-    call ceedqfunctionsetcontext(qf_apply, build_ctx, err)
+             &//'ex4-heat-f-c.h:apply_mass'//char(0), qf_mass, err)
+    call ceedqfunctionaddinput(qf_mass, 'u', 1, ceed_eval_interp, err)
+    call ceedqfunctionaddinput(qf_mass, 'qdata', 1 + fe_dim * (fe_dim + 1) / 2, ceed_eval_none, err)
+    call ceedqfunctionaddoutput(qf_mass, 'v', 1, ceed_eval_interp, err)
+    call ceedqfunctionsetcontext(qf_mass, build_ctx, err)
 
 ! Create the mass operator
-    call ceedoperatorcreate(ceed, qf_apply, ceed_qfunction_none, ceed_qfunction_none, op_apply, err)
-    call ceedoperatorsetfield(op_apply, 'u', sol_restriction, sol_basis, ceed_vector_active, err)
-    call ceedoperatorsetfield(op_apply, 'qdata', q_data_restriction, ceed_basis_none, q_data, err)
-    call ceedoperatorsetfield(op_apply, 'v', sol_restriction, sol_basis, ceed_vector_active, err)
+    call ceedoperatorcreate(ceed, qf_mass, ceed_qfunction_none, ceed_qfunction_none, op_mass, err)
+    call ceedoperatorsetfield(op_mass, 'u', sol_restriction, sol_basis, ceed_vector_active, err)
+    call ceedoperatorsetfield(op_mass, 'qdata', q_data_restriction, ceed_basis_none, q_data, err)
+    call ceedoperatorsetfield(op_mass, 'v', sol_restriction, sol_basis, ceed_vector_active, err)
+
+! Create the QFunction that defines the action of the Poisson operator
+    call ceedqfunctioncreateinterior(ceed, 1, apply_diff,&
+             &SOURCE_DIR&
+             &//'ex4-heat-f-c.h:apply_diff'//char(0), qf_diff, err)
+    call ceedqfunctionaddinput(qf_diff, 'du', fe_dim, ceed_eval_grad, err)
+    call ceedqfunctionaddinput(qf_diff, 'qdata', 1 + fe_dim * (fe_dim + 1) / 2, ceed_eval_none, err)
+    call ceedqfunctionaddoutput(qf_diff, 'dv', fe_dim, ceed_eval_grad, err)
+    call ceedqfunctionsetcontext(qf_diff, build_ctx, err)
+
+! Create the Poisson operator
+    call ceedoperatorcreate(ceed, qf_diff, ceed_qfunction_none, ceed_qfunction_none, op_diff, err)
+    call ceedoperatorsetfield(op_diff, 'du', sol_restriction, sol_basis, ceed_vector_active, err)
+    call ceedoperatorsetfield(op_diff, 'qdata', q_data_restriction, ceed_basis_none, q_data, err)
+    call ceedoperatorsetfield(op_diff, 'dv', sol_restriction, sol_basis, ceed_vector_active, err)
 
 ! Create auxiliary solution-size vectors
     allocate (u_array(sol_size))
@@ -442,7 +458,7 @@ program main
     call ceedvectorsetvalue(u, 1.d0, err)
 
 ! Compute the mesh volume using the mass operator: volume = 1^T \cdot M \cdot 1
-    call ceedoperatorapply(op_apply, u, v, ceed_request_immediate, err)
+    call ceedoperatorapply(op_mass, u, v, ceed_request_immediate, err)
 
 ! Benchmark runs
     if (test /= 1 .AND. benchmark /= 0) then
@@ -452,7 +468,7 @@ program main
     end if
     do i = 1, benchmark
 ! LCOV_EXCL_START
-      call ceedoperatorapply(op_apply, u, v, ceed_request_immediate, err)
+      call ceedoperatorapply(op_mass, u, v, ceed_request_immediate, err)
 ! LCOV_EXCL_STOP
     end do
 
@@ -489,8 +505,23 @@ program main
       end if
     end if
 
+! A applied to vector is zero
+    call ceedoperatorapply(op_diff, u, v, ceed_request_immediate, err)
+    call ceedvectornorm(v, ceed_norm_max, norm_diff, err)
+    if (test /= 1) then
+! LCOV_EXCL_START
+      write (*, *) 'Max of A*1 : ', norm_diff
+! LCOV_EXCL_STOP
+    else
+      if (norm_diff > 1e-10) then
+! LCOV_EXCL_START
+        write (*, *) 'A*1 error : ', norm_diff
+! LCOV_EXCL_STOP
+      end if
+    end if
+
 ! Create diagonal of mass matrix
-    call ceedoperatorlinearassemblediagonal(op_apply, diag_m, ceed_request_immediate, err)
+    call ceedoperatorlinearassemblediagonal(op_mass, diag_m, ceed_request_immediate, err)
     offset = 0
     call ceedvectorgetarrayread(diag_m, ceed_mem_host, diag_m_arr, offset, err)
     sm_diag = minval(diag_m_arr)
@@ -514,8 +545,10 @@ program main
     call ceedvectordestroy(diag_m, err)
     call ceedvectordestroy(q_data, err)
     call ceedvectordestroy(mesh_coords, err)
-    call ceedoperatordestroy(op_apply, err)
-    call ceedqfunctiondestroy(qf_apply, err)
+    call ceedoperatordestroy(op_mass, err)
+    call ceedqfunctiondestroy(qf_mass, err)
+    call ceedoperatordestroy(op_diff, err)
+    call ceedqfunctiondestroy(qf_diff, err)
     call ceedqfunctioncontextdestroy(build_ctx, err)
     call ceedoperatordestroy(op_build, err)
     call ceedqfunctiondestroy(qf_build, err)
