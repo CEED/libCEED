@@ -8,7 +8,7 @@
 !                             libCEED Example 4
 !
 ! This example illustrates a simple usage of libCEED to compute a basic explicit time integration solution to the heat equation using
-! matrix-free application of a mass operator. 
+! matrix-free application of a mass operator.
 !
 ! The example has no dependencies, and is designed to be self-contained.
 ! For additional examples that use external discretization libraries
@@ -268,6 +268,9 @@ program main
     integer ceed
     real*8, dimension (:), allocatable :: u_array, v_array
     integer mesh_coords, q_data, u, v
+    integer diag_m
+    real*8, dimension (:), allocatable :: diag_m_arr
+    real*8 sm_diag
     integer mesh_restriction, sol_restriction, q_data_restriction
     integer mesh_basis, sol_basis
     integer*8 offset
@@ -458,6 +461,7 @@ program main
 ! Create auxiliary solution-size vectors
     allocate (u_array(sol_size))
     allocate (v_array(sol_size))
+    allocate (diag_m_arr(sol_size))
 
     call ceedvectorcreate(ceed, sol_size, u, err)
     offset = 0
@@ -465,6 +469,9 @@ program main
     call ceedvectorcreate(ceed, sol_size, v, err)
     offset = 0
     call ceedvectorsetarray(v, ceed_mem_host, ceed_use_pointer, v_array, offset, err)
+    call ceedvectorcreate(ceed, sol_size, diag_m, err)
+    offset = 0
+    call ceedvectorsetarray(diag_m, ceed_mem_host, ceed_use_pointer, diag_m_arr, offset, err)
 
 ! Initialize 'u' with ones
     call ceedvectorsetvalue(u, 1.d0, err)
@@ -517,9 +524,29 @@ program main
       end if
     end if
 
+! Create diagonal of mass matrix
+    call ceedoperatorlinearassemblediagonal(op_apply, diag_m, ceed_request_immediate, err)
+    offset = 0
+    call ceedvectorgetarrayread(diag_m, ceed_mem_host, diag_m_arr, offset, err)
+    sm_diag = minval(diag_m_arr)
+    call ceedvectorrestorearrayread(diag_m, diag_m_arr, offset, err)
+    if (test /= 1) then
+! LCOV_EXCL_START
+      write (*, *) 'Smallest mass diagonal : ', sm_diag
+! LCOV_EXCL_STOP
+    else
+      if (sm_diag <= 0) then
+! LCOV_EXCL_START
+        write (*, *) 'Smallest mass diagonal error : ', sm_diag
+! LCOV_EXCL_STOP
+      end if
+    end if
+    call ceedvectorreciprocal(diag_m, err)
+
 ! Free dynamically allocated memory
     call ceedvectordestroy(u, err)
     call ceedvectordestroy(v, err)
+    call ceedvectordestroy(diag_m, err)
     call ceedvectordestroy(q_data, err)
     call ceedvectordestroy(mesh_coords, err)
     call ceedoperatordestroy(op_apply, err)
@@ -535,5 +562,6 @@ program main
     call ceeddestroy(ceed, err)
     deallocate (u_array)
     deallocate (v_array)
+    deallocate (diag_m_arr)
 end
 !-----------------------------------------------------------------------
