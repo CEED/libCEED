@@ -226,7 +226,7 @@ program main
     integer num_elem, num_xyz(3), elem_qpts
     integer prob_size, mesh_size, sol_size
     integer help, test, benchmark
-    integer i, num_args, err
+    integer i, num_args, err, d
     character arg*32, arg_value*32
     real*8 exact_volume, computed_volume
 
@@ -235,11 +235,14 @@ program main
     integer mesh_coords, q_data, u, v
     integer diag_m
     real*8, dimension (:), allocatable :: diag_m_arr
+    real*8, dimension (:), allocatable :: x_array
     real*8 sm_diag
     real*8 norm_diff
+    real*8 max_u0
     integer mesh_restriction, sol_restriction, q_data_restriction
     integer mesh_basis, sol_basis
     integer*8 offset
+    integer*8 u_offset
     integer build_ctx
     integer build_ctx_size
     parameter(build_ctx_size = 2)
@@ -538,6 +541,37 @@ program main
       end if
     end if
     call ceedvectorreciprocal(diag_m, err)
+
+    allocate (x_array(mesh_size))
+
+! Set initial u0 to each node's distance from the center of the domain
+    u_offset = 0
+    call ceedvectorgetarraywrite(u, ceed_mem_host, u_array, u_offset, err)
+    offset = 0
+    call ceedvectorgetarrayread(mesh_coords, ceed_mem_host, x_array, offset, err)
+    do i = 1, sol_size
+      u_array(u_offset + i) = 0.d0
+      do d = 1, fe_dim
+        u_array(u_offset + i) = u_array(u_offset + i) + (x_array(offset + i + (d - 1) * sol_size) - 0.5d0) ** 2
+      end do
+      u_array(u_offset + i) = sqrt(u_array(u_offset + i))
+    end do
+    call ceedvectorrestorearrayread(mesh_coords, x_array, offset, err)
+    call ceedvectorrestorearray(u, u_array, u_offset, err)
+    deallocate (x_array)
+
+    call ceedvectornorm(u, ceed_norm_max, max_u0, err)
+    if (test /= 1) then
+! LCOV_EXCL_START
+      write (*, *) 'Max u0 : ', max_u0
+! LCOV_EXCL_STOP
+    else
+      if (abs(max_u0 - sqrt(dble(fe_dim)) / 2.d0) > 1e-12) then
+! LCOV_EXCL_START
+        write (*, *) 'u0 error : ', max_u0
+! LCOV_EXCL_STOP
+      end if
+    end if
 
 ! Free dynamically allocated memory
     call ceedvectordestroy(u, err)
