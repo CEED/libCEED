@@ -155,42 +155,6 @@ subroutine buildcartesianrestriction(ceed, fe_dim, num_xyz, degree, num_comp, me
 end
 
 !-----------------------------------------------------------------------
-subroutine transformmeshcoords(fe_dim, mesh_size, coords, exact_volume, err)
-    implicit none
-
-    integer fe_dim
-    integer mesh_size, scalar_size
-    real*8 coords(mesh_size)
-    real*8 exact_volume
-    real*8 m_pi, m_pi_2
-    parameter(m_pi = 3.14159265358979323846d0)
-    parameter(m_pi_2 = 1.57079632679489661923d0)
-    integer err
-
-    integer i
-    real*8 u, v
-
-    scalar_size = mesh_size/fe_dim
-    select case (fe_dim)
-    case (1)
-      do i = 1, scalar_size
-        coords(i) = 0.5d0 + (1.d0/sqrt(3.d0)) * sin((2.d0/3.d0) * m_pi * (coords(i) - 0.5d0))
-      end do
-      exact_volume = 1.d0
-
-    case (2, 3)
-      do i = 1, scalar_size
-        u = 1.d0 + coords(i)
-        v = m_pi_2 * coords(i + scalar_size)
-
-        coords(i)               = u * cos(v)
-        coords(i + scalar_size) = u * sin(v)
-      end do
-      exact_volume = 3.d0/4.d0 * m_pi
-    end select
-end
-
-!-----------------------------------------------------------------------
 subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exact_volume, err)
     implicit none
     include 'ceed/fortran.h'
@@ -244,7 +208,8 @@ subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exa
     end do
     deallocate(nodes)
 
-    call transformmeshcoords(fe_dim, coords_size, coords, exact_volume, err)
+! Exact volume is 1
+    exact_volume = 1.d0
 
     offset = 0
     call ceedvectorsetarray(mesh_coords, ceed_mem_host, ceed_copy_values, coords, offset, err)
