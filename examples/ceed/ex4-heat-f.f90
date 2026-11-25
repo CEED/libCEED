@@ -8,7 +8,7 @@
 !                             libCEED Example 4
 !
 ! This example illustrates a simple usage of libCEED to compute a basic explicit time integration solution to the heat equation using
-! matrix-free application of a mass operator.
+! matrix-free application of a mass operator, a Poisson operator, and the diagonal of the mass matrix.
 !
 ! The example has no dependencies, and is designed to be self-contained.
 ! For additional examples that use external discretization libraries
@@ -33,7 +33,7 @@
 ! TESTARGS(name = "3D User QFunction") -ceed {ceed_resource} -d 3 -t
 
 !> @file
-!> libCEED example using mass + diffusion operator to compute volume
+!> libCEED example using explicit time integration of the heat equation
 
     include 'ex4-heat-f.h'
 
@@ -233,16 +233,23 @@ program main
     integer ceed
     real*8, dimension (:), allocatable :: u_array, v_array
     integer mesh_coords, q_data, u, v
-    integer diag_m
-    real*8, dimension (:), allocatable :: diag_m_arr
+    integer m_inv
+    real*8, dimension (:), allocatable :: m_inv_arr
     real*8, dimension (:), allocatable :: x_array
     real*8 sm_diag
     real*8 norm_diff
     real*8 max_u0
+    integer num_steps
+    integer step
+    real*8 dt
+    real*8 h
+    real*8 heat_start, heat_end
+    real*8 max_u
     integer mesh_restriction, sol_restriction, q_data_restriction
     integer mesh_basis, sol_basis
     integer*8 offset
     integer*8 u_offset
+    integer*8 v_offset
     integer build_ctx
     integer build_ctx_size
     parameter(build_ctx_size = 2)
@@ -445,7 +452,7 @@ program main
 ! Create auxiliary solution-size vectors
     allocate (u_array(sol_size))
     allocate (v_array(sol_size))
-    allocate (diag_m_arr(sol_size))
+    allocate (m_inv_arr(sol_size))
 
     call ceedvectorcreate(ceed, sol_size, u, err)
     offset = 0
@@ -453,9 +460,9 @@ program main
     call ceedvectorcreate(ceed, sol_size, v, err)
     offset = 0
     call ceedvectorsetarray(v, ceed_mem_host, ceed_use_pointer, v_array, offset, err)
-    call ceedvectorcreate(ceed, sol_size, diag_m, err)
+    call ceedvectorcreate(ceed, sol_size, m_inv, err)
     offset = 0
-    call ceedvectorsetarray(diag_m, ceed_mem_host, ceed_use_pointer, diag_m_arr, offset, err)
+    call ceedvectorsetarray(m_inv, ceed_mem_host, ceed_use_pointer, m_inv_arr, offset, err)
 
 ! Initialize 'u' with ones
     call ceedvectorsetvalue(u, 1.d0, err)
@@ -508,7 +515,7 @@ program main
       end if
     end if
 
-! A applied to vector is zero
+! A applied to a constant vector is zero
     call ceedoperatorapply(op_diff, u, v, ceed_request_immediate, err)
     call ceedvectornorm(v, ceed_norm_max, norm_diff, err)
     if (test /= 1) then
@@ -524,11 +531,11 @@ program main
     end if
 
 ! Create diagonal of mass matrix
-    call ceedoperatorlinearassemblediagonal(op_mass, diag_m, ceed_request_immediate, err)
+    call ceedoperatorlinearassemblediagonal(op_mass, m_inv, ceed_request_immediate, err)
     offset = 0
-    call ceedvectorgetarrayread(diag_m, ceed_mem_host, diag_m_arr, offset, err)
-    sm_diag = minval(diag_m_arr)
-    call ceedvectorrestorearrayread(diag_m, diag_m_arr, offset, err)
+    call ceedvectorgetarrayread(m_inv, ceed_mem_host, m_inv_arr, offset, err)
+    sm_diag = minval(m_inv_arr)
+    call ceedvectorrestorearrayread(m_inv, m_inv_arr, offset, err)
     if (test /= 1) then
 ! LCOV_EXCL_START
       write (*, *) 'Smallest mass diagonal : ', sm_diag
@@ -540,7 +547,7 @@ program main
 ! LCOV_EXCL_STOP
       end if
     end if
-    call ceedvectorreciprocal(diag_m, err)
+    call ceedvectorreciprocal(m_inv, err)
 
     allocate (x_array(mesh_size))
 
@@ -573,10 +580,82 @@ program main
       end if
     end if
 
+! Keep test fast using fewer steps
+    if (test == 1) then
+      num_steps = 10
+    else
+      num_steps = 100
+    end if
+
+! Smallest element size
+    h = 1.d0 / dble(maxval(num_xyz(1:fe_dim)))
+! Forward Euler for heat equation is stable when dt is small
+    dt = (0.1d0 * (h ** 2)) / dble(sol_degree) ** 4
+
+! Compute total heat sum
+    offset = 0
+    u_offset = 0
+    call ceedvectorgetarrayread(u, ceed_mem_host, u_array, u_offset, err)
+    call ceedvectorgetarrayread(m_inv, ceed_mem_host, m_inv_arr, offset, err)
+    heat_start = 0.d0
+    do i = 1, sol_size
+      heat_start = heat_start + u_array(u_offset + i) / m_inv_arr(offset + i)
+    end do
+    call ceedvectorrestorearrayread(u, u_array, u_offset, err)
+    call ceedvectorrestorearrayread(m_inv, m_inv_arr, offset, err)
+
+! Forward Euler time step
+    do step = 1, num_steps
+      call ceedoperatorapply(op_diff, u, v, ceed_request_immediate, err)
+      offset = 0
+      u_offset = 0
+      v_offset = 0
+      call ceedvectorgetarray(v, ceed_mem_host, v_array, v_offset, err)
+      call ceedvectorgetarrayread(m_inv, ceed_mem_host, m_inv_arr, offset, err)
+      call ceedvectorgetarray(u, ceed_mem_host, u_array, u_offset, err)
+      do i = 1, sol_size
+        v_array(v_offset + i) = m_inv_arr(offset + i) * v_array(v_offset + i)
+        v_array(v_offset + i) = -dt * v_array(v_offset + i)
+        u_array(u_offset + i) = u_array(u_offset + i) + v_array(v_offset + i)
+      end do
+      call ceedvectorrestorearray(u, u_array, u_offset, err)
+      call ceedvectorrestorearray(v, v_array, v_offset, err)
+      call ceedvectorrestorearrayread(m_inv, m_inv_arr, offset, err)
+      call ceedvectornorm(u, ceed_norm_max, max_u, err)
+      if (test /= 1) then
+! LCOV_EXCL_START
+        write (*, *) 'Step : ', step, 'max u : ', max_u
+! LCOV_EXCL_STOP
+      end if
+    end do
+
+! Compute heat after time step
+    offset = 0
+    u_offset = 0
+    call ceedvectorgetarrayread(u, ceed_mem_host, u_array, u_offset, err)
+    call ceedvectorgetarrayread(m_inv, ceed_mem_host, m_inv_arr, offset, err)
+    heat_end = 0.d0
+    do i = 1, sol_size
+      heat_end = heat_end + u_array(u_offset + i) / m_inv_arr(offset + i)
+    end do
+    call ceedvectorrestorearrayread(u, u_array, u_offset, err)
+    call ceedvectorrestorearrayread(m_inv, m_inv_arr, offset, err)
+    if (test /= 1) then
+! LCOV_EXCL_START
+      write (*, *) 'Start of heat : ', heat_start, 'End of heat : ', heat_end
+! LCOV_EXCL_STOP
+    else
+      if (abs(heat_end - heat_start) > abs(heat_start) * 1e-10) then
+! LCOV_EXCL_START
+        write (*, *) 'heat conservation error : ', abs(heat_end - heat_start) / abs(heat_start)
+! LCOV_EXCL_STOP
+      end if
+    end if
+
 ! Free dynamically allocated memory
     call ceedvectordestroy(u, err)
     call ceedvectordestroy(v, err)
-    call ceedvectordestroy(diag_m, err)
+    call ceedvectordestroy(m_inv, err)
     call ceedvectordestroy(q_data, err)
     call ceedvectordestroy(mesh_coords, err)
     call ceedoperatordestroy(op_mass, err)
@@ -594,6 +673,6 @@ program main
     call ceeddestroy(ceed, err)
     deallocate (u_array)
     deallocate (v_array)
-    deallocate (diag_m_arr)
+    deallocate (m_inv_arr)
 end
 !-----------------------------------------------------------------------
