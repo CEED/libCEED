@@ -93,6 +93,7 @@ static const char *CeedCudaGetGraphExecUpdateResultInfoString(cudaGraphExecUpdat
 typedef struct {
   int                   device_id;
   char                 *llvm_cxx;
+  char                 *nvcc;
   cublasHandle_t        cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;

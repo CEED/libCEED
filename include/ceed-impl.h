@@ -159,6 +159,8 @@ struct Ceed_private {
   char            err_msg[CEED_MAX_RESOURCE_LEN];
   FOffset        *f_offsets;
   CeedWorkVectors work_vectors;
+  char           *cache_dir;
+  char           *previous_cache_base_dir;
 };
 // NOLINTEND(clang-analyzer-optin.performance.Padding)
 
