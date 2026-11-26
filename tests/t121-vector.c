@@ -12,24 +12,24 @@
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  x, y;
-  CeedInt     len = 10, num_mem_types = 1;
-  CeedMemType type = CEED_MEM_HOST;
+  CeedInt     len = 10, num_test_mem_types = 1;
+  CeedMemType backend_mem_type = CEED_MEM_HOST;
 
   CeedInit(argv[1], &ceed);
   len = argc > 2 ? atoi(argv[2]) : len;
 
-  CeedGetPreferredMemType(ceed, &type);
+  CeedGetPreferredMemType(ceed, &backend_mem_type);
 
   CeedVectorCreate(ceed, len, &x);
   CeedVectorCreate(ceed, len, &y);
 
-  // If mem type DEVICE is chosen, ensure it loops twice.
-  if (type == CEED_MEM_DEVICE) num_mem_types = 2;
+  // If backend prefers DEVICE memory, then the test loops twice
+  if (backend_mem_type == CEED_MEM_DEVICE) num_test_mem_types = 2;
 
-  // Loop to test both HOST and DEVICE
-  for (CeedInt m = 0; m < num_mem_types; m++) {
+  // Loop to test both HOST and DEVICE, as needed
+  for (CeedInt m = 0; m < num_test_mem_types; m++) {
     // First check Host, then Device when syncing array.
-    CeedMemType mem_type = m == 0 ? CEED_MEM_HOST : CEED_MEM_DEVICE;
+    CeedMemType test_mem_type = m == 0 ? CEED_MEM_HOST : CEED_MEM_DEVICE;
 
     CeedScalar array[len];
 
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     {
       CeedScalar *array;
       // Sync by getting writable access to target memory, invalidating other pointer
-      CeedVectorGetArray(y, mem_type, &array);
+      CeedVectorGetArray(y, test_mem_type, &array);
       CeedVectorRestoreArray(y, &array);
     }
     CeedVectorAXPY(y, -0.5, x);

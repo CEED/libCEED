@@ -12,22 +12,21 @@
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  x;
-  CeedInt     len = 10, num_mem_types = 1;  // num_mem_types keeps track of both host and device side (2).
-  CeedMemType preferred_type = CEED_MEM_HOST;
+  CeedInt     len = 10, num_test_mem_types = 1;
+  CeedMemType backend_mem_type = CEED_MEM_HOST;
 
   CeedInit(argv[1], &ceed);
   len = argc > 2 ? atoi(argv[2]) : len;
 
-  // Test both host and device
-  CeedGetPreferredMemType(ceed, &preferred_type);
-  // If prefered memory type is device, then we need to double loop to test both sides to ensure coverage.
-  if (preferred_type == CEED_MEM_DEVICE) num_mem_types = 2;
+  CeedGetPreferredMemType(ceed, &backend_mem_type);
+  // If backend prefers DEVICE memory, then the test loops twice
+  if (backend_mem_type == CEED_MEM_DEVICE) num_test_mem_types = 2;
 
   CeedVectorCreate(ceed, len, &x);
-  // Loop through each mem type to ensure that it is tested.
-  for (CeedInt m = 0; m < num_mem_types; m++) {
+  // Loop to test both HOST and DEVICE, as needed
+  for (CeedInt m = 0; m < num_test_mem_types; m++) {
     // First check host, then check device
-    CeedMemType mem_type = m == 0 ? CEED_MEM_HOST : CEED_MEM_DEVICE;
+    CeedMemType test_mem_type = m == 0 ? CEED_MEM_HOST : CEED_MEM_DEVICE;
 
     // Initialize array
     CeedScalar array[len];
@@ -39,7 +38,7 @@ int main(int argc, char **argv) {
     {
       CeedScalar *array;
       // Sync by getting writable access to target memory, invalidating other pointer
-      CeedVectorGetArray(x, mem_type, &array);
+      CeedVectorGetArray(x, test_mem_type, &array);
       CeedVectorRestoreArray(x, &array);
     }
 
