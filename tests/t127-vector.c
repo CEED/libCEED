@@ -28,7 +28,12 @@ int main(int argc, char **argv) {
     for (CeedInt i = 0; i < len; i++) ones[i] = 1.0;
 
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, ones);
-    CeedVectorSyncArray(x, mem_type);
+    {
+      CeedScalar *array;
+      // Sync by getting writable access to target memory, invalidating other pointer
+      CeedVectorGetArray(x, mem_type, &array);
+      CeedVectorRestoreArray(x, &array);
+    }
 
     // Set strided
     CeedVectorSetValueStrided(x, start, -1, step, 42.0);

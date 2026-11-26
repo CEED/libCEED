@@ -37,8 +37,12 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
     CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, array);
 
-    // Syncing to take both branches host and gpu when mem_type selected for each iteration.
-    CeedVectorSyncArray(y, mem_type);
+    {
+      CeedScalar *array;
+      // Sync by getting writable access to target memory, invalidating other pointer
+      CeedVectorGetArray(y, mem_type, &array);
+      CeedVectorRestoreArray(y, &array);
+    }
     CeedVectorAXPY(y, -0.5, x);
 
     {

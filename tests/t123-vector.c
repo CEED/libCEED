@@ -36,8 +36,12 @@ int main(int argc, char **argv) {
     // Set the array, runs twice if mem_device chosen resulting in overwriting for the second test.
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
 
-    // Sync the array to the type we are working on before testing the operation.
-    CeedVectorSyncArray(x, mem_type);
+    {
+      CeedScalar *array;
+      // Sync by getting writable access to target memory, invalidating other pointer
+      CeedVectorGetArray(x, mem_type, &array);
+      CeedVectorRestoreArray(x, &array);
+    }
 
     // Scale
     CeedVectorScale(x, -0.5);
