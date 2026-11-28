@@ -7,6 +7,10 @@
 
 #include <ceed/types.h>
 
+/// Build context data is a long long int array to match Fortran's integer*8
+/// dim = ctx[0]
+/// space_dim = ctx[1]
+
 /// libCEED Q-function for building quadrature data for a mass operator
 CEED_QFUNCTION(build_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const long *build_data = (const long *)ctx;
