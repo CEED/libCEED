@@ -518,6 +518,7 @@ program main
 ! Smallest element size
     h = 1.d0 / dble(maxval(num_xyz(1:fe_dim)))
 ! Forward Euler for heat equation is stable when dt is small
+! https://en.wikipedia.org/wiki/FTCS_scheme
     dt = (0.1d0 * (h ** 2)) / dble(sol_degree) ** 4
 
 ! Compute total heat sum
