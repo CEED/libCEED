@@ -7,9 +7,11 @@
 
 #include <ceed/types.h>
 
+/// Build context data is a long long int array to match Fortran's integer*8
+/// dim = ctx[0]
+/// space_dim = ctx[1]
+
 /// libCEED Q-function for building quadrature data for a mass + diffusion operator
-/// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
-/// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
 CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const long dim       = ((const long *)ctx)[0];
   const long space_dim = ((const long *)ctx)[1];
@@ -91,8 +93,6 @@ CEED_QFUNCTION(build_mass_diff)(void *ctx, const CeedInt Q, const CeedScalar *co
 }
 
 /// libCEED Q-function for applying a mass operator
-/// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
-/// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
 CEED_QFUNCTION(apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] solution values with shape [1, Q]
   // in[1] is quadrature data with shape [1 + dim*(dim+1)/2, Q]
@@ -109,8 +109,6 @@ CEED_QFUNCTION(apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
 }
 
 /// libCEED Q-function for applying a diffusion operator
-/// Context is a long long int array: ctx[0] = dim, ctx[1] = space_dim
-/// This matches the Fortran integer*8 ctx(2) convention and enables GPU execution
 CEED_QFUNCTION(apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const long dim = ((const long *)ctx)[0];
 
