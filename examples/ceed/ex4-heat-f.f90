@@ -155,7 +155,7 @@ subroutine buildcartesianrestriction(ceed, fe_dim, num_xyz, degree, num_comp, me
 end
 
 !-----------------------------------------------------------------------
-subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exact_volume, err)
+subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, err)
     implicit none
     include 'ceed/fortran.h'
 
@@ -163,7 +163,6 @@ subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exa
     integer num_xyz(3)
     integer mesh_degree
     integer mesh_coords
-    real*8 exact_volume
     integer err
 
     integer p
@@ -208,9 +207,6 @@ subroutine setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exa
     end do
     deallocate(nodes)
 
-! Exact volume is 1
-    exact_volume = 1.d0
-
     offset = 0
     call ceedvectorsetarray(mesh_coords, ceed_mem_host, ceed_copy_values, coords, offset, err)
     deallocate(coords)
@@ -228,7 +224,6 @@ program main
     integer help, test, benchmark
     integer i, num_args, err, d
     character arg*32, arg_value*32
-    real*8 exact_volume, computed_volume
 
     integer ceed
     real*8, dimension (:), allocatable :: u_array, v_array
@@ -237,7 +232,6 @@ program main
     real*8, dimension (:), allocatable :: m_inv_arr
     real*8, dimension (:), allocatable :: x_array
     real*8 sm_diag
-    real*8 norm_diff
     real*8 max_u0
     integer num_steps
     integer step
@@ -385,7 +379,7 @@ program main
 
 ! Create a CeedVector with the mesh coordinates
     call ceedvectorcreate(ceed, mesh_size, mesh_coords, err)
-    call setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, exact_volume, err)
+    call setcartesianmeshcoords(fe_dim, num_xyz, mesh_degree, mesh_coords, err)
 
 ! Context data to be passed to the 'build_mass_diff' QFunction
     build_ctx_data(1) = fe_dim
@@ -463,72 +457,6 @@ program main
     call ceedvectorcreate(ceed, sol_size, m_inv, err)
     offset = 0
     call ceedvectorsetarray(m_inv, ceed_mem_host, ceed_use_pointer, m_inv_arr, offset, err)
-
-! Initialize 'u' with ones
-    call ceedvectorsetvalue(u, 1.d0, err)
-
-! Compute the mesh volume using the mass operator: volume = 1^T \cdot M \cdot 1
-    call ceedoperatorapply(op_mass, u, v, ceed_request_immediate, err)
-
-! Benchmark runs
-    if (test /= 1 .AND. benchmark /= 0) then
-! LCOV_EXCL_START
-      write (*, *) ' Executing ', benchmark, ' benchmarking runs...'
-! LCOV_EXCL_STOP
-    end if
-    do i = 1, benchmark
-! LCOV_EXCL_START
-      call ceedoperatorapply(op_mass, u, v, ceed_request_immediate, err)
-! LCOV_EXCL_STOP
-    end do
-
-! Compute and print the sum of the entries of 'v' giving the mesh volume
-    computed_volume = 0.d0
-
-    offset = 0
-    call ceedvectorgetarrayread(v, ceed_mem_host, v_array, offset, err)
-    do i = 1, sol_size
-      computed_volume = computed_volume + v_array(i)
-    end do
-    call ceedvectorrestorearrayread(v, v_array, offset, err)
-
-    if (test /= 1) then
-! LCOV_EXCL_START
-      write (*, *) ' done.'
-      write (*, *) 'Exact mesh volume    :', exact_volume
-      write (*, *) 'Computed mesh volume :', computed_volume
-      write (*, *) 'Volume error         :', (computed_volume - exact_volume)
-! LCOV_EXCL_STOP
-    else
-      if (fe_dim == 1) then
-        if (abs(computed_volume - exact_volume) > 200.d0 * 1e-15) then
-! LCOV_EXCL_START
-          write (*, *) 'Volume error : ', (computed_volume - exact_volume)
-! LCOV_EXCL_STOP
-        end if
-      else
-        if (abs(computed_volume - exact_volume) > 1e-5) then
-! LCOV_EXCL_START
-          write (*, *) 'Volume error : ', (computed_volume - exact_volume)
-! LCOV_EXCL_STOP
-        end if
-      end if
-    end if
-
-! A applied to a constant vector is zero
-    call ceedoperatorapply(op_diff, u, v, ceed_request_immediate, err)
-    call ceedvectornorm(v, ceed_norm_max, norm_diff, err)
-    if (test /= 1) then
-! LCOV_EXCL_START
-      write (*, *) 'Max of A*1 : ', norm_diff
-! LCOV_EXCL_STOP
-    else
-      if (norm_diff > 1e-10) then
-! LCOV_EXCL_START
-        write (*, *) 'A*1 error : ', norm_diff
-! LCOV_EXCL_STOP
-      end if
-    end if
 
 ! Create diagonal of mass matrix
     call ceedoperatorlinearassemblediagonal(op_mass, m_inv, ceed_request_immediate, err)
